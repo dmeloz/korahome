@@ -1,7 +1,19 @@
+import { useState } from "react";
 import type { Foyer } from "../../domaine/types";
 import { choisirMembreCourant } from "../contexte";
+import { MESSAGES_VERIFICATION, type ResultatVerification } from "../miseAJour";
 
-export function Reglages(props: { foyer: Foyer; membreId: string | null; changerMembre: (id: string) => void }) {
+export function Reglages(props: {
+  foyer: Foyer;
+  membreId: string | null;
+  changerMembre: (id: string) => void;
+  verifierMiseAJour: () => Promise<ResultatVerification>;
+}) {
+  const [verification, setVerification] = useState<string | null>(null);
+  const verifier = async () => {
+    setVerification("Vérification…");
+    setVerification(MESSAGES_VERIFICATION[await props.verifierMiseAJour()]);
+  };
   return (
     <main>
       <h1>Réglages</h1>
@@ -27,8 +39,14 @@ export function Reglages(props: { foyer: Foyer; membreId: string | null; changer
           </li>
         ))}
       </ul>
+      <h2 className="rayon">Application</h2>
+      <div className="carte version">
+        <p><strong>Kora {__VERSION__}</strong></p>
+        <button className="lien" onClick={verifier}>Vérifier les mises à jour</button>
+        {verification && <p className="discret" role="status">{verification}</p>}
+      </div>
       <p className="discret pied">
-        KoraHome {__VERSION__}. Les données sont pour l'instant enregistrées sur ce téléphone uniquement ;
+        Les données sont pour l'instant enregistrées sur ce téléphone uniquement ;
         la synchronisation entre vos deux iPhones arrive à l'étape suivante.
       </p>
     </main>

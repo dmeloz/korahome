@@ -408,3 +408,24 @@ h1 {
   font-size: 15px;
 }
 .toast .lien { color: var(--fond); font-weight: 600; text-decoration: underline; padding: 4px 0; }
+
+/* Bandeau « Nouvelle version prête », au-dessus du bas de l'écran. */
+.bandeau-version {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: calc(env(safe-area-inset-bottom) + 16px);
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--surface-haute);
+  border: 1px solid var(--accent);
+  border-radius: 16px;
+  padding: 10px 10px 10px 16px;
+  z-index: 10;
+}
+.bandeau-version .bouton-principal { width: auto; margin: 0; padding: 10px 16px; }
+.carte.version .lien { padding: 4px 0; }
