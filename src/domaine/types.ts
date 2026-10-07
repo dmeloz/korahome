@@ -56,6 +56,30 @@ export const RAYONS = [
 
 export type Rayon = (typeof RAYONS)[number];
 
+/** Une date du calendrier, « AAAA-MM-JJ », dans le fuseau du téléphone. */
+export type Jour = string;
+
+/** Une tâche qui revient : tous les N jours, semaines ou mois. */
+export interface Recurrence {
+  unite: "jour" | "semaine" | "mois";
+  tous: number;
+}
+
+export interface Tache {
+  id: Id;
+  titre: string;
+  /** null : une tâche à faire une seule fois. */
+  recurrence: Recurrence | null;
+  /** Prochaine date où la tâche est à faire. */
+  echeance: Jour;
+  /** Qui s'en occupe ; null : libre, chacun peut la prendre. */
+  responsable: Id | null;
+  /** Dernière fois que la tâche a été faite, et par qui. */
+  faiteLe: string | null;
+  faitePar: Id | null;
+  creeLe: string;
+}
+
 /** Horloge et générateur d'identifiants injectés, pour des tests déterministes. */
 export interface Contexte {
   maintenant: () => string;

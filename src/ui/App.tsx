@@ -7,6 +7,7 @@ import { Bientot } from "./ecrans/Bientot";
 import { DetailListe } from "./ecrans/DetailListe";
 import { Listes } from "./ecrans/Listes";
 import { Plus } from "./ecrans/Plus";
+import { Taches } from "./ecrans/Taches";
 import { Icone, type NomIcone } from "./Icone";
 import { useDonnees } from "./useDonnees";
 
@@ -21,7 +22,7 @@ const ONGLETS: { id: Onglet; libelle: string; icone: NomIcone }[] = [
 ];
 
 export function App({ depot }: { depot: Depot }) {
-  const { pret, foyer, listes, elements } = useDonnees(depot);
+  const { pret, foyer, listes, elements, taches } = useDonnees(depot);
   const [onglet, setOnglet] = useState<Onglet>("accueil");
   const [listeOuverte, setListeOuverte] = useState<string | null>(null);
   const [membreId, setMembreId] = useState<string | null>(lireMembreCourant);
@@ -39,7 +40,17 @@ export function App({ depot }: { depot: Depot }) {
   let ecran;
   switch (onglet) {
     case "accueil":
-      ecran = <Accueil foyer={foyer} membreId={membre} listes={listes} elements={elements} ouvrirListe={ouvrirListe} />;
+      ecran = (
+        <Accueil
+          foyer={foyer}
+          membreId={membre}
+          listes={listes}
+          elements={elements}
+          taches={taches}
+          ouvrirListe={ouvrirListe}
+          ouvrirTaches={() => setOnglet("taches")}
+        />
+      );
       break;
     case "listes":
       ecran = liste ? (
@@ -56,7 +67,7 @@ export function App({ depot }: { depot: Depot }) {
       );
       break;
     case "taches":
-      ecran = <Bientot titre="Tâches" icone="✅" texte="Les tâches de la maison, qui fait quoi, et les rappels." />;
+      ecran = <Taches depot={depot} foyer={foyer} membreId={membre} taches={taches} />;
       break;
     case "agenda":
       ecran = <Bientot titre="Agenda" icone="🗓️" texte="Vos rendez-vous, anniversaires et échéances, au même endroit." />;

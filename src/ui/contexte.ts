@@ -1,9 +1,15 @@
-import type { Contexte } from "../domaine/types";
+import type { Contexte, Jour } from "../domaine/types";
 
 export const contexteReel: Contexte = {
   maintenant: () => new Date().toISOString(),
   nouvelId: () => crypto.randomUUID(),
 };
+
+/** La date du jour dans le fuseau du téléphone, « AAAA-MM-JJ ». */
+export function aujourdhuiLocal(maintenant = new Date()): Jour {
+  const deux = (n: number) => String(n).padStart(2, "0");
+  return `${maintenant.getFullYear()}-${deux(maintenant.getMonth() + 1)}-${deux(maintenant.getDate())}`;
+}
 
 const CLE_MEMBRE = "korahome.membreCourant";
 

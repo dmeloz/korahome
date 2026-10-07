@@ -1,8 +1,9 @@
-import type { Element, Foyer, Id, Liste } from "../domaine/types";
+import type { Element, Foyer, Id, Liste, Tache } from "../domaine/types";
 import type { Depot } from "./depot";
 
-const VERSION = 1;
-const MAGASINS = ["foyer", "listes", "elements"] as const;
+// Version 2 : ajout des tâches. La mise à jour crée seulement les magasins manquants.
+const VERSION = 2;
+const MAGASINS = ["foyer", "listes", "elements", "taches"] as const;
 type Magasin = (typeof MAGASINS)[number];
 
 function ouvrir(nomBase: string, fabrique: IDBFactory): Promise<IDBDatabase> {
@@ -80,6 +81,11 @@ export function creerDepotLocal(
     lireElements: () => tous<Element>("elements"),
     enregistrerElement: (element) => ecrire("elements", (s) => s.put(element)),
     supprimerElements: (ids) => ecrire("elements", (s) => ids.forEach((id) => s.delete(id))),
+
+    lireTaches: () => tous<Tache>("taches"),
+    enregistrerTache: (tache) => ecrire("taches", (s) => s.put(tache)),
+    enregistrerTaches: (taches) => ecrire("taches", (s) => taches.forEach((t) => s.put(t))),
+    supprimerTache: (id) => ecrire("taches", (s) => s.delete(id)),
 
     abonner(rappel) {
       abonnes.add(rappel);
