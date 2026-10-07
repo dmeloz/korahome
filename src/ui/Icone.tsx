@@ -3,14 +3,34 @@ const TRACES = {
   liste: "M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01",
   coche: "M4 12.5 9 17.5 20 6.5",
   calendrier: "M4 6a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM4 10h16M8 3v4M16 3v4",
-  plus: "M5 12h.01M12 12h.01M19 12h.01",
+  panier: "M3 5h2l2.4 10.2a1 1 0 0 0 1 .8h8.9a1 1 0 0 0 1-.8L20 8H6.2M9.5 20h.01M17 20h.01",
+  chat: "M5 20v-9l-1-6 4 3h8l4-3-1 6v9zM9.5 13h.01M14.5 13h.01",
+  frigo: "M6 3h12v18H6zM6 10h12M9 6v2M9 13v3",
+  feuille: "M5 19c0-8 5-14 15-15-1 10-7 15-15 15zM5 19l7-7",
+  retour: "M15 5l-7 7 7 7",
+  reglages: "M4 7h10M18 7h2M4 17h4M12 17h8M14 4v6M8 14v6",
+  haut: "M6 15l6-6 6 6",
+  bas: "M6 9l6 6 6-6",
+  moins: "M6 12h12",
+  ajouter: "M12 5v14M5 12h14",
+  suivant: "M9 5l7 7-7 7",
 } as const;
 
 export type NomIcone = keyof typeof TRACES;
 
-export function Icone({ nom }: { nom: NomIcone }) {
+export function Icone({ nom, taille }: { nom: NomIcone; taille?: number }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={nom === "plus" ? 3 : 1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg
+      viewBox="0 0 24 24"
+      width={taille}
+      height={taille}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.7}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
       <path d={TRACES[nom]} />
     </svg>
   );

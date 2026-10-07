@@ -10,7 +10,6 @@ export function DetailListe(props: {
   membreId: string | null;
   liste: Liste;
   elements: Element[];
-  retour: () => void;
 }) {
   const [saisie, setSaisie] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -56,10 +55,7 @@ export function DetailListe(props: {
 
   return (
     <main>
-      <button className="retour" onClick={props.retour}>‹ Listes</button>
-      <h1>
-        {props.liste.icone} {props.liste.nom}
-      </h1>
+      <h1>{props.liste.nom}</h1>
       <form onSubmit={ajouter} className="ajout">
         <input
           value={saisie}

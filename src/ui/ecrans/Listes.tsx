@@ -3,6 +3,7 @@ import { compterAPrendre, nouvelleListe } from "../../domaine/listes";
 import type { Element, Liste } from "../../domaine/types";
 import type { Depot } from "../../donnees/depot";
 import { contexteReel } from "../contexte";
+import { Icone } from "../Icone";
 
 export function Listes(props: {
   depot: Depot;
@@ -28,10 +29,10 @@ export function Listes(props: {
           return (
             <li key={l.id}>
               <button className="ligne" onClick={() => props.ouvrirListe(l.id)}>
-                <span className="tuile-icone" aria-hidden>{l.icone}</span>
+                <span className="pictogramme"><Icone nom={l.type === "courses" ? "panier" : "liste"} taille={20} /></span>
                 <span className="ligne-texte">{l.nom}</span>
                 {n > 0 && <span className="pastille">{n}</span>}
-                <span className="chevron" aria-hidden>›</span>
+                <span className="chevron"><Icone nom="suivant" taille={18} /></span>
               </button>
             </li>
           );
