@@ -46,7 +46,7 @@ if [ ! -f "$DOSSIER/serveur.crt" ] || [ "$(cat "$DOSSIER/san.txt" 2>/dev/null)" 
   openssl req -new -key "$DOSSIER/serveur.key" -subj "/CN=$HOTE" -out "$DOSSIER/serveur.csr"
   printf "subjectAltName=%s\nextendedKeyUsage=serverAuth\nbasicConstraints=CA:FALSE\nkeyUsage=digitalSignature,keyEncipherment\n" "$SAN" > "$DOSSIER/serveur.ext"
   openssl x509 -req -in "$DOSSIER/serveur.csr" -CA "$DOSSIER/ca.crt" -CAkey "$DOSSIER/ca.key" \
-    -CAcreateserial -days 825 -sha256 -extfile "$DOSSIER/serveur.ext" -out "$DOSSIER/serveur.crt" 2>/dev/null
+    -CAserial "$DOSSIER/ca.srl" -CAcreateserial -days 825 -sha256 -extfile "$DOSSIER/serveur.ext" -out "$DOSSIER/serveur.crt" 2>/dev/null
   echo "$SAN" > "$DOSSIER/san.txt"
 fi
 
