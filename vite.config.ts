@@ -1,10 +1,19 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 import { VitePWA } from "vite-plugin-pwa";
 import paquet from "./package.json" with { type: "json" };
 
+// Certificats créés par scripts/serveur-mac.sh pour servir l'app en https sur le réseau local.
+const dossierHttps = process.env.KORAHOME_HTTPS;
+const https = dossierHttps
+  ? { key: readFileSync(join(dossierHttps, "serveur.key")), cert: readFileSync(join(dossierHttps, "serveur.crt")) }
+  : undefined;
+
 export default defineConfig({
   define: { __VERSION__: JSON.stringify(paquet.version) },
+  preview: { https },
   plugins: [
     react(),
     VitePWA({

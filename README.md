@@ -9,6 +9,6 @@ npm test
 npm run build
 ```
 
-Sur iPhone : ouvrir l'app dans Safari, Partager, « Sur l'écran d'accueil ».
+Installer sur iPhone depuis le Mac de la maison : `npm run serveur`, puis voir `docs/installer-sur-iphone.md`.
 
 Voir `CLAUDE.md` pour l'architecture.

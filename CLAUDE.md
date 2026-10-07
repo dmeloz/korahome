@@ -8,6 +8,7 @@ Fiche projet et plan (sur le Mac de la propriétaire) : `~/Atelier-Claude/Cervea
 - `npm run dev` : serveur de développement (accessible depuis l'iPhone sur le même wifi).
 - `npm test` : tests (Vitest).
 - `npm run typecheck` puis `npm run build` : vérification des types et build de production dans `dist/`.
+- `npm run serveur` : sert l'app en https sur le wifi depuis le Mac (certificat local dans `.certificats/`, voir `docs/installer-sur-iphone.md`).
 
 ## Architecture
 - `src/domaine/` : logique métier en TypeScript pur. **Aucun import de React, du DOM ou du stockage.** Horloge et identifiants passent par `Contexte`. Chaque règle a ses tests à côté (`*.test.ts`). C'est la spécification que reprendra l'app native.
