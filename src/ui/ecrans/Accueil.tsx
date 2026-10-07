@@ -1,5 +1,4 @@
 import { useState, type ReactNode } from "react";
-import { compterAPrendre } from "../../domaine/listes";
 import {
   ajouterWidget,
   definition,
@@ -11,20 +10,9 @@ import {
   type Disposition,
   type WidgetId,
 } from "../../domaine/tableauDeBord";
-import { compterDues, decrireEcheance, organiserTaches } from "../../domaine/taches";
-import type { Element, Foyer, Liste, Tache } from "../../domaine/types";
-import { aujourdhuiLocal, enregistrerDisposition, lireDisposition } from "../contexte";
-import { Icone, type NomIcone } from "../Icone";
-
-const PICTOS: Record<WidgetId, NomIcone> = {
-  taches: "coche",
-  courses: "panier",
-  listes: "liste",
-  agenda: "calendrier",
-  mitsu: "chat",
-  stock: "frigo",
-  jardin: "feuille",
-};
+import { enregistrerDisposition, lireDisposition } from "../contexte";
+import { Icone } from "../Icone";
+import { MODULES, PICTOS, type ApercuWidget, type DonneesModule } from "../modules";
 
 function salutation(heure: number): string {
   if (heure < 5) return "Bonne nuit";
@@ -32,31 +20,15 @@ function salutation(heure: number): string {
   return "Bonsoir";
 }
 
-const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? "s" : ""}`;
-
-interface Contenu {
-  chiffre: string;
-  legende: string;
-  apercu: string[];
-  urgent: boolean;
-  ouvrir: () => void;
-}
-
 export function Accueil(props: {
-  foyer: Foyer;
-  membreId: string | null;
-  listes: Liste[];
-  elements: Element[];
-  taches: Tache[];
-  ouvrirListe: (id: string) => void;
-  ouvrirListes: () => void;
-  ouvrirTaches: () => void;
+  donnees: DonneesModule;
+  ouvrirModule: (id: WidgetId) => void;
   ouvrirReglages: () => void;
 }) {
   const [disposition, setDisposition] = useState<Disposition>(() => nettoyerDisposition(lireDisposition()));
   const [edition, setEdition] = useState(false);
-  const aujourdhui = aujourdhuiLocal();
-  const moi = props.foyer.membres.find((m) => m.id === props.membreId);
+  const { foyer, membreId } = props.donnees;
+  const moi = foyer.membres.find((m) => m.id === membreId);
   const date = new Date().toLocaleDateString("fr-CH", { weekday: "long", day: "numeric", month: "long" });
 
   const changer = (d: Disposition) => {
@@ -64,50 +36,14 @@ export function Accueil(props: {
     enregistrerDisposition(d);
   };
 
-  // Ce que montre chaque widget.
-  const courses = props.listes.find((l) => l.type === "courses");
-  const autres = props.listes.filter((l) => l.type !== "courses");
-  const dues = compterDues(props.taches, aujourdhui);
-  const aFaire = organiserTaches(props.taches, aujourdhui).groupes.flatMap((g) => g.taches);
+  // Ce que montre chaque widget, calculé par son module.
+  const apercus = new Map<WidgetId, ApercuWidget>();
+  for (const id of disposition) {
+    const module = MODULES[id];
+    if (module) apercus.set(id, module.widget(props.donnees));
+  }
 
-  const contenus: Partial<Record<WidgetId, Contenu>> = {
-    taches: {
-      chiffre: String(dues.aujourdhui + dues.enRetard),
-      legende:
-        props.taches.length === 0
-          ? "Aucune tâche pour l'instant"
-          : dues.enRetard > 0
-            ? `à faire, dont ${dues.enRetard} en retard`
-            : dues.aujourdhui > 0
-              ? "à faire aujourd'hui"
-              : "Rien à faire aujourd'hui",
-      apercu: aFaire.slice(0, 3).map((t) => `${t.titre} · ${decrireEcheance(t.echeance, aujourdhui)}`),
-      urgent: dues.aujourdhui + dues.enRetard > 0,
-      ouvrir: props.ouvrirTaches,
-    },
-    courses: courses && {
-      chiffre: String(compterAPrendre(courses, props.elements)),
-      legende: compterAPrendre(courses, props.elements) === 0 ? "Rien à acheter" : "à acheter",
-      apercu: props.elements
-        .filter((e) => e.listeId === courses.id && !e.coche)
-        .slice(0, 3)
-        .map((e) => (e.quantite ? `${e.texte} · ${e.quantite}` : e.texte)),
-      urgent: false,
-      ouvrir: () => props.ouvrirListe(courses.id),
-    },
-    listes: {
-      chiffre: String(autres.length),
-      legende: autres.length === 0 ? "Aucune autre liste" : autres.length > 1 ? "listes" : "liste",
-      apercu: autres.slice(0, 3).map((l) => {
-        const n = compterAPrendre(l, props.elements);
-        return n ? `${l.nom} · ${pluriel(n, "élément")}` : l.nom;
-      }),
-      urgent: false,
-      ouvrir: props.ouvrirListes,
-    },
-  };
-
-  const urgents = new Set(disposition.filter((id) => contenus[id]?.urgent));
+  const urgents = new Set(disposition.filter((id) => apercus.get(id)?.urgent));
   const affiches = edition ? disposition : ordreAffichage(disposition, urgents);
   const { prets, bientot } = widgetsAAjouter(disposition);
 
@@ -135,7 +71,7 @@ export function Accueil(props: {
 
       <div className="widgets">
         {affiches.map((id, i) => {
-          const c = contenus[id];
+          const c = apercus.get(id);
           if (!c) return null;
           const def = definition(id);
           const corps: ReactNode = (
@@ -146,12 +82,12 @@ export function Accueil(props: {
                 {!edition && c.urgent && <span className="signal">À faire</span>}
               </span>
               <span className="widget-chiffre">
-                {c.chiffre !== "0" && <strong>{c.chiffre}</strong>}
+                {c.chiffre > 0 && <strong>{c.chiffre}</strong>}
                 <span>{c.legende}</span>
               </span>
-              {!edition && c.apercu.length > 0 && (
+              {!edition && c.lignes.length > 0 && (
                 <span className="widget-apercu">
-                  {c.apercu.map((ligne) => <span key={ligne}>{ligne}</span>)}
+                  {c.lignes.map((ligne) => <span key={ligne}>{ligne}</span>)}
                 </span>
               )}
             </>
@@ -172,7 +108,7 @@ export function Accueil(props: {
               </span>
             </div>
           ) : (
-            <button key={id} className={`widget${c.urgent ? " urgent" : ""}`} onClick={c.ouvrir}>
+            <button key={id} className={`widget${c.urgent ? " urgent" : ""}`} onClick={() => props.ouvrirModule(id)}>
               {corps}
             </button>
           );
