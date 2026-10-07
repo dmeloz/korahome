@@ -208,3 +208,83 @@ h1 { font-size: 32px; letter-spacing: -0.02em; margin: 8px 0 20px; }
 }
 .onglets svg { width: 26px; height: 26px; }
 .onglets button.actif { color: var(--accent); font-weight: 600; }
+
+/* Tâches */
+.ajout-tache { margin-bottom: 8px; }
+.options-tache { display: flex; flex-direction: column; gap: 10px; margin: 4px 0 12px; }
+.puces { display: flex; flex-wrap: wrap; gap: 6px; }
+.puce {
+  border: 1px solid var(--trait);
+  background: var(--carte);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 15px;
+}
+.puce.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.date-tache { display: flex; align-items: center; gap: 10px; font-size: 15px; color: var(--discret); }
+.date-tache input {
+  border: 1px solid var(--trait);
+  background: var(--carte);
+  color: var(--texte);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 16px;
+}
+
+.segments {
+  display: flex;
+  background: var(--trait);
+  border-radius: 10px;
+  padding: 2px;
+  margin: 8px 0 4px;
+}
+.segments button {
+  flex: 1;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  padding: 7px 4px;
+  font-size: 15px;
+  color: var(--discret);
+}
+.segments button.actif { background: var(--carte); color: var(--texte); font-weight: 600; box-shadow: var(--ombre); }
+
+.tache { padding: 6px 12px 6px 16px; }
+.tache .case { background: none; padding: 0; }
+.tache.coche .case { background: var(--accent); border-color: var(--accent); }
+.tache.coche .ligne-texte { color: var(--coche); text-decoration: line-through; }
+.tache-texte {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 6px 0;
+}
+.tache-details { font-size: 14px; color: var(--discret); }
+.tache-details.retard, .rayon.retard { color: var(--accent); }
+.tache-actions { display: flex; flex-wrap: wrap; gap: 4px 18px; padding: 0 16px 10px 52px; }
+.tache-actions .lien { font-size: 15px; padding: 4px 0; }
+.lien.danger { color: var(--accent); font-weight: 600; }
+
+.toast {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: calc(env(safe-area-inset-bottom) + 76px);
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--texte);
+  color: var(--fond);
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 15px;
+}
+.toast .lien { color: var(--fond); font-weight: 600; text-decoration: underline; padding: 4px 0; }

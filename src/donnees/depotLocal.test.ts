@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { contexteTest } from "../domaine/contexteTest";
 import { creerFoyer, listesInitiales } from "../domaine/foyer";
 import { basculerCoche, nouvelElement } from "../domaine/listes";
+import { marquerFaite, tachesDeDepart } from "../domaine/taches";
 import { creerDepotLocal } from "./depotLocal";
 
 function depotNeuf() {
@@ -56,5 +57,32 @@ describe("dépôt local", () => {
     desabonner();
     await depot.supprimerElements([]);
     expect(rappel).toHaveBeenCalledTimes(1);
+  });
+
+  it("conserve et supprime les tâches", async () => {
+    const ctx = contexteTest();
+    const depot = depotNeuf();
+    const [menage, linge] = tachesDeDepart("2026-10-07", ctx);
+    await depot.enregistrerTaches([menage, linge]);
+    await depot.enregistrerTache(marquerFaite(linge, null, "2026-10-07", ctx));
+    await depot.supprimerTache(menage.id);
+    const taches = await depot.lireTaches();
+    expect(taches.map((t) => [t.titre, t.echeance])).toEqual([["Linge", "2026-10-14"]]);
+  });
+
+  it("ajoute les tâches à une base créée avant leur arrivée", async () => {
+    const fabrique = new IDBFactory();
+    const ancienne = fabrique.open("ancienne", 1);
+    await new Promise<void>((ok) => {
+      ancienne.onupgradeneeded = () => {
+        for (const m of ["foyer", "listes", "elements"]) ancienne.result.createObjectStore(m, { keyPath: "id" });
+      };
+      ancienne.onsuccess = () => {
+        ancienne.result.close();
+        ok();
+      };
+    });
+    const depot = creerDepotLocal("ancienne", fabrique);
+    expect(await depot.lireTaches()).toEqual([]);
   });
 });

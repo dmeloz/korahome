@@ -1,4 +1,4 @@
-import type { Element, Foyer, Id, Liste } from "../domaine/types";
+import type { Element, Foyer, Id, Liste, Tache } from "../domaine/types";
 
 /**
  * Seul point d'accès aux données. L'interface ne parle qu'à ce contrat :
@@ -16,6 +16,11 @@ export interface Depot {
   lireElements(): Promise<Element[]>;
   enregistrerElement(element: Element): Promise<void>;
   supprimerElements(ids: Id[]): Promise<void>;
+
+  lireTaches(): Promise<Tache[]>;
+  enregistrerTache(tache: Tache): Promise<void>;
+  enregistrerTaches(taches: Tache[]): Promise<void>;
+  supprimerTache(id: Id): Promise<void>;
 
   /** Prévient l'abonné à chaque changement, y compris venant d'un autre onglet ou appareil. */
   abonner(rappel: () => void): () => void;
