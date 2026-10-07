@@ -17,7 +17,10 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: "autoUpdate",
+      // « prompt » : la nouvelle version attend le geste « Mettre à jour » (bandeau).
+      registerType: "prompt",
+      // Au tout premier lancement, l'app est prise en charge tout de suite.
+      workbox: { clientsClaim: true },
       includeAssets: ["favicon.svg", "apple-touch-icon.png"],
       manifest: {
         name: "KoraHome",

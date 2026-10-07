@@ -9,7 +9,7 @@ npm run serveur
 
 Le script récupère la dernière version, construit l'app et la sert en https sur le wifi de la maison. Il affiche l'adresse (par exemple `https://MacBook-Air.local:4443`) et le chemin du profil à installer. Le Mac doit rester allumé et sur le même wifi que les iPhones.
 
-**Mettre à jour** : arrêter le serveur (Ctrl+C) et relancer `npm run serveur`. Les iPhones récupèrent la nouvelle version à la relance suivante de l'app.
+**Mettre à jour** : arrêter le serveur (Ctrl+C) et relancer `npm run serveur`. Dans l'app, le bandeau « Nouvelle version prête » apparaît : toucher « Mettre à jour ». On peut aussi aller dans Réglages > Vérifier les mises à jour. La version installée s'affiche dans les Réglages (par exemple « Kora 0.0.1 »).
 
 ## Une seule fois par iPhone : le profil
 1. Envoyer `.certificats/KoraHome-certificat.mobileconfig` du Mac vers l'iPhone par AirDrop.

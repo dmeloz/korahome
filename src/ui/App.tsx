@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import type { WidgetId } from "../domaine/tableauDeBord";
 import type { Depot } from "../donnees/depot";
 import { aujourdhuiLocal, lireMembreCourant } from "./contexte";
@@ -7,6 +7,7 @@ import { Bienvenue } from "./ecrans/Bienvenue";
 import { DetailListe } from "./ecrans/DetailListe";
 import { Reglages } from "./ecrans/Reglages";
 import { Icone } from "./Icone";
+import type { MiseAJour } from "./miseAJour";
 import { MODULES, type DonneesModule } from "./modules";
 import { useDonnees } from "./useDonnees";
 
@@ -18,10 +19,11 @@ type Page =
   | { nom: "liste"; id: string }
   | { nom: "reglages" };
 
-export function App({ depot }: { depot: Depot }) {
+export function App({ depot, miseAJour }: { depot: Depot; miseAJour: MiseAJour }) {
   const { pret, foyer, listes, elements, taches } = useDonnees(depot);
   const [pile, setPile] = useState<Page[]>([{ nom: "accueil" }]);
   const [membreId, setMembreId] = useState<string | null>(lireMembreCourant);
+  const nouvelleVersion = useSyncExternalStore(miseAJour.abonner, miseAJour.prete);
 
   if (!pret) return null;
   if (!foyer) return <Bienvenue depot={depot} onCree={setMembreId} />;
@@ -67,7 +69,7 @@ export function App({ depot }: { depot: Depot }) {
       <main><p className="vide">Cette liste n'existe plus.</p></main>
     );
   } else {
-    ecran = <Reglages foyer={foyer} membreId={membre} changerMembre={setMembreId} />;
+    ecran = <Reglages foyer={foyer} membreId={membre} changerMembre={setMembreId} verifierMiseAJour={miseAJour.verifier} />;
   }
 
   return (
@@ -79,6 +81,12 @@ export function App({ depot }: { depot: Depot }) {
         </button>
       )}
       {ecran}
+      {nouvelleVersion && (
+        <div className="bandeau-version" role="status">
+          <span>Nouvelle version prête.</span>
+          <button className="bouton-principal" onClick={() => void miseAJour.appliquer()}>Mettre à jour</button>
+        </div>
+      )}
     </div>
   );
 }
