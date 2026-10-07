@@ -1,10 +1,10 @@
 import type { Foyer } from "../../domaine/types";
 import { choisirMembreCourant } from "../contexte";
 
-export function Plus(props: { foyer: Foyer; membreId: string | null; changerMembre: (id: string) => void }) {
+export function Reglages(props: { foyer: Foyer; membreId: string | null; changerMembre: (id: string) => void }) {
   return (
     <main>
-      <h1>Plus</h1>
+      <h1>Réglages</h1>
       <h2 className="rayon">Foyer</h2>
       <div className="carte">
         <p><strong>{props.foyer.nom}</strong></p>

@@ -22,12 +22,12 @@ export default defineConfig({
       manifest: {
         name: "KoraHome",
         short_name: "KoraHome",
-        description: "L'app compagnon de la famille : listes, tâches et agenda partagés.",
+        description: "L'app compagnon de la famille : listes, tâches et tableau de bord partagés.",
         lang: "fr",
         start_url: "/",
         display: "standalone",
-        background_color: "#F7F4EF",
-        theme_color: "#F7F4EF",
+        background_color: "#0F1211",
+        theme_color: "#0F1211",
         icons: [
           { src: "icone-192.png", sizes: "192x192", type: "image/png" },
           { src: "icone-512.png", sizes: "512x512", type: "image/png" },

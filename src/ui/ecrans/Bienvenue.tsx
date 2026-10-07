@@ -24,7 +24,7 @@ export function Bienvenue({ depot, onCree }: { depot: Depot; onCree: (membreId: 
 
   return (
     <main className="bienvenue">
-      <div className="logo" aria-hidden>🏡</div>
+      <div className="monogramme" aria-hidden>KH</div>
       <h1>Bienvenue dans KoraHome</h1>
       <p className="discret">Votre maison, à deux, au même endroit.</p>
       <form onSubmit={valider} className="carte formulaire">

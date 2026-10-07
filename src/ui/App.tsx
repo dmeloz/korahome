@@ -3,42 +3,51 @@ import type { Depot } from "../donnees/depot";
 import { lireMembreCourant } from "./contexte";
 import { Accueil } from "./ecrans/Accueil";
 import { Bienvenue } from "./ecrans/Bienvenue";
-import { Bientot } from "./ecrans/Bientot";
 import { DetailListe } from "./ecrans/DetailListe";
 import { Listes } from "./ecrans/Listes";
-import { Plus } from "./ecrans/Plus";
+import { Reglages } from "./ecrans/Reglages";
 import { Taches } from "./ecrans/Taches";
-import { Icone, type NomIcone } from "./Icone";
+import { Icone } from "./Icone";
 import { useDonnees } from "./useDonnees";
 
-type Onglet = "accueil" | "listes" | "taches" | "agenda" | "plus";
+// Pas de barre d'onglets : tout part du tableau de bord, et chaque page a son retour.
+type Page =
+  | { nom: "accueil" }
+  | { nom: "taches" }
+  | { nom: "listes" }
+  | { nom: "liste"; id: string }
+  | { nom: "reglages" };
 
-const ONGLETS: { id: Onglet; libelle: string; icone: NomIcone }[] = [
-  { id: "accueil", libelle: "Accueil", icone: "maison" },
-  { id: "listes", libelle: "Listes", icone: "liste" },
-  { id: "taches", libelle: "Tâches", icone: "coche" },
-  { id: "agenda", libelle: "Agenda", icone: "calendrier" },
-  { id: "plus", libelle: "Plus", icone: "plus" },
-];
+const LIBELLES: Record<Page["nom"], string> = {
+  accueil: "Accueil",
+  taches: "Tâches",
+  listes: "Listes",
+  liste: "Liste",
+  reglages: "Réglages",
+};
 
 export function App({ depot }: { depot: Depot }) {
   const { pret, foyer, listes, elements, taches } = useDonnees(depot);
-  const [onglet, setOnglet] = useState<Onglet>("accueil");
-  const [listeOuverte, setListeOuverte] = useState<string | null>(null);
+  const [pile, setPile] = useState<Page[]>([{ nom: "accueil" }]);
   const [membreId, setMembreId] = useState<string | null>(lireMembreCourant);
 
   if (!pret) return null;
   if (!foyer) return <Bienvenue depot={depot} onCree={setMembreId} />;
 
   const membre = foyer.membres.some((m) => m.id === membreId) ? membreId : null;
-  const ouvrirListe = (id: string) => {
-    setOnglet("listes");
-    setListeOuverte(id);
+  const page = pile[pile.length - 1];
+  const precedente = pile.length > 1 ? pile[pile.length - 2] : null;
+  const ouvrir = (p: Page) => {
+    setPile((avant) => [...avant, p]);
+    window.scrollTo(0, 0);
   };
-  const liste = listes.find((l) => l.id === listeOuverte);
+  const revenir = () => {
+    setPile((avant) => (avant.length > 1 ? avant.slice(0, -1) : avant));
+    window.scrollTo(0, 0);
+  };
 
   let ecran;
-  switch (onglet) {
+  switch (page.nom) {
     case "accueil":
       ecran = (
         <Accueil
@@ -47,55 +56,42 @@ export function App({ depot }: { depot: Depot }) {
           listes={listes}
           elements={elements}
           taches={taches}
-          ouvrirListe={ouvrirListe}
-          ouvrirTaches={() => setOnglet("taches")}
+          ouvrirListe={(id) => ouvrir({ nom: "liste", id })}
+          ouvrirListes={() => ouvrir({ nom: "listes" })}
+          ouvrirTaches={() => ouvrir({ nom: "taches" })}
+          ouvrirReglages={() => ouvrir({ nom: "reglages" })}
         />
-      );
-      break;
-    case "listes":
-      ecran = liste ? (
-        <DetailListe
-          depot={depot}
-          foyer={foyer}
-          membreId={membre}
-          liste={liste}
-          elements={elements}
-          retour={() => setListeOuverte(null)}
-        />
-      ) : (
-        <Listes depot={depot} listes={listes} elements={elements} ouvrirListe={ouvrirListe} />
       );
       break;
     case "taches":
       ecran = <Taches depot={depot} foyer={foyer} membreId={membre} taches={taches} />;
       break;
-    case "agenda":
-      ecran = <Bientot titre="Agenda" icone="🗓️" texte="Vos rendez-vous, anniversaires et échéances, au même endroit." />;
+    case "listes":
+      ecran = <Listes depot={depot} listes={listes} elements={elements} ouvrirListe={(id) => ouvrir({ nom: "liste", id })} />;
       break;
-    case "plus":
-      ecran = <Plus foyer={foyer} membreId={membre} changerMembre={setMembreId} />;
+    case "liste": {
+      const liste = listes.find((l) => l.id === page.id);
+      ecran = liste ? (
+        <DetailListe depot={depot} foyer={foyer} membreId={membre} liste={liste} elements={elements} />
+      ) : (
+        <main><p className="vide">Cette liste n'existe plus.</p></main>
+      );
+      break;
+    }
+    case "reglages":
+      ecran = <Reglages foyer={foyer} membreId={membre} changerMembre={setMembreId} />;
       break;
   }
 
   return (
-    <>
-      <div className="contenu">{ecran}</div>
-      <nav className="onglets" aria-label="Navigation principale">
-        {ONGLETS.map((o) => (
-          <button
-            key={o.id}
-            className={o.id === onglet ? "actif" : ""}
-            aria-current={o.id === onglet ? "page" : undefined}
-            onClick={() => {
-              setOnglet(o.id);
-              setListeOuverte(null);
-            }}
-          >
-            <Icone nom={o.icone} />
-            {o.libelle}
-          </button>
-        ))}
-      </nav>
-    </>
+    <div className="contenu">
+      {precedente && (
+        <button className="retour" onClick={revenir}>
+          <Icone nom="retour" taille={22} />
+          {LIBELLES[precedente.nom]}
+        </button>
+      )}
+      {ecran}
+    </div>
   );
 }

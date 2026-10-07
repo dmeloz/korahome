@@ -29,3 +29,23 @@ export function choisirMembreCourant(id: string): void {
     // Stockage indisponible (navigation privée) : on redemandera.
   }
 }
+
+const CLE_TABLEAU = "korahome.tableauDeBord";
+
+/** La disposition du tableau de bord. Propre à chaque téléphone. */
+export function lireDisposition(): unknown {
+  try {
+    const brut = localStorage.getItem(CLE_TABLEAU);
+    return brut === null ? undefined : JSON.parse(brut);
+  } catch {
+    return undefined;
+  }
+}
+
+export function enregistrerDisposition(disposition: readonly string[]): void {
+  try {
+    localStorage.setItem(CLE_TABLEAU, JSON.stringify(disposition));
+  } catch {
+    // Stockage indisponible : la disposition vaut pour cette visite seulement.
+  }
+}
