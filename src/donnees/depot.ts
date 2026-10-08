@@ -1,3 +1,4 @@
+import type { RetourTest } from "../domaine/retours";
 import type { Element, Foyer, Id, Liste, Tache } from "../domaine/types";
 
 /**
@@ -21,6 +22,11 @@ export interface Depot {
   enregistrerTache(tache: Tache): Promise<void>;
   enregistrerTaches(taches: Tache[]): Promise<void>;
   supprimerTache(id: Id): Promise<void>;
+
+  /** Les notes de test écrites depuis le coin « Dev ». */
+  lireRetours(): Promise<RetourTest[]>;
+  enregistrerRetour(retour: RetourTest): Promise<void>;
+  supprimerRetour(id: Id): Promise<void>;
 
   /** Prévient l'abonné à chaque changement, y compris venant d'un autre onglet ou appareil. */
   abonner(rappel: () => void): () => void;

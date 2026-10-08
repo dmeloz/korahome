@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Foyer } from "../../domaine/types";
 import { choisirMembreCourant } from "../contexte";
+import { Icone } from "../Icone";
 import { MESSAGES_VERIFICATION, type ResultatVerification } from "../miseAJour";
 
 export function Reglages(props: {
@@ -8,6 +9,10 @@ export function Reglages(props: {
   membreId: string | null;
   changerMembre: (id: string) => void;
   verifierMiseAJour: () => Promise<ResultatVerification>;
+  notesOuvertes: number;
+  ouvrirRetours: () => void;
+  pastilleVisible: boolean;
+  changerPastille: (visible: boolean) => void;
 }) {
   const [verification, setVerification] = useState<string | null>(null);
   const verifier = async () => {
@@ -45,6 +50,27 @@ export function Reglages(props: {
         <button className="lien" onClick={verifier}>Vérifier les mises à jour</button>
         {verification && <p className="discret" role="status">{verification}</p>}
       </div>
+      <h2 className="rayon">Développement</h2>
+      <ul className="carte groupe">
+        <li>
+          <button className="ligne" onClick={props.ouvrirRetours}>
+            <span className="ligne-texte">Retours de test</span>
+            {props.notesOuvertes > 0 && <span className="pastille">{props.notesOuvertes}</span>}
+            <span className="chevron"><Icone nom="suivant" taille={18} /></span>
+          </button>
+        </li>
+        <li>
+          <button
+            className="ligne"
+            role="switch"
+            aria-checked={props.pastilleVisible}
+            onClick={() => props.changerPastille(!props.pastilleVisible)}
+          >
+            <span className="ligne-texte">Pastille « Dev » sur chaque écran</span>
+            <span className={`interrupteur${props.pastilleVisible ? " actif" : ""}`} aria-hidden />
+          </button>
+        </li>
+      </ul>
       <p className="discret pied">
         Les données sont pour l'instant enregistrées sur ce téléphone uniquement ;
         la synchronisation entre vos deux iPhones arrive à l'étape suivante.

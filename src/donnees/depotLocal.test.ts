@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { contexteTest } from "../domaine/contexteTest";
 import { creerFoyer, listesInitiales } from "../domaine/foyer";
 import { basculerCoche, nouvelElement } from "../domaine/listes";
+import { basculerRegle, nouveauRetour } from "../domaine/retours";
 import { marquerFaite, tachesDeDepart } from "../domaine/taches";
 import { creerDepotLocal } from "./depotLocal";
 
@@ -84,5 +85,20 @@ describe("dépôt local", () => {
     });
     const depot = creerDepotLocal("ancienne", fabrique);
     expect(await depot.lireTaches()).toEqual([]);
+    expect(await depot.lireRetours()).toEqual([]);
+  });
+
+  it("conserve, met à jour et supprime les notes de test", async () => {
+    const ctx = contexteTest();
+    const depot = depotNeuf();
+    const note = nouveauRetour({ texte: "Trop lent", genre: "gene", ecran: "Tâches", version: "0.0.2", auteur: null }, ctx);
+    const autre = nouveauRetour({ texte: "Un thème clair", genre: "idee", ecran: "Réglages", version: "0.0.2", auteur: null }, ctx);
+    await depot.enregistrerRetour(note);
+    await depot.enregistrerRetour(autre);
+    await depot.enregistrerRetour(basculerRegle(note, ctx));
+    await depot.supprimerRetour(autre.id);
+    const retours = await depot.lireRetours();
+    expect(retours).toHaveLength(1);
+    expect(retours[0].regleLe).not.toBeNull();
   });
 });
