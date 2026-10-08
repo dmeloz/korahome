@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { ViewTransition, addTransitionType, startTransition, useEffect, useState, useSyncExternalStore } from "react";
 import type { WidgetId } from "../domaine/tableauDeBord";
 import type { Depot } from "../donnees/depot";
 import { CoinDev } from "./CoinDev";
@@ -61,14 +61,17 @@ export function App({ depot, miseAJour }: { depot: Depot; miseAJour: MiseAJour }
   const donnees: DonneesModule = { foyer, membreId: membre, listes, elements, taches, aujourdhui: aujourdhuiLocal() };
   const precedente = pile.length > 1 ? pile[pile.length - 2] : null;
 
-  const ouvrir = (p: Page) => {
-    setPile((avant) => [...avant, p]);
-    window.scrollTo(0, 0);
+  // Chaque changement de page passe par une transition : l'écran glisse vers
+  // la gauche quand on avance, vers la droite quand on revient (voir styles.css).
+  const naviguer = (sens: "nav-avant" | "nav-retour", changer: (avant: Page[]) => Page[]) => {
+    startTransition(() => {
+      addTransitionType(sens);
+      setPile(changer);
+      window.scrollTo(0, 0);
+    });
   };
-  const revenir = () => {
-    setPile((avant) => (avant.length > 1 ? avant.slice(0, -1) : avant));
-    window.scrollTo(0, 0);
-  };
+  const ouvrir = (p: Page) => naviguer("nav-avant", (avant) => [...avant, p]);
+  const revenir = () => naviguer("nav-retour", (avant) => (avant.length > 1 ? avant.slice(0, -1) : avant));
   const ouvrirListe = (id: string) => ouvrir({ nom: "liste", id });
   const ouvertes = retours.filter((r) => !r.regleLe).length;
 
@@ -118,7 +121,9 @@ export function App({ depot, miseAJour }: { depot: Depot; miseAJour: MiseAJour }
           {libelle(precedente)}
         </button>
       )}
-      {ecran}
+      <ViewTransition key={cle(page)} enter={GLISSEMENT} exit={GLISSEMENT} default="none">
+        <div>{ecran}</div>
+      </ViewTransition>
       {pastille && !nouvelleVersion && page.nom !== "retours" && (
         <CoinDev
           depot={depot}
@@ -136,4 +141,12 @@ export function App({ depot, miseAJour }: { depot: Depot; miseAJour: MiseAJour }
       )}
     </div>
   );
+}
+
+// Seules les navigations portant un sens glissent ; tout autre changement reste immédiat.
+const GLISSEMENT = { "nav-avant": "nav-avant", "nav-retour": "nav-retour", default: "none" };
+
+/** Une clé par page : en changer fait sortir l'ancien écran et entrer le nouveau. */
+function cle(p: Page): string {
+  return p.nom === "module" || p.nom === "liste" ? `${p.nom}:${p.id}` : p.nom;
 }
