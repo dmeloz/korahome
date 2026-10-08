@@ -1,9 +1,10 @@
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 import { VitePWA } from "vite-plugin-pwa";
 import paquet from "./package.json" with { type: "json" };
+import { recevoirRapports } from "./serveur/recevoirRapport";
 
 // Certificats créés par scripts/serveur-mac.sh pour servir l'app en https sur le réseau local.
 const dossierHttps = process.env.KORAHOME_HTTPS;
@@ -16,6 +17,8 @@ export default defineConfig({
   preview: { https },
   plugins: [
     react(),
+    // « Envoyer au Mac » : les rapports de test arrivent dans retours-de-test/.
+    recevoirRapports(process.env.KORAHOME_RETOURS ?? resolve("retours-de-test")),
     VitePWA({
       // « prompt » : la nouvelle version attend le geste « Mettre à jour » (bandeau).
       registerType: "prompt",

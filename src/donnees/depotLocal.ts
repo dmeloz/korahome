@@ -1,9 +1,11 @@
+import type { RetourTest } from "../domaine/retours";
 import type { Element, Foyer, Id, Liste, Tache } from "../domaine/types";
 import type { Depot } from "./depot";
 
-// Version 2 : ajout des tâches. La mise à jour crée seulement les magasins manquants.
-const VERSION = 2;
-const MAGASINS = ["foyer", "listes", "elements", "taches"] as const;
+// Version 2 : ajout des tâches. Version 3 : notes de test.
+// La mise à jour crée seulement les magasins manquants.
+const VERSION = 3;
+const MAGASINS = ["foyer", "listes", "elements", "taches", "retours"] as const;
 type Magasin = (typeof MAGASINS)[number];
 
 function ouvrir(nomBase: string, fabrique: IDBFactory): Promise<IDBDatabase> {
@@ -86,6 +88,10 @@ export function creerDepotLocal(
     enregistrerTache: (tache) => ecrire("taches", (s) => s.put(tache)),
     enregistrerTaches: (taches) => ecrire("taches", (s) => taches.forEach((t) => s.put(t))),
     supprimerTache: (id) => ecrire("taches", (s) => s.delete(id)),
+
+    lireRetours: () => tous<RetourTest>("retours"),
+    enregistrerRetour: (retour) => ecrire("retours", (s) => s.put(retour)),
+    supprimerRetour: (id) => ecrire("retours", (s) => s.delete(id)),
 
     abonner(rappel) {
       abonnes.add(rappel);
