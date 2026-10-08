@@ -16,6 +16,14 @@
   --police: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
   --police-titre: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
   --police-fixe: ui-monospace, "SF Mono", Menlo, monospace;
+  /* Mouvement : peu, court, toujours une réponse à un geste. Ces valeurs se
+     reprendront telles quelles dans SwiftUI (durées en secondes, courbes de Bézier). */
+  --duree-toucher: 100ms;
+  --duree-courte: 180ms;
+  --duree-ecran: 280ms;
+  --courbe-sortie: cubic-bezier(0.23, 1, 0.32, 1);
+  --courbe-ecran: cubic-bezier(0.32, 0.72, 0, 1);
+  --glissement-ecran: 32px;
   color-scheme: dark;
 }
 
@@ -280,7 +288,7 @@ h1 {
 }
 .widget.urgent { border-color: color-mix(in srgb, var(--urgent) 55%, var(--trait)); }
 .widget:active:not(.en-edition) { transform: scale(0.985); }
-@media (prefers-reduced-motion: no-preference) { .widget { transition: transform 0.12s ease; } }
+@media (prefers-reduced-motion: no-preference) { .widget { transition: transform var(--duree-toucher) var(--courbe-sortie); } }
 
 .widget-haut { display: flex; align-items: center; gap: 12px; }
 .widget-titre { flex: 1; min-width: 0; font-weight: 600; }
@@ -486,7 +494,7 @@ h1 {
   box-shadow: 0 -20px 40px -24px rgb(0 0 0 / 0.7);
 }
 @media (prefers-reduced-motion: no-preference) {
-  .feuille { animation: monter 0.18s ease-out; }
+  .feuille { animation: monter var(--duree-courte) var(--courbe-sortie); }
   @keyframes monter { from { transform: translateY(24px); opacity: 0; } }
 }
 .poignee { width: 36px; height: 5px; border-radius: 3px; background: var(--trait); margin: 0 auto 4px; }
@@ -542,6 +550,46 @@ h1 {
   border-radius: 50%;
   background: var(--texte);
 }
-@media (prefers-reduced-motion: no-preference) { .interrupteur::after { transition: transform 0.15s ease; } }
+@media (prefers-reduced-motion: no-preference) { .interrupteur::after { transition: transform var(--duree-courte) var(--courbe-sortie); } }
 .interrupteur.actif { background: var(--accent); }
 .interrupteur.actif::after { transform: translateX(18px); background: var(--sur-accent); }
+
+/* Transitions entre écrans (View Transitions, Safari 18 et plus ; sans elles,
+   la page change simplement d'un coup). En avançant, l'ancien écran part un peu
+   vers la gauche en s'effaçant et le nouveau arrive de la droite ; en revenant,
+   l'inverse. Le reste de la page (retour, bandeaux) se fond sur place. */
+::view-transition { pointer-events: none; }
+::view-transition-old(root),
+::view-transition-new(root) { animation-duration: var(--duree-courte); }
+
+@keyframes ecran-apparait { from { opacity: 0; } }
+@keyframes ecran-disparait { to { opacity: 0; } }
+@keyframes ecran-glisse { from { transform: translateX(var(--depart)); } }
+@keyframes ecran-s-eloigne { to { transform: translateX(var(--arrivee)); } }
+
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(.nav-avant) {
+    --arrivee: calc(-1 * var(--glissement-ecran));
+    animation: var(--duree-toucher) ease-in both ecran-disparait, var(--duree-ecran) var(--courbe-ecran) both ecran-s-eloigne;
+  }
+  ::view-transition-new(.nav-avant) {
+    --depart: var(--glissement-ecran);
+    animation: var(--duree-ecran) var(--courbe-ecran) both ecran-apparait, var(--duree-ecran) var(--courbe-ecran) both ecran-glisse;
+  }
+  ::view-transition-old(.nav-retour) {
+    --arrivee: var(--glissement-ecran);
+    animation: var(--duree-toucher) ease-in both ecran-disparait, var(--duree-ecran) var(--courbe-ecran) both ecran-s-eloigne;
+  }
+  ::view-transition-new(.nav-retour) {
+    --depart: calc(-1 * var(--glissement-ecran));
+    animation: var(--duree-ecran) var(--courbe-ecran) both ecran-apparait, var(--duree-ecran) var(--courbe-ecran) both ecran-glisse;
+  }
+}
+
+/* Mouvement réduit : pas de déplacement, un simple fondu court. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(.nav-avant),
+  ::view-transition-old(.nav-retour) { animation: var(--duree-courte) ease both ecran-disparait; }
+  ::view-transition-new(.nav-avant),
+  ::view-transition-new(.nav-retour) { animation: var(--duree-courte) ease both ecran-apparait; }
+}
