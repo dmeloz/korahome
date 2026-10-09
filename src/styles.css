@@ -564,3 +564,58 @@ h1 {
 .mitsu-commande > * { margin: 0; min-width: 0; }
 .mitsu-articles { list-style: none; padding: 0; margin: 0; display: grid; gap: 2px; font-size: 15px; }
 .mitsu-conseil { color: var(--accent); }
+
+/* Partage entre les deux iPhone */
+.partage-intro-texte { margin: 4px 0 20px; line-height: 1.45; }
+.partage-intro p { margin: 0 0 8px; line-height: 1.45; }
+.partage-etape {
+  margin: 0;
+  font-family: var(--police-fixe);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.partage-choix p, .partage-confirmation p, .partage-invitation p { margin: 0 0 8px; line-height: 1.4; }
+.partage-choix .bouton-principal, .partage-confirmation .bouton-principal { width: 100%; }
+.partage-choix.formulaire { margin-top: 0; }
+.partage-confirmation { border-color: var(--urgent); display: grid; gap: 4px; }
+.partage-confirmation .lien { justify-self: center; }
+.partage-saisie-code {
+  font-family: var(--police-fixe);
+  font-size: 22px;
+  letter-spacing: 0.18em;
+  text-align: center;
+  text-transform: uppercase;
+}
+.partage-etat { display: flex; align-items: center; gap: 12px; }
+.partage-etat p { margin: 0; }
+.partage-etat .lien { flex: none; padding: 4px 0; }
+.partage-etat .lien:disabled { opacity: 0.4; }
+.partage-point {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  border-radius: 50%;
+  background: #6fbf8e;
+  box-shadow: 0 0 0 4px rgb(111 191 142 / 0.18);
+}
+.partage-etat.en_cours .partage-point { background: var(--accent); animation: partage-pulse 1.2s ease-in-out infinite; }
+.partage-etat.erreur .partage-point { background: var(--urgent); box-shadow: 0 0 0 4px rgb(226 145 106 / 0.18); }
+@keyframes partage-pulse { 50% { opacity: 0.35; } }
+.partage-invitation { text-align: center; }
+.partage-code {
+  font-family: var(--police-fixe);
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+  margin: 6px 0 10px !important;
+  user-select: all;
+}
+.partage-erreur { margin: 4px 0 12px; }
+.partage-compte { margin-top: 28px; text-align: center; }
+.partage-compte p { margin: 0; }
+.partage-compte .lien:disabled { opacity: 0.4; }
+.bienvenue-rejoindre { margin-top: 18px; font-size: 16px; }
+.choix-membre { text-align: left; margin-top: 24px; }

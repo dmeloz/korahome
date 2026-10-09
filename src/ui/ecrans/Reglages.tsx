@@ -4,6 +4,8 @@ import { choisirMembreCourant } from "../contexte";
 import { Icone } from "../Icone";
 import { MESSAGES_VERIFICATION, type ResultatVerification } from "../miseAJour";
 
+const ETATS_PARTAGE = { indisponible: "Bientôt", inactif: "Désactivé", actif: "Activé" } as const;
+
 export function Reglages(props: {
   foyer: Foyer;
   membreId: string | null;
@@ -11,6 +13,8 @@ export function Reglages(props: {
   verifierMiseAJour: () => Promise<ResultatVerification>;
   notesOuvertes: number;
   ouvrirRetours: () => void;
+  ouvrirPartage: () => void;
+  partage: "indisponible" | "inactif" | "actif";
   pastilleVisible: boolean;
   changerPastille: (visible: boolean) => void;
 }) {
@@ -26,6 +30,16 @@ export function Reglages(props: {
       <div className="carte">
         <p><strong>{props.foyer.nom}</strong></p>
       </div>
+      <h2 className="rayon">Partage</h2>
+      <ul className="carte groupe">
+        <li>
+          <button className="ligne" onClick={props.ouvrirPartage}>
+            <span className="ligne-texte">Partage entre vos iPhone</span>
+            <span className="discret">{ETATS_PARTAGE[props.partage]}</span>
+            <span className="chevron"><Icone nom="suivant" taille={18} /></span>
+          </button>
+        </li>
+      </ul>
       <h2 className="rayon">Qui utilise ce téléphone ?</h2>
       <ul className="carte groupe">
         {props.foyer.membres.map((m) => (
@@ -71,10 +85,6 @@ export function Reglages(props: {
           </button>
         </li>
       </ul>
-      <p className="discret pied">
-        Les données sont pour l'instant enregistrées sur ce téléphone uniquement ;
-        la synchronisation entre vos deux iPhones arrive à l'étape suivante.
-      </p>
     </main>
   );
 }

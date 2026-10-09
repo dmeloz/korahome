@@ -113,3 +113,89 @@ describe("dépôt local", () => {
     expect(await depot.lireAnimaux()).toEqual([{ ...mitsu, sterilise: true }]);
   });
 });
+
+describe("dépôt local : modifications en attente de partage", () => {
+  const ch = (id: string, maj: string, donnees: unknown) => ({ collection: "elements" as const, id, donnees, maj });
+
+  it("note chaque modification d'une donnée partagée, une seule fois par document", async () => {
+    const ctx = contexteTest();
+    const depot = creerDepotLocal("attente", new IDBFactory(), ctx.maintenant);
+    const [courses] = listesInitiales(ctx);
+    const lait = nouvelElement(courses, "lait", null, ctx);
+    await depot.enregistrerListe(courses);
+    await depot.enregistrerElement(lait);
+    await depot.enregistrerElement(basculerCoche(lait, ctx));
+    await depot.enregistrerRetour(nouveauRetour({ texte: "Note", genre: "idee", ecran: "Accueil", version: "0.0.4", auteur: null }, ctx));
+    const attente = await depot.lireEnAttente();
+    expect(attente.map((c) => c.collection).sort()).toEqual(["elements", "listes"]);
+    expect((attente.find((c) => c.id === lait.id)?.donnees as { coche: boolean }).coche).toBe(true);
+  });
+
+  it("note une suppression de liste avec ses éléments", async () => {
+    const ctx = contexteTest();
+    const depot = creerDepotLocal("suppression", new IDBFactory(), ctx.maintenant);
+    const [courses] = listesInitiales(ctx);
+    const lait = nouvelElement(courses, "lait", null, ctx);
+    await depot.enregistrerListe(courses);
+    await depot.enregistrerElement(lait);
+    await depot.supprimerListe(courses.id);
+    expect((await depot.lireEnAttente()).map((c) => [c.id, c.donnees])).toEqual(
+      expect.arrayContaining([[courses.id, null], [lait.id, null]]),
+    );
+  });
+
+  it("garde une modification refaite pendant l'envoi", async () => {
+    const ctx = contexteTest();
+    const depot = creerDepotLocal("envoi", new IDBFactory(), ctx.maintenant);
+    const [courses] = listesInitiales(ctx);
+    const lait = nouvelElement(courses, "lait", null, ctx);
+    await depot.enregistrerElement(lait);
+    const envoyes = await depot.lireEnAttente();
+    await depot.enregistrerElement(basculerCoche(lait, ctx));
+    await depot.retirerEnAttente(envoyes);
+    expect(await depot.lireEnAttente()).toHaveLength(1);
+    await depot.retirerEnAttente(await depot.lireEnAttente());
+    expect(await depot.lireEnAttente()).toEqual([]);
+  });
+
+  it("n'écrase pas une modification locale plus récente que celle qui arrive", async () => {
+    const depot = creerDepotLocal("appliquer", new IDBFactory(), () => "2026-10-09T10:05:00.000Z");
+    await depot.enregistrerAnimal({ id: "mitsu", nom: "ici" } as never);
+    await depot.appliquer([
+      { collection: "animaux", id: "mitsu", donnees: { id: "mitsu", nom: "là-bas" }, maj: "2026-10-09T10:00:00.000Z" },
+      ch("pain", "2026-10-09T10:00:00.000Z", { id: "pain", texte: "Pain" }),
+    ]);
+    expect((await depot.lireAnimaux())[0].nom).toBe("ici");
+    expect((await depot.lireElements()).map((e) => e.texte)).toEqual(["Pain"]);
+    await depot.appliquer([ch("pain", "2026-10-09T11:00:00.000Z", null)]);
+    expect(await depot.lireElements()).toEqual([]);
+  });
+
+  it("prévient les écrans quand des modifications arrivent", async () => {
+    const depot = depotNeuf();
+    const rappel = vi.fn();
+    depot.abonner(rappel);
+    await depot.appliquer([ch("pain", "2026-10-09T10:00:00.000Z", { id: "pain" })]);
+    expect(rappel).toHaveBeenCalledTimes(1);
+  });
+
+  it("met tout en attente au moment de partager, sauf les notes de test", async () => {
+    const ctx = contexteTest();
+    const depot = creerDepotLocal("partager", new IDBFactory(), ctx.maintenant);
+    await depot.enregistrerFoyer(creerFoyer("Maison", ["Melo"], ctx));
+    await depot.retirerEnAttente(await depot.lireEnAttente());
+    await depot.enregistrerRetour(nouveauRetour({ texte: "Note", genre: "idee", ecran: "Accueil", version: "0.0.4", auteur: null }, ctx));
+    await depot.toutMettreEnAttente();
+    expect((await depot.lireEnAttente()).map((c) => c.collection)).toEqual(["foyer"]);
+  });
+
+  it("conserve l'état du partage", async () => {
+    const depot = depotNeuf();
+    expect(await depot.lireEtat()).toBeNull();
+    const etat = { foyerId: "f", curseur: "2026-10-09T10:00:00.000Z", derniere: null };
+    await depot.enregistrerEtat(etat);
+    expect(await depot.lireEtat()).toEqual(etat);
+    await depot.enregistrerEtat(null);
+    expect(await depot.lireEtat()).toBeNull();
+  });
+});

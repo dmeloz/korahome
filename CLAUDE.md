@@ -12,7 +12,8 @@ Fiche projet et plan (sur le Mac de la propriétaire) : `~/Atelier-Claude/Cervea
 
 ## Architecture
 - `src/domaine/` : logique métier en TypeScript pur. **Aucun import de React, du DOM ou du stockage.** Horloge et identifiants passent par `Contexte`. Chaque règle a ses tests à côté (`*.test.ts`). C'est la spécification que reprendra l'app native.
-- `src/donnees/` : accès aux données derrière l'interface `Depot`. `depotLocal.ts` = IndexedDB sur l'appareil. La synchro Supabase viendra comme une autre implémentation de `Depot`.
+- `src/donnees/` : accès aux données derrière l'interface `Depot`. `depotLocal.ts` = IndexedDB sur l'appareil, qui note aussi chaque modification partagée « en attente ». `synchro.ts` reçoit puis envoie ces modifications (la plus récente gagne) vers le serveur décrit par `distant.ts` ; `supabase.ts` en est l'implémentation, `serveurFactice.ts` celle des tests.
+- `supabase/schema.sql` : tables, règles de sécurité et fonctions du serveur partagé. Mise en route : `docs/activer-le-partage.md`. Adresse et clé publique dans `.env.local` sur le Mac (ignoré par Git).
 - `serveur/` : code qui tourne sur le Mac qui sert l'app (réception des rapports de test, branchée dans `vite.config.ts`).
 - `src/ui/` : écrans React. Ils lisent par `useDonnees` et écrivent par le `Depot`, jamais directement dans IndexedDB.
 

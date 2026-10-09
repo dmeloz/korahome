@@ -1,7 +1,7 @@
 {
   "name": "korahome",
   "private": true,
-  "version": "0.0.3",
+  "version": "0.0.4",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -12,6 +12,7 @@
     "serveur": "bash scripts/serveur-mac.sh"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.117.3",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },

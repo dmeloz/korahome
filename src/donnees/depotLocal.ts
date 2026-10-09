@@ -1,20 +1,64 @@
 import type { Animal } from "../domaine/mitsu";
 import type { RetourTest } from "../domaine/retours";
+import { cleDe, COLLECTIONS_SYNCHRO, distantGagne, type Changement, type CollectionSynchro } from "../domaine/synchro";
 import type { Element, Foyer, Id, Liste, Tache } from "../domaine/types";
 import type { Depot } from "./depot";
 
 // Version 2 : ajout des tâches. Version 3 : notes de test. Version 4 : suivi de Mitsu.
+// Version 5 : partage (modifications en attente d'envoi, état de la synchro).
 // La mise à jour crée seulement les magasins manquants.
-const VERSION = 4;
-const MAGASINS = ["foyer", "listes", "elements", "taches", "retours", "animaux"] as const;
+const VERSION = 5;
+const MAGASINS = ["foyer", "listes", "elements", "taches", "retours", "animaux", "attente", "synchro"] as const;
 type Magasin = (typeof MAGASINS)[number];
+const CLES: Partial<Record<Magasin, string>> = { attente: "cle" };
+
+/** Où en est le partage sur ce téléphone. */
+export interface EtatSynchro {
+  /** Le foyer partagé auquel ce téléphone est relié. */
+  foyerId: Id;
+  /** Jusqu'où les modifications du serveur ont été lues (heure du serveur). */
+  curseur: string | null;
+  /** Dernière synchronisation réussie (heure du téléphone). */
+  derniere: string | null;
+}
+
+/** Ce dont la synchronisation a besoin du stockage local, en plus du dépôt. */
+export interface StockageSynchro {
+  /** Les modifications faites ici et pas encore envoyées, une par document. */
+  lireEnAttente(): Promise<Changement[]>;
+  /** Retire ce qui est parti, sauf si le document a été modifié de nouveau entre-temps. */
+  retirerEnAttente(envoyes: readonly Changement[]): Promise<void>;
+  /** Applique les modifications de l'autre téléphone, sans écraser une modification locale plus récente. */
+  appliquer(distants: readonly Changement[]): Promise<void>;
+  /** Rejoindre un foyer : les données partagées remplacent celles de ce téléphone. */
+  remplacerTout(distants: readonly Changement[]): Promise<void>;
+  /** Partager ce foyer : tout ce qui existe ici part au prochain envoi. */
+  toutMettreEnAttente(): Promise<void>;
+  lireEtat(): Promise<EtatSynchro | null>;
+  enregistrerEtat(etat: EtatSynchro | null): Promise<void>;
+}
+
+export type DepotLocal = Depot & StockageSynchro;
+
+interface EnAttente extends Changement {
+  cle: string;
+}
+
+/** Une écriture : le document à poser, ou null pour le supprimer. */
+interface Operation {
+  magasin: Magasin;
+  id: Id;
+  doc: { id: Id } | null;
+}
+
+const estPartage = (m: Magasin): m is CollectionSynchro => (COLLECTIONS_SYNCHRO as readonly string[]).includes(m);
 
 function ouvrir(nomBase: string, fabrique: IDBFactory): Promise<IDBDatabase> {
   return new Promise((resoudre, rejeter) => {
     const req = fabrique.open(nomBase, VERSION);
     req.onupgradeneeded = () => {
       for (const m of MAGASINS) {
-        if (!req.result.objectStoreNames.contains(m)) req.result.createObjectStore(m, { keyPath: "id" });
+        if (!req.result.objectStoreNames.contains(m)) req.result.createObjectStore(m, { keyPath: CLES[m] ?? "id" });
       }
     };
     req.onsuccess = () => resoudre(req.result);
@@ -29,6 +73,11 @@ function attendre<T>(req: IDBRequest<T>): Promise<T> {
   });
 }
 
+/** Lit dans une transaction ouverte, sans la laisser se refermer entre la lecture et l'écriture. */
+function puis<T>(req: IDBRequest<T>, suite: (resultat: T) => void): void {
+  req.onsuccess = () => suite(req.result);
+}
+
 function terminer(tx: IDBTransaction): Promise<void> {
   return new Promise((resoudre, rejeter) => {
     tx.oncomplete = () => resoudre();
@@ -37,69 +86,163 @@ function terminer(tx: IDBTransaction): Promise<void> {
   });
 }
 
-/** Dépôt sur l'appareil (IndexedDB). Fonctionne hors ligne, sans compte. */
+/**
+ * Dépôt sur l'appareil (IndexedDB). Fonctionne hors ligne, sans compte. Chaque
+ * modification d'une donnée partagée est aussi notée « en attente » pour la synchro.
+ */
 export function creerDepotLocal(
   nomBase = "korahome",
   fabrique: IDBFactory = indexedDB,
-): Depot {
+  horloge: () => string = () => new Date().toISOString(),
+): DepotLocal {
   const base = ouvrir(nomBase, fabrique);
   const abonnes = new Set<() => void>();
   const canal = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel(`${nomBase}-changements`) : null;
   const prevenir = () => abonnes.forEach((r) => r());
   canal?.addEventListener("message", prevenir);
+  const signaler = () => {
+    prevenir();
+    canal?.postMessage("change");
+  };
 
   async function tous<T>(magasin: Magasin): Promise<T[]> {
     const db = await base;
     return attendre(db.transaction(magasin).objectStore(magasin).getAll()) as Promise<T[]>;
   }
 
-  async function ecrire(magasin: Magasin, action: (s: IDBObjectStore) => void): Promise<void> {
+  /** Pose ou supprime des documents ; ceux qui se partagent partent aussi en attente. */
+  async function modifier(operations: readonly Operation[]): Promise<void> {
+    const magasins = new Set<Magasin>(operations.map((o) => o.magasin));
+    if (operations.some((o) => estPartage(o.magasin))) magasins.add("attente");
+    if (magasins.size === 0) return signaler();
     const db = await base;
-    const tx = db.transaction(magasin, "readwrite");
-    action(tx.objectStore(magasin));
+    const tx = db.transaction([...magasins], "readwrite");
+    const maj = horloge();
+    for (const { magasin, id, doc } of operations) {
+      if (doc) tx.objectStore(magasin).put(doc);
+      else tx.objectStore(magasin).delete(id);
+      if (estPartage(magasin)) {
+        const enAttente: EnAttente = { cle: cleDe({ collection: magasin, id }), collection: magasin, id, donnees: doc, maj };
+        tx.objectStore("attente").put(enAttente);
+      }
+    }
     await terminer(tx);
-    prevenir();
-    canal?.postMessage("change");
+    signaler();
   }
+
+  const poser = (magasin: Magasin, docs: readonly { id: Id }[]) => modifier(docs.map((doc) => ({ magasin, id: doc.id, doc })));
+  const supprimer = (magasin: Magasin, ids: readonly Id[]) => modifier(ids.map((id) => ({ magasin, id, doc: null })));
+  const sansCle = ({ collection, id, donnees, maj }: EnAttente): Changement => ({ collection, id, donnees, maj });
 
   return {
     async lireFoyer() {
       return (await tous<Foyer>("foyer"))[0] ?? null;
     },
-    enregistrerFoyer: (foyer) => ecrire("foyer", (s) => s.put(foyer)),
+    enregistrerFoyer: (foyer) => poser("foyer", [foyer]),
 
     lireListes: () => tous<Liste>("listes"),
-    enregistrerListe: (liste) => ecrire("listes", (s) => s.put(liste)),
+    enregistrerListe: (liste) => poser("listes", [liste]),
     async supprimerListe(id: Id) {
-      const orphelins = (await tous<Element>("elements")).filter((e) => e.listeId === id).map((e) => e.id);
-      const db = await base;
-      const tx = db.transaction(["listes", "elements"], "readwrite");
-      tx.objectStore("listes").delete(id);
-      orphelins.forEach((eid) => tx.objectStore("elements").delete(eid));
-      await terminer(tx);
-      prevenir();
-      canal?.postMessage("change");
+      const orphelins = (await tous<Element>("elements")).filter((e) => e.listeId === id);
+      await modifier([
+        { magasin: "listes", id, doc: null },
+        ...orphelins.map((e): Operation => ({ magasin: "elements", id: e.id, doc: null })),
+      ]);
     },
 
     lireElements: () => tous<Element>("elements"),
-    enregistrerElement: (element) => ecrire("elements", (s) => s.put(element)),
-    supprimerElements: (ids) => ecrire("elements", (s) => ids.forEach((id) => s.delete(id))),
+    enregistrerElement: (element) => poser("elements", [element]),
+    supprimerElements: (ids) => supprimer("elements", ids),
 
     lireTaches: () => tous<Tache>("taches"),
-    enregistrerTache: (tache) => ecrire("taches", (s) => s.put(tache)),
-    enregistrerTaches: (taches) => ecrire("taches", (s) => taches.forEach((t) => s.put(t))),
-    supprimerTache: (id) => ecrire("taches", (s) => s.delete(id)),
+    enregistrerTache: (tache) => poser("taches", [tache]),
+    enregistrerTaches: (taches) => poser("taches", taches),
+    supprimerTache: (id) => supprimer("taches", [id]),
 
     lireAnimaux: () => tous<Animal>("animaux"),
-    enregistrerAnimal: (animal) => ecrire("animaux", (s) => s.put(animal)),
+    enregistrerAnimal: (animal) => poser("animaux", [animal]),
 
     lireRetours: () => tous<RetourTest>("retours"),
-    enregistrerRetour: (retour) => ecrire("retours", (s) => s.put(retour)),
-    supprimerRetour: (id) => ecrire("retours", (s) => s.delete(id)),
+    enregistrerRetour: (retour) => poser("retours", [retour]),
+    supprimerRetour: (id) => supprimer("retours", [id]),
 
     abonner(rappel) {
       abonnes.add(rappel);
       return () => abonnes.delete(rappel);
+    },
+
+    async lireEnAttente() {
+      return (await tous<EnAttente>("attente")).map(sansCle);
+    },
+
+    async retirerEnAttente(envoyes) {
+      const db = await base;
+      const tx = db.transaction("attente", "readwrite");
+      const attente = tx.objectStore("attente");
+      for (const c of envoyes) {
+        puis(attente.get(cleDe(c)) as IDBRequest<EnAttente | undefined>, (actuel) => {
+          if (actuel && actuel.maj === c.maj) attente.delete(cleDe(c));
+        });
+      }
+      await terminer(tx);
+    },
+
+    async appliquer(distants) {
+      if (distants.length === 0) return;
+      const db = await base;
+      const tx = db.transaction([...COLLECTIONS_SYNCHRO, "attente"], "readwrite");
+      const attente = tx.objectStore("attente");
+      for (const d of distants) {
+        // La vérification se fait dans la même transaction qu'une écriture locale :
+        // une modification faite ici pendant la synchro n'est jamais écrasée.
+        puis(attente.get(cleDe(d)) as IDBRequest<EnAttente | undefined>, (local) => {
+          if (!distantGagne(local, d)) return;
+          if (local) attente.delete(cleDe(d));
+          if (d.donnees === null) tx.objectStore(d.collection).delete(d.id);
+          else tx.objectStore(d.collection).put(d.donnees);
+        });
+      }
+      await terminer(tx);
+      signaler();
+    },
+
+    async remplacerTout(distants) {
+      const db = await base;
+      const tx = db.transaction([...COLLECTIONS_SYNCHRO, "attente"], "readwrite");
+      for (const m of [...COLLECTIONS_SYNCHRO, "attente"] as const) tx.objectStore(m).clear();
+      for (const d of distants) if (d.donnees !== null) tx.objectStore(d.collection).put(d.donnees);
+      await terminer(tx);
+      signaler();
+    },
+
+    async toutMettreEnAttente() {
+      const db = await base;
+      const tx = db.transaction([...COLLECTIONS_SYNCHRO, "attente"], "readwrite");
+      const maj = horloge();
+      for (const collection of COLLECTIONS_SYNCHRO) {
+        puis(tx.objectStore(collection).getAll() as IDBRequest<{ id: Id }[]>, (docs) => {
+          for (const doc of docs) {
+            const enAttente: EnAttente = { cle: cleDe({ collection, id: doc.id }), collection, id: doc.id, donnees: doc, maj };
+            tx.objectStore("attente").put(enAttente);
+          }
+        });
+      }
+      await terminer(tx);
+    },
+
+    async lireEtat() {
+      const etat = (await tous<EtatSynchro & { id: string }>("synchro"))[0];
+      if (!etat) return null;
+      const { id: _id, ...reste } = etat;
+      return reste;
+    },
+
+    async enregistrerEtat(etat) {
+      const db = await base;
+      const tx = db.transaction("synchro", "readwrite");
+      if (etat) tx.objectStore("synchro").put({ id: "etat", ...etat });
+      else tx.objectStore("synchro").delete("etat");
+      await terminer(tx);
     },
   };
 }
