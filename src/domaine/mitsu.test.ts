@@ -3,6 +3,10 @@ import { contexteTest } from "./contexteTest";
 import { ErreurValidation } from "./foyer";
 import {
   ageEnMois,
+  conseilCommande,
+  definirCommande,
+  passerCommande,
+  videsAvantLivraison,
   ajouterPesee,
   ajouterProvision,
   ajouterSoin,
@@ -101,7 +105,7 @@ describe("pesées", () => {
 describe("provisions", () => {
   const ctx = contexteTest();
   const base = ajouterPesee(mitsu(ctx), 2500, "2026-10-01", null, ctx); // ≈ 70 g par jour
-  const sac = nouvelleProvision({ type: "croquettes", nom: "Kitten", grammes: 2000, achete: "2026-10-01", parJour: null }, ctx);
+  const sac = nouvelleProvision({ type: "croquettes", nom: "Kitten", quantite: 2000, achete: "2026-10-01", parJour: null }, ctx);
   const avecSac = ajouterProvision(base, sac);
 
   it("prévoit la fin du sac et le jour où commander", () => {
@@ -123,9 +127,9 @@ describe("provisions", () => {
   });
 
   it("utilise la consommation notée pour la litière, et rien sans elle", () => {
-    const litiere = nouvelleProvision({ type: "litiere", nom: "", grammes: 10000, achete: "2026-10-01", parJour: 200 }, ctx);
+    const litiere = nouvelleProvision({ type: "litiere", nom: "", quantite: 10000, achete: "2026-10-01", parJour: 200 }, ctx);
     expect(prevoir(litiere, avecSac, "2026-10-09")!.joursRestants).toBe(42);
-    const patee = nouvelleProvision({ type: "patee", nom: "", grammes: 1000, achete: "2026-10-01", parJour: null }, ctx);
+    const patee = nouvelleProvision({ type: "patee", nom: "", quantite: 1000, achete: "2026-10-01", parJour: null }, ctx);
     expect(prevoir(patee, avecSac, "2026-10-09")).toBeNull();
     expect(litiere.nom).toBe("Litière");
   });
@@ -160,7 +164,7 @@ describe("ce qui est à faire", () => {
   it("met d'abord la commande et le soin proches, puis la pesée", () => {
     const ctx = contexteTest();
     let a = ajouterPesee(mitsu(ctx), 2500, "2026-10-01", null, ctx);
-    a = ajouterProvision(a, nouvelleProvision({ type: "croquettes", nom: "Kitten", grammes: 1000, achete: "2026-10-01", parJour: null }, ctx));
+    a = ajouterProvision(a, nouvelleProvision({ type: "croquettes", nom: "Kitten", quantite: 1000, achete: "2026-10-01", parJour: null }, ctx));
     a = ajouterSoin(a, nouveauSoin("vaccin", "2026-10-20", "Rappel vaccin", ctx));
     a = ajouterSoin(a, nouveauSoin("visite", "2026-12-01", "", ctx));
     expect(choseAFaire(a, "2026-10-15")).toEqual([
@@ -173,12 +177,62 @@ describe("ce qui est à faire", () => {
   it("n'a rien à signaler quand tout est en ordre", () => {
     const ctx = contexteTest();
     const a = ajouterPesee(mitsu(ctx), 2500, "2026-10-09", null, ctx);
-    expect(choseAFaire(a, "2026-10-09")).toEqual([]);
+    expect(choseAFaire(a, "2026-10-09").filter((c) => c.urgent)).toEqual([]);
   });
 
   it("rappelle le passage aux croquettes adulte le mois d'avant", () => {
     const ctx = contexteTest();
     const a = ajouterPesee(mitsu(ctx), 3800, "2027-03-20", null, ctx);
     expect(choseAFaire(a, "2027-03-20")).toEqual([{ texte: "Passer aux croquettes adulte dans 25 jours", urgent: false }]);
+  });
+});
+
+describe("commande régulière", () => {
+  const ARTICLES = [
+    { type: "croquettes" as const, nom: "Pro Plan Kitten", quantite: 6000 },
+    { type: "litiere" as const, nom: "Tigerino Crystals", quantite: 15000 },
+  ];
+
+  function avecCommande(ctx = contexteTest()) {
+    let a = definirCommande(mitsu(ctx), { fournisseur: "zooplus", tousLesMois: 3, prochaine: "2026-10-27", articles: ARTICLES });
+    for (const art of ARTICLES) {
+      a = ajouterProvision(a, nouvelleProvision({ ...art, achete: "2026-08-02", parJour: null }, ctx));
+    }
+    return a;
+  }
+
+  it("déduit la consommation de la commande quand on ne connaît pas son poids", () => {
+    const a = avecCommande();
+    // 6 kg tous les 3 mois (92 jours) ≈ 65 g par jour : 68 jours écoulés le 9 octobre.
+    expect(prevoir(a.provisions[0], a, "2026-10-09")).toMatchObject({ restant: 1580, fin: "2026-11-02" });
+  });
+
+  it("rappelle la commande 3 jours avant, et pas avant", () => {
+    const a = avecCommande();
+    expect(choseAFaire(a, "2026-10-09").filter((c) => c.urgent)).toEqual([]);
+    expect(choseAFaire(a, "2026-10-24")).toContainEqual({ texte: "Commande zooplus dans 3 jours", urgent: true });
+  });
+
+  it("prévient quand un produit sera vide avant l'arrivée de la commande", () => {
+    const ctx = contexteTest();
+    const a = ajouterPesee(avecCommande(ctx), 3500, "2026-10-09", null, ctx);
+    // Avec son poids, la ration (≈ 70 g) passe devant l'estimation de la commande.
+    expect(videsAvantLivraison(a, "2026-10-09").map((v) => v.provision.nom)).toEqual(["Pro Plan Kitten"]);
+    expect(choseAFaire(a, "2026-10-09")[0].texte).toMatch(/^Pro Plan Kitten : vide vers le/);
+  });
+
+  it("remplit le stock et prévoit la commande suivante quand elle est passée", () => {
+    const ctx = contexteTest();
+    const a = passerCommande(avecCommande(ctx), "2026-10-24", ctx);
+    expect(a.commande!.prochaine).toBe("2027-01-27");
+    expect(a.provisions).toHaveLength(2);
+    expect(a.provisions[0]).toMatchObject({ achete: "2026-10-24", quantite: 6000 + 605 });
+  });
+
+  it("conseille la transition vers les croquettes adulte pour la commande qui couvre ses 1 an", () => {
+    const a = avecCommande();
+    expect(conseilCommande(a)).toBeNull();
+    const janvier = { ...a, commande: { ...a.commande!, prochaine: "2027-01-27" } };
+    expect(conseilCommande(janvier)).toMatch(/couvre ses 1 an \(14\/04\)/);
   });
 });

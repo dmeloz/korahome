@@ -3,6 +3,12 @@ import { ErreurValidation } from "../../domaine/foyer";
 import { nouvelElement } from "../../domaine/listes";
 import {
   TYPES_PROVISION,
+  articleDe,
+  conseilCommande,
+  definirCommande,
+  formaterQuantite,
+  passerCommande,
+  type ArticleCommande,
   TYPES_SOIN,
   ajouterPesee,
   ajouterProvision,
@@ -24,6 +30,7 @@ import {
   soinsAVenir,
   soinsFaits,
   texteCourses,
+  videsAvantLivraison,
   type Animal,
   type Provision,
   type TypeProvision,
@@ -39,6 +46,19 @@ const dateCourte = (jour: string) =>
 
 /** « 2,45 » ou « 2.45 » → 2450 g ; NaN si illisible. */
 const kgEnGrammes = (texte: string) => Math.round(Number(texte.replace(",", ".").trim()) * 1000);
+
+// La dernière commande zooplus de Melo et Sarah (facture du 31 juillet 2026, livrée le 2 août),
+// proposée en un geste pour démarrer le suivi sans rien recopier.
+const COMMANDE_ZOOPLUS = {
+  fournisseur: "zooplus",
+  tousLesMois: 3,
+  prochaine: "2026-10-27",
+  livree: "2026-08-02",
+  articles: [
+    { type: "croquettes", nom: "Pro Plan Kitten Healthy Start (poulet)", quantite: 6000 },
+    { type: "litiere", nom: "Tigerino Crystals Sensitive", quantite: 15000 },
+  ] satisfies ArticleCommande[],
+};
 
 interface Props {
   depot: Depot;
@@ -168,7 +188,7 @@ function Suivi(props: Props & { animal: Animal }) {
       () =>
         ajouterProvision(
           animal,
-          nouvelleProvision({ type: typeProvision, nom: nomProvision, grammes: kgEnGrammes(quantite), achete, parJour: consommation }, contexteReel),
+          nouvelleProvision({ type: typeProvision, nom: nomProvision, quantite: kgEnGrammes(quantite), achete, parJour: consommation }, contexteReel),
         ),
       () => {
         setNomProvision("");
@@ -200,6 +220,22 @@ function Suivi(props: Props & { animal: Animal }) {
     const g = Number(rationPaquet.replace(",", "."));
     const valeur = rationPaquet.trim() && g > 0 ? Math.round(g) : null;
     void enregistrer({ ...animal, reglages: { ...animal.reglages, rationDuPaquet: valeur } });
+  }
+
+  const commande = animal.commande;
+  const vides = videsAvantLivraison(animal, aujourdhui);
+  const conseil = conseilCommande(animal);
+
+  function reprendreCommande() {
+    const { livree, ...champs } = COMMANDE_ZOOPLUS;
+    tenter(() => {
+      let a = definirCommande(animal, { ...champs, articles: [...champs.articles] });
+      for (const art of champs.articles) {
+        if (a.provisions.some((p) => p.type === art.type && p.nom === art.nom)) continue;
+        a = ajouterProvision(a, nouvelleProvision({ ...art, achete: livree, parJour: null }, contexteReel));
+      }
+      return a;
+    });
   }
 
   const precedente = pesee[1];
@@ -280,6 +316,44 @@ function Suivi(props: Props & { animal: Animal }) {
         </div>
       </Section>
 
+      <Section titre="Commande régulière">
+        {commande ? (
+          <div className="carte mitsu-commande">
+            <p>
+              <strong>{commande.fournisseur}</strong>
+              <span className="discret"> · tous les {commande.tousLesMois} mois</span>
+            </p>
+            <p>
+              Prochaine commande le <strong>{dateCourte(commande.prochaine)}</strong>
+              <span className="discret"> ({decrireEcheance(commande.prochaine, aujourdhui)})</span>
+            </p>
+            <ul className="mitsu-articles">
+              {commande.articles.map((a) => (
+                <li key={a.nom} className="discret">{a.nom} · {formaterQuantite(a.type, a.quantite)}</li>
+              ))}
+            </ul>
+            {vides.map(({ provision, fin }) => (
+              <p key={provision.id} className="urgent-texte">
+                {provision.nom} sera vide vers le {dateCourte(fin)}, avant l'arrivée de la commande : commande plus tôt.
+              </p>
+            ))}
+            {conseil && <p className="mitsu-conseil">{conseil}</p>}
+            <label className="date-tache">
+              Changer la date
+              <input type="date" value={commande.prochaine} onChange={(e) => e.target.value && enregistrer({ ...animal, commande: { ...commande, prochaine: e.target.value } })} />
+            </label>
+            <button className="bouton-principal" onClick={() => enregistrer(passerCommande(animal, aujourdhui, contexteReel), () => setMessage("Stock mis à jour. Prochaine commande dans " + commande.tousLesMois + " mois."))}>
+              Commande passée aujourd'hui
+            </button>
+          </div>
+        ) : (
+          <div className="carte mitsu-commande">
+            <p className="discret">Vous commandez chez zooplus tous les 3 mois. Reprends la dernière commande (croquettes Pro Plan Kitten 6 kg et litière Tigerino 15 L) : l'app suit le stock et te rappelle la prochaine, le 27 octobre.</p>
+            <button className="bouton-principal" onClick={reprendreCommande}>Reprendre la commande zooplus</button>
+          </div>
+        )}
+      </Section>
+
       <Section
         titre="Provisions"
         action={<button className="lien" onClick={() => basculer("provision")}>{ouvert === "provision" ? "Fermer" : "Ajouter"}</button>}
@@ -298,7 +372,7 @@ function Suivi(props: Props & { animal: Animal }) {
               <input value={nomProvision} onChange={(e) => setNomProvision(e.target.value)} placeholder="Comme sur la facture" autoComplete="off" />
             </label>
             <label>
-              Quantité achetée (kg)
+              Quantité achetée ({typeProvision === "litiere" ? "litres" : "kg"})
               <input inputMode="decimal" value={quantite} onChange={(e) => setQuantite(e.target.value)} placeholder="ex. 2" />
             </label>
             <label>
@@ -306,7 +380,7 @@ function Suivi(props: Props & { animal: Animal }) {
               <input type="date" value={achete} onChange={(e) => setAchete(e.target.value || aujourdhui)} />
             </label>
             <label>
-              Consommation par jour (g)
+              Consommation par jour ({typeProvision === "litiere" ? "ml" : "g"})
               <input
                 inputMode="decimal"
                 value={parJour}
@@ -323,21 +397,29 @@ function Suivi(props: Props & { animal: Animal }) {
           <ul className="carte groupe">
             {animal.provisions.map((p) => {
               const prev = prevoir(p, animal, aujourdhui);
+              const suivie = articleDe(p, animal) !== undefined;
+              const alerte = suivie ? vides.some((v) => v.provision.id === p.id) : !!prev && prev.etat !== "ok";
               return (
                 <li key={p.id} className="mitsu-provision">
                   <div className="ligne-texte">
                     <strong>{p.nom}</strong>
-                    <span className={`tache-details${prev && prev.etat !== "ok" ? " retard" : ""}`}>
-                      {TYPES_PROVISION[p.type]} · {formaterPoids(p.grammes)}
-                      {prev
-                        ? prev.etat === "epuise"
+                    <span className={`tache-details${alerte ? " retard" : ""}`}>
+                      {TYPES_PROVISION[p.type]} · {prev ? `reste environ ${formaterQuantite(p.type, prev.restant)}` : formaterQuantite(p.type, p.quantite)}
+                      {!prev
+                        ? " · note la consommation par jour pour prévoir la fin"
+                        : prev.etat === "epuise"
                           ? " · fini"
-                          : ` · encore ${prev.joursRestants} j, jusqu'au ${dateCourte(prev.fin)} · ${prev.etat === "commander" ? "à commander maintenant" : `commander le ${dateCourte(prev.commanderLe)}`}`
-                        : " · note la consommation par jour pour prévoir la fin"}
+                          : ` · jusqu'au ${dateCourte(prev.fin)} · ${
+                              suivie && commande
+                                ? `réassort avec la commande du ${dateCourte(commande.prochaine)}`
+                                : prev.etat === "commander"
+                                  ? "à commander maintenant"
+                                  : `commander le ${dateCourte(prev.commanderLe)}`
+                            }`}
                     </span>
                   </div>
                   <div className="tache-actions mitsu-actions">
-                    {prev && prev.etat !== "ok" && courses && (
+                    {alerte && courses && (
                       <button className="lien" onClick={() => versCourses(p)}>Ajouter aux courses</button>
                     )}
                     <button className="lien" onClick={() => enregistrer(retirerProvision(animal, p.id))}>Paquet fini</button>

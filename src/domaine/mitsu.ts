@@ -22,11 +22,28 @@ export interface Provision {
   type: TypeProvision;
   /** Le produit, tel qu'il figure sur la facture. */
   nom: string;
-  /** Quantité achetée, en grammes. */
-  grammes: number;
+  /** Ce qui reste au jour « achete » : en grammes, ou en millilitres pour la litière. */
+  quantite: number;
+  /** Jour d'achat, ou du dernier réassort par une commande. */
   achete: Jour;
-  /** Consommation par jour en grammes ; null pour les croquettes = la ration du jour. */
+  /** Consommation par jour (g ou ml) ; null = déduite de la ration ou de la commande. */
   parJour: number | null;
+}
+
+/** Les produits qui reviennent à chaque commande, au même rythme. */
+export interface ArticleCommande {
+  type: TypeProvision;
+  nom: string;
+  /** Quantité commandée, en grammes (ou millilitres pour la litière). */
+  quantite: number;
+}
+
+/** La commande en ligne qui revient : tous les 3 mois chez zooplus pour Mitsu. */
+export interface CommandeReguliere {
+  fournisseur: string;
+  tousLesMois: number;
+  prochaine: Jour;
+  articles: ArticleCommande[];
 }
 
 export type TypeSoin = "vaccin" | "vermifuge" | "antiparasitaire" | "sterilisation" | "visite" | "autre";
@@ -76,6 +93,7 @@ export interface Animal {
   pesees: Pesee[];
   provisions: Provision[];
   soins: Soin[];
+  commande: CommandeReguliere | null;
   reglages: ReglagesSuivi;
   creeLe: string;
 }
@@ -116,6 +134,7 @@ export function nouvelAnimal(
     pesees: [],
     provisions: [],
     soins: [],
+    commande: null,
     reglages: { ...REGLAGES_DE_DEPART },
     creeLe: ctx.maintenant(),
   };
@@ -224,17 +243,23 @@ export function formaterPoids(grammes: number): string {
 
 // ----- Provisions -----
 
+/** La litière se compte en litres, le reste en kilos. */
+export function formaterQuantite(type: TypeProvision, quantite: number): string {
+  const n = (quantite / 1000).toLocaleString("fr-CH", { maximumFractionDigits: 2 });
+  return type === "litiere" ? `${n} L` : `${n} kg`;
+}
+
 export function nouvelleProvision(
-  champs: { type: TypeProvision; nom: string; grammes: number; achete: Jour; parJour: number | null },
+  champs: { type: TypeProvision; nom: string; quantite: number; achete: Jour; parJour: number | null },
   ctx: Contexte,
 ): Provision {
   verifierJour(champs.achete, "Achat");
-  if (!Number.isFinite(champs.grammes) || champs.grammes <= 0) throw new ErreurValidation("Indique la quantité achetée.");
+  if (!Number.isFinite(champs.quantite) || champs.quantite <= 0) throw new ErreurValidation("Indique la quantité achetée.");
   if (champs.parJour !== null && (!Number.isFinite(champs.parJour) || champs.parJour <= 0)) {
     throw new ErreurValidation("La consommation par jour doit être positive.");
   }
   const nom = champs.nom.trim().replace(/\s+/g, " ") || TYPES_PROVISION[champs.type];
-  return { id: ctx.nouvelId(), type: champs.type, nom, grammes: Math.round(champs.grammes), achete: champs.achete, parJour: champs.parJour };
+  return { id: ctx.nouvelId(), type: champs.type, nom, quantite: Math.round(champs.quantite), achete: champs.achete, parJour: champs.parJour };
 }
 
 export function ajouterProvision(animal: Animal, provision: Provision): Animal {
@@ -245,9 +270,29 @@ export function retirerProvision(animal: Animal, id: Id): Animal {
   return { ...animal, provisions: animal.provisions.filter((p) => p.id !== id) };
 }
 
+/** L'article de la commande régulière qui réapprovisionne cette provision. */
+export function articleDe(provision: Provision, animal: Animal): ArticleCommande | undefined {
+  return animal.commande?.articles.find((a) => a.type === provision.type && a.nom === provision.nom);
+}
+
+/** Durée d'un cycle de commande, en jours. */
+function joursDuCycle(commande: CommandeReguliere): number {
+  return ecartJours(commande.prochaine, plusMois(commande.prochaine, commande.tousLesMois));
+}
+
+/**
+ * Consommation par jour, dans l'ordre : celle notée sur la provision, la ration du jour
+ * pour les croquettes (quand on connaît son poids ou la ration du paquet), sinon ce que la
+ * commande régulière laisse supposer (6 kg tous les 3 mois ≈ 65 g par jour).
+ */
 export function consommationParJour(provision: Provision, animal: Animal, aujourdhui: Jour): number | null {
   if (provision.parJour) return provision.parJour;
-  if (provision.type === "croquettes") return rationDuJour(animal, aujourdhui)?.grammes || null;
+  if (provision.type === "croquettes") {
+    const ration = rationDuJour(animal, aujourdhui);
+    if (ration) return ration.grammes;
+  }
+  const article = articleDe(provision, animal);
+  if (article && animal.commande) return Math.round(article.quantite / joursDuCycle(animal.commande));
   return null;
 }
 
@@ -264,7 +309,7 @@ export function prevoir(provision: Provision, animal: Animal, aujourdhui: Jour):
   const parJour = consommationParJour(provision, animal, aujourdhui);
   if (!parJour) return null;
   const ecoules = Math.max(0, ecartJours(provision.achete, aujourdhui));
-  const restant = Math.max(0, provision.grammes - ecoules * parJour);
+  const restant = Math.max(0, provision.quantite - ecoules * parJour);
   const joursRestants = Math.floor(restant / parJour);
   const fin = plusJours(aujourdhui, joursRestants);
   const commanderLe = plusJours(fin, -animal.reglages.delaiCommande);
@@ -277,6 +322,74 @@ export function texteCourses(provision: Provision, animal: Animal): string {
   const type = TYPES_PROVISION[provision.type];
   const produit = provision.nom === type ? "" : ` (${provision.nom})`;
   return `${type} ${animal.nom}${produit}`;
+}
+
+// ----- Commande régulière -----
+
+export function definirCommande(
+  animal: Animal,
+  champs: { fournisseur: string; tousLesMois: number; prochaine: Jour; articles: ArticleCommande[] },
+): Animal {
+  verifierJour(champs.prochaine, "Prochaine commande");
+  if (!Number.isInteger(champs.tousLesMois) || champs.tousLesMois < 1) throw new ErreurValidation("Le rythme doit être d'au moins un mois.");
+  const articles = champs.articles.filter((a) => a.nom.trim() && a.quantite > 0);
+  return { ...animal, commande: { ...champs, fournisseur: champs.fournisseur.trim() || "la boutique", articles } };
+}
+
+/**
+ * La commande est passée : chaque article remplit sa provision (ce qui reste plus ce qui
+ * arrive, compté à partir d'aujourd'hui) et la suivante est prévue un cycle plus tard.
+ */
+export function passerCommande(animal: Animal, aujourdhui: Jour, ctx: Contexte): Animal {
+  const commande = animal.commande;
+  if (!commande) return animal;
+  let provisions = [...animal.provisions];
+  for (const article of commande.articles) {
+    const existante = provisions.find((p) => p.type === article.type && p.nom === article.nom);
+    if (existante) {
+      const reste = prevoir(existante, animal, aujourdhui)?.restant ?? 0;
+      provisions = provisions.map((p) => (p === existante ? { ...p, quantite: reste + article.quantite, achete: aujourdhui } : p));
+    } else {
+      provisions.push({ id: ctx.nouvelId(), type: article.type, nom: article.nom, quantite: article.quantite, achete: aujourdhui, parJour: null });
+    }
+  }
+  const depart = commande.prochaine > aujourdhui ? commande.prochaine : aujourdhui;
+  return { ...animal, provisions, commande: { ...commande, prochaine: plusMois(depart, commande.tousLesMois) } };
+}
+
+/**
+ * Conseil pour la prochaine commande : si elle couvre ses 1 an, il faut prévoir la
+ * transition vers les croquettes adulte (un sac chaton plus petit et un sac adulte).
+ */
+export function conseilCommande(animal: Animal): string | null {
+  const commande = animal.commande;
+  if (!commande || !commande.articles.some((a) => a.type === "croquettes")) return null;
+  const adulte = passageAdulte(animal.naissance);
+  const finDuCycle = plusMois(commande.prochaine, commande.tousLesMois);
+  if (adulte <= commande.prochaine) {
+    return ageEnMois(animal.naissance, commande.prochaine) < 13 ? "Elle a passé 1 an : commande des croquettes adulte." : null;
+  }
+  if (adulte < finDuCycle) {
+    return `Cette commande couvre ses 1 an (${adulte.slice(8, 10)}/${adulte.slice(5, 7)}) : prends moins de croquettes chaton et un sac adulte pour la transition.`;
+  }
+  return null;
+}
+
+/** Rappeler la commande régulière quelques jours avant. */
+export const RAPPEL_COMMANDE_JOURS = 3;
+/** Délai de livraison compté pour savoir si le stock tiendra. */
+export const LIVRAISON_JOURS = 3;
+
+/** Les provisions de la commande qui seront vides avant que la prochaine arrive. */
+export function videsAvantLivraison(animal: Animal, aujourdhui: Jour): { provision: Provision; fin: Jour }[] {
+  const commande = animal.commande;
+  if (!commande) return [];
+  const arrivee = plusJours(commande.prochaine, LIVRAISON_JOURS);
+  return animal.provisions.flatMap((p) => {
+    if (!articleDe(p, animal)) return [];
+    const prev = prevoir(p, animal, aujourdhui);
+    return prev && prev.fin < arrivee ? [{ provision: p, fin: prev.fin }] : [];
+  });
 }
 
 // ----- Santé -----
@@ -342,7 +455,22 @@ export function choseAFaire(animal: Animal, aujourdhui: Jour): ChoseAFaire[] {
   const urgentes: ChoseAFaire[] = [];
   const bientot: ChoseAFaire[] = [];
 
+  const commande = animal.commande;
+  if (commande) {
+    const ecart = ecartJours(aujourdhui, commande.prochaine);
+    if (ecart <= RAPPEL_COMMANDE_JOURS) {
+      const quand = ecart < 0 ? "en retard" : ecart === 0 ? "aujourd'hui" : ecart === 1 ? "demain" : `dans ${ecart} jours`;
+      urgentes.push({ texte: `Commande ${commande.fournisseur} ${quand}`, urgent: true });
+    }
+    for (const { provision, fin } of videsAvantLivraison(animal, aujourdhui)) {
+      if (ecart <= RAPPEL_COMMANDE_JOURS) continue; // déjà rappelée juste au-dessus
+      urgentes.push({ texte: `${provision.nom} : vide vers le ${fin.slice(8, 10)}/${fin.slice(5, 7)}, avant la commande`, urgent: true });
+    }
+  }
+
   for (const p of animal.provisions) {
+    // Une provision réassortie par la commande régulière suit le rythme de la commande.
+    if (articleDe(p, animal)) continue;
     const prev = prevoir(p, animal, aujourdhui);
     if (!prev || prev.etat === "ok") continue;
     urgentes.push({
