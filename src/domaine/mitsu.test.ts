@@ -88,13 +88,13 @@ describe("pesées", () => {
     expect(() => ajouterPesee(a, 20, "2026-10-10", null, ctx)).toThrow(ErreurValidation);
   });
 
-  it("prévoit la suivante toutes les 2 semaines, puis chaque mois une fois adulte", () => {
+  it("prévoit la suivante environ 6 mois plus tard, ou au rythme choisi", () => {
     const ctx = contexteTest();
     expect(prochainePesee(mitsu(ctx), "2026-10-09")).toBe("2026-10-09");
     const a = ajouterPesee(mitsu(ctx), 2500, "2026-10-09", null, ctx);
-    expect(prochainePesee(a, "2026-10-09")).toBe("2026-10-23");
-    const b = ajouterPesee(a, 4000, "2027-05-01", null, ctx);
-    expect(prochainePesee(b, "2027-05-01")).toBe("2027-05-31");
+    expect(prochainePesee(a, "2026-10-09")).toBe("2027-04-07");
+    const b = { ...a, reglages: { ...a.reglages, peseeTousLes: 30 } };
+    expect(prochainePesee(b, "2026-10-09")).toBe("2026-11-08");
   });
 });
 
@@ -166,8 +166,8 @@ describe("ce qui est à faire", () => {
     expect(choseAFaire(a, "2026-10-15")).toEqual([
       { texte: "Commander Kitten : 4 j de stock", urgent: true },
       { texte: "Rappel vaccin dans 5 jours", urgent: true },
-      { texte: "La peser", urgent: false },
     ]);
+    expect(choseAFaire(a, "2027-04-01")).toContainEqual({ texte: "La peser", urgent: false });
   });
 
   it("n'a rien à signaler quand tout est en ordre", () => {

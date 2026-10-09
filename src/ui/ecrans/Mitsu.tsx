@@ -58,7 +58,7 @@ export function Mitsu(props: Props) {
 function Premiere({ depot }: { depot: Depot }) {
   const [nom, setNom] = useState("Mitsu");
   const [naissance, setNaissance] = useState("2026-04-14");
-  const [arrivee, setArrivee] = useState("2026-07-14");
+  const [arrivee, setArrivee] = useState("2026-06-21");
   const [erreur, setErreur] = useState<string | null>(null);
 
   async function creer(e: FormEvent) {
@@ -87,7 +87,6 @@ function Premiere({ depot }: { depot: Depot }) {
           Arrivée chez vous le
           <input type="date" value={arrivee} onChange={(e) => setArrivee(e.target.value)} />
         </label>
-        <p className="discret">Dates à confirmer : tu pourras les corriger plus bas.</p>
         {erreur && <p className="erreur" role="alert">{erreur}</p>}
         <button type="submit" className="bouton-principal">Créer sa fiche</button>
       </form>
@@ -268,7 +267,7 @@ function Suivi(props: Props & { animal: Animal }) {
                 <strong>{formaterPoids(pesee[0].grammes)}</strong>
                 <span className="discret"> le {dateCourte(pesee[0].jour)}{ecartPoids !== null ? ` · ${ecartPoids >= 0 ? "+" : "−"}${Math.abs(ecartPoids)} g` : ""}</span>
               </p>
-              <p className="discret">Prochaine pesée {decrireEcheance(prochainePesee(animal, aujourdhui), aujourdhui)}.</p>
+              <p className="discret">Prochaine pesée vers le {dateCourte(prochainePesee(animal, aujourdhui))}, ou à la prochaine visite chez le vétérinaire.</p>
               {pesee.length > 1 && (
                 <p className="discret mitsu-historique">
                   {pesee.slice(1, 6).map((p) => `${dateCourte(p.jour)} : ${formaterPoids(p.grammes)}`).join(" · ")}
@@ -426,6 +425,16 @@ function Suivi(props: Props & { animal: Animal }) {
                   {[3, 7, 10, 14].map((n) => (
                     <button type="button" key={n} className={`puce${n === animal.reglages.delaiCommande ? " active" : ""}`} aria-pressed={n === animal.reglages.delaiCommande} onClick={() => enregistrer({ ...animal, reglages: { ...animal.reglages, delaiCommande: n } })}>
                       {n} jours
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="discret">La peser tous les</p>
+                <div className="puces" role="group" aria-label="Rythme des pesées">
+                  {[[30, "mois"], [90, "3 mois"], [180, "6 mois"]].map(([n, libelle]) => (
+                    <button type="button" key={n} className={`puce${n === animal.reglages.peseeTousLes ? " active" : ""}`} aria-pressed={n === animal.reglages.peseeTousLes} onClick={() => enregistrer({ ...animal, reglages: { ...animal.reglages, peseeTousLes: Number(n) } })}>
+                      {libelle}
                     </button>
                   ))}
                 </div>

@@ -7,11 +7,12 @@ import type { Contexte, Id, Jour } from "./types";
 // carnet de santé donnent les rappels. Tout est calculé à partir de « aujourd'hui »
 // fourni par l'interface : ce module ne lit jamais l'horloge.
 
-export type TypeProvision = "croquettes" | "patee" | "litiere";
+export type TypeProvision = "croquettes" | "patee" | "friandises" | "litiere";
 
 export const TYPES_PROVISION: Record<TypeProvision, string> = {
   croquettes: "Croquettes",
   patee: "Pâtée",
+  friandises: "Friandises",
   litiere: "Litière",
 };
 
@@ -58,7 +59,7 @@ export interface Pesee {
 export interface ReglagesSuivi {
   /** Combien de jours avant la fin d'une provision il faut commander. */
   delaiCommande: number;
-  /** Tous les combien de jours la peser tant qu'elle grandit. */
+  /** Tous les combien de jours la peser (à la maison ou chez le vétérinaire). */
   peseeTousLes: number;
   /** Énergie des croquettes, en kcal par gramme (indiquée sur le paquet). */
   kcalParGramme: number;
@@ -81,7 +82,8 @@ export interface Animal {
 
 export const REGLAGES_DE_DEPART: ReglagesSuivi = {
   delaiCommande: 10,
-  peseeTousLes: 14,
+  // Melo et Sarah la pèsent environ tous les 6 mois, et à chaque visite chez le vétérinaire.
+  peseeTousLes: 180,
   kcalParGramme: 4,
   rationDuPaquet: null,
 };
@@ -208,12 +210,11 @@ export function historiquePesees(animal: Animal): Pesee[] {
   return [...animal.pesees].sort((a, b) => b.jour.localeCompare(a.jour));
 }
 
-/** Prochaine pesée : au rythme choisi tant qu'elle grandit, chaque mois une fois adulte. */
+/** Prochaine pesée, au rythme choisi après la dernière. */
 export function prochainePesee(animal: Animal, aujourdhui: Jour): Jour {
   const derniere = poidsActuel(animal);
   if (!derniere) return aujourdhui;
-  const adulte = ageEnMois(animal.naissance, aujourdhui) >= 12;
-  return plusJours(derniere.jour, adulte ? 30 : animal.reglages.peseeTousLes);
+  return plusJours(derniere.jour, animal.reglages.peseeTousLes);
 }
 
 /** « 2,45 kg ». */
