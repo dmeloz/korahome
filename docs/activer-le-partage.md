@@ -7,10 +7,14 @@ que possible (la plus récente gagne). Les notes de test restent sur chaque tél
 
 À faire une seule fois.
 
+Le projet du foyer existe déjà (`korahome`, Zurich, créé par Claude avec le connecteur
+Supabase le 9 octobre 2026) : les étapes 1, 2 et 4 sont faites. Restent l'étape 3 et
+la 5. Les étapes complètes servent si le projet devait être recréé.
+
 ## 1. Créer le projet
 
 1. Sur https://supabase.com, créer un compte puis « New project ».
-2. Nom : `korahome`. Région : Europe (Zurich ou Francfort). Noter le mot de passe de
+2. Nom : `korahome`. Région : Europe (Zurich). Noter le mot de passe de
    la base dans le trousseau, **jamais dans le dépôt**.
 
 ## 2. Créer les tables
@@ -37,6 +41,12 @@ un code à 6 chiffres reçu par e-mail.
 3. « Authentication » > « Sign In / Providers » > « Email » : laisser « Enable Email
    provider » activé. Si la longueur du code (« Email OTP Length ») est proposée,
    choisir 6.
+4. L'envoi d'e-mails intégré à Supabase n'écrit qu'aux membres de l'équipe du projet
+   (et quelques messages par heure, ce qui suffit à deux personnes qui restent
+   connectées). Inviter donc l'autre membre du foyer dans « Organization » > « Team »
+   > « Invite » ; il accepte l'invitation depuis l'e-mail reçu. Plus tard, un service
+   d'envoi (Resend, Brevo…) branché dans « Authentication » > « SMTP » lèverait cette
+   limite.
 
 ## 4. Donner l'adresse du projet à l'app
 

@@ -38,7 +38,7 @@ create index if not exists documents_nouveautes on public.documents (foyer_id, m
 
 -- La modification la plus récente gagne ; l'heure du serveur est toujours celle de l'arrivée.
 create or replace function public.documents_plus_recent()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql set search_path = '' as $$
 begin
   if tg_op = 'UPDATE' and new.maj_client < old.maj_client then
     return null;
@@ -51,7 +51,11 @@ drop trigger if exists documents_plus_recent on public.documents;
 create trigger documents_plus_recent before insert or update on public.documents
   for each row execute function public.documents_plus_recent();
 
-create or replace function public.est_membre(f text)
+-- Hors du schéma public : n'est pas exposée par l'API, sert seulement aux règles ci-dessous.
+create schema if not exists prive;
+grant usage on schema prive to authenticated;
+
+create or replace function prive.est_membre(f text)
 returns boolean language sql stable security definer set search_path = public as $$
   select exists (select 1 from membres_foyer where foyer_id = f and user_id = auth.uid());
 $$;
@@ -62,29 +66,29 @@ alter table public.documents enable row level security;
 
 drop policy if exists "membres lisent leur foyer" on public.foyers;
 create policy "membres lisent leur foyer" on public.foyers
-  for select to authenticated using (public.est_membre(id));
+  for select to authenticated using (prive.est_membre(id));
 
 drop policy if exists "membres voient les membres" on public.membres_foyer;
 create policy "membres voient les membres" on public.membres_foyer
-  for select to authenticated using (public.est_membre(foyer_id));
+  for select to authenticated using (prive.est_membre(foyer_id));
 
 drop policy if exists "membres lisent les documents" on public.documents;
 create policy "membres lisent les documents" on public.documents
-  for select to authenticated using (public.est_membre(foyer_id));
+  for select to authenticated using (prive.est_membre(foyer_id));
 
 drop policy if exists "membres ajoutent des documents" on public.documents;
 create policy "membres ajoutent des documents" on public.documents
-  for insert to authenticated with check (public.est_membre(foyer_id));
+  for insert to authenticated with check (prive.est_membre(foyer_id));
 
 drop policy if exists "membres modifient les documents" on public.documents;
 create policy "membres modifient les documents" on public.documents
-  for update to authenticated using (public.est_membre(foyer_id)) with check (public.est_membre(foyer_id));
+  for update to authenticated using (prive.est_membre(foyer_id)) with check (prive.est_membre(foyer_id));
 
 -- Ouvrir le partage d'un foyer. Renvoie son code d'invitation (6 caractères sans O, 0, I, L, 1,
 -- le même alphabet que src/domaine/synchro.ts). Relancé par un membre, renvoie le même foyer.
 create or replace function public.creer_foyer(p_id text, p_nom text)
 returns table (id text, nom text, code text)
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, prive as $$
 declare
   alphabet constant text := 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
   nouveau text;
@@ -113,7 +117,7 @@ end $$;
 -- Rejoindre un foyer avec son code. Un foyer accueille au plus 6 comptes.
 create or replace function public.rejoindre_foyer(p_code text)
 returns text
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, prive as $$
 declare
   trouve text;
 begin
@@ -131,7 +135,10 @@ begin
   return trouve;
 end $$;
 
+revoke all on function prive.est_membre(text) from public, anon;
+revoke all on function public.documents_plus_recent() from public, anon, authenticated;
 revoke all on function public.creer_foyer(text, text) from public, anon;
 revoke all on function public.rejoindre_foyer(text) from public, anon;
 grant execute on function public.creer_foyer(text, text) to authenticated;
 grant execute on function public.rejoindre_foyer(text) to authenticated;
+grant execute on function prive.est_membre(text) to authenticated;
