@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { contexteTest } from "../domaine/contexteTest";
 import { creerFoyer, listesInitiales } from "../domaine/foyer";
 import { basculerCoche, nouvelElement } from "../domaine/listes";
+import { ajouterPesee, nouvelAnimal } from "../domaine/mitsu";
 import { basculerRegle, nouveauRetour } from "../domaine/retours";
 import { marquerFaite, tachesDeDepart } from "../domaine/taches";
 import { creerDepotLocal } from "./depotLocal";
@@ -86,6 +87,7 @@ describe("dépôt local", () => {
     const depot = creerDepotLocal("ancienne", fabrique);
     expect(await depot.lireTaches()).toEqual([]);
     expect(await depot.lireRetours()).toEqual([]);
+    expect(await depot.lireAnimaux()).toEqual([]);
   });
 
   it("conserve, met à jour et supprime les notes de test", async () => {
@@ -100,5 +102,14 @@ describe("dépôt local", () => {
     const retours = await depot.lireRetours();
     expect(retours).toHaveLength(1);
     expect(retours[0].regleLe).not.toBeNull();
+  });
+
+  it("conserve le suivi de Mitsu", async () => {
+    const ctx = contexteTest();
+    const depot = depotNeuf();
+    const mitsu = ajouterPesee(nouvelAnimal("Mitsu", "2026-04-14", null, ctx), 2500, "2026-10-09", null, ctx);
+    await depot.enregistrerAnimal(mitsu);
+    await depot.enregistrerAnimal({ ...mitsu, sterilise: true });
+    expect(await depot.lireAnimaux()).toEqual([{ ...mitsu, sterilise: true }]);
   });
 });
