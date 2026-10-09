@@ -3,6 +3,8 @@ import { ErreurValidation } from "../../domaine/foyer";
 import { nouvelElement } from "../../domaine/listes";
 import {
   TYPES_PROVISION,
+  aAjouterALaCommande,
+  prochaineOccurrence,
   articleDe,
   conseilCommande,
   definirCommande,
@@ -58,6 +60,8 @@ const COMMANDE_ZOOPLUS = {
     { type: "croquettes", nom: "Pro Plan Kitten Healthy Start (poulet)", quantite: 6000 },
     { type: "litiere", nom: "Tigerino Crystals Sensitive", quantite: 15000 },
   ] satisfies ArticleCommande[],
+  // 6 filtres Catit PIXI, un par mois : pas à chaque commande, l'app dit quand les reprendre.
+  filtres: { type: "filtres", nom: "Filtres Catit PIXI", quantite: 6 } satisfies ArticleCommande,
 };
 
 interface Props {
@@ -188,7 +192,7 @@ function Suivi(props: Props & { animal: Animal }) {
       () =>
         ajouterProvision(
           animal,
-          nouvelleProvision({ type: typeProvision, nom: nomProvision, quantite: kgEnGrammes(quantite), achete, parJour: consommation }, contexteReel),
+          nouvelleProvision({ type: typeProvision, nom: nomProvision, quantite: typeProvision === "filtres" ? Number(quantite.replace(",", ".")) : kgEnGrammes(quantite), achete, parJour: consommation }, contexteReel),
         ),
       () => {
         setNomProvision("");
@@ -225,14 +229,19 @@ function Suivi(props: Props & { animal: Animal }) {
   const commande = animal.commande;
   const vides = videsAvantLivraison(animal, aujourdhui);
   const conseil = conseilCommande(animal);
+  const aAjouter = aAjouterALaCommande(animal, aujourdhui);
 
   function reprendreCommande() {
-    const { livree, ...champs } = COMMANDE_ZOOPLUS;
+    const { livree, filtres, ...champs } = COMMANDE_ZOOPLUS;
     tenter(() => {
       let a = definirCommande(animal, { ...champs, articles: [...champs.articles] });
-      for (const art of champs.articles) {
+      for (const art of [...champs.articles, filtres]) {
         if (a.provisions.some((p) => p.type === art.type && p.nom === art.nom)) continue;
         a = ajouterProvision(a, nouvelleProvision({ ...art, achete: livree, parJour: null }, contexteReel));
+      }
+      // Un filtre neuf chaque mois, au même jour que la livraison.
+      if (!a.soins.some((x) => x.type === "filtre" && !x.fait)) {
+        a = ajouterSoin(a, nouveauSoin("filtre", prochaineOccurrence(livree, 1, aujourdhui), "", contexteReel));
       }
       return a;
     });
@@ -337,18 +346,23 @@ function Suivi(props: Props & { animal: Animal }) {
                 {provision.nom} sera vide vers le {dateCourte(fin)}, avant l'arrivée de la commande : commande plus tôt.
               </p>
             ))}
+            {aAjouter.map(({ provision, fin }) => (
+              <p key={provision.id} className="mitsu-conseil">
+                À ajouter à cette commande : {provision.nom} (vides vers le {dateCourte(fin)}).
+              </p>
+            ))}
             {conseil && <p className="mitsu-conseil">{conseil}</p>}
             <label className="date-tache">
               Changer la date
               <input type="date" value={commande.prochaine} onChange={(e) => e.target.value && enregistrer({ ...animal, commande: { ...commande, prochaine: e.target.value } })} />
             </label>
-            <button className="bouton-principal" onClick={() => enregistrer(passerCommande(animal, aujourdhui, contexteReel), () => setMessage("Stock mis à jour. Prochaine commande dans " + commande.tousLesMois + " mois."))}>
+            <button className="bouton-principal" onClick={() => enregistrer(passerCommande(animal, aujourdhui, contexteReel, aAjouter.map((x) => x.provision.id)), () => setMessage("Stock mis à jour. Prochaine commande dans " + commande.tousLesMois + " mois."))}>
               Commande passée aujourd'hui
             </button>
           </div>
         ) : (
           <div className="carte mitsu-commande">
-            <p className="discret">Vous commandez chez zooplus tous les 3 mois. Reprends la dernière commande (croquettes Pro Plan Kitten 6 kg et litière Tigerino 15 L) : l'app suit le stock et te rappelle la prochaine, le 27 octobre.</p>
+            <p className="discret">Vous commandez chez zooplus tous les 3 mois. Reprends la dernière commande (croquettes Pro Plan Kitten 6 kg, litière Tigerino 15 L et 6 filtres de fontaine) : l'app suit le stock, te rappelle la prochaine commande, le 27 octobre, et le filtre à changer chaque mois.</p>
             <button className="bouton-principal" onClick={reprendreCommande}>Reprendre la commande zooplus</button>
           </div>
         )}
@@ -372,20 +386,20 @@ function Suivi(props: Props & { animal: Animal }) {
               <input value={nomProvision} onChange={(e) => setNomProvision(e.target.value)} placeholder="Comme sur la facture" autoComplete="off" />
             </label>
             <label>
-              Quantité achetée ({typeProvision === "litiere" ? "litres" : "kg"})
-              <input inputMode="decimal" value={quantite} onChange={(e) => setQuantite(e.target.value)} placeholder="ex. 2" />
+              {typeProvision === "filtres" ? "Nombre de filtres" : `Quantité achetée (${typeProvision === "litiere" ? "litres" : "kg"})`}
+              <input inputMode="decimal" value={quantite} onChange={(e) => setQuantite(e.target.value)} placeholder={typeProvision === "filtres" ? "ex. 6" : "ex. 2"} />
             </label>
             <label>
               Acheté ou ouvert le
               <input type="date" value={achete} onChange={(e) => setAchete(e.target.value || aujourdhui)} />
             </label>
             <label>
-              Consommation par jour ({typeProvision === "litiere" ? "ml" : "g"})
+              {typeProvision === "filtres" ? "Un filtre par mois (laisse vide)" : `Consommation par jour (${typeProvision === "litiere" ? "ml" : "g"})`}
               <input
                 inputMode="decimal"
                 value={parJour}
                 onChange={(e) => setParJour(e.target.value)}
-                placeholder={typeProvision === "croquettes" ? "Vide : la ration du jour" : "ex. 150"}
+                placeholder={typeProvision === "croquettes" ? "Vide : la ration du jour" : typeProvision === "filtres" ? "" : "ex. 150"}
               />
             </label>
             <button type="submit" className="bouton-principal" disabled={!quantite.trim()}>Ajouter</button>
@@ -410,8 +424,8 @@ function Suivi(props: Props & { animal: Animal }) {
                         : prev.etat === "epuise"
                           ? " · fini"
                           : ` · jusqu'au ${dateCourte(prev.fin)} · ${
-                              suivie && commande
-                                ? `réassort avec la commande du ${dateCourte(commande.prochaine)}`
+                              (suivie || aAjouter.some((x) => x.provision.id === p.id)) && commande
+                                ? `${suivie ? "réassort avec" : "à ajouter à"} la commande du ${dateCourte(commande.prochaine)}`
                                 : prev.etat === "commander"
                                   ? "à commander maintenant"
                                   : `commander le ${dateCourte(prev.commanderLe)}`
@@ -432,7 +446,7 @@ function Suivi(props: Props & { animal: Animal }) {
       </Section>
 
       <Section
-        titre="Carnet de santé"
+        titre="Santé et entretien"
         action={<button className="lien" onClick={() => basculer("soin")}>{ouvert === "soin" ? "Fermer" : "Ajouter"}</button>}
       >
         {ouvert === "soin" && (

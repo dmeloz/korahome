@@ -7,13 +7,14 @@ import type { Contexte, Id, Jour } from "./types";
 // carnet de santé donnent les rappels. Tout est calculé à partir de « aujourd'hui »
 // fourni par l'interface : ce module ne lit jamais l'horloge.
 
-export type TypeProvision = "croquettes" | "patee" | "friandises" | "litiere";
+export type TypeProvision = "croquettes" | "patee" | "friandises" | "litiere" | "filtres";
 
 export const TYPES_PROVISION: Record<TypeProvision, string> = {
   croquettes: "Croquettes",
   patee: "Pâtée",
   friandises: "Friandises",
   litiere: "Litière",
+  filtres: "Filtres de fontaine",
 };
 
 /** Un paquet (ou un lot) acheté, consommé jour après jour. */
@@ -22,12 +23,14 @@ export interface Provision {
   type: TypeProvision;
   /** Le produit, tel qu'il figure sur la facture. */
   nom: string;
-  /** Ce qui reste au jour « achete » : en grammes, ou en millilitres pour la litière. */
+  /** Ce qui reste au jour « achete » : en grammes, en millilitres pour la litière, en pièces pour les filtres. */
   quantite: number;
   /** Jour d'achat, ou du dernier réassort par une commande. */
   achete: Jour;
   /** Consommation par jour (g ou ml) ; null = déduite de la ration ou de la commande. */
   parJour: number | null;
+  /** Ce qu'on rachète d'un coup (un sac, une boîte de 6 filtres). */
+  lot?: number;
 }
 
 /** Les produits qui reviennent à chaque commande, au même rythme. */
@@ -46,7 +49,7 @@ export interface CommandeReguliere {
   articles: ArticleCommande[];
 }
 
-export type TypeSoin = "vaccin" | "vermifuge" | "antiparasitaire" | "sterilisation" | "visite" | "autre";
+export type TypeSoin = "vaccin" | "vermifuge" | "antiparasitaire" | "sterilisation" | "visite" | "filtre" | "autre";
 
 export const TYPES_SOIN: Record<TypeSoin, string> = {
   vaccin: "Vaccin",
@@ -54,6 +57,7 @@ export const TYPES_SOIN: Record<TypeSoin, string> = {
   antiparasitaire: "Antipuces et tiques",
   sterilisation: "Stérilisation",
   visite: "Visite chez le vétérinaire",
+  filtre: "Changer le filtre de la fontaine",
   autre: "Autre soin",
 };
 
@@ -243,8 +247,15 @@ export function formaterPoids(grammes: number): string {
 
 // ----- Provisions -----
 
-/** La litière se compte en litres, le reste en kilos. */
+/** Un filtre de fontaine dure un mois. */
+export const JOURS_PAR_FILTRE = 30;
+
+/** Les filtres se comptent à la pièce ; la litière en litres, le reste en kilos. */
 export function formaterQuantite(type: TypeProvision, quantite: number): string {
+  if (type === "filtres") {
+    const n = Math.round(quantite);
+    return `${n} filtre${n > 1 ? "s" : ""}`;
+  }
   const n = (quantite / 1000).toLocaleString("fr-CH", { maximumFractionDigits: 2 });
   return type === "litiere" ? `${n} L` : `${n} kg`;
 }
@@ -259,7 +270,8 @@ export function nouvelleProvision(
     throw new ErreurValidation("La consommation par jour doit être positive.");
   }
   const nom = champs.nom.trim().replace(/\s+/g, " ") || TYPES_PROVISION[champs.type];
-  return { id: ctx.nouvelId(), type: champs.type, nom, quantite: Math.round(champs.quantite), achete: champs.achete, parJour: champs.parJour };
+  const quantite = champs.type === "filtres" ? champs.quantite : Math.round(champs.quantite);
+  return { id: ctx.nouvelId(), type: champs.type, nom, quantite, achete: champs.achete, parJour: champs.parJour, lot: quantite };
 }
 
 export function ajouterProvision(animal: Animal, provision: Provision): Animal {
@@ -287,6 +299,7 @@ function joursDuCycle(commande: CommandeReguliere): number {
  */
 export function consommationParJour(provision: Provision, animal: Animal, aujourdhui: Jour): number | null {
   if (provision.parJour) return provision.parJour;
+  if (provision.type === "filtres") return 1 / JOURS_PAR_FILTRE;
   if (provision.type === "croquettes") {
     const ration = rationDuJour(animal, aujourdhui);
     if (ration) return ration.grammes;
@@ -310,11 +323,13 @@ export function prevoir(provision: Provision, animal: Animal, aujourdhui: Jour):
   if (!parJour) return null;
   const ecoules = Math.max(0, ecartJours(provision.achete, aujourdhui));
   const restant = Math.max(0, provision.quantite - ecoules * parJour);
-  const joursRestants = Math.floor(restant / parJour);
+  const joursRestants = Math.floor(restant / parJour + 1e-9);
   const fin = plusJours(aujourdhui, joursRestants);
   const commanderLe = plusJours(fin, -animal.reglages.delaiCommande);
   const etat = joursRestants === 0 ? "epuise" : commanderLe <= aujourdhui ? "commander" : "ok";
-  return { restant: Math.round(restant), joursRestants, fin, commanderLe, etat };
+  // Les filtres se comptent entiers : celui qui est dans la fontaine n'est plus dans le placard.
+  const arrondi = provision.type === "filtres" ? Math.floor(restant + 1e-9) : Math.round(restant);
+  return { restant: arrondi, joursRestants, fin, commanderLe, etat };
 }
 
 /** Ce qu'on ajoute à la liste de courses quand une provision touche à sa fin. */
@@ -338,9 +353,10 @@ export function definirCommande(
 
 /**
  * La commande est passée : chaque article remplit sa provision (ce qui reste plus ce qui
- * arrive, compté à partir d'aujourd'hui) et la suivante est prévue un cycle plus tard.
+ * arrive, compté à partir d'aujourd'hui), comme les extras ajoutés cette fois (un lot de
+ * filtres), et la suivante est prévue un cycle plus tard.
  */
-export function passerCommande(animal: Animal, aujourdhui: Jour, ctx: Contexte): Animal {
+export function passerCommande(animal: Animal, aujourdhui: Jour, ctx: Contexte, extras: readonly Id[] = []): Animal {
   const commande = animal.commande;
   if (!commande) return animal;
   let provisions = [...animal.provisions];
@@ -353,6 +369,11 @@ export function passerCommande(animal: Animal, aujourdhui: Jour, ctx: Contexte):
       provisions.push({ id: ctx.nouvelId(), type: article.type, nom: article.nom, quantite: article.quantite, achete: aujourdhui, parJour: null });
     }
   }
+  provisions = provisions.map((p) => {
+    if (!extras.includes(p.id)) return p;
+    const reste = prevoir(p, animal, aujourdhui)?.restant ?? 0;
+    return { ...p, quantite: reste + (p.lot ?? p.quantite), achete: aujourdhui };
+  });
   const depart = commande.prochaine > aujourdhui ? commande.prochaine : aujourdhui;
   return { ...animal, provisions, commande: { ...commande, prochaine: plusMois(depart, commande.tousLesMois) } };
 }
@@ -392,6 +413,28 @@ export function videsAvantLivraison(animal: Animal, aujourdhui: Jour): { provisi
   });
 }
 
+/**
+ * Ce qui ne revient pas à chaque commande (les filtres : 6 pour 6 mois) mais sera vide
+ * avant la commande d'après : à ajouter à la prochaine.
+ */
+export function aAjouterALaCommande(animal: Animal, aujourdhui: Jour): { provision: Provision; fin: Jour }[] {
+  const commande = animal.commande;
+  if (!commande) return [];
+  const suivante = plusJours(plusMois(commande.prochaine, commande.tousLesMois), LIVRAISON_JOURS);
+  return animal.provisions.flatMap((p) => {
+    if (articleDe(p, animal)) return [];
+    const prev = prevoir(p, animal, aujourdhui);
+    return prev && prev.fin < suivante ? [{ provision: p, fin: prev.fin }] : [];
+  });
+}
+
+/** La première date après aujourd'hui qui tombe au même rythme qu'un départ (le 2 de chaque mois…). */
+export function prochaineOccurrence(depart: Jour, tousLesMois: number, aujourdhui: Jour): Jour {
+  let n = 0;
+  while (n < 1200 && plusMois(depart, n * tousLesMois) < aujourdhui) n++;
+  return plusMois(depart, n * tousLesMois);
+}
+
 // ----- Santé -----
 
 export function nouveauSoin(type: TypeSoin, date: Jour, libelle: string, ctx: Contexte): Soin {
@@ -414,7 +457,7 @@ export function retirerSoin(animal: Animal, id: Id): Animal {
  */
 export function rythmeDuSoin(type: TypeSoin, ageMois: number): number | null {
   if (type === "vaccin" || type === "visite") return 12;
-  if (type === "antiparasitaire") return 1;
+  if (type === "antiparasitaire" || type === "filtre") return 1;
   if (type === "vermifuge") return ageMois < 6 ? 1 : 3;
   return null;
 }
@@ -461,6 +504,9 @@ export function choseAFaire(animal: Animal, aujourdhui: Jour): ChoseAFaire[] {
     if (ecart <= RAPPEL_COMMANDE_JOURS) {
       const quand = ecart < 0 ? "en retard" : ecart === 0 ? "aujourd'hui" : ecart === 1 ? "demain" : `dans ${ecart} jours`;
       urgentes.push({ texte: `Commande ${commande.fournisseur} ${quand}`, urgent: true });
+      for (const { provision } of aAjouterALaCommande(animal, aujourdhui)) {
+        urgentes.push({ texte: `Ajouter ${provision.nom} à la commande`, urgent: true });
+      }
     }
     for (const { provision, fin } of videsAvantLivraison(animal, aujourdhui)) {
       if (ecart <= RAPPEL_COMMANDE_JOURS) continue; // déjà rappelée juste au-dessus
@@ -469,10 +515,12 @@ export function choseAFaire(animal: Animal, aujourdhui: Jour): ChoseAFaire[] {
   }
 
   for (const p of animal.provisions) {
-    // Une provision réassortie par la commande régulière suit le rythme de la commande.
+    // Les articles de la commande régulière suivent son rythme (ci-dessus).
     if (articleDe(p, animal)) continue;
     const prev = prevoir(p, animal, aujourdhui);
     if (!prev || prev.etat === "ok") continue;
+    // Ce qui tient jusqu'à l'arrivée de la prochaine commande peut l'attendre : on l'y ajoutera.
+    if (commande && prev.fin >= plusJours(commande.prochaine, LIVRAISON_JOURS)) continue;
     urgentes.push({
       texte: prev.etat === "epuise" ? `${p.nom} : c'est fini` : `Commander ${p.nom} : ${prev.joursRestants} j de stock`,
       urgent: true,

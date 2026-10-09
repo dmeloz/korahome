@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import { contexteTest } from "./contexteTest";
 import { ErreurValidation } from "./foyer";
 import {
+  aAjouterALaCommande,
   ageEnMois,
+  formaterQuantite,
+  prochaineOccurrence,
   conseilCommande,
   definirCommande,
   passerCommande,
@@ -234,5 +237,49 @@ describe("commande régulière", () => {
     expect(conseilCommande(a)).toBeNull();
     const janvier = { ...a, commande: { ...a.commande!, prochaine: "2027-01-27" } };
     expect(conseilCommande(janvier)).toMatch(/couvre ses 1 an \(14\/04\)/);
+  });
+});
+
+describe("filtres de la fontaine", () => {
+  function avecFiltres(ctx = contexteTest()) {
+    let a = definirCommande(mitsu(ctx), {
+      fournisseur: "zooplus",
+      tousLesMois: 3,
+      prochaine: "2026-10-27",
+      articles: [{ type: "croquettes", nom: "Pro Plan Kitten", quantite: 6000 }],
+    });
+    a = ajouterProvision(a, nouvelleProvision({ type: "filtres", nom: "Filtres PIXI", quantite: 6, achete: "2026-08-02", parJour: null }, ctx));
+    return a;
+  }
+
+  it("compte un filtre par mois", () => {
+    const a = avecFiltres();
+    // 68 jours : 3 filtres mis (2 août, 2 septembre, 2 octobre), il en reste 3 dans le placard.
+    expect(prevoir(a.provisions[0], a, "2026-10-09")).toMatchObject({ restant: 3, fin: "2027-01-29" });
+    expect(formaterQuantite("filtres", 1)).toBe("1 filtre");
+  });
+
+  it("demande de les ajouter à la commande qui précède leur fin", () => {
+    const a = avecFiltres();
+    // Vides le 29 janvier, la commande de janvier arrive le 30 : il faut les prendre en octobre.
+    expect(aAjouterALaCommande(a, "2026-10-09").map((x) => x.provision.nom)).toEqual(["Filtres PIXI"]);
+    expect(choseAFaire(a, "2026-10-09").filter((c) => c.urgent)).toEqual([]);
+    expect(choseAFaire(a, "2026-10-25")).toContainEqual({ texte: "Ajouter Filtres PIXI à la commande", urgent: true });
+  });
+
+  it("remet un lot de filtres quand ils sont pris avec la commande", () => {
+    const ctx = contexteTest();
+    const a = avecFiltres(ctx);
+    const apres = passerCommande(a, "2026-10-24", ctx, [a.provisions[0].id]);
+    expect(apres.provisions[0]).toMatchObject({ achete: "2026-10-24", quantite: 3 + 6 });
+    expect(aAjouterALaCommande(apres, "2026-10-24")).toEqual([]);
+  });
+
+  it("rappelle de changer le filtre chaque mois", () => {
+    const ctx = contexteTest();
+    expect(prochaineOccurrence("2026-08-02", 1, "2026-10-09")).toBe("2026-11-02");
+    let a = ajouterSoin(mitsu(ctx), nouveauSoin("filtre", "2026-11-02", "", ctx));
+    a = marquerSoinFait(a, a.soins[0].id, "2026-11-02", ctx);
+    expect(soinsAVenir(a)).toMatchObject([{ libelle: "Changer le filtre de la fontaine", date: "2026-12-02" }]);
   });
 });
