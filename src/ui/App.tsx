@@ -29,7 +29,7 @@ let ecranCourant = "Accueil";
 export const ecranAffiche = () => ecranCourant;
 
 export function App({ depot, miseAJour }: { depot: Depot; miseAJour: MiseAJour }) {
-  const { pret, foyer, listes, elements, taches, retours } = useDonnees(depot);
+  const { pret, foyer, listes, elements, taches, retours, animaux } = useDonnees(depot);
   const [pile, setPile] = useState<Page[]>([{ nom: "accueil" }]);
   const [membreId, setMembreId] = useState<string | null>(lireMembreCourant);
   const nouvelleVersion = useSyncExternalStore(miseAJour.abonner, miseAJour.prete);
@@ -58,7 +58,7 @@ export function App({ depot, miseAJour }: { depot: Depot; miseAJour: MiseAJour }
   if (!foyer) return <Bienvenue depot={depot} onCree={setMembreId} />;
 
   const membre = foyer.membres.some((m) => m.id === membreId) ? membreId : null;
-  const donnees: DonneesModule = { foyer, membreId: membre, listes, elements, taches, aujourdhui: aujourdhuiLocal() };
+  const donnees: DonneesModule = { foyer, membreId: membre, listes, elements, taches, animaux, aujourdhui: aujourdhuiLocal() };
   const precedente = pile.length > 1 ? pile[pile.length - 2] : null;
 
   const ouvrir = (p: Page) => {

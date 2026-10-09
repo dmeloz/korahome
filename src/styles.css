@@ -545,3 +545,22 @@ h1 {
 @media (prefers-reduced-motion: no-preference) { .interrupteur::after { transition: transform 0.15s ease; } }
 .interrupteur.actif { background: var(--accent); }
 .interrupteur.actif::after { transform: translateX(18px); background: var(--sur-accent); }
+
+/* Mitsu */
+.mitsu-ration { display: grid; gap: 10px; }
+.mitsu-ration > * { min-width: 0; margin: 0; }
+.mitsu-ration .ajout { margin: 4px 0 0; }
+.mitsu-chiffre { font-size: 17px; }
+.mitsu-chiffre strong { font-size: 28px; font-weight: 600; color: var(--accent); margin-right: 4px; }
+.mitsu-historique { font-size: 14px; margin-top: 6px; }
+.mitsu-formulaire { margin-top: 0; padding: 16px; gap: 12px; }
+.mitsu-provision { display: flex; flex-direction: column; gap: 2px; padding: 12px 16px 4px; }
+.mitsu-provision .ligne-texte { display: flex; flex-direction: column; gap: 2px; }
+.mitsu-actions { padding: 0; }
+.mitsu-fiche { margin-top: 12px; padding: 0; gap: 12px; }
+.mitsu-interrupteur { padding: 6px 0; min-height: 44px; color: var(--texte); font-size: 17px; }
+.urgent-texte { color: var(--urgent); }
+.mitsu-commande { display: grid; gap: 10px; }
+.mitsu-commande > * { margin: 0; min-width: 0; }
+.mitsu-articles { list-style: none; padding: 0; margin: 0; display: grid; gap: 2px; font-size: 15px; }
+.mitsu-conseil { color: var(--accent); }
