@@ -9,6 +9,8 @@ export interface ServicesPartage {
   synchro: Synchro;
 }
 
+const LONGUEUR_MOT_DE_PASSE = 8;
+
 const message = (e: unknown) => (e instanceof Error && e.message ? e.message : "Ça n'a pas marché, réessaie.");
 
 /** Partager le foyer entre les deux iPhone : connexion par code e-mail, invitation, état de la synchro. */
@@ -125,24 +127,21 @@ function PartageActif({ compte, synchro, foyer }: ServicesPartage & { foyer: Foy
 }
 
 function Connexion({ compte, connecte }: { compte: Compte; connecte: (email: string) => void }) {
+  const [nouveau, setNouveau] = useState(false);
   const [adresse, setAdresse] = useState("");
-  const [code, setCode] = useState("");
-  const [envoye, setEnvoye] = useState(false);
+  const [motDePasse, setMotDePasse] = useState("");
   const [erreur, setErreur] = useState<string | null>(null);
   const [occupe, setOccupe] = useState(false);
+  const valide = adresse.includes("@") && motDePasse.length >= LONGUEUR_MOT_DE_PASSE;
 
   async function soumettre(e: FormEvent) {
     e.preventDefault();
     setErreur(null);
     setOccupe(true);
     try {
-      if (!envoye) {
-        await compte.envoyerCode(adresse.trim());
-        setEnvoye(true);
-      } else {
-        await compte.verifierCode(adresse.trim(), code.replace(/\s/g, ""));
-        connecte(adresse.trim());
-      }
+      if (nouveau) await compte.creerCompte(adresse.trim(), motDePasse);
+      else await compte.connecter(adresse.trim(), motDePasse);
+      connecte(adresse.trim());
     } catch (err) {
       setErreur(message(err));
     } finally {
@@ -152,49 +151,40 @@ function Connexion({ compte, connecte }: { compte: Compte; connecte: (email: str
 
   return (
     <form className="carte formulaire" onSubmit={soumettre}>
-      {!envoye ? (
-        <>
-          <p className="partage-etape">Connexion</p>
-          <label>
-            Ton adresse e-mail
-            <input
-              type="email"
-              value={adresse}
-              onChange={(e) => setAdresse(e.target.value)}
-              placeholder="prenom@exemple.ch"
-              autoComplete="email"
-              inputMode="email"
-              required
-            />
-          </label>
-          <p className="discret">Tu recevras un code à recopier ici. Pas de mot de passe à retenir.</p>
-          <button type="submit" className="bouton-principal" disabled={occupe || !adresse.includes("@")}>
-            {occupe ? "Envoi…" : "Recevoir un code"}
-          </button>
-        </>
-      ) : (
-        <>
-          <p className="partage-etape">Code envoyé à {adresse.trim()}</p>
-          <label>
-            Code reçu par e-mail
-            <input
-              className="partage-saisie-code"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="123456"
-              autoComplete="one-time-code"
-              inputMode="numeric"
-              autoFocus
-            />
-          </label>
-          <button type="submit" className="bouton-principal" disabled={occupe || code.replace(/\s/g, "").length < 6}>
-            {occupe ? "Vérification…" : "Me connecter"}
-          </button>
-          <button type="button" className="lien" onClick={() => setEnvoye(false)}>
-            Changer d'adresse ou renvoyer un code
-          </button>
-        </>
+      <p className="partage-etape">{nouveau ? "Créer ton compte" : "Connexion"}</p>
+      <label>
+        Ton adresse e-mail
+        <input
+          type="email"
+          value={adresse}
+          onChange={(e) => setAdresse(e.target.value)}
+          placeholder="prenom@exemple.ch"
+          autoComplete="username"
+          inputMode="email"
+          autoCapitalize="none"
+          required
+        />
+      </label>
+      <label>
+        Mot de passe
+        <input
+          type="password"
+          value={motDePasse}
+          onChange={(e) => setMotDePasse(e.target.value)}
+          autoComplete={nouveau ? "new-password" : "current-password"}
+          minLength={LONGUEUR_MOT_DE_PASSE}
+          required
+        />
+      </label>
+      {nouveau && (
+        <p className="discret">Au moins {LONGUEUR_MOT_DE_PASSE} caractères. L'iPhone peut en proposer un et s'en souvenir pour toi.</p>
       )}
+      <button type="submit" className="bouton-principal" disabled={occupe || !valide}>
+        {occupe ? "Un instant…" : nouveau ? "Créer mon compte" : "Me connecter"}
+      </button>
+      <button type="button" className="lien" onClick={() => setNouveau(!nouveau)}>
+        {nouveau ? "J'ai déjà un compte" : "Première fois ? Créer un compte"}
+      </button>
       {erreur && <p className="erreur" role="alert">{erreur}</p>}
     </form>
   );
@@ -322,7 +312,7 @@ function FoyerRelie(props: {
           <p className="partage-etape">Code pour rejoindre ce foyer</p>
           <p className="partage-code">{afficherCode(code)}</p>
           <p className="discret">
-            Sur l'autre iPhone : Réglages, puis Partage. Se connecter avec sa propre adresse e-mail, puis saisir ce code.
+            Sur l'autre iPhone : Réglages, puis Partage. Créer son propre compte (adresse e-mail et mot de passe), puis saisir ce code.
           </p>
           {typeof navigator !== "undefined" && navigator.clipboard && (
             <button

@@ -20,9 +20,9 @@ export interface FoyerPartage {
 export interface Compte {
   /** L'adresse e-mail connectée, ou null. */
   connecte(): Promise<string | null>;
-  /** Envoie un code de connexion par e-mail. */
-  envoyerCode(email: string): Promise<void>;
-  verifierCode(email: string, code: string): Promise<void>;
+  /** Crée le compte et connecte ce téléphone. Aucun e-mail n'est envoyé. */
+  creerCompte(email: string, motDePasse: string): Promise<void>;
+  connecter(email: string, motDePasse: string): Promise<void>;
   deconnecter(): Promise<void>;
   /** Les foyers partagés dont ce compte est membre (en pratique, un seul). */
   mesFoyers(): Promise<FoyerPartage[]>;

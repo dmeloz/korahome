@@ -18,7 +18,10 @@ interface LigneDocument {
 /** Messages du serveur traduits pour l'écran Partage. */
 export function traduireErreur(message: string): string {
   if (/fetch|network|load failed/i.test(message)) return "Pas de connexion au serveur.";
-  if (/expired|invalid/i.test(message) && /token|otp/i.test(message)) return "Code incorrect ou expiré.";
+  if (/invalid login credentials/i.test(message)) return "Adresse ou mot de passe incorrect.";
+  if (/already registered|already exists/i.test(message)) return "Ce compte existe déjà : connecte-toi.";
+  if (/password should be|weak password/i.test(message)) return "Mot de passe trop court ou trop simple.";
+  if (/email not confirmed/i.test(message)) return "Adresse pas encore confirmée : désactive « Confirm email » dans Supabase.";
   if (/rate limit|security purposes/i.test(message)) return "Trop de demandes, réessaie dans une minute.";
   if (/email.*invalid|invalid.*email/i.test(message)) return "Adresse e-mail invalide.";
   if (/JWT|not authenticated|Connexion requise/i.test(message)) return "Reconnecte-toi pour continuer.";
@@ -48,12 +51,14 @@ export function creerServicesSupabase(url: string, cle: string): ServicesDistant
       const { data } = await (await supabase()).auth.getSession();
       return data.session?.user.email ?? null;
     },
-    async envoyerCode(email) {
-      const { error } = await (await supabase()).auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+    async creerCompte(email, motDePasse) {
+      const { data, error } = await (await supabase()).auth.signUp({ email, password: motDePasse });
       echec(error);
+      // Sans session, le projet demande encore une confirmation par e-mail (réglage « Confirm email »).
+      if (!data.session) throw new Error("Le compte attend une confirmation par e-mail : désactive « Confirm email » dans Supabase.");
     },
-    async verifierCode(email, code) {
-      const { error } = await (await supabase()).auth.verifyOtp({ email, token: code, type: "email" });
+    async connecter(email, motDePasse) {
+      const { error } = await (await supabase()).auth.signInWithPassword({ email, password: motDePasse });
       echec(error);
     },
     async deconnecter() {
