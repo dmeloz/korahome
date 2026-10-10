@@ -64,8 +64,16 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     return p.nom === "liste" ? `Liste ${libelle(p)}` : libelle(p);
   }
 
+  const bandeauVersion = nouvelleVersion && (
+    <div className="bandeau-version" role="status">
+      <span>Nouvelle version prête.</span>
+      <button className="bouton-principal" onClick={() => void miseAJour.appliquer()}>Mettre à jour</button>
+    </div>
+  );
+
   if (!pret) return null;
   if (!foyer) {
+    // Sur un téléphone pas encore relié aussi, la nouvelle version doit pouvoir s'installer.
     return rejoindre ? (
       <div className="contenu">
         <button className="retour" onClick={() => setRejoindre(false)}>
@@ -73,9 +81,13 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
           Bienvenue
         </button>
         <Partage services={partage} foyer={null} />
+        {bandeauVersion}
       </div>
     ) : (
-      <Bienvenue depot={depot} onCree={setMembreId} rejoindre={partage ? () => setRejoindre(true) : null} />
+      <>
+        <Bienvenue depot={depot} onCree={setMembreId} rejoindre={partage ? () => setRejoindre(true) : null} />
+        {bandeauVersion}
+      </>
     );
   }
 
@@ -166,12 +178,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
           voirRetours={() => ouvrir({ nom: "retours" })}
         />
       )}
-      {nouvelleVersion && (
-        <div className="bandeau-version" role="status">
-          <span>Nouvelle version prête.</span>
-          <button className="bouton-principal" onClick={() => void miseAJour.appliquer()}>Mettre à jour</button>
-        </div>
-      )}
+      {bandeauVersion}
     </div>
   );
 }
