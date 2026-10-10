@@ -8,8 +8,8 @@ que possible (la plus récente gagne). Les notes de test restent sur chaque tél
 À faire une seule fois.
 
 Le projet du foyer existe déjà (`korahome`, Zurich, créé par Claude avec le connecteur
-Supabase le 9 octobre 2026) : les étapes 1, 2 et 4 sont faites. Restent l'étape 3 (un
-interrupteur) et la 5. Les étapes complètes servent si le projet devait être recréé.
+Supabase le 9 octobre 2026) : les étapes 1, 2 et 4 sont faites. Restent l'étape 3 (deux
+interrupteurs) et la 5. Les étapes complètes servent si le projet devait être recréé.
 
 ## 1. Créer le projet
 
@@ -23,15 +23,24 @@ interrupteur) et la 5. Les étapes complètes servent si le projet devait être 
 2. Coller tout le contenu de [`supabase/schema.sql`](../supabase/schema.sql), puis « Run ».
    Le script peut être relancé sans risque.
 
-## 3. Connexion par adresse e-mail et mot de passe
+## 3. Entrée par le code, et comptes
 
-Chacun crée son compte depuis l'app (Réglages > Partage) avec son adresse e-mail et un
+Le deuxième iPhone n'a besoin d'aucun compte : il tape le code du foyer, et Supabase
+lui ouvre une session sans adresse (« anonyme ») qui reste sur ce téléphone. Après
+10 codes faux en une heure, il doit attendre.
+
+1. « Authentication » > « Sign In / Providers », carte « User Signups » : activer
+   **« Allow anonymous sign-ins »**, puis « Save ».
+2. Laisser **« Allow new users to sign up »** activé : sans lui, l'entrée par le code
+   est refusée aussi.
+
+Qui le souhaite peut quand même créer un compte depuis l'app (Réglages > Partage) avec son adresse e-mail et un
 mot de passe, que l'iPhone peut proposer et retenir dans le trousseau. Aucun e-mail
 n'est envoyé : l'envoi intégré de Supabase ne permet plus de modifier les messages et
 n'écrit qu'aux membres de l'équipe du projet.
 
-1. « Authentication » > « Sign In / Providers » > « Email ».
-2. Désactiver **« Confirm email »**, puis « Save ».
+3. « Authentication » > « Sign In / Providers » > « Email ».
+4. Désactiver **« Confirm email »**, puis « Save ».
 
 ## 4. Donner l'adresse du projet à l'app
 
@@ -51,11 +60,11 @@ n'écrit qu'aux membres de l'équipe du projet.
 
 ## 5. Relier les deux iPhone
 
-1. Sur l'iPhone de Melo : Réglages > Partage > « Créer un compte » (adresse e-mail et
-   mot de passe) > « Partager ce foyer ». Un code comme `K7Q-M4P` s'affiche.
+1. Sur l'iPhone de Melo : Réglages > Partage > « J'ai un compte » > « Créer un
+   compte » (adresse e-mail et mot de passe) > « Partager ce foyer ». Un code comme `K7Q-M4P` s'affiche.
 2. Sur l'iPhone de Sarah : Réglages > Partage (ou, sur un iPhone neuf, « Rejoindre un
-   foyer déjà créé » sous le formulaire de bienvenue) > créer son propre compte >
-   saisir le code > « Rejoindre ce foyer ». Les données de son téléphone
+   foyer déjà créé » sous le formulaire de bienvenue) > taper le code > « Rejoindre ce
+   foyer ». Pas de compte à créer. Les données de son téléphone
    sont remplacées par celles du foyer partagé, puis elle choisit son prénom.
 
 ## Quand ça se synchronise
@@ -64,3 +73,9 @@ n'écrit qu'aux membres de l'équipe du projet.
 demie après chaque modification, et toutes les 30 secondes tant que l'app est à
 l'écran. Réglages > Partage montre la dernière synchronisation et un bouton pour la
 relancer.
+
+## Quitter le partage
+
+Un iPhone relié par le code seulement a « Quitter le partage » en bas de Réglages >
+Partage : il quitte le foyer (ses données restent sur le téléphone) et le code
+permettra de revenir.

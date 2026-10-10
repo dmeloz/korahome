@@ -1,6 +1,7 @@
 -- KoraHome : le serveur partagé du foyer (Supabase).
 -- À coller une fois dans Supabase > SQL Editor > New query, puis « Run ».
 -- Peut être relancé sans risque : il ne supprime aucune donnée.
+-- Entrée par le code seulement : Authentication > Sign In / Providers > « Allow anonymous sign-ins ».
 --
 -- Principe : chaque téléphone garde toutes ses données. Le serveur garde une ligne par
 -- document (une liste, un élément, une tâche, Mitsu…) ; quand deux téléphones modifient
@@ -72,6 +73,11 @@ drop policy if exists "membres voient les membres" on public.membres_foyer;
 create policy "membres voient les membres" on public.membres_foyer
   for select to authenticated using (prive.est_membre(foyer_id));
 
+-- Un téléphone relié par le code seulement quitte le foyer en se déconnectant.
+drop policy if exists "chacun peut quitter un foyer" on public.membres_foyer;
+create policy "chacun peut quitter un foyer" on public.membres_foyer
+  for delete to authenticated using (user_id = auth.uid());
+
 drop policy if exists "membres lisent les documents" on public.documents;
 create policy "membres lisent les documents" on public.documents
   for select to authenticated using (prive.est_membre(foyer_id));
@@ -114,7 +120,16 @@ begin
   return query select f.id, f.nom, f.code from foyers f where f.id = p_id;
 end $$;
 
--- Rejoindre un foyer avec son code. Un foyer accueille au plus 6 comptes.
+-- Les codes essayés sans succès, pour freiner qui voudrait les deviner.
+create table if not exists prive.tentatives (
+  user_id uuid not null,
+  quand timestamptz not null default now()
+);
+create index if not exists tentatives_recentes on prive.tentatives (user_id, quand);
+revoke all on prive.tentatives from public, anon, authenticated;
+
+-- Rejoindre un foyer avec son code. Renvoie null si le code est inconnu ; au-delà de 10 codes
+-- inconnus en une heure, le téléphone doit attendre. Un foyer accueille au plus 6 membres.
 create or replace function public.rejoindre_foyer(p_code text)
 returns text
 language plpgsql security definer set search_path = public, prive as $$
@@ -124,9 +139,14 @@ begin
   if auth.uid() is null then
     raise exception 'Connexion requise';
   end if;
+  if (select count(*) from tentatives t where t.user_id = auth.uid() and t.quand > now() - interval '1 hour') >= 10 then
+    raise exception 'Trop d''essais';
+  end if;
   select f.id into trouve from foyers f where f.code = upper(p_code);
   if trouve is null then
-    raise exception 'Code inconnu';
+    delete from tentatives t where t.quand < now() - interval '1 day';
+    insert into tentatives (user_id) values (auth.uid());
+    return null;
   end if;
   if not est_membre(trouve) and (select count(*) from membres_foyer m where m.foyer_id = trouve) >= 6 then
     raise exception 'Ce foyer est complet';

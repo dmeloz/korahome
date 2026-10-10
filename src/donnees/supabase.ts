@@ -22,6 +22,8 @@ export function traduireErreur(message: string): string {
   if (/already registered|already exists/i.test(message)) return "Ce compte existe déjà : connecte-toi.";
   if (/password should be|weak password/i.test(message)) return "Mot de passe trop court ou trop simple.";
   if (/email not confirmed/i.test(message)) return "Adresse pas encore confirmée : désactive « Confirm email » dans Supabase.";
+  if (/anonymous sign-ins are disabled/i.test(message)) return "L'entrée par code n'est pas encore activée sur le serveur.";
+  if (/Trop d'essais/i.test(message)) return "Trop d'essais : réessaie dans une heure.";
   if (/rate limit|security purposes/i.test(message)) return "Trop de demandes, réessaie dans une minute.";
   if (/email.*invalid|invalid.*email/i.test(message)) return "Adresse e-mail invalide.";
   if (/JWT|not authenticated|Connexion requise/i.test(message)) return "Reconnecte-toi pour continuer.";
@@ -49,7 +51,12 @@ export function creerServicesSupabase(url: string, cle: string): ServicesDistant
   return {
     async connecte() {
       const { data } = await (await supabase()).auth.getSession();
-      return data.session?.user.email ?? null;
+      const utilisateur = data.session?.user;
+      return utilisateur ? { email: utilisateur.is_anonymous ? null : (utilisateur.email ?? null) } : null;
+    },
+    async entrerSansCompte() {
+      const { error } = await (await supabase()).auth.signInAnonymously();
+      echec(error);
     },
     async creerCompte(email, motDePasse) {
       const { data, error } = await (await supabase()).auth.signUp({ email, password: motDePasse });
@@ -62,8 +69,13 @@ export function creerServicesSupabase(url: string, cle: string): ServicesDistant
       echec(error);
     },
     async deconnecter() {
+      const sb = await supabase();
+      // Sans compte, la session ne se retrouvera pas : le téléphone quitte d'abord le foyer
+      // (le code permettra de revenir), pour ne pas laisser un membre fantôme.
+      const utilisateur = (await sb.auth.getSession()).data.session?.user;
+      if (utilisateur?.is_anonymous) echec((await sb.from("membres_foyer").delete().eq("user_id", utilisateur.id)).error);
       // « local » : déconnecte ce téléphone seulement.
-      const { error } = await (await supabase()).auth.signOut({ scope: "local" });
+      const { error } = await sb.auth.signOut({ scope: "local" });
       echec(error);
     },
 
@@ -80,6 +92,7 @@ export function creerServicesSupabase(url: string, cle: string): ServicesDistant
     async rejoindreFoyer(code) {
       const { data, error } = await (await supabase()).rpc("rejoindre_foyer", { p_code: code });
       echec(error);
+      if (!data) throw new Error("Code inconnu : vérifie-le sur l'autre iPhone.");
       return data as string;
     },
 
