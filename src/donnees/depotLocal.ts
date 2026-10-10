@@ -6,8 +6,9 @@ import type { Depot } from "./depot";
 
 // Version 2 : ajout des tâches. Version 3 : notes de test. Version 4 : suivi de Mitsu.
 // Version 5 : partage (modifications en attente d'envoi, état de la synchro).
+// Version 6 : les notes de test se partagent aussi ; celles déjà écrites partent au prochain envoi.
 // La mise à jour crée seulement les magasins manquants.
-const VERSION = 5;
+const VERSION = 6;
 const MAGASINS = ["foyer", "listes", "elements", "taches", "retours", "animaux", "attente", "synchro"] as const;
 type Magasin = (typeof MAGASINS)[number];
 const CLES: Partial<Record<Magasin, string>> = { attente: "cle" };
@@ -56,9 +57,21 @@ const estPartage = (m: Magasin): m is CollectionSynchro => (COLLECTIONS_SYNCHRO 
 function ouvrir(nomBase: string, fabrique: IDBFactory): Promise<IDBDatabase> {
   return new Promise((resoudre, rejeter) => {
     const req = fabrique.open(nomBase, VERSION);
-    req.onupgradeneeded = () => {
+    req.onupgradeneeded = (evenement) => {
+      const avant = req.result.objectStoreNames;
+      const avecNotes = avant.contains("retours") && avant.contains("attente");
       for (const m of MAGASINS) {
-        if (!req.result.objectStoreNames.contains(m)) req.result.createObjectStore(m, { keyPath: CLES[m] ?? "id" });
+        if (!avant.contains(m)) req.result.createObjectStore(m, { keyPath: CLES[m] ?? "id" });
+      }
+      if (evenement.oldVersion < 6 && avecNotes) {
+        const tx = req.transaction!;
+        const maj = new Date().toISOString();
+        puis(tx.objectStore("retours").getAll() as IDBRequest<{ id: Id }[]>, (notes) => {
+          for (const doc of notes) {
+            const enAttente: EnAttente = { cle: cleDe({ collection: "retours", id: doc.id }), collection: "retours", id: doc.id, donnees: doc, maj };
+            tx.objectStore("attente").put(enAttente);
+          }
+        });
       }
     };
     req.onsuccess = () => resoudre(req.result);
@@ -207,9 +220,12 @@ export function creerDepotLocal(
     },
 
     async remplacerTout(distants) {
+      // Les notes de test de ce téléphone restent et rejoignent celles du foyer.
+      const notesEnAttente = (await tous<EnAttente>("attente")).filter((c) => c.collection === "retours");
       const db = await base;
       const tx = db.transaction([...COLLECTIONS_SYNCHRO, "attente"], "readwrite");
-      for (const m of [...COLLECTIONS_SYNCHRO, "attente"] as const) tx.objectStore(m).clear();
+      for (const m of [...COLLECTIONS_SYNCHRO, "attente"] as const) if (m !== "retours") tx.objectStore(m).clear();
+      for (const c of notesEnAttente) tx.objectStore("attente").put(c);
       for (const d of distants) if (d.donnees !== null) tx.objectStore(d.collection).put(d.donnees);
       await terminer(tx);
       signaler();

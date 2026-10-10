@@ -1,45 +1,44 @@
-import { useState } from "react";
-import { GENRES, basculerRegle, grouperParEcran, heureCourte, type RetourTest } from "../../domaine/retours";
+import { useEffect, useState } from "react";
+import { GENRES, basculerRegle, etatRetour, grouperParEcran, heureCourte, type EtatRetour, type RetourTest } from "../../domaine/retours";
 import type { Foyer } from "../../domaine/types";
-import type { Depot } from "../../donnees/depot";
+import type { DepotLocal } from "../../donnees/depotLocal";
 import { contexteReel } from "../contexte";
 import { effacerJournal, lireJournal } from "../journal";
-import {
-  MESSAGES_ENVOI,
-  construireRapport,
-  copierRapport,
-  envoyerAuMac,
-  lireDernierEnvoi,
-  noterEnvoi,
-  partagerRapport,
-} from "../rapport";
+import { construireRapport, copierRapport, partagerRapport } from "../rapport";
 
-export function RetoursTest(props: { depot: Depot; foyer: Foyer; retours: RetourTest[] }) {
+// Les notes de test, rangées comme dans Sanji : nouvelles (pas encore parties),
+// transmises (sur le serveur du foyer, où Claude les lit) et réglées.
+
+const GROUPES: { etat: EtatRetour; titre: string }[] = [
+  { etat: "nouvelle", titre: "Nouvelles" },
+  { etat: "transmise", titre: "Transmises" },
+  { etat: "reglee", titre: "Réglées" },
+];
+
+export function RetoursTest(props: { depot: DepotLocal; foyer: Foyer; retours: RetourTest[]; partageActif: boolean }) {
   const [etat, setEtat] = useState<string | null>(null);
-  const [voirReglees, setVoirReglees] = useState(false);
-  const [dernierEnvoi, setDernierEnvoi] = useState(lireDernierEnvoi);
+  const [ouvert, setOuvert] = useState<EtatRetour>("nouvelle");
+  const [enAttente, setEnAttente] = useState<ReadonlySet<string>>(new Set());
   const [, rafraichir] = useState(0);
-  const ouvertes = props.retours.filter((r) => !r.regleLe);
-  const reglees = props.retours.filter((r) => r.regleLe);
   const journal = lireJournal();
   const prenom = (id: string | null) => props.foyer.membres.find((m) => m.id === id)?.prenom;
   const rapport = () => construireRapport(props.retours, props.foyer.membres);
 
-  async function envoyer() {
-    setEtat("Envoi au Mac…");
-    const resultat = await envoyerAuMac(rapport().texte);
-    if (resultat === "depose") {
-      noterEnvoi();
-      setDernierEnvoi(lireDernierEnvoi());
-    }
-    setEtat(MESSAGES_ENVOI[resultat]);
-  }
+  // Les notes qui attendent encore leur envoi ; relu à chaque changement (une synchro qui part, une note écrite).
+  useEffect(() => {
+    const lire = () =>
+      void props.depot.lireEnAttente().then((liste) => setEnAttente(new Set(liste.filter((c) => c.collection === "retours").map((c) => c.id))));
+    lire();
+    return props.depot.abonner(lire);
+  }, [props.depot]);
+
+  const parEtat = (e: EtatRetour) =>
+    props.retours.filter((r) => etatRetour(r, enAttente, props.partageActif) === e).sort((a, b) => b.creeLe.localeCompare(a.creeLe));
+  const affichees = parEtat(ouvert);
 
   async function partager() {
     const { texte, nom } = rapport();
-    if (await partagerRapport(texte, nom)) noterEnvoi();
-    setDernierEnvoi(lireDernierEnvoi());
-    setEtat(null);
+    setEtat((await partagerRapport(texte, nom)) ? null : "Partage annulé.");
   }
 
   async function copier() {
@@ -58,7 +57,7 @@ export function RetoursTest(props: { depot: Depot; foyer: Foyer; retours: Retour
       <div className="retour-test-texte">
         <span>{r.texte}</span>
         <span className="tache-details">
-          <span className={`genre genre-${r.genre}`}>{GENRES[r.genre]}</span> · {heureCourte(r.creeLe)}
+          <span className={`genre genre-${r.genre}`}>{GENRES[r.genre]}</span> · {r.ecran} · {heureCourte(r.creeLe)}
           {prenom(r.auteur) ? ` · ${prenom(r.auteur)}` : ""}
           {r.version !== __VERSION__ ? ` · ${r.version}` : ""}
         </span>
@@ -66,49 +65,71 @@ export function RetoursTest(props: { depot: Depot; foyer: Foyer; retours: Retour
     </li>
   );
 
+  const nouvelles = parEtat("nouvelle").length;
+
   return (
     <main>
       <p className="surtitre">Kora {__VERSION__}</p>
       <h1>Retours de test</h1>
 
       <div className="carte rapport">
-        <p className="rapport-chiffres">
-          <strong>{ouvertes.length}</strong> note{ouvertes.length > 1 ? "s" : ""} ouverte{ouvertes.length > 1 ? "s" : ""}
-          <span className="discret"> · {journal.length} actions enregistrées</span>
+        {props.partageActif ? (
+          <p>
+            {nouvelles === 0
+              ? "Toutes les notes sont transmises à Claude."
+              : `${nouvelles} note${nouvelles > 1 ? "s partent" : " part"} vers Claude à la prochaine synchronisation.`}
+          </p>
+        ) : (
+          <p>Les notes partent seules vers Claude dès que le partage est activé sur ce téléphone.</p>
+        )}
+        <p className="discret">Les notes des deux iPhone arrivent au même endroit, avec les gestes qui les ont précédées.</p>
+      </div>
+
+      <div className="segments" role="tablist">
+        {GROUPES.map((g) => (
+          <button
+            key={g.etat}
+            role="tab"
+            aria-selected={ouvert === g.etat}
+            className={ouvert === g.etat ? "actif" : ""}
+            onClick={() => setOuvert(g.etat)}
+          >
+            {g.titre} <span className="discret">{parEtat(g.etat).length}</span>
+          </button>
+        ))}
+      </div>
+
+      {affichees.length === 0 ? (
+        <p className="vide">
+          {ouvert === "nouvelle"
+            ? "Aucune nouvelle note. Touche la pastille « Dev » sur n'importe quel écran pour en écrire une."
+            : ouvert === "transmise"
+              ? "Aucune note en attente de correction."
+              : "Aucune note réglée pour l'instant."}
         </p>
-        <button className="bouton-principal" onClick={envoyer}>Envoyer le rapport au Mac</button>
+      ) : ouvert === "reglee" ? (
+        <ul className="carte groupe">{affichees.map(ligne)}</ul>
+      ) : (
+        grouperParEcran(affichees).map((g) => (
+          <section key={g.ecran}>
+            <h2 className="rayon">{g.ecran}</h2>
+            <ul className="carte groupe">{g.retours.map(ligne)}</ul>
+          </section>
+        ))
+      )}
+
+      <h2 className="rayon">Rapport complet</h2>
+      <div className="carte rapport">
+        <p className="discret">
+          Les notes et le journal de ce téléphone ({journal.length} actions sur 14 jours : écrans, boutons, erreurs ; jamais
+          le texte des champs).
+        </p>
         <div className="rapport-actions">
           <button className="lien" onClick={partager}>Partager</button>
           <button className="lien" onClick={copier}>Copier</button>
         </div>
         {etat && <p className="discret" role="status">{etat}</p>}
-        {dernierEnvoi && !etat && <p className="discret">Dernier rapport transmis le {heureCourte(dernierEnvoi)}.</p>}
       </div>
-
-      {ouvertes.length === 0 && (
-        <p className="vide">Aucune note ouverte. Touche la pastille « Dev » sur n'importe quel écran pour en écrire une.</p>
-      )}
-      {grouperParEcran(ouvertes).map((g) => (
-        <section key={g.ecran}>
-          <h2 className="rayon">{g.ecran}</h2>
-          <ul className="carte groupe">{g.retours.map(ligne)}</ul>
-        </section>
-      ))}
-
-      {reglees.length > 0 && (
-        <>
-          <button className="lien modifier" onClick={() => setVoirReglees(!voirReglees)}>
-            {voirReglees ? "Masquer" : "Voir"} les notes réglées ({reglees.length})
-          </button>
-          {voirReglees && <ul className="carte groupe">{reglees.map(ligne)}</ul>}
-        </>
-      )}
-
-      <p className="discret pied">
-        Le rapport contient tes notes ouvertes, rangées par écran, avec les gestes qui les ont précédées, puis le
-        journal des 14 derniers jours : écrans visités, boutons touchés et erreurs. Ce que tu écris dans les champs
-        n'y figure pas, et rien ne part sans ton geste.
-      </p>
       <button
         className="lien danger"
         onClick={() => {

@@ -25,14 +25,30 @@ export interface RetourTest {
   creeLe: string;
   /** Marquée « Réglée » quand la correction a été vérifiée ; null tant qu'elle est ouverte. */
   regleLe: string | null;
+  /** Les gestes qui l'ont précédée, gardés avec la note : elle part ainsi avec son contexte. */
+  avant?: EvenementJournal[];
+}
+
+/** Comme dans Sanji : nouvelle (pas encore partie), transmise (arrivée chez Claude), réglée. */
+export type EtatRetour = "nouvelle" | "transmise" | "reglee";
+
+/**
+ * Une note est transmise quand elle est sur le serveur du foyer : le partage est actif
+ * et elle n'attend plus d'envoi sur ce téléphone.
+ */
+export function etatRetour(retour: RetourTest, enAttente: ReadonlySet<Id>, partageActif: boolean): EtatRetour {
+  if (retour.regleLe) return "reglee";
+  return partageActif && !enAttente.has(retour.id) ? "transmise" : "nouvelle";
 }
 
 export function nouveauRetour(
   saisie: { texte: string; genre: GenreRetour; ecran: string; version: string; auteur: Id | null },
   ctx: Contexte,
+  journal: readonly EvenementJournal[] = [],
 ): RetourTest {
   const texte = saisie.texte.trim();
   if (texte.length === 0) throw new ErreurValidation("La note est vide.");
+  const creeLe = ctx.maintenant();
   return {
     id: ctx.nouvelId(),
     texte,
@@ -40,8 +56,9 @@ export function nouveauRetour(
     ecran: saisie.ecran.trim() || "Écran inconnu",
     version: saisie.version,
     auteur: saisie.auteur,
-    creeLe: ctx.maintenant(),
+    creeLe,
     regleLe: null,
+    avant: evenementsAvant(journal, creeLe),
   };
 }
 
@@ -176,7 +193,8 @@ export function rapportVersion(source: SourceRapport): string {
     for (const r of groupe.retours) {
       const ancienne = r.version !== source.version ? ` · notée en ${r.version}` : "";
       lignes.push("", `- **${GENRES[r.genre]}** · ${heureCourte(r.creeLe)} · ${prenom(r.auteur)}${ancienne}`, `  ${r.texte.replace(/\n+/g, "\n  ")}`);
-      const avant = evenementsAvant(source.journal, r.creeLe);
+      // Les gestes gardés avec la note (ceux de l'autre iPhone aussi), sinon le journal de ce téléphone.
+      const avant = r.avant?.length ? r.avant : evenementsAvant(source.journal, r.creeLe);
       if (avant.length > 0) {
         lignes.push("  Juste avant :");
         for (const e of avant) lignes.push(`  ${ligneJournal(e)}`);

@@ -160,7 +160,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       />
     );
   } else if (page.nom === "retours") {
-    ecran = <RetoursTest depot={depot} foyer={foyer} retours={retours} />;
+    ecran = <RetoursTest depot={depot} foyer={foyer} retours={retours} partageActif={partageActif} />;
   } else {
     ecran = (
       <Reglages

@@ -13,6 +13,7 @@ import {
   nouveauRetour,
   rapportVersion,
   type EvenementJournal,
+  etatRetour,
 } from "./retours";
 
 const evt = (h: string, type: EvenementJournal["type"], detail: string, ecran = "Accueil"): EvenementJournal => ({
@@ -158,5 +159,26 @@ describe("nom du fichier", () => {
 
   it("ne laisse passer aucun caractère douteux", () => {
     expect(nomFichierRapport("../0.0.2", "2026-10-08T14:03:00.000Z")).toMatch(/^kora-\.\.0\.0\.2-/);
+  });
+});
+
+describe("état des notes, comme dans Sanji", () => {
+  const ctx = contexteTest();
+  const note = nouveauRetour({ texte: "Bouton trop petit", genre: "gene", ecran: "Courses", version: "0.0.7", auteur: null }, ctx);
+
+  it("une note est nouvelle tant qu'elle n'est pas partie, transmise une fois sur le serveur, réglée ensuite", () => {
+    expect(etatRetour(note, new Set([note.id]), true)).toBe("nouvelle");
+    expect(etatRetour(note, new Set(), false)).toBe("nouvelle");
+    expect(etatRetour(note, new Set(), true)).toBe("transmise");
+    expect(etatRetour(basculerRegle(note, ctx), new Set([note.id]), true)).toBe("reglee");
+  });
+
+  it("garde avec la note les gestes qui l'ont précédée", () => {
+    const journal = [
+      { h: "2000-01-01T10:00:00.000Z", type: "ecran" as const, detail: "Courses", ecran: "Courses", version: "0.0.7" },
+      { h: "2000-01-01T10:00:01.000Z", type: "geste" as const, detail: "Ajouter", ecran: "Courses", version: "0.0.7" },
+    ];
+    const avecContexte = nouveauRetour({ texte: "Lent", genre: "gene", ecran: "Courses", version: "0.0.7", auteur: null }, ctx, journal);
+    expect(avecContexte.avant?.map((e) => e.detail)).toEqual(["Courses", "Ajouter"]);
   });
 });
