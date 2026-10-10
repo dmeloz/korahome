@@ -18,8 +18,10 @@ export interface FoyerPartage {
 
 /** Le compte de la personne sur ce téléphone, et le foyer partagé auquel elle appartient. */
 export interface Compte {
-  /** L'adresse e-mail connectée, ou null. */
-  connecte(): Promise<string | null>;
+  /** La session de ce téléphone : avec un compte (adresse e-mail) ou seulement par le code du foyer (email null). */
+  connecte(): Promise<{ email: string | null } | null>;
+  /** Ouvre une session sans compte : il suffira ensuite du code du foyer. */
+  entrerSansCompte(): Promise<void>;
   /** Crée le compte et connecte ce téléphone. Aucun e-mail n'est envoyé. */
   creerCompte(email: string, motDePasse: string): Promise<void>;
   connecter(email: string, motDePasse: string): Promise<void>;
@@ -28,7 +30,7 @@ export interface Compte {
   mesFoyers(): Promise<FoyerPartage[]>;
   /** Ouvre le partage de ce foyer et renvoie son code d'invitation. */
   creerFoyer(id: Id, nom: string): Promise<FoyerPartage>;
-  /** Rejoint le foyer de ce code ; renvoie son identifiant. */
+  /** Rejoint le foyer de ce code ; renvoie son identifiant (erreur « Code inconnu » sinon). */
   rejoindreFoyer(code: string): Promise<Id>;
 }
 

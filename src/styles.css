@@ -579,6 +579,17 @@ h1 {
 .partage-choix p, .partage-confirmation p, .partage-invitation p { margin: 0 0 8px; line-height: 1.4; }
 .partage-choix .bouton-principal, .partage-confirmation .bouton-principal { width: 100%; }
 .partage-choix.formulaire { margin-top: 0; }
+.partage-choix .bouton-secondaire {
+  width: 100%;
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  background: none;
+  color: var(--accent);
+  font-weight: 600;
+  padding: 13px 18px;
+  margin-top: 4px;
+}
+.partage-choix .bouton-secondaire:disabled { opacity: 0.4; }
 .partage-confirmation { border-color: var(--urgent); display: grid; gap: 4px; }
 .partage-confirmation .lien { justify-self: center; }
 .partage-saisie-code {

@@ -13,7 +13,7 @@ const LONGUEUR_MOT_DE_PASSE = 8;
 
 const message = (e: unknown) => (e instanceof Error && e.message ? e.message : "Ça n'a pas marché, réessaie.");
 
-/** Partager le foyer entre les deux iPhone : connexion par code e-mail, invitation, état de la synchro. */
+/** Partager le foyer entre les deux iPhone : compte, partage ou code pour rejoindre, état de la synchro. */
 export function Partage({ services, foyer }: { services: ServicesPartage | null; foyer: Foyer | null }) {
   if (!services) {
     return (
@@ -31,7 +31,9 @@ export function Partage({ services, foyer }: { services: ServicesPartage | null;
 
 function PartageActif({ compte, synchro, foyer }: ServicesPartage & { foyer: Foyer | null }) {
   const statut = useSyncExternalStore(synchro.abonner, synchro.statut);
-  const [email, setEmail] = useState<string | null | undefined>(undefined);
+  // undefined : on regarde encore ; null : pas de session ; email null : relié par le code seulement.
+  const [session, setSession] = useState<{ email: string | null } | null | undefined>(undefined);
+  const [avecCompte, setAvecCompte] = useState(false);
   const [foyers, setFoyers] = useState<FoyerPartage[] | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [occupe, setOccupe] = useState(false);
@@ -56,12 +58,19 @@ function PartageActif({ compte, synchro, foyer }: ServicesPartage & { foyer: Foy
   }, [compte, synchro, foyer]);
 
   useEffect(() => {
-    compte.connecte().then(setEmail, () => setEmail(null));
+    compte.connecte().then(setSession, () => setSession(null));
   }, [compte]);
 
   useEffect(() => {
-    if (email) chargerFoyers().catch((e) => setErreur(message(e)));
-  }, [email, chargerFoyers]);
+    if (session) chargerFoyers().catch((e) => setErreur(message(e)));
+  }, [session, chargerFoyers]);
+
+  // Pas besoin de compte : sans session, le téléphone en ouvre une juste pour le code du foyer.
+  const assurerSession = async () => {
+    if (session) return;
+    await compte.entrerSansCompte();
+    setSession({ email: null });
+  };
 
   return (
     <main className="partage">
@@ -70,8 +79,15 @@ function PartageActif({ compte, synchro, foyer }: ServicesPartage & { foyer: Foy
         Vos deux iPhone partagent les listes, les tâches et le suivi de Mitsu. Chacun garde tout sur son téléphone,
         même sans réseau ; les modifications se rejoignent dès que possible.
       </p>
-      {email === undefined ? null : email === null ? (
-        <Connexion compte={compte} connecte={setEmail} />
+      {session === undefined ? null : avecCompte && !session ? (
+        <Connexion
+          compte={compte}
+          connecte={(email) => {
+            setAvecCompte(false);
+            setSession({ email });
+          }}
+          annuler={() => setAvecCompte(false)}
+        />
       ) : statut.etat !== "inactif" && foyer ? (
         <FoyerRelie
           statut={statut}
@@ -82,11 +98,12 @@ function PartageActif({ compte, synchro, foyer }: ServicesPartage & { foyer: Foy
       ) : (
         <Relier
           foyer={foyer}
-          foyers={foyers}
+          foyers={session ? foyers : []}
           occupe={occupe}
           partager={() =>
             agir(async () => {
               if (!foyer) return;
+              await assurerSession();
               await compte.creerFoyer(foyer.id, foyer.nom);
               await synchro.partager(foyer.id);
               setFoyers(await compte.mesFoyers());
@@ -94,6 +111,7 @@ function PartageActif({ compte, synchro, foyer }: ServicesPartage & { foyer: Foy
           }
           rejoindre={(cible) =>
             agir(async () => {
+              await assurerSession();
               const id = "code" in cible ? await compte.rejoindreFoyer(cible.code) : cible.id;
               await synchro.rejoindre(id);
               setFoyers(await compte.mesFoyers());
@@ -102,9 +120,14 @@ function PartageActif({ compte, synchro, foyer }: ServicesPartage & { foyer: Foy
         />
       )}
       {erreur && <p className="erreur partage-erreur" role="alert">{erreur}</p>}
-      {email && (
+      {session === null && !avecCompte && (
         <div className="partage-compte">
-          <p className="discret">Connecté avec {email}</p>
+          <button className="lien" onClick={() => setAvecCompte(true)}>J'ai un compte (adresse e-mail)</button>
+        </div>
+      )}
+      {session && (
+        <div className="partage-compte">
+          <p className="discret">{session.email ? `Connecté avec ${session.email}` : "Relié par le code du foyer"}</p>
           <button
             className="lien danger"
             disabled={occupe}
@@ -113,20 +136,22 @@ function PartageActif({ compte, synchro, foyer }: ServicesPartage & { foyer: Foy
                 await synchro.arreter();
                 await compte.deconnecter();
                 setFoyers(null);
-                setEmail(null);
+                setSession(null);
               })
             }
           >
-            Se déconnecter
+            {session.email ? "Se déconnecter" : "Quitter le partage"}
           </button>
-          <p className="discret">Les données restent sur ce téléphone.</p>
+          <p className="discret">
+            {session.email ? "Les données restent sur ce téléphone." : "Les données restent sur ce téléphone ; le code permettra de revenir."}
+          </p>
         </div>
       )}
     </main>
   );
 }
 
-function Connexion({ compte, connecte }: { compte: Compte; connecte: (email: string) => void }) {
+function Connexion({ compte, connecte, annuler }: { compte: Compte; connecte: (email: string) => void; annuler: () => void }) {
   const [nouveau, setNouveau] = useState(false);
   const [adresse, setAdresse] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
@@ -185,6 +210,7 @@ function Connexion({ compte, connecte }: { compte: Compte; connecte: (email: str
       <button type="button" className="lien" onClick={() => setNouveau(!nouveau)}>
         {nouveau ? "J'ai déjà un compte" : "Première fois ? Créer un compte"}
       </button>
+      <button type="button" className="lien" onClick={annuler}>Revenir au code du foyer</button>
       {erreur && <p className="erreur" role="alert">{erreur}</p>}
     </form>
   );
@@ -222,26 +248,25 @@ function Relier(props: {
     );
   }
 
+  if (autres.length > 0) {
+    return (
+      <>
+        {autres.map((f) => (
+          <div key={f.id} className="carte partage-choix">
+            <p className="partage-etape">Ton foyer t'attend</p>
+            <p><strong>Tu fais partie du foyer « {f.nom} »</strong></p>
+            <button className="bouton-principal" disabled={props.occupe} onClick={() => demander({ id: f.id })}>
+              Retrouver ce foyer
+            </button>
+          </div>
+        ))}
+      </>
+    );
+  }
+
+  // Le code d'abord : c'est le cas du deuxième téléphone. Le premier partage juste en dessous.
   return (
     <>
-      {autres.map((f) => (
-        <div key={f.id} className="carte partage-choix">
-          <p><strong>Tu fais partie du foyer « {f.nom} »</strong></p>
-          <button className="bouton-principal" disabled={props.occupe} onClick={() => demander({ id: f.id })}>
-            Retrouver ce foyer
-          </button>
-        </div>
-      ))}
-      {props.foyer && autres.length === 0 && (
-        <div className="carte partage-choix">
-          <p className="partage-etape">Premier téléphone</p>
-          <p><strong>Partager « {props.foyer.nom} »</strong></p>
-          <p className="discret">Tout ce qui est sur ce téléphone devient commun, et tu obtiens un code à donner à l'autre membre du foyer.</p>
-          <button className="bouton-principal" disabled={props.occupe} onClick={props.partager}>
-            {props.occupe ? "Partage en cours…" : "Partager ce foyer"}
-          </button>
-        </div>
-      )}
       <form
         className="carte formulaire partage-choix"
         onSubmit={(e) => {
@@ -249,9 +274,9 @@ function Relier(props: {
           if (code) demander({ code });
         }}
       >
-        <p className="partage-etape">{props.foyer ? "Ou deuxième téléphone" : "Deuxième téléphone"}</p>
+        <p className="partage-etape">Rejoindre un foyer</p>
         <label>
-          Code du foyer
+          Code affiché sur l'autre iPhone
           <input
             className="partage-saisie-code"
             value={saisie}
@@ -263,10 +288,21 @@ function Relier(props: {
             spellCheck={false}
           />
         </label>
+        <p className="discret">Sur l'autre iPhone : Réglages, puis Partage. Pas besoin de compte.</p>
         <button type="submit" className="bouton-principal" disabled={props.occupe || !code}>
           {props.occupe ? "Connexion au foyer…" : "Rejoindre ce foyer"}
         </button>
       </form>
+      {props.foyer && (
+        <div className="carte partage-choix">
+          <p className="partage-etape">Premier téléphone</p>
+          <p><strong>Partager « {props.foyer.nom} »</strong></p>
+          <p className="discret">Tout ce qui est sur ce téléphone devient commun, et un code s'affiche pour l'autre iPhone.</p>
+          <button className="bouton-secondaire" disabled={props.occupe} onClick={props.partager}>
+            {props.occupe ? "Partage en cours…" : "Partager ce foyer"}
+          </button>
+        </div>
+      )}
     </>
   );
 }
@@ -312,7 +348,7 @@ function FoyerRelie(props: {
           <p className="partage-etape">Code pour rejoindre ce foyer</p>
           <p className="partage-code">{afficherCode(code)}</p>
           <p className="discret">
-            Sur l'autre iPhone : Réglages, puis Partage. Créer son propre compte (adresse e-mail et mot de passe), puis saisir ce code.
+            Sur l'autre iPhone : Réglages, puis Partage, et taper ce code. Pas besoin de compte.
           </p>
           {typeof navigator !== "undefined" && navigator.clipboard && (
             <button
