@@ -1,6 +1,6 @@
 # Notifications : les rappels du matin
 
-Chaque matin à 8 h (heure de Zurich), chaque iPhone inscrit reçoit **une seule** notification qui
+Chaque jour à l'heure choisie sur l'iPhone (8 h au départ, de 5 h à 22 h, heure de Zurich), chaque iPhone inscrit reçoit **une seule** notification qui
 résume sa journée : ses tâches et les tâches libres (du jour et en retard), et ce qui presse pour Mitsu
 (commande, provisions, soins). Rien à faire : pas de notification. La pastille de l'icône affiche le
 nombre de rappels et s'efface à l'ouverture de l'app.
