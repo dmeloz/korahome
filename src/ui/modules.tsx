@@ -1,11 +1,13 @@
 import type { ReactNode } from "react";
 import { compterAPrendre } from "../domaine/listes";
+import { choseAFaire, decrireAge, formaterPoids, poidsActuel, rationDuJour, type Animal } from "../domaine/mitsu";
 import type { WidgetId } from "../domaine/tableauDeBord";
 import { compterDues, decrireEcheance, organiserTaches } from "../domaine/taches";
 import type { Element, Foyer, Jour, Liste, Tache } from "../domaine/types";
 import type { Depot } from "../donnees/depot";
 import { DetailListe } from "./ecrans/DetailListe";
 import { Listes } from "./ecrans/Listes";
+import { Mitsu } from "./ecrans/Mitsu";
 import { Taches } from "./ecrans/Taches";
 import type { NomIcone } from "./Icone";
 
@@ -20,6 +22,7 @@ export interface DonneesModule {
   listes: Liste[];
   elements: Element[];
   taches: Tache[];
+  animaux: Animal[];
   aujourdhui: Jour;
 }
 
@@ -122,6 +125,31 @@ export const MODULES: Partial<Record<WidgetId, ModuleUI>> = {
       };
     },
     page: (p) => <Listes depot={p.depot} listes={p.listes} elements={p.elements} ouvrirListe={p.ouvrirListe} />,
+  },
+
+  mitsu: {
+    id: "mitsu",
+    picto: "chat",
+    libelle: "Mitsu",
+    widget: (d) => {
+      const animal = d.animaux[0];
+      if (!animal) return { chiffre: 0, legende: "Créer sa fiche", lignes: [], urgent: false };
+      const aFaire = choseAFaire(animal, d.aujourdhui);
+      const poids = poidsActuel(animal);
+      const ration = rationDuJour(animal, d.aujourdhui);
+      const portrait = [decrireAge(animal.naissance, d.aujourdhui), poids && formaterPoids(poids.grammes), ration && `${ration.grammes} g par jour`]
+        .filter(Boolean)
+        .join(" · ");
+      return {
+        chiffre: aFaire.length,
+        legende: aFaire.length ? "à faire" : portrait,
+        lignes: aFaire.length ? aFaire.slice(0, 3).map((c) => c.texte) : [],
+        urgent: aFaire.some((c) => c.urgent),
+      };
+    },
+    page: (p) => (
+      <Mitsu depot={p.depot} foyer={p.foyer} membreId={p.membreId} animaux={p.animaux} listes={p.listes} elements={p.elements} />
+    ),
   },
 };
 

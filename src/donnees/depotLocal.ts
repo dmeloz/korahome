@@ -1,11 +1,12 @@
+import type { Animal } from "../domaine/mitsu";
 import type { RetourTest } from "../domaine/retours";
 import type { Element, Foyer, Id, Liste, Tache } from "../domaine/types";
 import type { Depot } from "./depot";
 
-// Version 2 : ajout des tâches. Version 3 : notes de test.
+// Version 2 : ajout des tâches. Version 3 : notes de test. Version 4 : suivi de Mitsu.
 // La mise à jour crée seulement les magasins manquants.
-const VERSION = 3;
-const MAGASINS = ["foyer", "listes", "elements", "taches", "retours"] as const;
+const VERSION = 4;
+const MAGASINS = ["foyer", "listes", "elements", "taches", "retours", "animaux"] as const;
 type Magasin = (typeof MAGASINS)[number];
 
 function ouvrir(nomBase: string, fabrique: IDBFactory): Promise<IDBDatabase> {
@@ -88,6 +89,9 @@ export function creerDepotLocal(
     enregistrerTache: (tache) => ecrire("taches", (s) => s.put(tache)),
     enregistrerTaches: (taches) => ecrire("taches", (s) => taches.forEach((t) => s.put(t))),
     supprimerTache: (id) => ecrire("taches", (s) => s.delete(id)),
+
+    lireAnimaux: () => tous<Animal>("animaux"),
+    enregistrerAnimal: (animal) => ecrire("animaux", (s) => s.put(animal)),
 
     lireRetours: () => tous<RetourTest>("retours"),
     enregistrerRetour: (retour) => ecrire("retours", (s) => s.put(retour)),

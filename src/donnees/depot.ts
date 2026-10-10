@@ -1,3 +1,4 @@
+import type { Animal } from "../domaine/mitsu";
 import type { RetourTest } from "../domaine/retours";
 import type { Element, Foyer, Id, Liste, Tache } from "../domaine/types";
 
@@ -22,6 +23,10 @@ export interface Depot {
   enregistrerTache(tache: Tache): Promise<void>;
   enregistrerTaches(taches: Tache[]): Promise<void>;
   supprimerTache(id: Id): Promise<void>;
+
+  /** Le suivi de Mitsu (et d'un autre animal un jour) : un document par animal. */
+  lireAnimaux(): Promise<Animal[]>;
+  enregistrerAnimal(animal: Animal): Promise<void>;
 
   /** Les notes de test écrites depuis le coin « Dev ». */
   lireRetours(): Promise<RetourTest[]>;

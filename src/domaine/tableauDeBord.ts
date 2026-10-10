@@ -17,7 +17,7 @@ export const CATALOGUE: readonly DefinitionWidget[] = [
   { id: "courses", titre: "Courses", description: "Ce qu'il reste à acheter.", disponible: true },
   { id: "listes", titre: "Autres listes", description: "Cadeaux, bricolage et toutes vos autres listes.", disponible: true },
   { id: "agenda", titre: "Agenda", description: "Les rendez-vous du jour et de la semaine.", disponible: false },
-  { id: "mitsu", titre: "Mitsu", description: "Croquettes, litière, poids et vétérinaire.", disponible: false },
+  { id: "mitsu", titre: "Mitsu", description: "Croquettes, litière, poids et vétérinaire.", disponible: true },
   { id: "stock", titre: "Frigo et placards", description: "Les produits qui arrivent à leur date.", disponible: false },
   { id: "jardin", titre: "Jardin", description: "Arrosage, météo et alerte gel.", disponible: false },
 ];

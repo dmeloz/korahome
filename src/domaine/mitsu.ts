@@ -1,0 +1,549 @@
+import { ErreurValidation } from "./foyer";
+import { decaler, ecartJours } from "./taches";
+import type { Contexte, Id, Jour } from "./types";
+
+// Le suivi de Mitsu, la chatte du foyer : sa ration suit son âge et son poids,
+// ses provisions annoncent leur fin et le jour où commander, ses pesées et son
+// carnet de santé donnent les rappels. Tout est calculé à partir de « aujourd'hui »
+// fourni par l'interface : ce module ne lit jamais l'horloge.
+
+export type TypeProvision = "croquettes" | "patee" | "friandises" | "litiere" | "filtres";
+
+export const TYPES_PROVISION: Record<TypeProvision, string> = {
+  croquettes: "Croquettes",
+  patee: "Pâtée",
+  friandises: "Friandises",
+  litiere: "Litière",
+  filtres: "Filtres de fontaine",
+};
+
+/** Un paquet (ou un lot) acheté, consommé jour après jour. */
+export interface Provision {
+  id: Id;
+  type: TypeProvision;
+  /** Le produit, tel qu'il figure sur la facture. */
+  nom: string;
+  /** Ce qui reste au jour « achete » : en grammes, en millilitres pour la litière, en pièces pour les filtres. */
+  quantite: number;
+  /** Jour d'achat, ou du dernier réassort par une commande. */
+  achete: Jour;
+  /** Consommation par jour (g ou ml) ; null = déduite de la ration ou de la commande. */
+  parJour: number | null;
+  /** Ce qu'on rachète d'un coup (un sac, une boîte de 6 filtres). */
+  lot?: number;
+}
+
+/** Les produits qui reviennent à chaque commande, au même rythme. */
+export interface ArticleCommande {
+  type: TypeProvision;
+  nom: string;
+  /** Quantité commandée, en grammes (ou millilitres pour la litière). */
+  quantite: number;
+}
+
+/** La commande en ligne qui revient : tous les 3 mois chez zooplus pour Mitsu. */
+export interface CommandeReguliere {
+  fournisseur: string;
+  tousLesMois: number;
+  prochaine: Jour;
+  articles: ArticleCommande[];
+}
+
+export type TypeSoin = "vaccin" | "vermifuge" | "antiparasitaire" | "sterilisation" | "visite" | "filtre" | "autre";
+
+export const TYPES_SOIN: Record<TypeSoin, string> = {
+  vaccin: "Vaccin",
+  vermifuge: "Vermifuge",
+  antiparasitaire: "Antipuces et tiques",
+  sterilisation: "Stérilisation",
+  visite: "Visite chez le vétérinaire",
+  filtre: "Changer le filtre de la fontaine",
+  autre: "Autre soin",
+};
+
+/** Une ligne du carnet de santé : prévue, puis faite. */
+export interface Soin {
+  id: Id;
+  type: TypeSoin;
+  libelle: string;
+  date: Jour;
+  fait: boolean;
+}
+
+export interface Pesee {
+  id: Id;
+  jour: Jour;
+  grammes: number;
+  par: Id | null;
+}
+
+export interface ReglagesSuivi {
+  /** Combien de jours avant la fin d'une provision il faut commander. */
+  delaiCommande: number;
+  /** Tous les combien de jours la peser (à la maison ou chez le vétérinaire). */
+  peseeTousLes: number;
+  /** Énergie des croquettes, en kcal par gramme (indiquée sur le paquet). */
+  kcalParGramme: number;
+  /** La ration du paquet, en grammes par jour ; null = estimée par l'app. */
+  rationDuPaquet: number | null;
+}
+
+export interface Animal {
+  id: Id;
+  nom: string;
+  naissance: Jour;
+  arrivee: Jour | null;
+  sterilise: boolean;
+  pesees: Pesee[];
+  provisions: Provision[];
+  soins: Soin[];
+  commande: CommandeReguliere | null;
+  reglages: ReglagesSuivi;
+  creeLe: string;
+}
+
+export const REGLAGES_DE_DEPART: ReglagesSuivi = {
+  delaiCommande: 10,
+  // Melo et Sarah la pèsent environ tous les 6 mois, et à chaque visite chez le vétérinaire.
+  peseeTousLes: 180,
+  kcalParGramme: 4,
+  rationDuPaquet: null,
+};
+
+const RE_JOUR = /^\d{4}-\d{2}-\d{2}$/;
+
+function verifierJour(jour: Jour, quoi: string): void {
+  if (!RE_JOUR.test(jour)) throw new ErreurValidation(`${quoi} : la date est invalide.`);
+}
+
+const plusJours = (jour: Jour, n: number) => decaler(jour, { unite: "jour", tous: n });
+const plusMois = (jour: Jour, n: number) => decaler(jour, { unite: "mois", tous: n });
+
+export function nouvelAnimal(
+  nom: string,
+  naissance: Jour,
+  arrivee: Jour | null,
+  ctx: Contexte,
+): Animal {
+  const n = nom.trim().replace(/\s+/g, " ");
+  if (!n) throw new ErreurValidation("Il faut un nom.");
+  verifierJour(naissance, "Naissance");
+  if (arrivee) verifierJour(arrivee, "Arrivée");
+  return {
+    id: ctx.nouvelId(),
+    nom: n.charAt(0).toUpperCase() + n.slice(1),
+    naissance,
+    arrivee,
+    sterilise: false,
+    pesees: [],
+    provisions: [],
+    soins: [],
+    commande: null,
+    reglages: { ...REGLAGES_DE_DEPART },
+    creeLe: ctx.maintenant(),
+  };
+}
+
+// ----- Âge -----
+
+/** Âge en mois révolus (le 14 du mois suivant la naissance du 14 = 1 mois). */
+export function ageEnMois(naissance: Jour, aujourdhui: Jour): number {
+  let mois = 0;
+  while (mois < 600 && plusMois(naissance, mois + 1) <= aujourdhui) mois++;
+  return mois;
+}
+
+/** « 3 semaines », « 5 mois », « 1 an », « 1 an et 2 mois ». */
+export function decrireAge(naissance: Jour, aujourdhui: Jour): string {
+  const mois = ageEnMois(naissance, aujourdhui);
+  if (mois === 0) {
+    const semaines = Math.floor(Math.max(0, ecartJours(naissance, aujourdhui)) / 7);
+    return semaines <= 1 ? "quelques jours" : `${semaines} semaines`;
+  }
+  if (mois < 12) return `${mois} mois`;
+  const ans = Math.floor(mois / 12);
+  const reste = mois % 12;
+  const a = `${ans} an${ans > 1 ? "s" : ""}`;
+  return reste ? `${a} et ${reste} mois` : a;
+}
+
+/** Vers 12 mois, on passe des croquettes chaton aux croquettes adulte. */
+export function passageAdulte(naissance: Jour): Jour {
+  return plusMois(naissance, 12);
+}
+
+// ----- Poids et ration -----
+
+export function derniereVersion<T extends { jour: Jour }>(liste: readonly T[]): T | null {
+  return liste.reduce<T | null>((d, x) => (!d || x.jour >= d.jour ? x : d), null);
+}
+
+export function poidsActuel(animal: Animal): Pesee | null {
+  return derniereVersion(animal.pesees);
+}
+
+/**
+ * Multiplicateur du besoin au repos selon l'âge : un chaton en pleine croissance
+ * a besoin de bien plus d'énergie qu'un adulte, et un adulte stérilisé un peu moins.
+ */
+export function facteurCroissance(ageMois: number, sterilise: boolean): number {
+  if (ageMois < 4) return 2.5;
+  if (ageMois < 6) return 2;
+  if (ageMois < 12) return 1.6;
+  return sterilise ? 1.2 : 1.4;
+}
+
+export interface Ration {
+  grammes: number;
+  kcal: number;
+  /** « paquet » : la ration notée depuis le paquet ; « estimee » : calculée. */
+  source: "paquet" | "estimee";
+}
+
+/**
+ * Ration de croquettes du jour. La ration du paquet, quand elle est notée, fait foi.
+ * Sinon : besoin au repos 70 × poids(kg)^0,75 kcal, multiplié selon l'âge, divisé
+ * par l'énergie des croquettes. C'est une estimation, à arrondir à 5 g.
+ */
+export function rationDuJour(animal: Animal, aujourdhui: Jour): Ration | null {
+  const k = animal.reglages.kcalParGramme;
+  if (animal.reglages.rationDuPaquet) {
+    const g = animal.reglages.rationDuPaquet;
+    return { grammes: g, kcal: Math.round(g * k), source: "paquet" };
+  }
+  const poids = poidsActuel(animal);
+  if (!poids) return null;
+  const repos = 70 * Math.pow(poids.grammes / 1000, 0.75);
+  const kcal = repos * facteurCroissance(ageEnMois(animal.naissance, aujourdhui), animal.sterilise);
+  return { grammes: Math.round(kcal / k / 5) * 5, kcal: Math.round(kcal), source: "estimee" };
+}
+
+export function ajouterPesee(animal: Animal, grammes: number, jour: Jour, par: Id | null, ctx: Contexte): Animal {
+  verifierJour(jour, "Pesée");
+  if (!Number.isFinite(grammes) || grammes < 100 || grammes > 15000) {
+    throw new ErreurValidation("Le poids doit être entre 0,1 et 15 kg.");
+  }
+  const pesee: Pesee = { id: ctx.nouvelId(), jour, grammes: Math.round(grammes), par };
+  // Une seule pesée par jour : la nouvelle remplace celle du même jour.
+  return { ...animal, pesees: [...animal.pesees.filter((p) => p.jour !== jour), pesee] };
+}
+
+/** Les pesées de la plus récente à la plus ancienne. */
+export function historiquePesees(animal: Animal): Pesee[] {
+  return [...animal.pesees].sort((a, b) => b.jour.localeCompare(a.jour));
+}
+
+/** Prochaine pesée, au rythme choisi après la dernière. */
+export function prochainePesee(animal: Animal, aujourdhui: Jour): Jour {
+  const derniere = poidsActuel(animal);
+  if (!derniere) return aujourdhui;
+  return plusJours(derniere.jour, animal.reglages.peseeTousLes);
+}
+
+/** « 2,45 kg ». */
+export function formaterPoids(grammes: number): string {
+  return `${(grammes / 1000).toLocaleString("fr-CH", { maximumFractionDigits: 2 })} kg`;
+}
+
+// ----- Provisions -----
+
+/** Un filtre de fontaine dure un mois. */
+export const JOURS_PAR_FILTRE = 30;
+
+/** Les filtres se comptent à la pièce ; la litière en litres, le reste en kilos. */
+export function formaterQuantite(type: TypeProvision, quantite: number): string {
+  if (type === "filtres") {
+    const n = Math.round(quantite);
+    return `${n} filtre${n > 1 ? "s" : ""}`;
+  }
+  const n = (quantite / 1000).toLocaleString("fr-CH", { maximumFractionDigits: 2 });
+  return type === "litiere" ? `${n} L` : `${n} kg`;
+}
+
+export function nouvelleProvision(
+  champs: { type: TypeProvision; nom: string; quantite: number; achete: Jour; parJour: number | null },
+  ctx: Contexte,
+): Provision {
+  verifierJour(champs.achete, "Achat");
+  if (!Number.isFinite(champs.quantite) || champs.quantite <= 0) throw new ErreurValidation("Indique la quantité achetée.");
+  if (champs.parJour !== null && (!Number.isFinite(champs.parJour) || champs.parJour <= 0)) {
+    throw new ErreurValidation("La consommation par jour doit être positive.");
+  }
+  const nom = champs.nom.trim().replace(/\s+/g, " ") || TYPES_PROVISION[champs.type];
+  const quantite = champs.type === "filtres" ? champs.quantite : Math.round(champs.quantite);
+  return { id: ctx.nouvelId(), type: champs.type, nom, quantite, achete: champs.achete, parJour: champs.parJour, lot: quantite };
+}
+
+export function ajouterProvision(animal: Animal, provision: Provision): Animal {
+  return { ...animal, provisions: [...animal.provisions, provision] };
+}
+
+export function retirerProvision(animal: Animal, id: Id): Animal {
+  return { ...animal, provisions: animal.provisions.filter((p) => p.id !== id) };
+}
+
+/** L'article de la commande régulière qui réapprovisionne cette provision. */
+export function articleDe(provision: Provision, animal: Animal): ArticleCommande | undefined {
+  return animal.commande?.articles.find((a) => a.type === provision.type && a.nom === provision.nom);
+}
+
+/** Durée d'un cycle de commande, en jours. */
+function joursDuCycle(commande: CommandeReguliere): number {
+  return ecartJours(commande.prochaine, plusMois(commande.prochaine, commande.tousLesMois));
+}
+
+/**
+ * Consommation par jour, dans l'ordre : celle notée sur la provision, la ration du jour
+ * pour les croquettes (quand on connaît son poids ou la ration du paquet), sinon ce que la
+ * commande régulière laisse supposer (6 kg tous les 3 mois ≈ 65 g par jour).
+ */
+export function consommationParJour(provision: Provision, animal: Animal, aujourdhui: Jour): number | null {
+  if (provision.parJour) return provision.parJour;
+  if (provision.type === "filtres") return 1 / JOURS_PAR_FILTRE;
+  if (provision.type === "croquettes") {
+    const ration = rationDuJour(animal, aujourdhui);
+    if (ration) return ration.grammes;
+  }
+  const article = articleDe(provision, animal);
+  if (article && animal.commande) return Math.round(article.quantite / joursDuCycle(animal.commande));
+  return null;
+}
+
+export interface Prevision {
+  restant: number;
+  joursRestants: number;
+  fin: Jour;
+  commanderLe: Jour;
+  etat: "ok" | "commander" | "epuise";
+}
+
+/** Combien il reste, quand ce sera fini, et quand commander pour ne jamais manquer. */
+export function prevoir(provision: Provision, animal: Animal, aujourdhui: Jour): Prevision | null {
+  const parJour = consommationParJour(provision, animal, aujourdhui);
+  if (!parJour) return null;
+  const ecoules = Math.max(0, ecartJours(provision.achete, aujourdhui));
+  const restant = Math.max(0, provision.quantite - ecoules * parJour);
+  const joursRestants = Math.floor(restant / parJour + 1e-9);
+  const fin = plusJours(aujourdhui, joursRestants);
+  const commanderLe = plusJours(fin, -animal.reglages.delaiCommande);
+  const etat = joursRestants === 0 ? "epuise" : commanderLe <= aujourdhui ? "commander" : "ok";
+  // Les filtres se comptent entiers : celui qui est dans la fontaine n'est plus dans le placard.
+  const arrondi = provision.type === "filtres" ? Math.floor(restant + 1e-9) : Math.round(restant);
+  return { restant: arrondi, joursRestants, fin, commanderLe, etat };
+}
+
+/** Ce qu'on ajoute à la liste de courses quand une provision touche à sa fin. */
+export function texteCourses(provision: Provision, animal: Animal): string {
+  const type = TYPES_PROVISION[provision.type];
+  const produit = provision.nom === type ? "" : ` (${provision.nom})`;
+  return `${type} ${animal.nom}${produit}`;
+}
+
+// ----- Commande régulière -----
+
+export function definirCommande(
+  animal: Animal,
+  champs: { fournisseur: string; tousLesMois: number; prochaine: Jour; articles: ArticleCommande[] },
+): Animal {
+  verifierJour(champs.prochaine, "Prochaine commande");
+  if (!Number.isInteger(champs.tousLesMois) || champs.tousLesMois < 1) throw new ErreurValidation("Le rythme doit être d'au moins un mois.");
+  const articles = champs.articles.filter((a) => a.nom.trim() && a.quantite > 0);
+  return { ...animal, commande: { ...champs, fournisseur: champs.fournisseur.trim() || "la boutique", articles } };
+}
+
+/**
+ * La commande est passée : chaque article remplit sa provision (ce qui reste plus ce qui
+ * arrive, compté à partir d'aujourd'hui), comme les extras ajoutés cette fois (un lot de
+ * filtres), et la suivante est prévue un cycle plus tard.
+ */
+export function passerCommande(animal: Animal, aujourdhui: Jour, ctx: Contexte, extras: readonly Id[] = []): Animal {
+  const commande = animal.commande;
+  if (!commande) return animal;
+  let provisions = [...animal.provisions];
+  for (const article of commande.articles) {
+    const existante = provisions.find((p) => p.type === article.type && p.nom === article.nom);
+    if (existante) {
+      const reste = prevoir(existante, animal, aujourdhui)?.restant ?? 0;
+      provisions = provisions.map((p) => (p === existante ? { ...p, quantite: reste + article.quantite, achete: aujourdhui } : p));
+    } else {
+      provisions.push({ id: ctx.nouvelId(), type: article.type, nom: article.nom, quantite: article.quantite, achete: aujourdhui, parJour: null });
+    }
+  }
+  provisions = provisions.map((p) => {
+    if (!extras.includes(p.id)) return p;
+    const reste = prevoir(p, animal, aujourdhui)?.restant ?? 0;
+    return { ...p, quantite: reste + (p.lot ?? p.quantite), achete: aujourdhui };
+  });
+  const depart = commande.prochaine > aujourdhui ? commande.prochaine : aujourdhui;
+  return { ...animal, provisions, commande: { ...commande, prochaine: plusMois(depart, commande.tousLesMois) } };
+}
+
+/**
+ * Conseil pour la prochaine commande : si elle couvre ses 1 an, il faut prévoir la
+ * transition vers les croquettes adulte (un sac chaton plus petit et un sac adulte).
+ */
+export function conseilCommande(animal: Animal): string | null {
+  const commande = animal.commande;
+  if (!commande || !commande.articles.some((a) => a.type === "croquettes")) return null;
+  const adulte = passageAdulte(animal.naissance);
+  const finDuCycle = plusMois(commande.prochaine, commande.tousLesMois);
+  if (adulte <= commande.prochaine) {
+    return ageEnMois(animal.naissance, commande.prochaine) < 13 ? "Elle a passé 1 an : commande des croquettes adulte." : null;
+  }
+  if (adulte < finDuCycle) {
+    return `Cette commande couvre ses 1 an (${adulte.slice(8, 10)}/${adulte.slice(5, 7)}) : prends moins de croquettes chaton et un sac adulte pour la transition.`;
+  }
+  return null;
+}
+
+/** Rappeler la commande régulière quelques jours avant. */
+export const RAPPEL_COMMANDE_JOURS = 3;
+/** Délai de livraison compté pour savoir si le stock tiendra. */
+export const LIVRAISON_JOURS = 3;
+
+/** Les provisions de la commande qui seront vides avant que la prochaine arrive. */
+export function videsAvantLivraison(animal: Animal, aujourdhui: Jour): { provision: Provision; fin: Jour }[] {
+  const commande = animal.commande;
+  if (!commande) return [];
+  const arrivee = plusJours(commande.prochaine, LIVRAISON_JOURS);
+  return animal.provisions.flatMap((p) => {
+    if (!articleDe(p, animal)) return [];
+    const prev = prevoir(p, animal, aujourdhui);
+    return prev && prev.fin < arrivee ? [{ provision: p, fin: prev.fin }] : [];
+  });
+}
+
+/**
+ * Ce qui ne revient pas à chaque commande (les filtres : 6 pour 6 mois) mais sera vide
+ * avant la commande d'après : à ajouter à la prochaine.
+ */
+export function aAjouterALaCommande(animal: Animal, aujourdhui: Jour): { provision: Provision; fin: Jour }[] {
+  const commande = animal.commande;
+  if (!commande) return [];
+  const suivante = plusJours(plusMois(commande.prochaine, commande.tousLesMois), LIVRAISON_JOURS);
+  return animal.provisions.flatMap((p) => {
+    if (articleDe(p, animal)) return [];
+    const prev = prevoir(p, animal, aujourdhui);
+    return prev && prev.fin < suivante ? [{ provision: p, fin: prev.fin }] : [];
+  });
+}
+
+/** La première date après aujourd'hui qui tombe au même rythme qu'un départ (le 2 de chaque mois…). */
+export function prochaineOccurrence(depart: Jour, tousLesMois: number, aujourdhui: Jour): Jour {
+  let n = 0;
+  while (n < 1200 && plusMois(depart, n * tousLesMois) < aujourdhui) n++;
+  return plusMois(depart, n * tousLesMois);
+}
+
+// ----- Santé -----
+
+export function nouveauSoin(type: TypeSoin, date: Jour, libelle: string, ctx: Contexte): Soin {
+  verifierJour(date, "Soin");
+  return { id: ctx.nouvelId(), type, libelle: libelle.trim() || TYPES_SOIN[type], date, fait: false };
+}
+
+export function ajouterSoin(animal: Animal, soin: Soin): Animal {
+  return { ...animal, soins: [...animal.soins, soin] };
+}
+
+export function retirerSoin(animal: Animal, id: Id): Animal {
+  return { ...animal, soins: animal.soins.filter((s) => s.id !== id) };
+}
+
+/**
+ * Le rythme habituel d'un soin, pour prévoir le suivant : vaccin et visite chaque année,
+ * antiparasitaire chaque mois, vermifuge chaque mois jusqu'à 6 mois puis tous les 3 mois.
+ * Le vétérinaire a toujours le dernier mot : la date proposée se corrige.
+ */
+export function rythmeDuSoin(type: TypeSoin, ageMois: number): number | null {
+  if (type === "vaccin" || type === "visite") return 12;
+  if (type === "antiparasitaire" || type === "filtre") return 1;
+  if (type === "vermifuge") return ageMois < 6 ? 1 : 3;
+  return null;
+}
+
+/** Marque le soin fait aujourd'hui et prévoit le suivant quand il revient. */
+export function marquerSoinFait(animal: Animal, id: Id, aujourdhui: Jour, ctx: Contexte): Animal {
+  const soin = animal.soins.find((s) => s.id === id);
+  if (!soin) return animal;
+  const soins = animal.soins.map((s) => (s.id === id ? { ...s, fait: true, date: aujourdhui } : s));
+  const rythme = rythmeDuSoin(soin.type, ageEnMois(animal.naissance, aujourdhui));
+  if (rythme) soins.push({ ...soin, id: ctx.nouvelId(), date: plusMois(aujourdhui, rythme), fait: false });
+  const sterilise = animal.sterilise || soin.type === "sterilisation";
+  return { ...animal, soins, sterilise };
+}
+
+/** Les soins à venir, du plus proche au plus lointain. */
+export function soinsAVenir(animal: Animal): Soin[] {
+  return animal.soins.filter((s) => !s.fait).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+export function soinsFaits(animal: Animal): Soin[] {
+  return animal.soins.filter((s) => s.fait).sort((a, b) => b.date.localeCompare(a.date));
+}
+
+// ----- Ce qui est à faire -----
+
+export interface ChoseAFaire {
+  texte: string;
+  /** Urgent : le widget remonte en haut du tableau de bord. */
+  urgent: boolean;
+}
+
+/** Quand rappeler un soin : une semaine avant. */
+export const RAPPEL_SOIN_JOURS = 7;
+
+/** Tout ce qui demande un geste, du plus pressé au moins pressé. */
+export function choseAFaire(animal: Animal, aujourdhui: Jour): ChoseAFaire[] {
+  const urgentes: ChoseAFaire[] = [];
+  const bientot: ChoseAFaire[] = [];
+
+  const commande = animal.commande;
+  if (commande) {
+    const ecart = ecartJours(aujourdhui, commande.prochaine);
+    if (ecart <= RAPPEL_COMMANDE_JOURS) {
+      const quand = ecart < 0 ? "en retard" : ecart === 0 ? "aujourd'hui" : ecart === 1 ? "demain" : `dans ${ecart} jours`;
+      urgentes.push({ texte: `Commande ${commande.fournisseur} ${quand}`, urgent: true });
+      for (const { provision } of aAjouterALaCommande(animal, aujourdhui)) {
+        urgentes.push({ texte: `Ajouter ${provision.nom} à la commande`, urgent: true });
+      }
+    }
+    for (const { provision, fin } of videsAvantLivraison(animal, aujourdhui)) {
+      if (ecart <= RAPPEL_COMMANDE_JOURS) continue; // déjà rappelée juste au-dessus
+      urgentes.push({ texte: `${provision.nom} : vide vers le ${fin.slice(8, 10)}/${fin.slice(5, 7)}, avant la commande`, urgent: true });
+    }
+  }
+
+  for (const p of animal.provisions) {
+    // Les articles de la commande régulière suivent son rythme (ci-dessus).
+    if (articleDe(p, animal)) continue;
+    const prev = prevoir(p, animal, aujourdhui);
+    if (!prev || prev.etat === "ok") continue;
+    // Ce qui tient jusqu'à l'arrivée de la prochaine commande peut l'attendre : on l'y ajoutera.
+    if (commande && prev.fin >= plusJours(commande.prochaine, LIVRAISON_JOURS)) continue;
+    urgentes.push({
+      texte: prev.etat === "epuise" ? `${p.nom} : c'est fini` : `Commander ${p.nom} : ${prev.joursRestants} j de stock`,
+      urgent: true,
+    });
+  }
+
+  for (const s of soinsAVenir(animal)) {
+    const ecart = ecartJours(aujourdhui, s.date);
+    if (ecart > RAPPEL_SOIN_JOURS) continue;
+    const quand = ecart < 0 ? "en retard" : ecart === 0 ? "aujourd'hui" : ecart === 1 ? "demain" : `dans ${ecart} jours`;
+    urgentes.push({ texte: `${s.libelle} ${quand}`, urgent: true });
+  }
+
+  const pesee = prochainePesee(animal, aujourdhui);
+  if (pesee <= aujourdhui) {
+    bientot.push({ texte: animal.pesees.length ? "La peser" : "La peser une première fois", urgent: false });
+  }
+
+  const adulte = passageAdulte(animal.naissance);
+  const avant = ecartJours(aujourdhui, adulte);
+  if (avant >= 0 && avant <= 30) {
+    bientot.push({ texte: `Passer aux croquettes adulte ${avant === 0 ? "aujourd'hui" : `dans ${avant} jours`}`, urgent: false });
+  }
+
+  return [...urgentes, ...bientot];
+}
