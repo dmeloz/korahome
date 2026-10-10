@@ -3,7 +3,16 @@ import { creerFoyer, ErreurValidation, listesInitiales } from "../../domaine/foy
 import type { Depot } from "../../donnees/depot";
 import { choisirMembreCourant, contexteReel } from "../contexte";
 
-export function Bienvenue({ depot, onCree }: { depot: Depot; onCree: (membreId: string) => void }) {
+export function Bienvenue({
+  depot,
+  onCree,
+  rejoindre,
+}: {
+  depot: Depot;
+  onCree: (membreId: string) => void;
+  /** Le deuxième téléphone rejoint le foyer créé sur le premier. */
+  rejoindre: (() => void) | null;
+}) {
   const [nom, setNom] = useState("");
   const [moi, setMoi] = useState("");
   const [autre, setAutre] = useState("");
@@ -43,6 +52,11 @@ export function Bienvenue({ depot, onCree }: { depot: Depot; onCree: (membreId: 
         {erreur && <p className="erreur" role="alert">{erreur}</p>}
         <button type="submit" className="bouton-principal">Créer notre foyer</button>
       </form>
+      {rejoindre && (
+        <button className="lien bienvenue-rejoindre" onClick={rejoindre}>
+          Rejoindre un foyer déjà créé sur l'autre iPhone
+        </button>
+      )}
     </main>
   );
 }

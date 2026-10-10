@@ -1,11 +1,13 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import type { WidgetId } from "../domaine/tableauDeBord";
-import type { Depot } from "../donnees/depot";
+import type { Foyer } from "../domaine/types";
+import type { DepotLocal } from "../donnees/depotLocal";
 import { CoinDev } from "./CoinDev";
-import { aujourdhuiLocal, lireMembreCourant } from "./contexte";
+import { aujourdhuiLocal, choisirMembreCourant, lireMembreCourant } from "./contexte";
 import { Accueil } from "./ecrans/Accueil";
 import { Bienvenue } from "./ecrans/Bienvenue";
 import { DetailListe } from "./ecrans/DetailListe";
+import { Partage, type ServicesPartage } from "./ecrans/Partage";
 import { Reglages } from "./ecrans/Reglages";
 import { RetoursTest } from "./ecrans/RetoursTest";
 import { Icone } from "./Icone";
@@ -13,6 +15,7 @@ import type { MiseAJour } from "./miseAJour";
 import { noter } from "./journal";
 import { MODULES, type DonneesModule } from "./modules";
 import { enregistrerPastilleVisible, lirePastilleVisible } from "./rapport";
+import { planifierSynchro } from "./synchroAuto";
 import { useDonnees } from "./useDonnees";
 
 // Pas de barre d'onglets : tout part du tableau de bord, chaque widget ouvre la
@@ -22,18 +25,24 @@ type Page =
   | { nom: "module"; id: WidgetId }
   | { nom: "liste"; id: string }
   | { nom: "reglages" }
+  | { nom: "partage" }
   | { nom: "retours" };
 
 // L'écran affiché, lu par le journal des retours de test à chaque geste.
 let ecranCourant = "Accueil";
 export const ecranAffiche = () => ecranCourant;
 
-export function App({ depot, miseAJour }: { depot: Depot; miseAJour: MiseAJour }) {
+export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJour: MiseAJour; partage: ServicesPartage | null }) {
   const { pret, foyer, listes, elements, taches, retours, animaux } = useDonnees(depot);
   const [pile, setPile] = useState<Page[]>([{ nom: "accueil" }]);
   const [membreId, setMembreId] = useState<string | null>(lireMembreCourant);
   const nouvelleVersion = useSyncExternalStore(miseAJour.abonner, miseAJour.prete);
   const [pastille, setPastille] = useState(lirePastilleVisible);
+
+  const synchro = partage?.synchro;
+  const partageActif = useSyncExternalStore(synchro?.abonner ?? sansAbonnement, () => (synchro?.statut().etat ?? "inactif") !== "inactif");
+  useEffect(() => (synchro ? planifierSynchro(synchro, depot) : undefined), [synchro, depot]);
+  const [rejoindre, setRejoindre] = useState(false);
 
   const page = pile[pile.length - 1];
   const nomEcran = !pret ? "Chargement" : !foyer ? "Bienvenue" : nommer(page);
@@ -46,6 +55,7 @@ export function App({ depot, miseAJour }: { depot: Depot; miseAJour: MiseAJour }
     if (p.nom === "accueil") return "Accueil";
     if (p.nom === "reglages") return "Réglages";
     if (p.nom === "retours") return "Retours de test";
+    if (p.nom === "partage") return "Partage";
     if (p.nom === "module") return MODULES[p.id]?.libelle ?? "Retour";
     return listes.find((l) => l.id === p.id)?.nom ?? "Liste";
   }
@@ -55,9 +65,33 @@ export function App({ depot, miseAJour }: { depot: Depot; miseAJour: MiseAJour }
   }
 
   if (!pret) return null;
-  if (!foyer) return <Bienvenue depot={depot} onCree={setMembreId} />;
+  if (!foyer) {
+    return rejoindre ? (
+      <div className="contenu">
+        <button className="retour" onClick={() => setRejoindre(false)}>
+          <Icone nom="retour" taille={22} />
+          Bienvenue
+        </button>
+        <Partage services={partage} foyer={null} />
+      </div>
+    ) : (
+      <Bienvenue depot={depot} onCree={setMembreId} rejoindre={partage ? () => setRejoindre(true) : null} />
+    );
+  }
 
   const membre = foyer.membres.some((m) => m.id === membreId) ? membreId : null;
+  // Après avoir rejoint un foyer, ce téléphone ne sait pas encore qui l'utilise.
+  if (!membre && foyer.membres.length > 1) {
+    return (
+      <ChoixMembre
+        foyer={foyer}
+        choisir={(id) => {
+          choisirMembreCourant(id);
+          setMembreId(id);
+        }}
+      />
+    );
+  }
   const donnees: DonneesModule = { foyer, membreId: membre, listes, elements, taches, animaux, aujourdhui: aujourdhuiLocal() };
   const precedente = pile.length > 1 ? pile[pile.length - 2] : null;
 
@@ -90,6 +124,8 @@ export function App({ depot, miseAJour }: { depot: Depot; miseAJour: MiseAJour }
     ) : (
       <main><p className="vide">Cette liste n'existe plus.</p></main>
     );
+  } else if (page.nom === "partage") {
+    ecran = <Partage services={partage} foyer={foyer} />;
   } else if (page.nom === "retours") {
     ecran = <RetoursTest depot={depot} foyer={foyer} retours={retours} />;
   } else {
@@ -101,6 +137,8 @@ export function App({ depot, miseAJour }: { depot: Depot; miseAJour: MiseAJour }
         verifierMiseAJour={miseAJour.verifier}
         notesOuvertes={ouvertes}
         ouvrirRetours={() => ouvrir({ nom: "retours" })}
+        ouvrirPartage={() => ouvrir({ nom: "partage" })}
+        partage={!partage ? "indisponible" : partageActif ? "actif" : "inactif"}
         pastilleVisible={pastille}
         changerPastille={(visible) => {
           enregistrerPastilleVisible(visible);
@@ -135,5 +173,28 @@ export function App({ depot, miseAJour }: { depot: Depot; miseAJour: MiseAJour }
         </div>
       )}
     </div>
+  );
+}
+
+const sansAbonnement = () => () => {};
+
+function ChoixMembre({ foyer, choisir }: { foyer: Foyer; choisir: (id: string) => void }) {
+  return (
+    <main className="bienvenue">
+      <div className="monogramme" aria-hidden>KH</div>
+      <h1>{foyer.nom}</h1>
+      <p className="discret">Qui utilise ce téléphone ?</p>
+      <ul className="carte groupe choix-membre">
+        {foyer.membres.map((m) => (
+          <li key={m.id}>
+            <button className="ligne" onClick={() => choisir(m.id)}>
+              <span className="initiale" style={{ background: m.couleur }}>{m.prenom.charAt(0)}</span>
+              <span className="ligne-texte">{m.prenom}</span>
+              <span className="chevron"><Icone nom="suivant" taille={18} /></span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </main>
   );
 }
