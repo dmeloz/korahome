@@ -1,8 +1,8 @@
 # KoraHome en ligne
 
 L'app est publiée sur Netlify à l'adresse **https://korahome-cassa.netlify.app**
-(projet `korahome-cassa`, équipe de Melo). Netlify est relié au dépôt GitHub : chaque
-fusion dans `main` reconstruit et publie l'app toute seule (réglages dans `netlify.toml`).
+(projet `korahome-cassa`, équipe de Melo). Chaque fusion dans `main` reconstruit et
+publie l'app toute seule (voir « Qui publie » ; réglages dans `netlify.toml`).
 Sur les iPhone, une pastille rouge sur les Réglages signale la nouvelle version.
 
 - Pas de profil de certificat : l'adresse a un vrai certificat https.
@@ -11,11 +11,22 @@ Sur les iPhone, une pastille rouge sur les Réglages signale la nouvelle version
   Netlify (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`), jamais dans le dépôt. Elles
   sont lues à la construction : après les avoir changées, il faut republier.
 
-## Publication refusée : « unrecognized Git contributor »
-L'offre gratuite de Netlify n'accepte qu'un contributeur sur un dépôt privé. Un dernier
-commit de `main` qui porte un coauteur (ligne `Co-authored-by: Claude …`) est refusé.
-Pour fusionner, écrire soi-même le message du commit fusionné, sans ligne de coauteur ;
-si la publication a échoué, un petit commit de Melo sans coauteur sur `main` la relance.
+## Qui publie
+L'offre gratuite de Netlify n'accepte qu'un contributeur sur un dépôt privé : quand un
+commit porte un coauteur (`Co-authored-by: Claude …`), Netlify refuse de construire
+(« unrecognized Git contributor »). La publication passe donc par GitHub : l'action
+`Publier` (`.github/workflows/publier.yml`) construit et publie l'app à chaque arrivée
+dans `main`, avec un jeton Netlify. Elle reprend les variables du projet Netlify.
+
+Mise en place, une seule fois :
+1. Netlify : avatar > User settings > Applications > Personal access tokens > New access
+   token (nom « GitHub KoraHome », sans expiration), copier le jeton.
+2. GitHub : dépôt korahome > Settings > Secrets and variables > Actions > New repository
+   secret, nom `NETLIFY_AUTH_TOKEN`, coller le jeton.
+3. Netlify : projet korahome-cassa > Project configuration > Build & deploy > Continuous
+   deployment > Build settings > Stop builds, pour ne plus voir les constructions refusées.
+
+Pour republier sans changement : GitHub > Actions > Publier > Run workflow.
 
 ## Passer d'une adresse à l'autre
 Chaque adresse garde ses propres données sur l'iPhone. Installer l'app depuis l'adresse

@@ -1,0 +1,40 @@
+name: Publier
+
+# Publie l'app sur Netlify à chaque arrivée dans main, depuis GitHub.
+# Netlify, sur l'offre gratuite, refuse de construire lui-même un dépôt privé dès
+# qu'un commit a un coauteur ; une publication envoyée avec un jeton n'a pas ce
+# filtre. La construction reprend les variables du projet Netlify (Supabase).
+# Seul secret : NETLIFY_AUTH_TOKEN, réglé dans GitHub (voir docs/en-ligne.md).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: publier
+  cancel-in-progress: false
+
+jobs:
+  publier:
+    runs-on: ubuntu-latest
+    env:
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: c8c2133f-c5cd-4184-abc4-955b2e9844dd
+    steps:
+      - name: Vérifier le jeton Netlify
+        run: |
+          if [ -z "$NETLIFY_AUTH_TOKEN" ]; then
+            echo "::error::Secret NETLIFY_AUTH_TOKEN absent : voir docs/en-ligne.md"
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - name: Construire et publier
+        run: npx -y netlify-cli@17.38.1 deploy --build --prod --site "$NETLIFY_SITE_ID" --message "main ${GITHUB_SHA::7}"
