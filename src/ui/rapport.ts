@@ -35,7 +35,11 @@ export async function envoyerAuMac(texte: string): Promise<ResultatEnvoi> {
       headers: { "Content-Type": "text/markdown; charset=utf-8" },
       body: texte,
     });
-    if (reponse.ok) return "depose";
+    // En ligne, l'adresse n'existe pas et l'hébergeur répond par la page de l'app : seule
+    // la réponse du Mac (en JSON) compte comme un dépôt.
+    const duMac = (reponse.headers.get("Content-Type") ?? "").includes("application/json");
+    if (reponse.ok && duMac) return "depose";
+    if (!duMac) return "injoignable";
     return reponse.status === 404 || reponse.status === 405 ? "injoignable" : "refuse";
   } catch {
     return "injoignable";
