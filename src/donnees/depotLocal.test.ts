@@ -127,7 +127,7 @@ describe("dépôt local : modifications en attente de partage", () => {
     await depot.enregistrerElement(basculerCoche(lait, ctx));
     await depot.enregistrerRetour(nouveauRetour({ texte: "Note", genre: "idee", ecran: "Accueil", version: "0.0.4", auteur: null }, ctx));
     const attente = await depot.lireEnAttente();
-    expect(attente.map((c) => c.collection).sort()).toEqual(["elements", "listes"]);
+    expect(attente.map((c) => c.collection).sort()).toEqual(["elements", "listes", "retours"]);
     expect((attente.find((c) => c.id === lait.id)?.donnees as { coche: boolean }).coche).toBe(true);
   });
 
@@ -179,14 +179,32 @@ describe("dépôt local : modifications en attente de partage", () => {
     expect(rappel).toHaveBeenCalledTimes(1);
   });
 
-  it("met tout en attente au moment de partager, sauf les notes de test", async () => {
+  it("met tout en attente au moment de partager, notes de test comprises", async () => {
     const ctx = contexteTest();
     const depot = creerDepotLocal("partager", new IDBFactory(), ctx.maintenant);
     await depot.enregistrerFoyer(creerFoyer("Maison", ["Melo"], ctx));
-    await depot.retirerEnAttente(await depot.lireEnAttente());
     await depot.enregistrerRetour(nouveauRetour({ texte: "Note", genre: "idee", ecran: "Accueil", version: "0.0.4", auteur: null }, ctx));
+    await depot.retirerEnAttente(await depot.lireEnAttente());
     await depot.toutMettreEnAttente();
-    expect((await depot.lireEnAttente()).map((c) => c.collection)).toEqual(["foyer"]);
+    expect((await depot.lireEnAttente()).map((c) => c.collection).sort()).toEqual(["foyer", "retours"]);
+  });
+
+  it("garde les notes de test du téléphone quand il rejoint un foyer", async () => {
+    const ctx = contexteTest();
+    const depot = creerDepotLocal("rejoindre", new IDBFactory(), ctx.maintenant);
+    const mienne = nouveauRetour({ texte: "Ma note", genre: "bug", ecran: "Accueil", version: "0.0.7", auteur: null }, ctx);
+    const transmise = nouveauRetour({ texte: "Déjà partie", genre: "idee", ecran: "Accueil", version: "0.0.7", auteur: null }, ctx);
+    await depot.enregistrerRetour(transmise);
+    await depot.retirerEnAttente(await depot.lireEnAttente());
+    await depot.enregistrerRetour(mienne);
+    const foyer = creerFoyer("Cassa", ["Sarah"], ctx);
+    const deSarah = nouveauRetour({ texte: "Note de Sarah", genre: "gene", ecran: "Courses", version: "0.0.7", auteur: null }, ctx);
+    await depot.remplacerTout([
+      { collection: "foyer", id: foyer.id, donnees: foyer, maj: ctx.maintenant() },
+      { collection: "retours", id: deSarah.id, donnees: deSarah, maj: ctx.maintenant() },
+    ]);
+    expect((await depot.lireRetours()).map((r) => r.texte).sort()).toEqual(["Déjà partie", "Ma note", "Note de Sarah"]);
+    expect((await depot.lireEnAttente()).map((c) => c.id)).toEqual([mienne.id]);
   });
 
   it("conserve l'état du partage", async () => {
@@ -197,5 +215,26 @@ describe("dépôt local : modifications en attente de partage", () => {
     expect(await depot.lireEtat()).toEqual(etat);
     await depot.enregistrerEtat(null);
     expect(await depot.lireEtat()).toBeNull();
+  });
+});
+
+describe("dépôt local : passage à la version 6", () => {
+  it("envoie les notes de test déjà écrites au prochain partage", async () => {
+    const fabrique = new IDBFactory();
+    await new Promise<void>((ok, ko) => {
+      const req = fabrique.open("ancienne", 5);
+      req.onupgradeneeded = () => {
+        for (const m of ["foyer", "listes", "elements", "taches", "retours", "animaux", "synchro"]) req.result.createObjectStore(m, { keyPath: "id" });
+        req.result.createObjectStore("attente", { keyPath: "cle" });
+        req.transaction!.objectStore("retours").put({ id: "n1", texte: "Ancienne note" });
+      };
+      req.onsuccess = () => {
+        req.result.close();
+        ok();
+      };
+      req.onerror = () => ko(req.error);
+    });
+    const depot = creerDepotLocal("ancienne", fabrique);
+    expect((await depot.lireEnAttente()).map((c) => [c.collection, c.id])).toEqual([["retours", "n1"]]);
   });
 });

@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState, useSyncExternalStore, type FormEvent } from "react";
 import { afficherCode, decrireDerniereSynchro, normaliserCode } from "../../domaine/synchro";
 import type { Foyer } from "../../domaine/types";
-import type { Compte, FoyerPartage } from "../../donnees/distant";
+import type { Compte, FoyerPartage, ServeurRappels } from "../../donnees/distant";
 import type { StatutSynchro, Synchro } from "../../donnees/synchro";
 
 export interface ServicesPartage {
   compte: Compte;
   synchro: Synchro;
+  /** Les rappels du matin passent par le même serveur. */
+  rappels: ServeurRappels;
 }
 
 const LONGUEUR_MOT_DE_PASSE = 8;

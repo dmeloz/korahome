@@ -6,7 +6,8 @@ import { configurationSupabase, creerServicesSupabase } from "./donnees/supabase
 import { creerSynchro } from "./donnees/synchro";
 import { App, ecranAffiche } from "./ui/App";
 import { installerJournal } from "./ui/journal";
-import { creerMiseAJour } from "./ui/miseAJour";
+import { creerMiseAJour, surveillerMisesAJour } from "./ui/miseAJour";
+import { effacerPastilleIcone } from "./ui/rappels";
 import "./styles.css";
 
 const miseAJour = creerMiseAJour(
@@ -17,11 +18,19 @@ const miseAJour = creerMiseAJour(
 
 installerJournal(ecranAffiche);
 
+// Au retour dans l'app : la pastille des rappels s'efface, et on regarde si une version attend.
+const auRetour: (() => void)[] = [effacerPastilleIcone];
+effacerPastilleIcone();
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") auRetour.forEach((f) => f());
+});
+surveillerMisesAJour(miseAJour, (f) => auRetour.push(f), (f, ms) => setInterval(f, ms));
+
 const depot = creerDepotLocal();
 // Sans adresse de serveur (.env.local sur le Mac), l'app reste sur ce téléphone seulement.
 const config = configurationSupabase();
 const distant = config ? creerServicesSupabase(config.url, config.cle) : null;
-const partage = distant ? { compte: distant, synchro: creerSynchro(depot, distant) } : null;
+const partage = distant ? { compte: distant, synchro: creerSynchro(depot, distant), rappels: distant } : null;
 
 createRoot(document.getElementById("racine")!).render(
   <StrictMode>

@@ -24,6 +24,8 @@ export function Accueil(props: {
   donnees: DonneesModule;
   ouvrirModule: (id: WidgetId) => void;
   ouvrirReglages: () => void;
+  /** Une nouvelle version attend : pastille rouge sur les Réglages. */
+  nouvelleVersion: boolean;
 }) {
   const [disposition, setDisposition] = useState<Disposition>(() => nettoyerDisposition(lireDisposition()));
   const [edition, setEdition] = useState(false);
@@ -57,8 +59,13 @@ export function Accueil(props: {
             {moi ? `, ${moi.prenom}` : ""}
           </h1>
         </div>
-        <button className="bouton-icone" onClick={props.ouvrirReglages} aria-label="Réglages">
+        <button
+          className="bouton-icone avec-alerte"
+          onClick={props.ouvrirReglages}
+          aria-label={props.nouvelleVersion ? "Réglages, nouvelle version disponible" : "Réglages"}
+        >
           <Icone nom="reglages" taille={22} />
+          {props.nouvelleVersion && <span className="alerte" aria-hidden />}
         </button>
       </header>
 

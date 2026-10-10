@@ -1,6 +1,8 @@
 // Mises à jour de l'app installée, comme dans Sanji : quand une nouvelle version
 // est téléchargée, un bandeau propose « Mettre à jour » ; dans les Réglages, un
-// bouton demande au navigateur d'aller chercher la dernière version.
+// bouton demande au navigateur d'aller chercher la dernière version. L'app vérifie
+// aussi toute seule (au retour dans l'app et toutes les 30 minutes) : une pastille
+// rouge s'allume dès qu'une version attend.
 
 export type ResultatVerification = "a_jour" | "en_cours" | "indisponible";
 
@@ -84,4 +86,29 @@ export function creerMiseAJour(
       }
     },
   };
+}
+
+/** Vérification automatique : toutes les 30 minutes tant que l'app est ouverte… */
+export const INTERVALLE_VERIFICATION = 30 * 60_000;
+/** …et au retour dans l'app, au plus une fois par minute. */
+export const ECART_MIN_VERIFICATION = 60_000;
+
+/**
+ * Sur iPhone, une app de l'écran d'accueil reprend là où elle était sans se recharger :
+ * sans ces vérifications, une nouvelle version passerait inaperçue des jours entiers.
+ */
+export function surveillerMisesAJour(
+  maj: Pick<MiseAJour, "prete" | "verifier">,
+  auRetour: (rappel: () => void) => void,
+  repeter: (rappel: () => void, ms: number) => void,
+  maintenant: () => number = Date.now,
+): void {
+  let derniere = maintenant();
+  const verifier = () => {
+    if (maj.prete() || maintenant() - derniere < ECART_MIN_VERIFICATION) return;
+    derniere = maintenant();
+    void maj.verifier();
+  };
+  auRetour(verifier);
+  repeter(verifier, INTERVALLE_VERIFICATION);
 }

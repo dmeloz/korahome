@@ -3,8 +3,8 @@ import type { RetourTest } from "../domaine/retours";
 import type { Membre } from "../domaine/types";
 import { lireJournal } from "./journal";
 
-// Les trois façons de transmettre le rapport : le déposer sur le Mac qui sert
-// l'app (le plus simple), le partager depuis l'iPhone, ou le copier.
+// Le rapport complet (notes et journal de ce téléphone), à partager ou copier. Les notes
+// elles-mêmes partent seules vers le serveur du foyer avec le partage.
 
 export function construireRapport(retours: readonly RetourTest[], membres: readonly Membre[]): { texte: string; nom: string } {
   const maintenant = new Date().toISOString();
@@ -24,33 +24,6 @@ export function construireRapport(retours: readonly RetourTest[], membres: reado
     nom: nomFichierRapport(__VERSION__, maintenant),
   };
 }
-
-export type ResultatEnvoi = "depose" | "injoignable" | "refuse";
-
-/** Dépose le rapport dans le dossier retours-de-test/ du Mac qui sert l'app. */
-export async function envoyerAuMac(texte: string): Promise<ResultatEnvoi> {
-  try {
-    const reponse = await fetch("/__kora/retours", {
-      method: "POST",
-      headers: { "Content-Type": "text/markdown; charset=utf-8" },
-      body: texte,
-    });
-    // En ligne, l'adresse n'existe pas et l'hébergeur répond par la page de l'app : seule
-    // la réponse du Mac (en JSON) compte comme un dépôt.
-    const duMac = (reponse.headers.get("Content-Type") ?? "").includes("application/json");
-    if (reponse.ok && duMac) return "depose";
-    if (!duMac) return "injoignable";
-    return reponse.status === 404 || reponse.status === 405 ? "injoignable" : "refuse";
-  } catch {
-    return "injoignable";
-  }
-}
-
-export const MESSAGES_ENVOI: Record<ResultatEnvoi, string> = {
-  depose: "Rapport déposé sur le Mac. Claude peut le lire.",
-  injoignable: "Le Mac ne répond pas. Utilise « Partager » à la place.",
-  refuse: "Le Mac a refusé le rapport. Utilise « Partager » à la place.",
-};
 
 /** Ouvre le partage de l'iPhone avec le rapport en fichier, sinon en texte. */
 export async function partagerRapport(texte: string, nom: string): Promise<boolean> {
@@ -76,24 +49,6 @@ export async function copierRapport(texte: string): Promise<boolean> {
     return true;
   } catch {
     return false;
-  }
-}
-
-const CLE_ENVOI = "korahome.dernierRapport";
-
-export function lireDernierEnvoi(): string | null {
-  try {
-    return localStorage.getItem(CLE_ENVOI);
-  } catch {
-    return null;
-  }
-}
-
-export function noterEnvoi(): void {
-  try {
-    localStorage.setItem(CLE_ENVOI, new Date().toISOString());
-  } catch {
-    // rien
   }
 }
 

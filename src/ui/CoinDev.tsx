@@ -3,7 +3,7 @@ import { ErreurValidation } from "../domaine/foyer";
 import { GENRES, nouveauRetour, type GenreRetour } from "../domaine/retours";
 import type { Depot } from "../donnees/depot";
 import { contexteReel } from "./contexte";
-import { noter } from "./journal";
+import { lireJournal, noter } from "./journal";
 
 // La pastille « Dev », présente sur chaque écran : une note de test en deux
 // gestes, marquée toute seule de l'écran, de la version et de son auteur.
@@ -43,6 +43,7 @@ export function CoinDev(props: {
       const retour = nouveauRetour(
         { texte, genre, ecran: ecranNote.current, version: __VERSION__, auteur: props.membreId },
         contexteReel,
+        lireJournal(),
       );
       await props.depot.enregistrerRetour(retour);
       noter("note", GENRES[genre], ecranNote.current);

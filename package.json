@@ -1,7 +1,7 @@
 {
   "name": "korahome",
   "private": true,
-  "version": "0.0.6",
+  "version": "0.0.7",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -9,7 +9,8 @@
     "preview": "vite preview --host",
     "test": "vitest run",
     "typecheck": "tsc -b",
-    "serveur": "bash scripts/serveur-mac.sh"
+    "serveur": "bash scripts/serveur-mac.sh",
+    "fonction": "node scripts/construire-fonction.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.3",

@@ -27,6 +27,7 @@ export function traduireErreur(message: string): string {
   if (/rate limit|security purposes/i.test(message)) return "Trop de demandes, réessaie dans une minute.";
   if (/email.*invalid|invalid.*email/i.test(message)) return "Adresse e-mail invalide.";
   if (/JWT|not authenticated|Connexion requise/i.test(message)) return "Reconnecte-toi pour continuer.";
+  if (/autre compte/i.test(message)) return "Ce téléphone n'est pas relié à ce foyer : vérifie le partage.";
   return message;
 }
 
@@ -39,6 +40,16 @@ export function configurationSupabase(): { url: string; cle: string } | null {
   const url = import.meta.env.VITE_SUPABASE_URL;
   const cle = import.meta.env.VITE_SUPABASE_ANON_KEY;
   return url && cle ? { url, cle } : null;
+}
+
+/** La fonction serveur des rappels ; ses messages d'erreur sont déjà en français. */
+async function appelerRappels(sb: SupabaseClient, corps: object): Promise<Record<string, unknown>> {
+  const { data, error } = await sb.functions.invoke("rappels", { body: corps });
+  if (error) {
+    const detail = await (error as { context?: Response }).context?.json?.().catch(() => null);
+    throw new Error(traduireErreur(detail?.erreur ?? error.message));
+  }
+  return data as Record<string, unknown>;
 }
 
 export function creerServicesSupabase(url: string, cle: string): ServicesDistants {
@@ -120,6 +131,27 @@ export function creerServicesSupabase(url: string, cle: string): ServicesDistant
         if (lignes.length < PAGE) break;
       }
       return { changements, curseur };
+    },
+
+    async cleRappels() {
+      return (await appelerRappels(await supabase(), { mode: "cle" })).cle as string;
+    },
+    async inscrireRappels(i) {
+      const { error } = await (await supabase()).rpc("enregistrer_abonnement", {
+        p_endpoint: i.endpoint,
+        p_foyer_id: i.foyerId,
+        p_membre_id: i.membreId,
+        p_cles: i.cles,
+        p_preferences: { taches: i.preferences.taches, mitsu: i.preferences.mitsu },
+        p_heure: i.preferences.heure,
+      });
+      echec(error);
+    },
+    async desinscrireRappels(endpoint) {
+      echec((await (await supabase()).rpc("retirer_abonnement", { p_endpoint: endpoint })).error);
+    },
+    async essaiRappel(endpoint) {
+      await appelerRappels(await supabase(), { mode: "essai", endpoint });
     },
 
     async envoyer(foyerId, changements) {
