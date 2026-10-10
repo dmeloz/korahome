@@ -45,7 +45,6 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   const synchro = partage?.synchro;
   const partageActif = useSyncExternalStore(synchro?.abonner ?? sansAbonnement, () => (synchro?.statut().etat ?? "inactif") !== "inactif");
   useEffect(() => (synchro ? planifierSynchro(synchro, depot) : undefined), [synchro, depot]);
-  const [rejoindre, setRejoindre] = useState(false);
 
   // Le serveur des rappels sait qui utilise ce téléphone, même après un changement dans Réglages.
   const foyerPartage = partageActif && foyer ? foyer.id : null;
@@ -85,18 +84,9 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   if (!pret) return null;
   if (!foyer) {
     // Sur un téléphone pas encore relié aussi, la nouvelle version doit pouvoir s'installer.
-    return rejoindre ? (
-      <div className="contenu">
-        <button className="retour" onClick={() => setRejoindre(false)}>
-          <Icone nom="retour" taille={22} />
-          Bienvenue
-        </button>
-        <Partage services={partage} foyer={null} />
-        {bandeauVersion}
-      </div>
-    ) : (
+    return (
       <>
-        <Bienvenue depot={depot} onCree={setMembreId} rejoindre={partage ? () => setRejoindre(true) : null} />
+        <Bienvenue depot={depot} onCree={setMembreId} rejoindre={partage ? (code) => rejoindreAvecCode(partage, code) : null} />
         {bandeauVersion}
       </>
     );
@@ -208,6 +198,12 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
 }
 
 const sansAbonnement = () => () => {};
+
+/** Le code du foyer suffit : une session sans compte s'ouvre, puis les données du foyer arrivent. */
+async function rejoindreAvecCode({ compte, synchro }: ServicesPartage, code: string): Promise<void> {
+  if (!(await compte.connecte())) await compte.entrerSansCompte();
+  await synchro.rejoindre(await compte.rejoindreFoyer(code));
+}
 
 function ChoixMembre({ foyer, choisir }: { foyer: Foyer; choisir: (id: string) => void }) {
   return (
