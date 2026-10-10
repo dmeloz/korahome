@@ -7,6 +7,7 @@ import { creerSynchro } from "./donnees/synchro";
 import { App, ecranAffiche } from "./ui/App";
 import { installerJournal } from "./ui/journal";
 import { creerMiseAJour } from "./ui/miseAJour";
+import { effacerPastilleIcone } from "./ui/rappels";
 import "./styles.css";
 
 const miseAJour = creerMiseAJour(
@@ -17,11 +18,16 @@ const miseAJour = creerMiseAJour(
 
 installerJournal(ecranAffiche);
 
+effacerPastilleIcone();
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") effacerPastilleIcone();
+});
+
 const depot = creerDepotLocal();
 // Sans adresse de serveur (.env.local sur le Mac), l'app reste sur ce téléphone seulement.
 const config = configurationSupabase();
 const distant = config ? creerServicesSupabase(config.url, config.cle) : null;
-const partage = distant ? { compte: distant, synchro: creerSynchro(depot, distant) } : null;
+const partage = distant ? { compte: distant, synchro: creerSynchro(depot, distant), rappels: distant } : null;
 
 createRoot(document.getElementById("racine")!).render(
   <StrictMode>

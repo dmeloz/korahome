@@ -162,3 +162,108 @@ revoke all on function public.rejoindre_foyer(text) from public, anon;
 grant execute on function public.creer_foyer(text, text) to authenticated;
 grant execute on function public.rejoindre_foyer(text) to authenticated;
 grant execute on function prive.est_membre(text) to authenticated;
+
+-- ===== Rappels du matin (notifications) =====
+-- Chaque iPhone qui accepte les notifications laisse ici son adresse d'envoi (Web Push).
+-- La fonction « rappels » (supabase/functions/rappels) passe chaque heure et envoie à
+-- chacun, à 8 h heure de Zurich, le résumé de sa journée. Mise en route : docs/notifications.md.
+
+create table if not exists public.abonnements_push (
+  -- L'adresse d'envoi fournie par l'iPhone : une par téléphone.
+  endpoint text primary key,
+  foyer_id text not null references public.foyers (id) on delete cascade,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  -- La personne qui utilise ce téléphone (un membre du document « foyer »).
+  membre_id text,
+  -- Les clés de chiffrement du téléphone (p256dh, auth).
+  cles jsonb not null,
+  preferences jsonb not null default '{"taches": true, "mitsu": true}',
+  heure smallint not null default 8 check (heure between 0 and 23),
+  -- Jour (à Zurich) du dernier rappel : un seul par jour.
+  dernier_envoi date,
+  cree_le timestamptz not null default now()
+);
+
+-- Les téléphones passent par les deux fonctions ci-dessous ; seule la fonction d'envoi lit la table.
+alter table public.abonnements_push enable row level security;
+revoke all on public.abonnements_push from anon, authenticated;
+
+-- Activer les rappels sur ce téléphone, ou changer ses choix. Le même téléphone peut
+-- avoir changé de compte : son ancienne inscription est remplacée.
+create or replace function public.enregistrer_abonnement(
+  p_endpoint text, p_foyer_id text, p_membre_id text, p_cles jsonb, p_preferences jsonb
+)
+returns void
+language plpgsql security definer set search_path = public, prive as $$
+begin
+  if auth.uid() is null then
+    raise exception 'Connexion requise';
+  end if;
+  if not est_membre(p_foyer_id) then
+    raise exception 'Ce foyer appartient à un autre compte';
+  end if;
+  insert into abonnements_push (endpoint, foyer_id, user_id, membre_id, cles, preferences)
+  values (p_endpoint, p_foyer_id, auth.uid(), p_membre_id, p_cles, p_preferences)
+  on conflict (endpoint) do update set
+    foyer_id = excluded.foyer_id, user_id = excluded.user_id, membre_id = excluded.membre_id,
+    cles = excluded.cles, preferences = excluded.preferences;
+end $$;
+
+-- Couper les rappels : connaître l'adresse d'envoi suffit (seul ce téléphone la connaît).
+create or replace function public.retirer_abonnement(p_endpoint text)
+returns void
+language sql security definer set search_path = public as $$
+  delete from abonnements_push where endpoint = p_endpoint;
+$$;
+
+-- Les clés d'envoi (VAPID) et la clé qui autorise le passage horaire. Créées par le
+-- serveur lui-même : elles ne passent ni par le dépôt, ni par un téléphone.
+create table if not exists prive.reglages_push (
+  id boolean primary key default true check (id),
+  vapid_publique text,
+  vapid_privee text,
+  cle_cron text not null default replace(gen_random_uuid()::text, '-', '') || replace(gen_random_uuid()::text, '-', '')
+);
+insert into prive.reglages_push (id) values (true) on conflict do nothing;
+revoke all on prive.reglages_push from public, anon, authenticated;
+
+-- Lues par la fonction d'envoi seulement (clé de service). La première fois, elle crée
+-- les clés VAPID et les enregistre ; si deux passages se croisent, la première gagne.
+create or replace function public.reglages_push(p_publique text default null, p_privee text default null)
+returns table (vapid_publique text, vapid_privee text, cle_cron text)
+language plpgsql security definer set search_path = prive as $$
+begin
+  if p_publique is not null then
+    update reglages_push r set vapid_publique = p_publique, vapid_privee = p_privee where r.vapid_publique is null;
+  end if;
+  return query select r.vapid_publique, r.vapid_privee, r.cle_cron from reglages_push r;
+end $$;
+
+-- Le passage de chaque heure. À lancer une fois avec l'adresse du projet :
+--   select prive.programmer_rappels('https://<projet>.supabase.co');
+create extension if not exists pg_cron with schema pg_catalog;
+create extension if not exists pg_net with schema extensions;
+
+create or replace function prive.programmer_rappels(p_adresse text)
+returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  perform cron.schedule(
+    'rappels-du-matin',
+    '0 * * * *',
+    format(
+      $cmd$select net.http_post(url := %L, body := '{"mode": "matin"}'::jsonb,
+        headers := jsonb_build_object('Content-Type', 'application/json',
+          'x-cle-cron', (select cle_cron from prive.reglages_push)))$cmd$,
+      p_adresse || '/functions/v1/rappels'
+    )
+  );
+end $$;
+
+revoke all on function public.enregistrer_abonnement(text, text, text, jsonb, jsonb) from public, anon;
+revoke all on function public.retirer_abonnement(text) from public, anon;
+revoke all on function public.reglages_push(text, text) from public, anon, authenticated;
+revoke all on function prive.programmer_rappels(text) from public, anon, authenticated;
+grant execute on function public.enregistrer_abonnement(text, text, text, jsonb, jsonb) to authenticated;
+grant execute on function public.retirer_abonnement(text) to authenticated;
+grant execute on function public.reglages_push(text, text) to service_role;

@@ -1,3 +1,4 @@
+import type { PreferencesRappels } from "../domaine/rappels";
 import type { Changement } from "../domaine/synchro";
 import type { Id } from "../domaine/types";
 
@@ -34,4 +35,25 @@ export interface Compte {
   rejoindreFoyer(code: string): Promise<Id>;
 }
 
-export type ServicesDistants = Distant & Compte;
+/** L'inscription d'un téléphone aux rappels du matin (Web Push). */
+export interface InscriptionRappels {
+  foyerId: Id;
+  membreId: Id | null;
+  /** L'adresse d'envoi et les clés fournies par l'iPhone (PushSubscription.toJSON()). */
+  endpoint: string;
+  cles: { p256dh: string; auth: string };
+  preferences: PreferencesRappels;
+}
+
+/** Le serveur qui envoie les rappels du matin (supabase/functions/rappels). */
+export interface ServeurRappels {
+  /** La clé publique d'envoi, à donner à l'iPhone pour s'inscrire. */
+  cleRappels(): Promise<string>;
+  /** Inscrit ce téléphone, ou met à jour ses choix. */
+  inscrireRappels(inscription: InscriptionRappels): Promise<void>;
+  desinscrireRappels(endpoint: string): Promise<void>;
+  /** Envoie tout de suite le rappel du jour à ce téléphone. */
+  essaiRappel(endpoint: string): Promise<void>;
+}
+
+export type ServicesDistants = Distant & Compte & ServeurRappels;

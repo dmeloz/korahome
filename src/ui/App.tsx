@@ -7,6 +7,7 @@ import { aujourdhuiLocal, choisirMembreCourant, lireMembreCourant } from "./cont
 import { Accueil } from "./ecrans/Accueil";
 import { Bienvenue } from "./ecrans/Bienvenue";
 import { DetailListe } from "./ecrans/DetailListe";
+import { Notifications } from "./ecrans/Notifications";
 import { Partage, type ServicesPartage } from "./ecrans/Partage";
 import { Reglages } from "./ecrans/Reglages";
 import { RetoursTest } from "./ecrans/RetoursTest";
@@ -15,6 +16,7 @@ import type { MiseAJour } from "./miseAJour";
 import { noter } from "./journal";
 import { MODULES, type DonneesModule } from "./modules";
 import { enregistrerPastilleVisible, lirePastilleVisible } from "./rapport";
+import { lirePreferences, mettreAJourRappels } from "./rappels";
 import { planifierSynchro } from "./synchroAuto";
 import { useDonnees } from "./useDonnees";
 
@@ -26,6 +28,7 @@ type Page =
   | { nom: "liste"; id: string }
   | { nom: "reglages" }
   | { nom: "partage" }
+  | { nom: "notifications" }
   | { nom: "retours" };
 
 // L'écran affiché, lu par le journal des retours de test à chaque geste.
@@ -44,6 +47,13 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   useEffect(() => (synchro ? planifierSynchro(synchro, depot) : undefined), [synchro, depot]);
   const [rejoindre, setRejoindre] = useState(false);
 
+  // Le serveur des rappels sait qui utilise ce téléphone, même après un changement dans Réglages.
+  const foyerPartage = partageActif && foyer ? foyer.id : null;
+  const membreRappels = foyer?.membres.some((m) => m.id === membreId) ? membreId : null;
+  useEffect(() => {
+    if (partage && foyerPartage) mettreAJourRappels(partage.rappels, foyerPartage, membreRappels, lirePreferences()).catch(() => {});
+  }, [partage, foyerPartage, membreRappels]);
+
   const page = pile[pile.length - 1];
   const nomEcran = !pret ? "Chargement" : !foyer ? "Bienvenue" : nommer(page);
   ecranCourant = nomEcran;
@@ -56,6 +66,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     if (p.nom === "reglages") return "Réglages";
     if (p.nom === "retours") return "Retours de test";
     if (p.nom === "partage") return "Partage";
+    if (p.nom === "notifications") return "Notifications";
     if (p.nom === "module") return MODULES[p.id]?.libelle ?? "Retour";
     return listes.find((l) => l.id === p.id)?.nom ?? "Liste";
   }
@@ -138,6 +149,15 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     );
   } else if (page.nom === "partage") {
     ecran = <Partage services={partage} foyer={foyer} />;
+  } else if (page.nom === "notifications") {
+    ecran = (
+      <Notifications
+        serveur={partage?.rappels ?? null}
+        foyerId={foyerPartage}
+        membreId={membre}
+        ouvrirPartage={() => ouvrir({ nom: "partage" })}
+      />
+    );
   } else if (page.nom === "retours") {
     ecran = <RetoursTest depot={depot} foyer={foyer} retours={retours} />;
   } else {
@@ -150,6 +170,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         notesOuvertes={ouvertes}
         ouvrirRetours={() => ouvrir({ nom: "retours" })}
         ouvrirPartage={() => ouvrir({ nom: "partage" })}
+        ouvrirNotifications={() => ouvrir({ nom: "notifications" })}
         partage={!partage ? "indisponible" : partageActif ? "actif" : "inactif"}
         pastilleVisible={pastille}
         changerPastille={(visible) => {

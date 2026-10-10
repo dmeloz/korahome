@@ -23,7 +23,8 @@ export default defineConfig({
       // « prompt » : la nouvelle version attend le geste « Mettre à jour » (bandeau).
       registerType: "prompt",
       // Au tout premier lancement, l'app est prise en charge tout de suite.
-      workbox: { clientsClaim: true },
+      // Les rappels du matin : réception et toucher d'une notification (public/notifications-sw.js).
+      workbox: { clientsClaim: true, importScripts: ["notifications-sw.js"] },
       includeAssets: ["favicon.svg", "apple-touch-icon.png"],
       manifest: {
         name: "KoraHome",

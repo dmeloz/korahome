@@ -630,3 +630,23 @@ h1 {
 .partage-compte .lien:disabled { opacity: 0.4; }
 .bienvenue-rejoindre { margin-top: 18px; font-size: 16px; }
 .choix-membre { text-align: left; margin-top: 24px; }
+
+/* Notifications : les rappels du matin */
+.rappels-intro { margin: 4px 0 20px; line-height: 1.45; }
+.rappels-carte { display: grid; gap: 8px; }
+.rappels-carte p { margin: 0; line-height: 1.45; }
+.rappels-carte .bouton-principal { width: 100%; margin-top: 8px; }
+.rappels-heure {
+  font-family: var(--police-fixe);
+  font-size: 40px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  text-align: center;
+}
+.rappels-actifs { grid-template-columns: auto 1fr; align-items: center; gap: 12px; }
+.rappels-choix { display: flex; flex-direction: column; gap: 2px; }
+.rappels-choix .discret { font-size: 14px; line-height: 1.35; }
+.rappels-actions { display: grid; justify-items: center; gap: 4px; margin-top: 20px; }
+.rappels-actions .lien:disabled { opacity: 0.4; }
+.rappels-message { text-align: center; margin-top: 12px; }

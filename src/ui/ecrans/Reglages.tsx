@@ -14,6 +14,7 @@ export function Reglages(props: {
   notesOuvertes: number;
   ouvrirRetours: () => void;
   ouvrirPartage: () => void;
+  ouvrirNotifications: () => void;
   partage: "indisponible" | "inactif" | "actif";
   pastilleVisible: boolean;
   changerPastille: (visible: boolean) => void;
@@ -36,6 +37,16 @@ export function Reglages(props: {
           <button className="ligne" onClick={props.ouvrirPartage}>
             <span className="ligne-texte">Partage entre vos iPhone</span>
             <span className="discret">{ETATS_PARTAGE[props.partage]}</span>
+            <span className="chevron"><Icone nom="suivant" taille={18} /></span>
+          </button>
+        </li>
+      </ul>
+      <h2 className="rayon">Notifications</h2>
+      <ul className="carte groupe">
+        <li>
+          <button className="ligne" onClick={props.ouvrirNotifications}>
+            <span className="ligne-texte">Rappels du matin</span>
+            <span className="discret">8:00</span>
             <span className="chevron"><Icone nom="suivant" taille={18} /></span>
           </button>
         </li>
