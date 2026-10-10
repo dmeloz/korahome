@@ -89,7 +89,7 @@ export function App({ depot, miseAJour }: { depot: Depot; miseAJour: MiseAJour }
   } else if (page.nom === "liste") {
     const liste = listes.find((l) => l.id === page.id);
     ecran = liste ? (
-      <DetailListe depot={depot} foyer={foyer} membreId={membre} liste={liste} elements={elements} />
+      <DetailListe depot={depot} foyer={foyer} membreId={membre} liste={liste} elements={elements} nomTitre={`titre-liste-${liste.id}`} />
     ) : (
       <main><p className="vide">Cette liste n'existe plus.</p></main>
     );

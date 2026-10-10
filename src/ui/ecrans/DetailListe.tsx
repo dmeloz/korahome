@@ -3,6 +3,7 @@ import { basculerCoche, nouvelElement, organiserListe, trouverDoublon } from "..
 import type { Element, Foyer, Liste } from "../../domaine/types";
 import type { Depot } from "../../donnees/depot";
 import { contexteReel } from "../contexte";
+import { Glisse, TitreLie } from "../mouvement";
 
 export function DetailListe(props: {
   depot: Depot;
@@ -10,9 +11,12 @@ export function DetailListe(props: {
   membreId: string | null;
   liste: Liste;
   elements: Element[];
+  /** Le nom du libellé qui a ouvert la liste, pour que son titre en parte. */
+  nomTitre: string;
 }) {
   const [saisie, setSaisie] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const [vientDeCocher, setVientDeCocher] = useState<string | null>(null);
   const { aPrendre, coches } = organiserListe(props.liste, props.elements);
   const siens = props.elements.filter((e) => e.listeId === props.liste.id);
 
@@ -29,33 +33,38 @@ export function DetailListe(props: {
     setMessage(null);
   }
 
-  const basculer = (el: Element) => props.depot.enregistrerElement(basculerCoche(el, contexteReel));
+  const basculer = (el: Element) => {
+    setVientDeCocher(el.coche ? null : el.id);
+    return props.depot.enregistrerElement(basculerCoche(el, contexteReel));
+  };
   const viderCoches = () => props.depot.supprimerElements(coches.map((c) => c.id));
   const prenom = (id: string | null) => props.foyer.membres.find((m) => m.id === id);
 
   function ligne(el: Element) {
     const auteur = prenom(el.ajoutePar);
     return (
-      <li key={el.id}>
-        <button className={`ligne element${el.coche ? " coche" : ""}`} onClick={() => basculer(el)}>
-          <span className="case" aria-hidden>{el.coche ? "✓" : ""}</span>
-          <span className="ligne-texte">
-            {el.texte}
-            {el.quantite && <span className="quantite"> · {el.quantite}</span>}
-          </span>
-          {auteur && props.foyer.membres.length > 1 && (
-            <span className="initiale" style={{ background: auteur.couleur }} title={`Ajouté par ${auteur.prenom}`}>
-              {auteur.prenom.charAt(0)}
+      <Glisse key={el.id} nom={`element-${el.id}`}>
+        <li>
+          <button className={`ligne element${el.coche ? " coche" : ""}${el.id === vientDeCocher ? " vient-de-cocher" : ""}`} onClick={() => basculer(el)}>
+            <span className="case" aria-hidden>{el.coche ? "✓" : ""}</span>
+            <span className="ligne-texte">
+              {el.texte}
+              {el.quantite && <span className="quantite"> · {el.quantite}</span>}
             </span>
-          )}
-        </button>
-      </li>
+            {auteur && props.foyer.membres.length > 1 && (
+              <span className="initiale" style={{ background: auteur.couleur }} title={`Ajouté par ${auteur.prenom}`}>
+                {auteur.prenom.charAt(0)}
+              </span>
+            )}
+          </button>
+        </li>
+      </Glisse>
     );
   }
 
   return (
     <main>
-      <h1>{props.liste.nom}</h1>
+      <TitreLie nom={props.nomTitre}><h1>{props.liste.nom}</h1></TitreLie>
       <form onSubmit={ajouter} className="ajout">
         <input
           value={saisie}
@@ -70,20 +79,24 @@ export function DetailListe(props: {
 
       {aPrendre.length === 0 && coches.length === 0 && <p className="vide">La liste est vide.</p>}
       {aPrendre.map((g) => (
-        <section key={g.rayon}>
-          {props.liste.type === "courses" && <h2 className="rayon">{g.rayon}</h2>}
-          <ul className="carte groupe">{g.elements.map(ligne)}</ul>
-        </section>
+        <Glisse key={g.rayon} nom={`rayon-${props.liste.id}-${g.rayon}`}>
+          <section>
+            {props.liste.type === "courses" && <h2 className="rayon">{g.rayon}</h2>}
+            <ul className="carte groupe">{g.elements.map(ligne)}</ul>
+          </section>
+        </Glisse>
       ))}
 
       {coches.length > 0 && (
-        <section>
-          <div className="entete-coches">
-            <h2 className="rayon">Dans le panier ({coches.length})</h2>
-            <button className="lien" onClick={viderCoches}>Vider</button>
-          </div>
-          <ul className="carte groupe">{coches.map(ligne)}</ul>
-        </section>
+        <Glisse nom={`panier-${props.liste.id}`}>
+          <section>
+            <div className="entete-coches">
+              <h2 className="rayon">Dans le panier ({coches.length})</h2>
+              <button className="lien" onClick={viderCoches}>Vider</button>
+            </div>
+            <ul className="carte groupe">{coches.map(ligne)}</ul>
+          </section>
+        </Glisse>
       )}
     </main>
   );

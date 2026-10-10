@@ -16,6 +16,7 @@ import {
 import type { Foyer, Tache } from "../../domaine/types";
 import type { Depot } from "../../donnees/depot";
 import { aujourdhuiLocal, contexteReel } from "../contexte";
+import { Glisse, TitreLie, changerContenu } from "../mouvement";
 
 const FILTRES: { id: Filtre; libelle: string }[] = [
   { id: "toutes", libelle: "Toutes" },
@@ -33,6 +34,7 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
   const [aSupprimer, setASupprimer] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [annulable, setAnnulable] = useState<{ texte: string; avant: Tache } | null>(null);
+  const [vientDeFaire, setVientDeFaire] = useState<string | null>(null);
 
   useEffect(() => {
     if (!annulable) return;
@@ -61,6 +63,7 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
 
   async function faire(t: Tache) {
     const apres = marquerFaite(t, moi, aujourdhui, contexteReel);
+    setVientDeFaire(t.id);
     await props.depot.enregistrerTache(apres);
     const suite = apres.recurrence ? ` Prochaine fois ${decrireEcheance(apres.echeance, aujourdhui)}.` : "";
     setAnnulable({ texte: `« ${t.titre} » faite.${suite}`, avant: t });
@@ -100,56 +103,60 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
     const estOuverte = ouverte === t.id;
 
     return (
-      <li key={t.id}>
-        <div className={`ligne tache${terminee ? " coche" : ""}`}>
-          <button
-            className="case"
-            onClick={() => (terminee ? refaire(t) : faire(t))}
-            aria-label={terminee ? `Remettre « ${t.titre} » à faire` : `Marquer « ${t.titre} » comme faite`}
-          >
-            {terminee ? "✓" : ""}
-          </button>
-          <button
-            className="tache-texte"
-            onClick={() => {
-              setOuverte(estOuverte ? null : t.id);
-              setASupprimer(null);
-            }}
-            aria-expanded={estOuverte}
-          >
-            <span className="ligne-texte">{t.titre}</span>
-            <span className={`tache-details${enRetard ? " retard" : ""}`}>{details.join(" · ")}</span>
-          </button>
-          {resp && plusieurs && (
-            <span className="initiale" style={{ background: resp.couleur }} title={`S'en occupe : ${resp.prenom}`}>
-              {resp.prenom.charAt(0)}
-            </span>
-          )}
-        </div>
-        {estOuverte && (
-          <div className="tache-actions">
-            {moi && t.responsable !== moi && (
-              <button className="lien" onClick={() => props.depot.enregistrerTache(prendre(t, moi))}>
-                Je m'en occupe
-              </button>
-            )}
-            {t.responsable !== null && (
-              <button className="lien" onClick={() => props.depot.enregistrerTache(liberer(t))}>
-                Rendre libre
-              </button>
-            )}
-            {aSupprimer === t.id ? (
-              <button className="lien danger" onClick={() => supprimer(t)}>
-                Confirmer la suppression
-              </button>
-            ) : (
-              <button className="lien danger" onClick={() => setASupprimer(t.id)}>
-                Supprimer
-              </button>
+      <Glisse key={t.id} nom={`tache-${t.id}`}>
+        <li>
+          <div className={`ligne tache${terminee ? " coche" : ""}${t.id === vientDeFaire ? " vient-de-cocher" : ""}`}>
+            <button
+              className="case"
+              onClick={() => (terminee ? refaire(t) : faire(t))}
+              aria-label={terminee ? `Remettre « ${t.titre} » à faire` : `Marquer « ${t.titre} » comme faite`}
+            >
+              {terminee ? "✓" : ""}
+            </button>
+            <button
+              className="tache-texte"
+              onClick={() =>
+                changerContenu(() => {
+                  setOuverte(estOuverte ? null : t.id);
+                  setASupprimer(null);
+                })
+              }
+              aria-expanded={estOuverte}
+            >
+              <span className="ligne-texte">{t.titre}</span>
+              <span className={`tache-details${enRetard ? " retard" : ""}`}>{details.join(" · ")}</span>
+            </button>
+            {resp && plusieurs && (
+              <span className="initiale" style={{ background: resp.couleur }} title={`S'en occupe : ${resp.prenom}`}>
+                {resp.prenom.charAt(0)}
+              </span>
             )}
           </div>
-        )}
-      </li>
+          {estOuverte && (
+            <div className="tache-actions">
+              {moi && t.responsable !== moi && (
+                <button className="lien" onClick={() => props.depot.enregistrerTache(prendre(t, moi))}>
+                  Je m'en occupe
+                </button>
+              )}
+              {t.responsable !== null && (
+                <button className="lien" onClick={() => props.depot.enregistrerTache(liberer(t))}>
+                  Rendre libre
+                </button>
+              )}
+              {aSupprimer === t.id ? (
+                <button className="lien danger" onClick={() => supprimer(t)}>
+                  Confirmer la suppression
+                </button>
+              ) : (
+                <button className="lien danger" onClick={() => setASupprimer(t.id)}>
+                  Supprimer
+                </button>
+              )}
+            </div>
+          )}
+        </li>
+      </Glisse>
     );
   }
 
@@ -157,7 +164,7 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
 
   return (
     <main>
-      <h1>Tâches</h1>
+      <TitreLie nom="titre-taches"><h1>Tâches</h1></TitreLie>
 
       <form onSubmit={ajouter} className="ajout-tache">
         <div className="ajout">
@@ -197,7 +204,7 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
       {!vide && (
         <div className="segments" role="group" aria-label="Afficher">
           {FILTRES.filter((f) => f.id !== "miennes" || moi).map((f) => (
-            <button key={f.id} className={f.id === filtre ? "actif" : ""} aria-pressed={f.id === filtre} onClick={() => setFiltre(f.id)}>
+            <button key={f.id} className={f.id === filtre ? "actif" : ""} aria-pressed={f.id === filtre} onClick={() => changerContenu(() => setFiltre(f.id))}>
               {f.libelle}
             </button>
           ))}
@@ -217,22 +224,26 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
       )}
 
       {groupes.map((g) => (
-        <section key={g.cle}>
-          <h2 className={`rayon${g.cle === "retard" ? " retard" : ""}`}>{g.titre}</h2>
-          <ul className="carte groupe">{g.taches.map(ligne)}</ul>
-        </section>
+        <Glisse key={g.cle} nom={`groupe-${g.cle}`}>
+          <section>
+            <h2 className={`rayon${g.cle === "retard" ? " retard" : ""}`}>{g.titre}</h2>
+            <ul className="carte groupe">{g.taches.map(ligne)}</ul>
+          </section>
+        </Glisse>
       ))}
 
       {terminees.length > 0 && (
-        <section>
-          <div className="entete-coches">
-            <h2 className="rayon">Faites ({terminees.length})</h2>
-            <button className="lien" onClick={() => terminees.forEach((t) => props.depot.supprimerTache(t.id))}>
-              Effacer
-            </button>
-          </div>
-          <ul className="carte groupe">{terminees.map(ligne)}</ul>
-        </section>
+        <Glisse nom="groupe-faites">
+          <section>
+            <div className="entete-coches">
+              <h2 className="rayon">Faites ({terminees.length})</h2>
+              <button className="lien" onClick={() => terminees.forEach((t) => props.depot.supprimerTache(t.id))}>
+                Effacer
+              </button>
+            </div>
+            <ul className="carte groupe">{terminees.map(ligne)}</ul>
+          </section>
+        </Glisse>
       )}
 
       {annulable && (

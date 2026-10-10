@@ -4,6 +4,7 @@ import type { Element, Liste } from "../../domaine/types";
 import type { Depot } from "../../donnees/depot";
 import { contexteReel } from "../contexte";
 import { Icone } from "../Icone";
+import { Glisse, TitreLie } from "../mouvement";
 
 export function Listes(props: {
   depot: Depot;
@@ -22,19 +23,21 @@ export function Listes(props: {
 
   return (
     <main>
-      <h1>Listes</h1>
+      <TitreLie nom="titre-listes"><h1>Listes</h1></TitreLie>
       <ul className="carte groupe">
         {props.listes.map((l) => {
           const n = compterAPrendre(l, props.elements);
           return (
-            <li key={l.id}>
-              <button className="ligne" onClick={() => props.ouvrirListe(l.id)}>
-                <span className="pictogramme"><Icone nom={l.type === "courses" ? "panier" : "liste"} taille={20} /></span>
-                <span className="ligne-texte">{l.nom}</span>
-                {n > 0 && <span className="pastille">{n}</span>}
-                <span className="chevron"><Icone nom="suivant" taille={18} /></span>
-              </button>
-            </li>
+            <Glisse key={l.id} nom={`liste-${l.id}`}>
+              <li>
+                <button className="ligne" onClick={() => props.ouvrirListe(l.id)}>
+                  <span className="pictogramme"><Icone nom={l.type === "courses" ? "panier" : "liste"} taille={20} /></span>
+                  <TitreLie nom={`titre-liste-${l.id}`}><span className="ligne-texte">{l.nom}</span></TitreLie>
+                  {n > 0 && <span className="pastille">{n}</span>}
+                  <span className="chevron"><Icone nom="suivant" taille={18} /></span>
+                </button>
+              </li>
+            </Glisse>
           );
         })}
       </ul>

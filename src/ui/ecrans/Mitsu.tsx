@@ -42,6 +42,7 @@ import { decrireEcheance } from "../../domaine/taches";
 import type { Element, Foyer, Liste } from "../../domaine/types";
 import type { Depot } from "../../donnees/depot";
 import { aujourdhuiLocal, contexteReel } from "../contexte";
+import { TitreLie } from "../mouvement";
 
 const dateCourte = (jour: string) =>
   new Date(`${jour}T12:00:00`).toLocaleDateString("fr-CH", { day: "numeric", month: "long" });
@@ -96,7 +97,7 @@ function Premiere({ depot }: { depot: Depot }) {
 
   return (
     <main>
-      <h1>Mitsu</h1>
+      <TitreLie nom="titre-mitsu"><h1>Mitsu</h1></TitreLie>
       <p className="discret">Sa ration suit son âge et son poids, ses provisions annoncent le jour où commander, et son carnet de santé donne les rappels.</p>
       <form onSubmit={creer} className="carte formulaire">
         <label>
@@ -253,7 +254,7 @@ function Suivi(props: Props & { animal: Animal }) {
   return (
     <main>
       <p className="surtitre">{decrireAge(animal.naissance, aujourdhui)}{pesee[0] ? ` · ${formaterPoids(pesee[0].grammes)}` : ""}{animal.sterilise ? " · stérilisée" : ""}</p>
-      <h1>{animal.nom}</h1>
+      <TitreLie nom="titre-mitsu"><h1>{animal.nom}</h1></TitreLie>
 
       {aFaire.length > 0 && (
         <Section titre="À faire">

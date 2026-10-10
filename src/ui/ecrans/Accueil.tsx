@@ -12,6 +12,7 @@ import {
 } from "../../domaine/tableauDeBord";
 import { enregistrerDisposition, lireDisposition } from "../contexte";
 import { Icone } from "../Icone";
+import { Glisse, TitreLie, changerContenu } from "../mouvement";
 import { MODULES, PICTOS, type ApercuWidget, type DonneesModule } from "../modules";
 
 function salutation(heure: number): string {
@@ -32,7 +33,7 @@ export function Accueil(props: {
   const date = new Date().toLocaleDateString("fr-CH", { weekday: "long", day: "numeric", month: "long" });
 
   const changer = (d: Disposition) => {
-    setDisposition(d);
+    changerContenu(() => setDisposition(d));
     enregistrerDisposition(d);
   };
 
@@ -78,7 +79,7 @@ export function Accueil(props: {
             <>
               <span className="widget-haut">
                 <span className="pictogramme"><Icone nom={PICTOS[id]} taille={20} /></span>
-                <span className="widget-titre">{def.titre}</span>
+                <TitreLie nom={`titre-${id}`}><span className="widget-titre">{def.titre}</span></TitreLie>
                 {!edition && c.urgent && <span className="signal">À faire</span>}
               </span>
               <span className="widget-chiffre">
@@ -92,25 +93,29 @@ export function Accueil(props: {
               )}
             </>
           );
-          return edition ? (
-            <div key={id} className="widget en-edition">
-              {corps}
-              <span className="widget-outils">
-                <button className="bouton-icone" onClick={() => changer(deplacerWidget(disposition, id, -1))} disabled={i === 0} aria-label={`Monter ${def.titre}`}>
-                  <Icone nom="haut" taille={20} />
+          return (
+            <Glisse key={id} nom={`widget-${id}`}>
+              {edition ? (
+                <div className="widget en-edition">
+                  {corps}
+                  <span className="widget-outils">
+                    <button className="bouton-icone" onClick={() => changer(deplacerWidget(disposition, id, -1))} disabled={i === 0} aria-label={`Monter ${def.titre}`}>
+                      <Icone nom="haut" taille={20} />
+                    </button>
+                    <button className="bouton-icone" onClick={() => changer(deplacerWidget(disposition, id, 1))} disabled={i === affiches.length - 1} aria-label={`Descendre ${def.titre}`}>
+                      <Icone nom="bas" taille={20} />
+                    </button>
+                    <button className="bouton-icone retirer" onClick={() => changer(retirerWidget(disposition, id))} aria-label={`Retirer ${def.titre}`}>
+                      <Icone nom="moins" taille={20} />
+                    </button>
+                  </span>
+                </div>
+              ) : (
+                <button className={`widget${c.urgent ? " urgent" : ""}`} onClick={() => props.ouvrirModule(id)}>
+                  {corps}
                 </button>
-                <button className="bouton-icone" onClick={() => changer(deplacerWidget(disposition, id, 1))} disabled={i === affiches.length - 1} aria-label={`Descendre ${def.titre}`}>
-                  <Icone nom="bas" taille={20} />
-                </button>
-                <button className="bouton-icone retirer" onClick={() => changer(retirerWidget(disposition, id))} aria-label={`Retirer ${def.titre}`}>
-                  <Icone nom="moins" taille={20} />
-                </button>
-              </span>
-            </div>
-          ) : (
-            <button key={id} className={`widget${c.urgent ? " urgent" : ""}`} onClick={() => props.ouvrirModule(id)}>
-              {corps}
-            </button>
+              )}
+            </Glisse>
           );
         })}
       </div>

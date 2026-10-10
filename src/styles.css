@@ -612,3 +612,58 @@ h1 {
   ::view-transition-new(.nav-avant),
   ::view-transition-new(.nav-retour) { animation: var(--duree-courte) ease both ecran-apparait; }
 }
+
+/* Changements de contenu (cocher, ajouter, filtrer, ranger le tableau de bord) :
+   chaque élément glisse jusqu'à sa nouvelle place, les nouveaux apparaissent,
+   les retirés s'effacent. Le reste de l'écran ne bouge pas. */
+::view-transition-group(.contenu) {
+  animation-duration: var(--duree-ecran);
+  animation-timing-function: var(--courbe-ecran);
+}
+::view-transition-new(.contenu):only-child { animation: var(--duree-courte) var(--courbe-sortie) both ecran-apparait; }
+::view-transition-old(.contenu):only-child { animation: var(--duree-toucher) ease-in both ecran-disparait; }
+
+/* Le libellé touché devient le titre de l'écran : les deux textes gardent leur
+   taille réelle (pas d'étirement) et se relaient pendant que la boîte se déplace. */
+::view-transition-group(.titre-lie) {
+  animation-duration: var(--duree-ecran);
+  animation-timing-function: var(--courbe-ecran);
+}
+::view-transition-old(.titre-lie),
+::view-transition-new(.titre-lie) {
+  height: 100%;
+  width: auto;
+  object-fit: none;
+  object-position: left center;
+}
+::view-transition-old(.titre-lie) { animation: var(--duree-toucher) ease-in both ecran-disparait; }
+::view-transition-new(.titre-lie) { animation: var(--duree-courte) var(--courbe-sortie) var(--duree-toucher) both ecran-apparait; }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Retour au toucher : le bouton s'enfonce un peu sous le doigt. */
+  .bouton-principal, .ajout button, .bouton-icone, .puce, .segments button, .proposition {
+    transition: transform var(--duree-toucher) var(--courbe-sortie);
+  }
+  .bouton-principal:active:not(:disabled),
+  .ajout button:active:not(:disabled),
+  .bouton-icone:active:not(:disabled),
+  .puce:active,
+  .segments button:active,
+  .proposition:active { transform: scale(0.96); }
+
+  /* La coche se pose, seulement sur l'élément qu'on vient de cocher. */
+  .vient-de-cocher.coche .case { animation: se-pose var(--duree-courte) var(--courbe-sortie); }
+  @keyframes se-pose { from { transform: scale(0.6); } }
+
+  /* Bandeaux du bas : ils montent au lieu d'apparaître d'un coup. */
+  .toast, .bandeau-version { animation: monter var(--duree-courte) var(--courbe-sortie); }
+}
+
+/* Une ligne touchée s'éclaire, même en mouvement réduit (rien ne bouge). */
+.ligne:active, .tache-texte:active { background: var(--surface-haute); }
+
+/* Mouvement réduit : rien ne se déplace ni ne change de taille, les éléments
+   prennent leur nouvelle place d'un coup et seuls les fondus restent. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*) { animation-duration: 0s !important; }
+}
