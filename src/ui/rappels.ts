@@ -1,4 +1,4 @@
-import { PREFERENCES_DE_DEPART, type PreferencesRappels } from "../domaine/rappels";
+import { heureValide, PREFERENCES_DE_DEPART, type PreferencesRappels } from "../domaine/rappels";
 import type { ServeurRappels } from "../donnees/distant";
 
 // Les rappels du matin côté téléphone : demander la permission, inscrire l'iPhone
@@ -45,6 +45,7 @@ export function lirePreferences(): PreferencesRappels {
     return {
       taches: typeof brut?.taches === "boolean" ? brut.taches : PREFERENCES_DE_DEPART.taches,
       mitsu: typeof brut?.mitsu === "boolean" ? brut.mitsu : PREFERENCES_DE_DEPART.mitsu,
+      heure: heureValide(brut?.heure) ? brut.heure : PREFERENCES_DE_DEPART.heure,
     };
   } catch {
     return { ...PREFERENCES_DE_DEPART };

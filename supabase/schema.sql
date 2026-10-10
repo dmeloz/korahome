@@ -166,7 +166,7 @@ grant execute on function prive.est_membre(text) to authenticated;
 -- ===== Rappels du matin (notifications) =====
 -- Chaque iPhone qui accepte les notifications laisse ici son adresse d'envoi (Web Push).
 -- La fonction « rappels » (supabase/functions/rappels) passe chaque heure et envoie à
--- chacun, à 8 h heure de Zurich, le résumé de sa journée. Mise en route : docs/notifications.md.
+-- chacun, à son heure (8 h au départ, heure de Zurich), le résumé de sa journée. Mise en route : docs/notifications.md.
 
 create table if not exists public.abonnements_push (
   -- L'adresse d'envoi fournie par l'iPhone : une par téléphone.
@@ -188,10 +188,11 @@ create table if not exists public.abonnements_push (
 alter table public.abonnements_push enable row level security;
 revoke all on public.abonnements_push from anon, authenticated;
 
--- Activer les rappels sur ce téléphone, ou changer ses choix. Le même téléphone peut
--- avoir changé de compte : son ancienne inscription est remplacée.
+-- Activer les rappels sur ce téléphone, ou changer ses choix et son heure. Le même téléphone
+-- peut avoir changé de compte : son ancienne inscription est remplacée.
+drop function if exists public.enregistrer_abonnement(text, text, text, jsonb, jsonb);
 create or replace function public.enregistrer_abonnement(
-  p_endpoint text, p_foyer_id text, p_membre_id text, p_cles jsonb, p_preferences jsonb
+  p_endpoint text, p_foyer_id text, p_membre_id text, p_cles jsonb, p_preferences jsonb, p_heure integer default 8
 )
 returns void
 language plpgsql security definer set search_path = public, prive as $$
@@ -202,11 +203,11 @@ begin
   if not est_membre(p_foyer_id) then
     raise exception 'Ce foyer appartient à un autre compte';
   end if;
-  insert into abonnements_push (endpoint, foyer_id, user_id, membre_id, cles, preferences)
-  values (p_endpoint, p_foyer_id, auth.uid(), p_membre_id, p_cles, p_preferences)
+  insert into abonnements_push (endpoint, foyer_id, user_id, membre_id, cles, preferences, heure)
+  values (p_endpoint, p_foyer_id, auth.uid(), p_membre_id, p_cles, p_preferences, p_heure)
   on conflict (endpoint) do update set
     foyer_id = excluded.foyer_id, user_id = excluded.user_id, membre_id = excluded.membre_id,
-    cles = excluded.cles, preferences = excluded.preferences;
+    cles = excluded.cles, preferences = excluded.preferences, heure = excluded.heure;
 end $$;
 
 -- Couper les rappels : connaître l'adresse d'envoi suffit (seul ce téléphone la connaît).
@@ -260,10 +261,10 @@ begin
   );
 end $$;
 
-revoke all on function public.enregistrer_abonnement(text, text, text, jsonb, jsonb) from public, anon;
+revoke all on function public.enregistrer_abonnement(text, text, text, jsonb, jsonb, integer) from public, anon;
 revoke all on function public.retirer_abonnement(text) from public, anon;
 revoke all on function public.reglages_push(text, text) from public, anon, authenticated;
 revoke all on function prive.programmer_rappels(text) from public, anon, authenticated;
-grant execute on function public.enregistrer_abonnement(text, text, text, jsonb, jsonb) to authenticated;
+grant execute on function public.enregistrer_abonnement(text, text, text, jsonb, jsonb, integer) to authenticated;
 grant execute on function public.retirer_abonnement(text) to authenticated;
 grant execute on function public.reglages_push(text, text) to service_role;

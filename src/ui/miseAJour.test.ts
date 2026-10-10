@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { creerMiseAJour, type Inscription, type OptionsEnregistrement } from "./miseAJour";
+import { creerMiseAJour, surveillerMisesAJour, type Inscription, type OptionsEnregistrement } from "./miseAJour";
 
 function preparer(inscription?: Partial<Inscription>) {
   let options: OptionsEnregistrement = {};
@@ -59,5 +59,44 @@ describe("mise à jour de l'app", () => {
     expect(await preparer().maj.verifier()).toBe("indisponible");
     const horsLigne = preparer({ update: async () => Promise.reject(new Error("réseau")) });
     expect(await horsLigne.maj.verifier()).toBe("indisponible");
+  });
+});
+
+describe("vérification automatique", () => {
+  function surveiller(prete = false) {
+    let t = 0;
+    let retour = () => {};
+    let minuterie = () => {};
+    let intervalle = 0;
+    const verifier = vi.fn(async () => "a_jour" as const);
+    surveillerMisesAJour(
+      { prete: () => prete, verifier },
+      (r) => (retour = r),
+      (r, ms) => ((minuterie = r), (intervalle = ms)),
+      () => t,
+    );
+    return { verifier, retour: () => retour(), minuterie: () => minuterie(), avancer: (ms: number) => (t += ms), intervalle: () => intervalle };
+  }
+
+  it("vérifie toutes les 30 minutes et au retour dans l'app, sans insister", () => {
+    const s = surveiller();
+    expect(s.intervalle()).toBe(30 * 60_000);
+    s.retour();
+    expect(s.verifier).not.toHaveBeenCalled();
+    s.avancer(2 * 60_000);
+    s.retour();
+    s.retour();
+    expect(s.verifier).toHaveBeenCalledOnce();
+    s.avancer(30 * 60_000);
+    s.minuterie();
+    expect(s.verifier).toHaveBeenCalledTimes(2);
+  });
+
+  it("ne vérifie plus quand une version attend déjà", () => {
+    const s = surveiller(true);
+    s.avancer(60 * 60_000);
+    s.retour();
+    s.minuterie();
+    expect(s.verifier).not.toHaveBeenCalled();
   });
 });

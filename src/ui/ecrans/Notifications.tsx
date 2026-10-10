@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { HEURE_DU_RAPPEL, type PreferencesRappels } from "../../domaine/rappels";
+import { decalerHeure, formaterHeure, HEURE_MAX, HEURE_MIN, type PreferencesRappels } from "../../domaine/rappels";
 import type { ServeurRappels } from "../../donnees/distant";
 import {
   activerRappels,
@@ -12,7 +12,7 @@ import {
   type EtatRappels,
 } from "../rappels";
 
-const CHOIX: { cle: keyof PreferencesRappels; titre: string; detail: string }[] = [
+const CHOIX: { cle: "taches" | "mitsu"; titre: string; detail: string }[] = [
   { cle: "taches", titre: "Mes tâches", detail: "Celles que tu as prises et les tâches libres, du jour et en retard." },
   { cle: "mitsu", titre: "Mitsu", detail: "Commande à passer, provisions qui s'épuisent, soins à venir." },
 ];
@@ -47,13 +47,44 @@ export function Notifications(props: {
 
   const { serveur, foyerId, membreId } = props;
   const pret = serveur && foyerId;
+  const heure = formaterHeure(preferences.heure);
+
+  /** Enregistre les choix sur ce téléphone et, si les rappels sont actifs, sur le serveur. */
+  const changer = (suivantes: PreferencesRappels) =>
+    agir(async () => {
+      setPreferences(suivantes);
+      enregistrerPreferences(suivantes);
+      if (etat === "actifs" && serveur && foyerId) await mettreAJourRappels(serveur, foyerId, membreId, suivantes);
+    });
+
+  const reglerHeure = (
+    <div className="rappels-reglage-heure">
+      <button
+        className="bouton-icone"
+        aria-label="Une heure plus tôt"
+        disabled={occupe || preferences.heure <= HEURE_MIN}
+        onClick={() => changer({ ...preferences, heure: decalerHeure(preferences.heure, -1) })}
+      >
+        −
+      </button>
+      <p className="rappels-heure" aria-live="polite">{heure}</p>
+      <button
+        className="bouton-icone"
+        aria-label="Une heure plus tard"
+        disabled={occupe || preferences.heure >= HEURE_MAX}
+        onClick={() => changer({ ...preferences, heure: decalerHeure(preferences.heure, 1) })}
+      >
+        +
+      </button>
+    </div>
+  );
 
   return (
     <main className="rappels">
       <h1>Notifications</h1>
       <p className="discret rappels-intro">
-        Chaque matin à {HEURE_DU_RAPPEL} h, un seul rappel avec ce qui t'attend dans la journée. Rien à faire : pas de
-        notification. Chacun règle les siens sur son iPhone.
+        Chaque jour à l'heure que tu choisis, un seul rappel avec ce qui t'attend dans la journée. Rien à faire : pas
+        de notification. Chacun règle les siens sur son iPhone.
       </p>
 
       {etat === null ? null : !pret ? (
@@ -80,7 +111,7 @@ export function Notifications(props: {
         </div>
       ) : etat === "inactifs" ? (
         <div className="carte rappels-carte">
-          <p className="rappels-heure">{HEURE_DU_RAPPEL}:00</p>
+          {reglerHeure}
           <p className="discret">L'iPhone va te demander l'autorisation : touche « Autoriser ».</p>
           <button
             className="bouton-principal"
@@ -89,7 +120,7 @@ export function Notifications(props: {
               agir(async () => {
                 const obtenu = await activerRappels(serveur, foyerId, membreId, preferences);
                 setEtat(obtenu);
-                if (obtenu === "actifs") setMessage({ texte: "Rappels activés. Le premier arrive demain matin.", erreur: false });
+                if (obtenu === "actifs") setMessage({ texte: `Rappels activés : le prochain arrive à ${heure}.`, erreur: false });
               })
             }
           >
@@ -100,8 +131,10 @@ export function Notifications(props: {
         <>
           <div className="carte rappels-carte rappels-actifs">
             <span className="partage-point" aria-hidden />
-            <p>Activés sur cet iPhone, chaque jour à {HEURE_DU_RAPPEL}:00.</p>
+            <p>Activés sur cet iPhone, chaque jour à {heure}.</p>
           </div>
+          <h2 className="rayon">Heure du rappel</h2>
+          <div className="carte rappels-carte">{reglerHeure}</div>
           <h2 className="rayon">Dans le rappel</h2>
           <ul className="carte groupe">
             {CHOIX.map((c) => (
@@ -111,14 +144,7 @@ export function Notifications(props: {
                   role="switch"
                   aria-checked={preferences[c.cle]}
                   disabled={occupe}
-                  onClick={() =>
-                    agir(async () => {
-                      const suivantes = { ...preferences, [c.cle]: !preferences[c.cle] };
-                      setPreferences(suivantes);
-                      enregistrerPreferences(suivantes);
-                      await mettreAJourRappels(serveur, foyerId, membreId, suivantes);
-                    })
-                  }
+                  onClick={() => changer({ ...preferences, [c.cle]: !preferences[c.cle] })}
                 >
                   <span className="ligne-texte rappels-choix">
                     <span>{c.titre}</span>

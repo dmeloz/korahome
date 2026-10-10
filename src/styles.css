@@ -650,3 +650,20 @@ h1 {
 .rappels-actions { display: grid; justify-items: center; gap: 4px; margin-top: 20px; }
 .rappels-actions .lien:disabled { opacity: 0.4; }
 .rappels-message { text-align: center; margin-top: 12px; }
+.rappels-reglage-heure { display: flex; align-items: center; justify-content: center; gap: 24px; }
+.rappels-reglage-heure .rappels-heure { min-width: 4ch; }
+.rappels-reglage-heure .bouton-icone { font-size: 24px; }
+.rappels-reglage-heure .bouton-icone:disabled { opacity: 0.3; }
+
+/* Pastille rouge : une nouvelle version attend */
+.avec-alerte { position: relative; }
+.alerte {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #e5484d;
+  box-shadow: 0 0 0 2px var(--fond);
+  flex: none;
+}
+.avec-alerte .alerte { position: absolute; top: -3px; right: -3px; }
+.version-dispo { display: flex; align-items: center; gap: 8px; margin: 4px 0 10px; }

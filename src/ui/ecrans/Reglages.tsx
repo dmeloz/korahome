@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { Foyer } from "../../domaine/types";
+import { formaterHeure } from "../../domaine/rappels";
 import { choisirMembreCourant } from "../contexte";
+import { lirePreferences } from "../rappels";
 import { Icone } from "../Icone";
 import { MESSAGES_VERIFICATION, type ResultatVerification } from "../miseAJour";
 
@@ -11,6 +13,8 @@ export function Reglages(props: {
   membreId: string | null;
   changerMembre: (id: string) => void;
   verifierMiseAJour: () => Promise<ResultatVerification>;
+  nouvelleVersion: boolean;
+  appliquerMiseAJour: () => void;
   notesOuvertes: number;
   ouvrirRetours: () => void;
   ouvrirPartage: () => void;
@@ -45,8 +49,8 @@ export function Reglages(props: {
       <ul className="carte groupe">
         <li>
           <button className="ligne" onClick={props.ouvrirNotifications}>
-            <span className="ligne-texte">Rappels du matin</span>
-            <span className="discret">8:00</span>
+            <span className="ligne-texte">Rappel du jour</span>
+            <span className="discret">{formaterHeure(lirePreferences().heure)}</span>
             <span className="chevron"><Icone nom="suivant" taille={18} /></span>
           </button>
         </li>
@@ -72,8 +76,17 @@ export function Reglages(props: {
       <h2 className="rayon">Application</h2>
       <div className="carte version">
         <p><strong>Kora {__VERSION__}</strong></p>
-        <button className="lien" onClick={verifier}>Vérifier les mises à jour</button>
-        {verification && <p className="discret" role="status">{verification}</p>}
+        {props.nouvelleVersion ? (
+          <>
+            <p className="version-dispo"><span className="alerte" aria-hidden />Nouvelle version disponible</p>
+            <button className="bouton-principal" onClick={props.appliquerMiseAJour}>Mettre à jour</button>
+          </>
+        ) : (
+          <>
+            <button className="lien" onClick={verifier}>Vérifier les mises à jour</button>
+            {verification && <p className="discret" role="status">{verification}</p>}
+          </>
+        )}
       </div>
       <h2 className="rayon">Développement</h2>
       <ul className="carte groupe">

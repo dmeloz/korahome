@@ -2,7 +2,7 @@ import { choseAFaire, type Animal } from "./mitsu";
 import { ecartJours, estTerminee } from "./taches";
 import type { Foyer, Id, Jour, Tache } from "./types";
 
-// Le rappel du matin : une seule notification par personne, à 8 h, qui résume ce
+// Le rappel du matin : une seule notification par personne, à son heure (8 h au départ), qui résume ce
 // qui l'attend ce jour-là. Chacun reçoit ses tâches et les tâches libres (pas
 // celles que l'autre a prises), et ce qui presse pour Mitsu. Rien à signaler :
 // pas de notification. Ce module sert aussi au serveur qui envoie les rappels
@@ -12,13 +12,32 @@ import type { Foyer, Id, Jour, Tache } from "./types";
 export interface PreferencesRappels {
   taches: boolean;
   mitsu: boolean;
+  /** L'heure du rappel, heure pleine, à Zurich. */
+  heure: number;
 }
 
-export const PREFERENCES_DE_DEPART: PreferencesRappels = { taches: true, mitsu: true };
-
-/** L'heure du rappel, décidée avec le foyer. */
+/** L'heure proposée au départ, décidée avec le foyer ; chacun peut la changer. */
 export const HEURE_DU_RAPPEL = 8;
+/** Les heures possibles : de 5 h à 22 h. */
+export const HEURE_MIN = 5;
+export const HEURE_MAX = 22;
+
+export const PREFERENCES_DE_DEPART: PreferencesRappels = { taches: true, mitsu: true, heure: HEURE_DU_RAPPEL };
 export const FUSEAU_DU_FOYER = "Europe/Zurich";
+
+export function heureValide(heure: unknown): heure is number {
+  return Number.isInteger(heure) && (heure as number) >= HEURE_MIN && (heure as number) <= HEURE_MAX;
+}
+
+/** Une heure plus tôt (-1) ou plus tard (+1), sans sortir des heures possibles. */
+export function decalerHeure(heure: number, sens: -1 | 1): number {
+  return Math.min(HEURE_MAX, Math.max(HEURE_MIN, heure + sens));
+}
+
+/** « 8:00 », « 18:00 ». */
+export function formaterHeure(heure: number): string {
+  return `${heure}:00`;
+}
 
 export interface RappelDuMatin {
   titre: string;

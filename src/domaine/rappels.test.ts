@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { contexteTest } from "./contexteTest";
 import { creerFoyer } from "./foyer";
 import { ajouterSoin, nouvelAnimal, nouveauSoin } from "./mitsu";
-import { jourEtHeure, PREFERENCES_DE_DEPART, rappelDu, rappelDuMatin, tachesDuMatin } from "./rappels";
+import { decalerHeure, formaterHeure, heureValide, jourEtHeure, PREFERENCES_DE_DEPART, rappelDu, rappelDuMatin, tachesDuMatin } from "./rappels";
 import { marquerFaite, nouvelleTache } from "./taches";
 
 const AUJOURDHUI = "2026-10-12";
@@ -46,7 +46,7 @@ describe("le rappel du matin", () => {
     const entree = { foyer, membreId: melo.id, taches: [], animaux: [mitsu], aujourdhui: AUJOURDHUI };
     const r = rappelDuMatin({ ...entree, preferences: PREFERENCES_DE_DEPART });
     expect(r?.corps).toBe("Mitsu : Vermifuge demain");
-    expect(rappelDuMatin({ ...entree, preferences: { taches: true, mitsu: false } })).toBeNull();
+    expect(rappelDuMatin({ ...entree, preferences: { ...PREFERENCES_DE_DEPART, mitsu: false } })).toBeNull();
   });
 });
 
@@ -64,5 +64,18 @@ describe("l'heure du rappel", () => {
     // Un passage manqué est rattrapé le matin, pas l'après-midi.
     expect(rappelDu(new Date("2026-10-12T08:00:00Z"), 8, null)).toBe("2026-10-12");
     expect(rappelDu(new Date("2026-10-12T12:00:00Z"), 8, null)).toBeNull();
+  });
+
+  it("suit l'heure choisie par chacun, de 5 h à 22 h", () => {
+    expect(rappelDu(new Date("2026-10-12T04:00:00Z"), 6, null)).toBe("2026-10-12");
+    expect(rappelDu(new Date("2026-10-12T16:00:00Z"), 18, null)).toBe("2026-10-12");
+    expect(rappelDu(new Date("2026-10-12T17:00:00Z"), 18, null)).toBeNull();
+    expect(decalerHeure(8, -1)).toBe(7);
+    expect(decalerHeure(5, -1)).toBe(5);
+    expect(decalerHeure(22, 1)).toBe(22);
+    expect(heureValide(7)).toBe(true);
+    expect(heureValide(23)).toBe(false);
+    expect(heureValide("8")).toBe(false);
+    expect(formaterHeure(7)).toBe("7:00");
   });
 });

@@ -142,7 +142,8 @@ export function creerServicesSupabase(url: string, cle: string): ServicesDistant
         p_foyer_id: i.foyerId,
         p_membre_id: i.membreId,
         p_cles: i.cles,
-        p_preferences: i.preferences,
+        p_preferences: { taches: i.preferences.taches, mitsu: i.preferences.mitsu },
+        p_heure: i.preferences.heure,
       });
       echec(error);
     },

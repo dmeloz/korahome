@@ -136,6 +136,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         donnees={donnees}
         ouvrirModule={(id) => ouvrir({ nom: "module", id })}
         ouvrirReglages={() => ouvrir({ nom: "reglages" })}
+        nouvelleVersion={nouvelleVersion}
       />
     );
   } else if (page.nom === "module") {
@@ -167,6 +168,8 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         membreId={membre}
         changerMembre={setMembreId}
         verifierMiseAJour={miseAJour.verifier}
+        nouvelleVersion={nouvelleVersion}
+        appliquerMiseAJour={() => void miseAJour.appliquer()}
         notesOuvertes={ouvertes}
         ouvrirRetours={() => ouvrir({ nom: "retours" })}
         ouvrirPartage={() => ouvrir({ nom: "partage" })}

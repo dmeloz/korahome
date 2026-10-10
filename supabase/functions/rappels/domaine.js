@@ -235,13 +235,28 @@ function choseAFaire(animal, aujourdhui) {
 }
 //#endregion
 //#region src/domaine/rappels.ts
+/** L'heure proposée au départ, décidée avec le foyer ; chacun peut la changer. */
+const HEURE_DU_RAPPEL = 8;
+/** Les heures possibles : de 5 h à 22 h. */
+const HEURE_MIN = 5;
+const HEURE_MAX = 22;
 const PREFERENCES_DE_DEPART = {
 	taches: true,
-	mitsu: true
+	mitsu: true,
+	heure: 8
 };
-/** L'heure du rappel, décidée avec le foyer. */
-const HEURE_DU_RAPPEL = 8;
 const FUSEAU_DU_FOYER = "Europe/Zurich";
+function heureValide(heure) {
+	return Number.isInteger(heure) && heure >= 5 && heure <= 22;
+}
+/** Une heure plus tôt (-1) ou plus tard (+1), sans sortir des heures possibles. */
+function decalerHeure(heure, sens) {
+	return Math.min(22, Math.max(5, heure + sens));
+}
+/** « 8:00 », « 18:00 ». */
+function formaterHeure(heure) {
+	return `${heure}:00`;
+}
 /** Au plus trois noms par ligne, puis « et 2 autres ». */
 const MAX_PAR_LIGNE = 3;
 function enumerer(noms) {
@@ -307,4 +322,4 @@ function rappelDu(instant, heure, dernierEnvoi, fuseau = FUSEAU_DU_FOYER) {
 	return dernierEnvoi === local.jour ? null : local.jour;
 }
 //#endregion
-export { FUSEAU_DU_FOYER, HEURE_DU_RAPPEL, PREFERENCES_DE_DEPART, jourEtHeure, rappelDu, rappelDuMatin, tachesDuMatin };
+export { FUSEAU_DU_FOYER, HEURE_DU_RAPPEL, HEURE_MAX, HEURE_MIN, PREFERENCES_DE_DEPART, decalerHeure, formaterHeure, heureValide, jourEtHeure, rappelDu, rappelDuMatin, tachesDuMatin };
