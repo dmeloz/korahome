@@ -7,6 +7,7 @@ import { CoinDev } from "./CoinDev";
 import { aujourdhuiLocal, choisirMembreCourant, lireMembreCourant } from "./contexte";
 import { Accueil } from "./ecrans/Accueil";
 import { Bienvenue } from "./ecrans/Bienvenue";
+import { Jarvis } from "./ecrans/Jarvis";
 import { DetailListe } from "./ecrans/DetailListe";
 import { Notifications } from "./ecrans/Notifications";
 import { Partage, type ServicesPartage } from "./ecrans/Partage";
@@ -32,7 +33,8 @@ type Page =
   | { nom: "partage" }
   | { nom: "notifications" }
   | { nom: "telephone" }
-  | { nom: "retours" };
+  | { nom: "retours" }
+  | { nom: "jarvis" };
 
 // L'écran affiché, lu par le journal des retours de test à chaque geste.
 let ecranCourant = "Accueil";
@@ -75,6 +77,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     if (p.nom === "partage") return "Partage";
     if (p.nom === "notifications") return "Notifications";
     if (p.nom === "telephone") return "Ce téléphone";
+    if (p.nom === "jarvis") return "Jarvis";
     if (p.nom === "module") return MODULES[p.id]?.libelle ?? "Retour";
     return listes.find((l) => l.id === p.id)?.nom ?? "Liste";
   }
@@ -131,6 +134,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         donnees={donnees}
         ouvrirModule={(id) => ouvrir({ nom: "module", id })}
         ouvrirReglages={() => ouvrir({ nom: "reglages" })}
+        ouvrirJarvis={() => ouvrir({ nom: "jarvis" })}
         nouvelleVersion={nouvelleVersion}
       />
     );
@@ -168,6 +172,16 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
           choisirMembreCourant(id);
           setMembreId(id);
         }}
+      />
+    );
+  } else if (page.nom === "jarvis") {
+    ecran = (
+      <Jarvis
+        donnees={donnees}
+        depot={depot}
+        serveur={partage?.jarvis ?? null}
+        foyerPartage={foyerPartage}
+        ouvrirPartage={() => ouvrir({ nom: "partage" })}
       />
     );
   } else if (page.nom === "retours") {

@@ -848,3 +848,50 @@ h1 {
 .segments button { white-space: nowrap; }
 /* Le bandeau « Annuler » passe devant la pastille « Dev ». */
 .toast { z-index: 11; }
+
+/* Jarvis : une conversation sobre, la saisie collée en bas de l'écran. */
+.entete-boutons { display: flex; gap: 8px; }
+.jarvis-bouton { color: var(--accent); }
+.jarvis { padding-bottom: calc(env(safe-area-inset-bottom) + 96px); }
+.jarvis-accueil { display: grid; gap: 14px; }
+.jarvis-fil { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.bulle {
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: 18px;
+  line-height: 1.35;
+  animation: bulle-arrive 0.22s ease-out;
+}
+.bulle p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.bulle.personne { align-self: flex-end; background: var(--accent); color: var(--sur-accent); border-bottom-right-radius: 6px; }
+.bulle.jarvis { align-self: flex-start; background: var(--surface); border: 1px solid var(--trait); border-bottom-left-radius: 6px; }
+.bulle.en-erreur { color: var(--urgent); }
+.bulle.annulee p { color: var(--discret); text-decoration: line-through; }
+.bulle .lien { font-size: 15px; padding: 6px 0 0; }
+.bulle-note { display: block; font-size: 13px; color: var(--discret); margin-top: 4px; }
+.bulle.attente { display: flex; gap: 5px; padding: 14px 16px; }
+.bulle.attente span { width: 7px; height: 7px; border-radius: 50%; background: var(--discret); animation: attente 1s infinite ease-in-out; }
+.bulle.attente span:nth-child(2) { animation-delay: 0.15s; }
+.bulle.attente span:nth-child(3) { animation-delay: 0.3s; }
+.jarvis-alerte { font-size: 14px; text-align: center; margin: 12px 0 0; }
+.jarvis-saisie {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 10px 16px calc(env(safe-area-inset-bottom) + 10px);
+  background: color-mix(in srgb, var(--fond) 82%, transparent);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  border-top: 1px solid var(--trait);
+}
+.jarvis-saisie button { display: grid; place-items: center; }
+.jarvis-saisie button.ecoute { animation: ecoute 1.2s infinite ease-in-out; }
+@keyframes bulle-arrive { from { opacity: 0; transform: translateY(6px); } }
+@keyframes attente { 0%, 80%, 100% { opacity: 0.3; } 40% { opacity: 1; } }
+@keyframes ecoute { 50% { box-shadow: 0 0 0 8px var(--accent-doux); } }
+@media (prefers-reduced-motion: reduce) {
+  .bulle, .bulle.attente span, .jarvis-saisie button.ecoute { animation: none; }
+}

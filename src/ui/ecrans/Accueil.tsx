@@ -33,6 +33,7 @@ export function Accueil(props: {
   donnees: DonneesModule;
   ouvrirModule: (id: WidgetId) => void;
   ouvrirReglages: () => void;
+  ouvrirJarvis: () => void;
   /** Une nouvelle version attend : pastille rouge sur les Réglages. */
   nouvelleVersion: boolean;
 }) {
@@ -122,14 +123,19 @@ export function Accueil(props: {
         {edition ? (
           <button className="bouton-termine" onClick={terminer}>Terminé</button>
         ) : (
-          <button
-            className="bouton-icone avec-alerte"
-            onClick={props.ouvrirReglages}
-            aria-label={props.nouvelleVersion ? "Réglages, nouvelle version disponible" : "Réglages"}
-          >
-            <Icone nom="reglages" taille={22} />
-            {props.nouvelleVersion && <span className="alerte" aria-hidden />}
-          </button>
+          <div className="entete-boutons">
+            <button className="bouton-icone jarvis-bouton" onClick={props.ouvrirJarvis} aria-label="Jarvis">
+              <Icone nom="jarvis" taille={22} />
+            </button>
+            <button
+              className="bouton-icone avec-alerte"
+              onClick={props.ouvrirReglages}
+              aria-label={props.nouvelleVersion ? "Réglages, nouvelle version disponible" : "Réglages"}
+            >
+              <Icone nom="reglages" taille={22} />
+              {props.nouvelleVersion && <span className="alerte" aria-hidden />}
+            </button>
+          </div>
         )}
       </header>
 

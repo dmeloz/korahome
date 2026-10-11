@@ -1,3 +1,4 @@
+import type { EtatBudget, TourJarvis } from "../domaine/jarvis";
 import type { PreferencesRappels } from "../domaine/rappels";
 import type { Changement } from "../domaine/synchro";
 import type { Id } from "../domaine/types";
@@ -56,4 +57,24 @@ export interface ServeurRappels {
   essaiRappel(endpoint: string): Promise<void>;
 }
 
-export type ServicesDistants = Distant & Compte & ServeurRappels;
+/** Une demande à Jarvis : la phrase, l'état du foyer préparé par le téléphone, les derniers échanges. */
+export interface DemandeJarvis {
+  foyerId: Id;
+  demande: string;
+  etat: string;
+  historique: TourJarvis[];
+}
+
+/** Sa réponse : ce qu'il dit, les actions qu'il demande (à vérifier et appliquer sur le téléphone), son budget. */
+export interface ReponseJarvis {
+  texte: string;
+  appels: { nom: string; entree: unknown }[];
+  budget: EtatBudget;
+}
+
+/** Jarvis passe par le serveur du foyer (supabase/functions/jarvis), qui garde la clé de l'API. */
+export interface ServeurJarvis {
+  demanderJarvis(demande: DemandeJarvis): Promise<ReponseJarvis>;
+}
+
+export type ServicesDistants = Distant & Compte & ServeurRappels & ServeurJarvis;

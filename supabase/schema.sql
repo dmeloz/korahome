@@ -274,3 +274,37 @@ revoke all on function prive.programmer_rappels(text) from public, anon, authent
 grant execute on function public.enregistrer_abonnement(text, text, text, jsonb, jsonb, integer) to authenticated;
 grant execute on function public.retirer_abonnement(text) to authenticated;
 grant execute on function public.reglages_push(text, text) to service_role;
+
+-- ===== Jarvis (l'assistant du foyer) =====
+-- Ce que Jarvis a coûté à chaque foyer, mois par mois, en millionièmes de franc. La fonction
+-- « jarvis » (supabase/functions/jarvis) refuse de répondre une fois le plafond du mois atteint
+-- (5 CHF, src/domaine/jarvis.ts). Mise en route : docs/jarvis.md.
+
+create table if not exists prive.conso_jarvis (
+  foyer_id text not null references public.foyers (id) on delete cascade,
+  -- « AAAA-MM », à Zurich.
+  mois text not null,
+  micro_chf bigint not null default 0,
+  demandes integer not null default 0,
+  primary key (foyer_id, mois)
+);
+revoke all on prive.conso_jarvis from public, anon, authenticated;
+
+-- Ajoute une dépense (0 : simple lecture) et renvoie le total du mois. Fonction d'envoi seulement.
+create or replace function public.jarvis_compter(p_foyer_id text, p_mois text, p_micro_chf bigint)
+returns bigint
+language plpgsql security definer set search_path = prive as $$
+declare
+  total bigint;
+begin
+  insert into conso_jarvis as c (foyer_id, mois, micro_chf, demandes)
+  values (p_foyer_id, p_mois, p_micro_chf, case when p_micro_chf > 0 then 1 else 0 end)
+  on conflict (foyer_id, mois) do update set
+    micro_chf = c.micro_chf + excluded.micro_chf,
+    demandes = c.demandes + excluded.demandes
+  returning c.micro_chf into total;
+  return total;
+end $$;
+
+revoke all on function public.jarvis_compter(text, text, bigint) from public, anon, authenticated;
+grant execute on function public.jarvis_compter(text, text, bigint) to service_role;
