@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { appliquerActions, decrireFoyer, formaterChf, lireActions, TOURS_RETENUS, type Modification, type TourJarvis } from "../../domaine/jarvis";
 import type { Depot } from "../../donnees/depot";
-import type { ServeurJarvis } from "../../donnees/distant";
+import type { DemandeJarvis, ServeurJarvis } from "../../donnees/distant";
 import { contexteReel } from "../contexte";
 import { Icone } from "../Icone";
-import { annulerModifications, direAVoixHaute, ecouter, enregistrerModifications, voixDisponible } from "../jarvis";
+import { annulerModifications, direAVoixHaute, ecouter, enregistrerModifications, photoPourJarvis, voixDisponible } from "../jarvis";
 import type { DonneesModule } from "../modules";
 import { vibrer } from "../haptique";
 
@@ -14,6 +14,8 @@ interface Echange extends TourJarvis {
   modifications?: Modification[];
   annule?: boolean;
   erreur?: boolean;
+  /** La photo envoyée, en aperçu. */
+  photo?: string;
 }
 
 // La conversation reste le temps que l'app est ouverte, même en passant d'une page à l'autre.
@@ -29,6 +31,7 @@ export function Jarvis(props: {
   /** Le foyer, s'il est partagé : Jarvis passe par son serveur. */
   foyerPartage: string | null;
   ouvrirPartage: () => void;
+  ouvrirConseil: () => void;
 }) {
   const { donnees, depot, serveur, foyerPartage } = props;
   const [echanges, setEchanges] = useState<Echange[]>(conversation);
@@ -37,6 +40,7 @@ export function Jarvis(props: {
   const [ecoute, setEcoute] = useState<(() => void) | null>(null);
   const [alerte, setAlerte] = useState<string | null>(null);
   const bas = useRef<HTMLDivElement>(null);
+  const choixPhoto = useRef<HTMLInputElement>(null);
   const voix = voixDisponible();
 
   useEffect(() => {
@@ -47,11 +51,11 @@ export function Jarvis(props: {
 
   const ajouter = (e: Omit<Echange, "n">) => setEchanges((avant) => [...avant, { ...e, n: ++compteur }]);
 
-  async function demander(demande: string, parVoix: boolean) {
-    const texte = demande.trim();
+  async function demander(demande: string, parVoix: boolean, image?: DemandeJarvis["image"]) {
+    const texte = demande.trim() || (image ? "Regarde cette photo et note ce qu'il faut." : "");
     if (!texte || enCours || !serveur || !foyerPartage) return;
     const historique = conversation.slice(-TOURS_RETENUS).map(({ role, texte }) => ({ role, texte }));
-    ajouter({ role: "personne", texte });
+    ajouter({ role: "personne", texte: demande.trim() || "Photo", photo: image ? `data:${image.type};base64,${image.donnees}` : undefined });
     setSaisie("");
     setEnCours(true);
     try {
@@ -60,6 +64,7 @@ export function Jarvis(props: {
         demande: texte,
         etat: decrireFoyer(donnees, donnees.membreId, donnees.aujourdhui),
         historique,
+        image,
       });
       const resultat = appliquerActions(lireActions(reponse.appels), donnees, donnees.membreId, donnees.aujourdhui, contexteReel);
       await enregistrerModifications(depot, resultat.modifications);
@@ -98,6 +103,15 @@ export function Jarvis(props: {
     setEcoute(() => arreter);
   }
 
+  async function joindrePhoto(fichier: File | undefined) {
+    if (!fichier) return;
+    try {
+      void demander(saisie, false, await photoPourJarvis(fichier));
+    } catch {
+      setAlerte("Cette photo ne s'ouvre pas, essaie avec une autre.");
+    }
+  }
+
   const envoyer = (e: FormEvent) => {
     e.preventDefault();
     void demander(saisie, false);
@@ -120,7 +134,15 @@ export function Jarvis(props: {
       <h1>Jarvis</h1>
       {echanges.length === 0 ? (
         <div className="jarvis-accueil">
-          <p className="discret">Écris ou parle : Jarvis ajoute aux courses, crée ou coche les tâches, range le frigo, note les pesées et répond sur la maison. Tout se défait avec Annuler.</p>
+          <p className="discret">Écris ou parle : Jarvis ajoute aux courses, crée ou coche les tâches, range le frigo, note les pesées et répond sur la maison. Photographie une lettre ou une carte de rendez-vous, colle le lien d'une recette : il s'en occupe. Tout se défait avec Annuler.</p>
+          <button className="carte jarvis-conseil" onClick={props.ouvrirConseil}>
+            <Icone nom="calendrier" taille={24} />
+            <span className="ligne-texte">
+              <strong>Conseil de la semaine</strong>
+              <span className="discret">Préparer la semaine ensemble</span>
+            </span>
+            <Icone nom="suivant" taille={18} />
+          </button>
           <div className="puces">
             {EXEMPLES.map((x) => (
               <button key={x} className="puce" onClick={() => void demander(x, false)}>{x}</button>
@@ -131,6 +153,7 @@ export function Jarvis(props: {
         <div className="jarvis-fil" aria-live="polite">
           {echanges.map((e) => (
             <div key={e.n} className={`bulle ${e.role}${e.erreur ? " en-erreur" : ""}${e.annule ? " annulee" : ""}`}>
+              {e.photo && <img className="jarvis-photo" src={e.photo} alt="Photo envoyée à Jarvis" />}
               <p>{e.texte}</p>
               {e.modifications && (
                 e.annule ? (
@@ -147,6 +170,19 @@ export function Jarvis(props: {
       {alerte && <p className="discret jarvis-alerte">{alerte}</p>}
       <div ref={bas} />
       <form className="ajout jarvis-saisie" onSubmit={envoyer}>
+        <button type="button" className="secondaire" disabled={enCours} onClick={() => choixPhoto.current?.click()} aria-label="Envoyer une photo à Jarvis">
+          <Icone nom="photo" taille={22} />
+        </button>
+        <input
+          ref={choixPhoto}
+          type="file"
+          accept="image/*"
+          hidden
+          onChange={(e) => {
+            void joindrePhoto(e.target.files?.[0]);
+            e.target.value = "";
+          }}
+        />
         <input
           value={saisie}
           onChange={(e) => setSaisie(e.target.value)}

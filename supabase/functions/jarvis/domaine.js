@@ -2,10 +2,18 @@
 //#region src/domaine/jarvisModele.ts
 /** Un modèle léger et rapide : les demandes du quotidien sont courtes. */
 const MODELE_JARVIS = "claude-haiku-5-5";
-/** Prix du modèle, en dollars par million de jetons (entrée, sortie). */
+/** Le conseil du dimanche demande plus de réflexion : un modèle plus capable, une fois par semaine. */
+const MODELE_CONSEIL = "claude-sonnet-5-5";
+/** Prix des modèles, en dollars par million de jetons (entrée, sortie). */
 const PRIX_USD_PAR_MILLION = {
-	entree: .1,
-	sortie: .5
+	"claude-haiku-5-5": {
+		entree: .1,
+		sortie: .5
+	},
+	"claude-sonnet-5-5": {
+		entree: 2,
+		sortie: 10
+	}
 };
 /** Conversion prudente : un dollar compte pour 0,90 CHF (il en vaut un peu moins). */
 const CHF_PAR_USD = .9;
@@ -14,9 +22,10 @@ const PLAFOND_CHF = 5;
 /** À partir de 80 % du plafond, Jarvis prévient. */
 const SEUIL_ALERTE = .8;
 /** Le coût d'une demande, en millionièmes de franc (un entier, pour additionner sans erreur d'arrondi). */
-function coutMicroChf(u) {
-	const usd = ((u.input_tokens + 1.25 * (u.cache_creation_input_tokens ?? 0) + .1 * (u.cache_read_input_tokens ?? 0)) * PRIX_USD_PAR_MILLION.entree + u.output_tokens * PRIX_USD_PAR_MILLION.sortie) / 1e6;
-	return Math.ceil(usd * CHF_PAR_USD * 1e6);
+function coutMicroChf(u, modele = MODELE_JARVIS) {
+	const prix = PRIX_USD_PAR_MILLION[modele];
+	const usd = ((u.input_tokens + 1.25 * (u.cache_creation_input_tokens ?? 0) + .1 * (u.cache_read_input_tokens ?? 0)) * prix.entree + u.output_tokens * prix.sortie) / 1e6;
+	return Math.ceil(Math.round(usd * CHF_PAR_USD * 1e9) / 1e3);
 }
 function etatBudget(microChf, plafondChf = 5) {
 	const depenseChf = microChf / 1e6;
@@ -156,6 +165,20 @@ const OUTILS_JARVIS = [
 		}
 	},
 	{
+		name: "attribuer_tache",
+		description: "Confie une tâche existante à une personne du foyer, ou la rend libre.",
+		strict: true,
+		input_schema: {
+			type: "object",
+			additionalProperties: false,
+			required: ["titre", "responsable"],
+			properties: {
+				titre: texte("Le nom de la tâche tel qu'il figure dans la liste des tâches."),
+				responsable: ouNul("Le prénom de la personne qui s'en charge ; null pour la rendre libre.")
+			}
+		}
+	},
+	{
 		name: "noter_pesee",
 		description: "Note le poids d'un animal du foyer, pesé aujourd'hui.",
 		strict: true,
@@ -180,13 +203,90 @@ Pour agir, utilise les outils. Quand tu utilises un outil, n'écris rien d'autre
 Tu peux faire plusieurs actions d'un coup. Les dates sont au format AAAA-MM-JJ ; « demain », « samedi » se comptent depuis la date du jour donnée.
 Tu ne supprimes jamais rien et tu ne dépenses jamais d'argent : si on te le demande, explique que ça se fait dans l'app.
 Si la demande n'est pas claire ou ne correspond à aucun outil, pose une seule question courte.
-Pour une question sur le foyer, réponds à partir de l'état du foyer fourni ; s'il ne contient pas la réponse, dis-le.`;
+Pour une question sur le foyer, réponds à partir de l'état du foyer fourni ; s'il ne contient pas la réponse, dis-le.
+Avec une photo (lettre, facture, carte de rendez-vous, flyer) : relève les rendez-vous, échéances et paiements, et crée pour chacun une tâche unique à sa date, avec l'heure et le lieu dans le titre s'ils sont indiqués.
+Avec une recette : compare ses ingrédients au stock et à la liste de courses, et n'ajoute aux courses que ce qui manque, avec les quantités de la recette.`;
+/** Le conseil du dimanche : Jarvis prépare la semaine, le foyer valide ensemble. */
+const CONSIGNES_CONSEIL = `Tu es Jarvis, l'assistant d'un foyer en Suisse romande. C'est le conseil de la semaine : le foyer décide ensemble de la semaine qui vient, et tu prépares une proposition qu'il validera ligne par ligne.
+Utilise les outils pour proposer :
+- de confier chaque tâche des sept prochains jours à une personne (attribuer_tache), en équilibrant la charge et en tenant compte de qui a fait quoi ;
+- les courses de la semaine (ajouter_courses) : les ingrédients de cinq repas simples de saison qui utilisent d'abord ce qui arrive à sa date dans le stock, et ce qui manque pour la maison ;
+- les tâches qui manquent pour la semaine (ajouter_tache), seulement si l'état du foyer le justifie.
+En plus des outils, écris en français, en tutoyant, un court résumé : la répartition proposée, les cinq repas (un par ligne, « Lundi : … »), et ce qui demande de l'attention. Pas plus de dix lignes.`;
+const decoder = (t) => t.replace(/&amp;/g, "&").replace(/&quot;/g, "\"").replace(/&#0?39;|&apos;/g, "'").replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/\s+/g, " ").trim();
+/** Cherche une recette dans les données structurées (JSON-LD) d'une page : Betty Bossi, Marmiton, Fooby… */
+function extraireRecette(html) {
+	const blocs = html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
+	for (const [, contenu] of blocs) {
+		let donnees;
+		try {
+			donnees = JSON.parse(contenu.trim());
+		} catch {
+			continue;
+		}
+		const aVisiter = [donnees];
+		while (aVisiter.length) {
+			const n = aVisiter.shift();
+			if (Array.isArray(n)) {
+				aVisiter.push(...n);
+				continue;
+			}
+			if (!n || typeof n !== "object") continue;
+			const o = n;
+			const type = o["@type"];
+			if ((type === "Recipe" || Array.isArray(type) && type.includes("Recipe")) && Array.isArray(o.recipeIngredient)) {
+				const ingredients = o.recipeIngredient.filter((i) => typeof i === "string").map(decoder).filter(Boolean);
+				if (!ingredients.length) continue;
+				const rendement = Array.isArray(o.recipeYield) ? o.recipeYield[0] : o.recipeYield;
+				return {
+					titre: typeof o.name === "string" ? decoder(o.name) : "Recette",
+					ingredients,
+					portions: typeof rendement === "string" || typeof rendement === "number" ? String(rendement) : null
+				};
+			}
+			if (o["@graph"]) aVisiter.push(o["@graph"]);
+		}
+	}
+	return null;
+}
+/** Le texte lisible d'une page, sans balises, pour une recette sans données structurées. */
+function texteDePage(html, max = 6e3) {
+	return decoder(html.replace(/<(script|style|noscript|svg|nav|footer|header)[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, " ")).slice(0, max);
+}
+/** Le premier lien d'une demande (« ajoute les ingrédients de https://… »). */
+function lienDans(demande) {
+	return demande.match(/https:\/\/[^\s<>"']+/)?.[0] ?? null;
+}
+/** Ce que le modèle lit d'une recette trouvée derrière un lien. */
+function decrireRecette(r) {
+	return `Recette « ${r.titre} »${r.portions ? ` (${r.portions})` : ""}, ingrédients :\n${r.ingredients.map((i) => `- ${i}`).join("\n")}`;
+}
 /** Les derniers échanges, pour que « et du beurre aussi » se comprenne. */
 const TOURS_RETENUS = 6;
 /** Le message envoyé au modèle : les derniers échanges, l'état du foyer, puis la demande. */
-function messageDemande(etat, demande, historique = []) {
+function messageDemande(etat, demande, historique = [], lien) {
 	const tours = historique.slice(-6).map((t) => `${t.role === "personne" ? "Personne" : "Jarvis"} : ${t.texte}`);
-	return `${tours.length ? `Échanges précédents :\n${tours.join("\n")}\n\n` : ""}État du foyer :\n${etat}\n\nDemande : ${demande.trim()}`;
+	const avant = tours.length ? `Échanges précédents :\n${tours.join("\n")}\n\n` : "";
+	const page = lien ? `\n\nCe qu'il y a derrière le lien :\n${lien}` : "";
+	return `${avant}État du foyer :\n${etat}\n\nDemande : ${demande.trim()}${page}`;
+}
+/** Ce que Jarvis lit d'une page : la recette si elle est décrite, sinon son texte. */
+function lirePage(html) {
+	const recette = extraireRecette(html);
+	return recette ? decrireRecette(recette) : texteDePage(html);
+}
+/** Les adresses qu'on accepte d'ouvrir : https, nom de domaine public (ni IP, ni réseau local). */
+function lienAutorise(adresse) {
+	let url;
+	try {
+		url = new URL(adresse);
+	} catch {
+		return false;
+	}
+	const hote = url.hostname.toLowerCase();
+	if (url.protocol !== "https:" || url.port || url.username) return false;
+	if (!hote.includes(".") || hote.endsWith(".local") || hote.endsWith(".internal") || hote === "localhost") return false;
+	return !/^[\d.]+$/.test(hote) && !hote.includes(":") && !hote.startsWith("[");
 }
 //#endregion
-export { CONSIGNES_JARVIS, MODELE_JARVIS, OUTILS_JARVIS, PLAFOND_CHF, TOURS_RETENUS, coutMicroChf, etatBudget, formaterChf, messageDemande, moisDe };
+export { CONSIGNES_CONSEIL, CONSIGNES_JARVIS, MODELE_CONSEIL, MODELE_JARVIS, OUTILS_JARVIS, PLAFOND_CHF, TOURS_RETENUS, coutMicroChf, decrireRecette, etatBudget, extraireRecette, formaterChf, lienAutorise, lienDans, lirePage, messageDemande, moisDe, texteDePage };

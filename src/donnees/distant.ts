@@ -63,6 +63,10 @@ export interface DemandeJarvis {
   demande: string;
   etat: string;
   historique: TourJarvis[];
+  /** « conseil » : le conseil du dimanche, avec le modèle plus réfléchi. */
+  mode?: "conseil";
+  /** Une photo à lire (lettre, carte de rendez-vous), en JPEG base64. */
+  image?: { type: "image/jpeg" | "image/png" | "image/webp"; donnees: string };
 }
 
 /** Sa réponse : ce qu'il dit, les actions qu'il demande (à vérifier et appliquer sur le téléphone), son budget. */

@@ -5,6 +5,7 @@ import {
   annulation,
   appliquerActions,
   coutMicroChf,
+  decrireAction,
   decrireFoyer,
   etatBudget,
   formaterChf,
@@ -13,6 +14,7 @@ import {
   type ActionJarvis,
   type DonneesFoyer,
 } from "./jarvis";
+import { extraireRecette, lienAutorise, lienDans, lirePage, messageDemande, texteDePage } from "./jarvisModele";
 import { nouvelElement, nouvelleListe } from "./listes";
 import { nouvelAnimal } from "./mitsu";
 import { nouvelleTache } from "./taches";
@@ -172,5 +174,71 @@ describe("les actions de Jarvis", () => {
       { collection: "elements", id: d.elements[0].id, remettre: d.elements[0] },
       { collection: "elements", id: r.modifications[0].apres.id, remettre: null },
     ]);
+  });
+});
+
+describe("le conseil du dimanche", () => {
+  it("confie une tâche à quelqu'un ou la rend libre", () => {
+    const { d, melo, sarah } = foyerDeTest();
+    const r = appliquerActions(
+      [
+        { outil: "attribuer_tache", titre: "Litière", responsable: "Sarah" },
+        { outil: "attribuer_tache", titre: "Litière", responsable: null },
+        { outil: "attribuer_tache", titre: "Litière", responsable: "Paul" },
+      ],
+      d,
+      melo,
+      AUJOURDHUI,
+      ctx(),
+    );
+    expect(r.modifications[0].apres).toMatchObject({ responsable: sarah });
+    expect(r.modifications[1].apres).toMatchObject({ responsable: null });
+    expect(r.faits).toEqual(["Litière : pour Sarah.", "Litière : libre."]);
+    expect(r.echecs).toEqual(["Je ne connais personne nommé Paul."]);
+  });
+
+  it("décrit chaque proposition en une ligne", () => {
+    expect(decrireAction({ outil: "attribuer_tache", titre: "Litière", responsable: "Sarah" })).toBe("Litière → Sarah");
+    expect(decrireAction({ outil: "ajouter_courses", articles: ["lait", "œufs", "riz"] })).toBe("Courses : lait, œufs et riz");
+  });
+
+  it("compte le modèle du conseil à son prix", () => {
+    expect(coutMicroChf({ input_tokens: 5000, output_tokens: 1000 }, "claude-sonnet-5-5")).toBe(18000);
+  });
+});
+
+describe("les recettes derrière un lien", () => {
+  const page = `<html><head><script type="application/ld+json">
+    {"@context":"https://schema.org","@graph":[{"@type":"WebPage"},{"@type":["Recipe"],"name":"Gratin dauphinois","recipeYield":["4 portions"],
+     "recipeIngredient":["1 kg de pommes de terre","5 dl de cr&egrave;me enti&egrave;re","1 gousse d&#39;ail",""]}]}
+  </script></head><body><h1>Gratin</h1></body></html>`;
+
+  it("lit les ingrédients des données structurées de la page", () => {
+    expect(extraireRecette(page)).toEqual({
+      titre: "Gratin dauphinois",
+      portions: "4 portions",
+      ingredients: ["1 kg de pommes de terre", "5 dl de cr&egrave;me enti&egrave;re", "1 gousse d'ail"],
+    });
+    expect(extraireRecette("<html><body>Rien</body></html>")).toBeNull();
+  });
+
+  it("sinon garde le texte lisible, et trouve le lien dans la demande", () => {
+    expect(texteDePage("<style>x{}</style><p>Farine&nbsp;200 g</p><script>1</script>")).toBe("Farine 200 g");
+    expect(lienDans("ajoute les ingrédients de https://www.bettybossi.ch/fr/recette/gratin stp")).toBe("https://www.bettybossi.ch/fr/recette/gratin");
+    expect(lienDans("ajoute du lait")).toBeNull();
+  });
+
+  it("joint la recette à la demande", () => {
+    const lu = lirePage(page);
+    expect(lu).toContain("Recette « Gratin dauphinois » (4 portions)");
+    expect(messageDemande("Stock : vide", "fais ça", [], lu)).toContain("Ce qu'il y a derrière le lien :\nRecette « Gratin");
+    expect(lirePage("<p>Rien</p>")).toBe("Rien");
+  });
+
+  it("n'ouvre que des adresses publiques en https", () => {
+    expect(lienAutorise("https://www.bettybossi.ch/fr/recette/gratin")).toBe(true);
+    for (const a of ["http://fooby.ch", "https://localhost/x", "https://127.0.0.1/", "https://[::1]/", "https://intranet/", "https://nas.local/", "https://a.ch:8443/", "pas une adresse"]) {
+      expect(lienAutorise(a), a).toBe(false);
+    }
   });
 });

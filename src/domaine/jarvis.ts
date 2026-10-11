@@ -15,11 +15,13 @@ import { decrirePeremption, LIEUX, nouveauProduit, type Lieu, type Produit } fro
 import { decrireEcheance, decrireRecurrence, ecartJours, estTerminee, marquerFaite, nouvelleTache } from "./taches";
 import type { Contexte, Element, Foyer, Id, Jour, Liste, Recurrence, Tache } from "./types";
 export {
+  CONSIGNES_CONSEIL,
   CONSIGNES_JARVIS,
   coutMicroChf,
   etatBudget,
   formaterChf,
   messageDemande,
+  MODELE_CONSEIL,
   MODELE_JARVIS,
   moisDe,
   OUTILS_JARVIS,
@@ -106,6 +108,7 @@ export type ActionJarvis =
   | { outil: "cocher_courses"; articles: string[] }
   | { outil: "ajouter_tache"; titre: string; echeance: Jour; responsable: string | null; frequence: Recurrence | null }
   | { outil: "tache_faite"; titre: string }
+  | { outil: "attribuer_tache"; titre: string; responsable: string | null }
   | { outil: "ajouter_au_stock"; produits: { nom: string; lieu: Lieu; peremption: Jour | null }[] }
   | { outil: "noter_pesee"; animal: string; grammes: number };
 
@@ -137,6 +140,8 @@ export function lireActions(appels: readonly { nom: string; entree: unknown }[])
       actions.push({ outil: nom, titre: e.titre, echeance, responsable: estTexte(e.responsable) ? e.responsable : null, frequence });
     } else if (nom === "tache_faite") {
       if (estTexte(e.titre)) actions.push({ outil: nom, titre: e.titre });
+    } else if (nom === "attribuer_tache") {
+      if (estTexte(e.titre)) actions.push({ outil: nom, titre: e.titre, responsable: estTexte(e.responsable) ? e.responsable : null });
     } else if (nom === "ajouter_au_stock") {
       const produits = (Array.isArray(e.produits) ? e.produits : [])
         .map((p) => (p ?? {}) as Record<string, unknown>)
@@ -265,6 +270,23 @@ export function appliquerActions(
           );
           break;
         }
+        case "attribuer_tache": {
+          const tache = trouverParNom(taches.filter((t) => !estTerminee(t)), action.titre, (t) => t.titre);
+          if (!tache) {
+            echecs.push(`Je ne trouve pas la tâche « ${action.titre} ».`);
+            break;
+          }
+          const membre = action.responsable ? trouverParNom(donnees.foyer.membres, action.responsable, (m) => m.prenom) : undefined;
+          if (action.responsable && !membre) {
+            echecs.push(`Je ne connais personne nommé ${action.responsable}.`);
+            break;
+          }
+          const confiee: Tache = { ...tache, responsable: membre?.id ?? null };
+          taches = taches.map((t) => (t.id === confiee.id ? confiee : t));
+          modifications.push({ collection: "taches", avant: tache, apres: confiee });
+          faits.push(membre ? `${tache.titre} : pour ${membre.prenom}.` : `${tache.titre} : libre.`);
+          break;
+        }
         case "ajouter_au_stock": {
           const ranges: string[] = [];
           for (const p of action.produits) {
@@ -298,6 +320,26 @@ export function appliquerActions(
     }
   }
   return { modifications, faits, echecs };
+}
+
+/** Une action proposée, en une ligne, pour la valider ou l'écarter (conseil du dimanche). */
+export function decrireAction(action: ActionJarvis): string {
+  switch (action.outil) {
+    case "ajouter_courses":
+      return `Courses : ${enumerer(action.articles)}`;
+    case "cocher_courses":
+      return `Cocher : ${enumerer(action.articles)}`;
+    case "ajouter_tache":
+      return `Nouvelle tâche : ${action.titre}, le ${action.echeance}${action.responsable ? `, pour ${action.responsable}` : ""}`;
+    case "tache_faite":
+      return `Marquer faite : ${action.titre}`;
+    case "attribuer_tache":
+      return action.responsable ? `${action.titre} → ${action.responsable}` : `${action.titre} → libre`;
+    case "ajouter_au_stock":
+      return `Ranger : ${enumerer(action.produits.map((p) => p.nom))}`;
+    case "noter_pesee":
+      return `Pesée de ${action.animal} : ${action.grammes} g`;
+  }
 }
 
 /** Ce qui remet chaque document dans son état d'avant, dans l'ordre inverse. */

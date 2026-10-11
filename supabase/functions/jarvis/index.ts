@@ -4,6 +4,8 @@
 // échanges. La fonction vérifie que la personne est membre du foyer et que le plafond du
 // mois (5 CHF) n'est pas atteint, interroge Claude, compte la dépense, puis renvoie la
 // réponse et les actions demandées. C'est le téléphone qui les applique (avec Annuler).
+// Il lit aussi une photo jointe (lettre, rendez-vous), la recette derrière un lien, et prépare
+// le conseil du dimanche (mode « conseil », modèle plus réfléchi, proposition validée ensemble).
 //
 // La clé de l'API Claude reste ici, dans le secret ANTHROPIC_API_KEY : jamais dans l'app.
 // Les consignes et les outils viennent de src/domaine/jarvisModele.ts, copié dans domaine.js par
@@ -11,7 +13,21 @@
 
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { CONSIGNES_JARVIS, coutMicroChf, etatBudget, formaterChf, messageDemande, MODELE_JARVIS, moisDe, OUTILS_JARVIS } from "./domaine.js";
+import {
+  CONSIGNES_CONSEIL,
+  CONSIGNES_JARVIS,
+  coutMicroChf,
+  etatBudget,
+  formaterChf,
+  lienAutorise,
+  lienDans,
+  lirePage,
+  messageDemande,
+  MODELE_CONSEIL,
+  MODELE_JARVIS,
+  moisDe,
+  OUTILS_JARVIS,
+} from "./domaine.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -39,6 +55,41 @@ async function compter(foyerId: string, microChf: number): Promise<number> {
 }
 
 const texte = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max) : "");
+
+const TAILLE_PAGE_MAX = 1_500_000;
+const TAILLE_IMAGE_MAX = 4_000_000; // en base64, environ 3 Mo d'image
+const IMAGES = ["image/jpeg", "image/png", "image/webp"];
+
+/** Ouvre le lien d'une recette (https public seulement, 3 redirections, 8 secondes, 1,5 Mo). */
+async function ouvrirLien(adresse: string): Promise<string | null> {
+  let url = adresse;
+  for (let saut = 0; saut < 4; saut++) {
+    if (!lienAutorise(url)) return null;
+    const reponse = await fetch(url, {
+      redirect: "manual",
+      signal: AbortSignal.timeout(8000),
+      headers: { "User-Agent": "KoraHome/Jarvis (recette)", Accept: "text/html" },
+    });
+    const suite = reponse.headers.get("location");
+    if (reponse.status >= 300 && reponse.status < 400 && suite) {
+      url = new URL(suite, url).toString();
+      continue;
+    }
+    if (!reponse.ok || !(reponse.headers.get("content-type") ?? "").includes("html")) return null;
+    const html = (await reponse.text()).slice(0, TAILLE_PAGE_MAX);
+    return lirePage(html);
+  }
+  return null;
+}
+
+/** La photo jointe, si elle est d'un format que Claude lit. */
+function lireImage(v: unknown): { media_type: "image/jpeg" | "image/png" | "image/webp"; data: string } | null {
+  if (!v || typeof v !== "object") return null;
+  const { type, donnees } = v as { type?: unknown; donnees?: unknown };
+  if (typeof type !== "string" || !IMAGES.includes(type) || typeof donnees !== "string") return null;
+  if (!donnees || donnees.length > TAILLE_IMAGE_MAX || !/^[A-Za-z0-9+/=]+$/.test(donnees)) return null;
+  return { media_type: type as "image/jpeg", data: donnees };
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
@@ -70,17 +121,30 @@ Deno.serve(async (req) => {
       .filter((t: { role?: unknown }) => t?.role === "personne" || t?.role === "jarvis")
       .map((t: { role: "personne" | "jarvis"; texte?: unknown }) => ({ role: t.role, texte: texte(t.texte, 500) }));
 
+    // Le conseil du dimanche prend le modèle plus réfléchi ; le reste, le modèle léger.
+    const conseil = corps.mode === "conseil";
+    const modele = conseil ? MODELE_CONSEIL : MODELE_JARVIS;
+    const lien = conseil ? null : lienDans(demande);
+    const page = lien ? await ouvrirLien(lien).catch(() => null) : null;
+    const image = conseil ? null : lireImage(corps.image);
+    const message = messageDemande(texte(corps.etat, 20000), demande, historique, lien ? (page ?? "(page illisible : dis-le et propose de coller les ingrédients)") : null);
+
     const client = new Anthropic({ apiKey: cle });
     const reponse = await client.messages.create({
-      model: MODELE_JARVIS,
-      max_tokens: 2000,
-      system: CONSIGNES_JARVIS,
+      model: modele,
+      max_tokens: conseil ? 4000 : 2000,
+      system: conseil ? CONSIGNES_CONSEIL : CONSIGNES_JARVIS,
       tools: OUTILS_JARVIS,
-      output_config: { effort: "low" },
-      messages: [{ role: "user", content: messageDemande(texte(corps.etat, 20000), demande, historique) }],
+      output_config: { effort: conseil ? "medium" : "low" },
+      messages: [
+        {
+          role: "user",
+          content: image ? [{ type: "image", source: { type: "base64", ...image } }, { type: "text", text: message }] : message,
+        },
+      ],
     });
 
-    const budget = etatBudget(await compter(foyerId, coutMicroChf(reponse.usage)));
+    const budget = etatBudget(await compter(foyerId, coutMicroChf(reponse.usage, modele)));
     if (reponse.stop_reason === "refusal") {
       return repondre({ texte: "Je ne peux pas t'aider pour ça.", appels: [], budget });
     }

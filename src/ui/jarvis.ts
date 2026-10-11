@@ -91,3 +91,23 @@ export function direAVoixHaute(texte: string): void {
   if (voix) phrase.voice = voix;
   speechSynthesis.speak(phrase);
 }
+
+// ----- Les photos -----
+
+/** Réduit une photo (même HEIC de l'iPhone) en JPEG d'au plus `cote` pixels : légère à envoyer, lisible par Jarvis. */
+export async function photoPourJarvis(fichier: Blob, cote = 1600): Promise<{ type: "image/jpeg"; donnees: string }> {
+  const adresse = URL.createObjectURL(fichier);
+  try {
+    const image = new Image();
+    image.src = adresse;
+    await image.decode();
+    const echelle = Math.min(1, cote / Math.max(image.naturalWidth, image.naturalHeight));
+    const toile = document.createElement("canvas");
+    toile.width = Math.round(image.naturalWidth * echelle);
+    toile.height = Math.round(image.naturalHeight * echelle);
+    toile.getContext("2d")!.drawImage(image, 0, 0, toile.width, toile.height);
+    return { type: "image/jpeg", donnees: toile.toDataURL("image/jpeg", 0.82).split(",")[1] };
+  } finally {
+    URL.revokeObjectURL(adresse);
+  }
+}

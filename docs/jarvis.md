@@ -8,13 +8,25 @@ changé quelque chose a son bouton **Annuler**. Quand on lui a parlé, il répon
 Ce qu'il sait faire (Kora 0.1.0) : ajouter et cocher des courses, créer une tâche (unique ou qui
 revient, pour quelqu'un ou libre), marquer une tâche faite, ranger des produits au frigo, au
 congélateur ou au placard, noter une pesée de Mitsu, et répondre sur l'état du foyer.
-Il ne supprime rien et ne dépense rien. Siri viendra avec l'app native.
+Il confie aussi une tâche à quelqu'un. Il ne supprime rien et ne dépense rien. Siri viendra avec
+l'app native.
+
+- **Photo** : le bouton appareil photo envoie une lettre, une facture ou une carte de rendez-vous ;
+  Jarvis crée une tâche à la date de chaque rendez-vous ou échéance. La photo est réduite à
+  1600 pixels en JPEG sur le téléphone avant de partir, et n'est gardée nulle part.
+- **Recette** : coller le lien d'une recette (Betty Bossi, Fooby, Marmiton…). Le serveur ouvre la page
+  (https public seulement, 8 secondes, 1,5 Mo au plus), lit les ingrédients dans ses données
+  structurées ou, à défaut, son texte, et Jarvis n'ajoute aux courses que ce qui manque.
+- **Conseil de la semaine** : depuis Jarvis, « Préparer la semaine ensemble ». Le modèle plus réfléchi
+  (`claude-sonnet-5-5`) propose qui fait quoi, cinq repas qui finissent d'abord ce qui arrive à sa
+  date, et les courses. Chaque proposition se coche ou se décoche, puis **Valider ensemble**
+  applique le reste (avec Annuler). Compter quelques centimes par conseil.
 
 ## Comment ça marche
 
-- `src/domaine/jarvis.ts` : ses consignes, ses outils, ce qu'il sait du foyer, comment ses actions
+- `src/domaine/jarvisModele.ts` (copié dans la fonction serveur) et `src/domaine/jarvis.ts` : ses consignes, ses outils, la lecture des recettes, ce qu'il sait du foyer, comment ses actions
   modifient les données, et le plafond de dépense (testé). C'est la règle que reprendra l'app native.
-- `src/ui/ecrans/Jarvis.tsx` et `src/ui/jarvis.ts` : la conversation, la voix (reconnaissance et
+- `src/ui/ecrans/Jarvis.tsx`, `src/ui/ecrans/Conseil.tsx` et `src/ui/jarvis.ts` : la conversation, le conseil, les photos, la voix (reconnaissance et
   synthèse de l'iPhone), l'enregistrement dans le Dépôt et l'annulation.
 - `supabase/functions/jarvis/` : la fonction serveur. Elle vérifie que le téléphone est membre du
   foyer, refuse au-delà du plafond, interroge Claude (modèle léger `claude-haiku-5-5`), compte la

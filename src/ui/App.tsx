@@ -8,6 +8,7 @@ import { CoinDev } from "./CoinDev";
 import { aujourdhuiLocal, choisirMembreCourant, lireMembreCourant } from "./contexte";
 import { Accueil } from "./ecrans/Accueil";
 import { Bienvenue } from "./ecrans/Bienvenue";
+import { Conseil } from "./ecrans/Conseil";
 import { Jarvis } from "./ecrans/Jarvis";
 import { DetailListe } from "./ecrans/DetailListe";
 import { Notifications } from "./ecrans/Notifications";
@@ -36,7 +37,8 @@ type Page =
   | { nom: "notifications" }
   | { nom: "telephone" }
   | { nom: "retours" }
-  | { nom: "jarvis" };
+  | { nom: "jarvis" }
+  | { nom: "conseil" };
 
 // L'écran affiché, lu par le journal des retours de test à chaque geste.
 let ecranCourant = "Accueil";
@@ -96,6 +98,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     if (p.nom === "notifications") return "Notifications";
     if (p.nom === "telephone") return "Ce téléphone";
     if (p.nom === "jarvis") return "Jarvis";
+    if (p.nom === "conseil") return "Conseil";
     if (p.nom === "module") return MODULES[p.id]?.libelle ?? "Retour";
     return listes.find((l) => l.id === p.id)?.nom ?? "Liste";
   }
@@ -193,7 +196,9 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         }}
       />
     );
-  } else if (page.nom === "jarvis") {
+  } else if (page.nom === "conseil" && partage && foyerPartage) {
+    ecran = <Conseil donnees={donnees} depot={depot} serveur={partage.jarvis} foyerPartage={foyerPartage} />;
+  } else if (page.nom === "jarvis" || page.nom === "conseil") {
     ecran = (
       <Jarvis
         donnees={donnees}
@@ -201,6 +206,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         serveur={partage?.jarvis ?? null}
         foyerPartage={foyerPartage}
         ouvrirPartage={() => ouvrir({ nom: "partage" })}
+        ouvrirConseil={() => ouvrir({ nom: "conseil" })}
       />
     );
   } else if (page.nom === "retours") {
