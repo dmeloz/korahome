@@ -24,6 +24,16 @@ export interface Liste {
   /** Une liste de courses classe ses éléments par rayon. */
   type: "courses" | "simple";
   creeLe: string;
+  /** Les jours où chaque article a été acheté : Kora devine ce qu'il faudra bientôt racheter. */
+  achats?: Achat[];
+}
+
+export interface Achat {
+  /** Le nom de l'article, comme sur la liste : « Lait ». */
+  texte: string;
+  rayon: Rayon;
+  /** Les derniers jours d'achat, du plus ancien au plus récent. */
+  jours: Jour[];
 }
 
 export interface Element {

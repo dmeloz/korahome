@@ -942,3 +942,5 @@ html[data-sens="arriere"]::view-transition-new(root) { animation-name: page-revi
 @keyframes page-recule { to { transform: translateX(-28%); opacity: 0.6; } }
 @keyframes page-part { to { transform: translateX(100%); } }
 @keyframes page-revient { from { transform: translateX(-28%); opacity: 0.6; } }
+.devinees { margin: 4px 0 14px; display: grid; gap: 6px; }
+.devinees .surtitre { margin: 0; }

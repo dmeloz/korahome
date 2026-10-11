@@ -1,9 +1,10 @@
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
+import { noterAchat, oublierAchat, suggestions } from "../../domaine/habitudes";
 import { basculerCoche, nouvelElement, organiserListe, trouverDoublon } from "../../domaine/listes";
 import type { Element, Foyer, Liste } from "../../domaine/types";
 import type { Depot } from "../../donnees/depot";
 import { useAnnoncer } from "../annulation";
-import { contexteReel } from "../contexte";
+import { aujourdhuiLocal, contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
 import { vibrer } from "../haptique";
 
@@ -33,10 +34,31 @@ export function DetailListe(props: {
     setMessage(null);
   }
 
-  const basculer = (el: Element) => {
+  const courses = props.liste.type === "courses";
+  // La dernière version connue : celle qui vient d'être écrite ici, jusqu'à ce que la base renvoie la suivante.
+  const derniere = useRef(props.liste);
+  const recue = useRef(props.liste);
+  if (recue.current !== props.liste) {
+    recue.current = props.liste;
+    derniere.current = props.liste;
+  }
+  const aujourdhui = aujourdhuiLocal();
+  const devinees = courses ? suggestions(props.liste, props.elements, aujourdhui, 5) : [];
+
+  async function basculer(el: Element) {
     vibrer();
-    return props.depot.enregistrerElement(basculerCoche(el, contexteReel));
-  };
+    const apres = basculerCoche(el, contexteReel);
+    await props.depot.enregistrerElement(apres);
+    // Chaque achat coché apprend à Kora le rythme du foyer.
+    // Plusieurs cases cochées d'affilée : chaque achat part de la version qui vient d'être écrite.
+    if (courses) {
+      const avant = derniere.current;
+      const liste = apres.coche ? noterAchat(avant, apres, aujourdhui) : oublierAchat(avant, apres, aujourdhui);
+      derniere.current = liste;
+      if (liste !== avant) await props.depot.enregistrerListe(liste);
+    }
+  }
+  const ajouterDevinee = (texte: string) => props.depot.enregistrerElement(nouvelElement(props.liste, texte, props.membreId, contexteReel));
   const viderCoches = () => props.depot.supprimerElements(coches.map((c) => c.id));
   async function supprimer(el: Element) {
     await props.depot.supprimerElements([el.id]);
@@ -49,7 +71,7 @@ export function DetailListe(props: {
     return (
       <li key={el.id}>
         <Glissable onSupprimer={() => void supprimer(el)}>
-        <button className={`ligne element${el.coche ? " coche" : ""}`} onClick={() => basculer(el)}>
+        <button className={`ligne element${el.coche ? " coche" : ""}`} onClick={() => void basculer(el)}>
           <span className="case" aria-hidden>{el.coche ? "✓" : ""}</span>
           <span className="ligne-texte">
             {el.texte}
@@ -80,6 +102,18 @@ export function DetailListe(props: {
         <button type="submit" disabled={!saisie.trim()} aria-label="Ajouter">+</button>
       </form>
       {message && <p className="discret" role="status">{message}</p>}
+      {devinees.length > 0 && (
+        <section className="devinees" aria-label="Bientôt à racheter">
+          <p className="surtitre">Bientôt à racheter</p>
+          <div className="puces">
+            {devinees.map((d) => (
+              <button key={d.texte} className="puce" title={d.rythme} onClick={() => void ajouterDevinee(d.texte)}>
+                + {d.texte}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {aPrendre.length === 0 && coches.length === 0 && <p className="vide">La liste est vide.</p>}
       {aPrendre.map((g) => (
