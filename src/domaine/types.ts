@@ -78,6 +78,8 @@ export interface Tache {
   faiteLe: string | null;
   faitePar: Id | null;
   creeLe: string;
+  /** « entretien » : un geste d'entretien de la maison, qui revient tous les quelques mois. */
+  categorie?: "entretien";
 }
 
 /** Horloge et générateur d'identifiants injectés, pour des tests déterministes. */
