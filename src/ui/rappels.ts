@@ -146,7 +146,12 @@ export async function essayerRappel(serveur: ServeurRappels): Promise<void> {
   await serveur.essaiRappel(inscription.endpoint);
 }
 
-/** À l'ouverture de l'app, la pastille du nombre de rappels s'efface. */
-export function effacerPastilleIcone(): void {
-  (navigator as { clearAppBadge?: () => Promise<void> }).clearAppBadge?.().catch(() => {});
+/**
+ * La pastille rouge de l'icône KoraHome, comme celle de Messages : le nombre de choses
+ * qui pressent (ce que contiendrait le rappel du matin). Zéro : pas de pastille.
+ * Sur iPhone, elle s'affiche une fois les notifications autorisées.
+ */
+export function afficherPastilleIcone(nombre: number): void {
+  const n = navigator as { setAppBadge?: (n: number) => Promise<void>; clearAppBadge?: () => Promise<void> };
+  (nombre > 0 ? n.setAppBadge?.(nombre) : n.clearAppBadge?.())?.catch(() => {});
 }

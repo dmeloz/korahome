@@ -69,8 +69,10 @@ n'écrit qu'aux membres de l'équipe du projet.
 
 ## Quand ça se synchronise
 
-À l'ouverture de l'app, au retour dans l'app, au retour du réseau, une seconde et
-demie après chaque modification, et toutes les 30 secondes tant que l'app est à
+À l'instant : dès qu'un iPhone envoie une modification, le serveur prévient l'autre
+(Supabase Realtime sur la table `documents`), qui la récupère aussitôt. Une modification
+part une demi-seconde après le geste. En filet de sécurité : à l'ouverture de l'app, au
+retour dans l'app, au retour du réseau, et toutes les 30 secondes tant que l'app est à
 l'écran. Réglages > Partage montre la dernière synchronisation et un bouton pour la
 relancer.
 

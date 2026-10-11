@@ -3,7 +3,8 @@
 Aux jours et à l'heure choisis sur l'iPhone (tous les jours à 8 h au départ, de 5 h à 22 h, heure de Zurich), chaque iPhone inscrit reçoit **une seule** notification qui
 résume sa journée : ses tâches et les tâches libres (du jour et en retard), ce qui presse pour Mitsu
 (commande, provisions, soins) et ce qui arrive à sa date au frigo ou au placard dans les trois jours. Rien à faire : pas de notification. La pastille de l'icône affiche le
-nombre de rappels et s'efface à l'ouverture de l'app.
+nombre de choses qui pressent, comme celle de Messages : depuis Kora 0.1.0, l'app la tient à jour
+à chaque changement (tâche faite, produit consommé), et elle disparaît quand tout est fait.
 
 ## Sur l'iPhone
 

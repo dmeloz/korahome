@@ -15,12 +15,12 @@ export const environnementNavigateur: Environnement = {
   },
 };
 
-export const DELAI_APRES_MODIFICATION = 1500;
+export const DELAI_APRES_MODIFICATION = 500;
 export const INTERVALLE = 30_000;
 
 /**
  * Quand synchroniser : à l'ouverture, au retour dans l'app, au retour du réseau,
- * peu après chaque modification faite ici, et toutes les 30 secondes tant que l'app est à l'écran.
+ * une demi-seconde après chaque modification faite ici, et toutes les 30 secondes tant que l'app est à l'écran.
  */
 export function planifierSynchro(
   synchro: Synchro,
@@ -49,5 +49,28 @@ export function planifierSynchro(
     clearTimeout(attente);
     clearInterval(minuterie);
     arrets.forEach((arreter) => arreter());
+  };
+}
+
+/** Plusieurs changements arrivent souvent d'un coup : un seul passage pour la rafale. */
+export const DELAI_TEMPS_REEL = 250;
+
+/**
+ * La synchro à l'instant : dès que le serveur signale un changement du foyer (fait sur
+ * l'autre iPhone, ou l'écho de ce téléphone), un passage récupère les nouveautés.
+ */
+export function synchroEnDirect(
+  synchro: Synchro,
+  ecouter: (rappel: () => void) => () => void,
+  delai = DELAI_TEMPS_REEL,
+): () => void {
+  let attente: ReturnType<typeof setTimeout> | undefined;
+  const arreter = ecouter(() => {
+    clearTimeout(attente);
+    attente = setTimeout(() => void synchro.synchroniser(), delai);
+  });
+  return () => {
+    clearTimeout(attente);
+    arreter();
   };
 }

@@ -9,7 +9,7 @@ Fiche projet et plan (sur le Mac de la propriétaire) : `~/Atelier-Claude/Cervea
 - `npm test` : tests (Vitest).
 - `npm run typecheck` puis `npm run build` : vérification des types et build de production dans `dist/`.
 - En ligne : https://korahome-cassa.netlify.app, publiée sur Netlify par l'action GitHub `Publier` à chaque fusion dans `main` (voir `docs/en-ligne.md`).
-- `npm run fonction` : régénère la fonction serveur des rappels après une modification des règles (voir `docs/notifications.md`).
+- `npm run fonction` : régénère les fonctions serveur (rappels, Jarvis) après une modification de leurs règles (voir `docs/notifications.md`, `docs/jarvis.md`).
 - `npm run serveur` : sert l'app en https sur le wifi depuis le Mac (certificat local dans `.certificats/`, voir `docs/installer-sur-iphone.md`).
 
 ## Architecture
@@ -17,6 +17,7 @@ Fiche projet et plan (sur le Mac de la propriétaire) : `~/Atelier-Claude/Cervea
 - `src/donnees/` : accès aux données derrière l'interface `Depot`. `depotLocal.ts` = IndexedDB sur l'appareil, qui note aussi chaque modification partagée « en attente ». `synchro.ts` reçoit puis envoie ces modifications (la plus récente gagne) vers le serveur décrit par `distant.ts` ; `supabase.ts` en est l'implémentation, `serveurFactice.ts` celle des tests.
 - `supabase/schema.sql` : tables, règles de sécurité et fonctions du serveur partagé. Mise en route : `docs/activer-le-partage.md`. Adresse et clé publique dans `.env.local` sur le Mac (ignoré par Git).
 - `supabase/functions/rappels/` : rappels du matin à 8 h (Web Push), règles dans `src/domaine/rappels.ts`. Voir `docs/notifications.md`.
+- `supabase/functions/jarvis/` : Jarvis, l'assistant (Claude, clé dans les secrets Supabase, plafond 5 CHF par mois). Règles et outils dans `src/domaine/jarvis.ts`, actions appliquées par le téléphone via le `Depot`. Voir `docs/jarvis.md`.
 - `serveur/` : code qui tourne sur le Mac qui sert l'app (réception des rapports de test, branchée dans `vite.config.ts`).
 - `src/ui/` : écrans React. Ils lisent par `useDonnees` et écrivent par le `Depot`, jamais directement dans IndexedDB.
 

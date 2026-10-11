@@ -7,7 +7,9 @@ import { decrirePeremption, resumeStock, type Produit } from "../domaine/stock";
 import { compterDues, decrireEcheance, organiserTaches } from "../domaine/taches";
 import type { Element, Foyer, Jour, Liste, Tache } from "../domaine/types";
 import type { Depot } from "../donnees/depot";
+import { organiserEntretien } from "../domaine/entretien";
 import { DetailListe } from "./ecrans/DetailListe";
+import { Entretien } from "./ecrans/Entretien";
 import { Listes } from "./ecrans/Listes";
 import { Mitsu } from "./ecrans/Mitsu";
 import { Stock } from "./ecrans/Stock";
@@ -179,6 +181,23 @@ export const MODULES: Partial<Record<WidgetId, ModuleUI>> = {
       <Stock depot={p.depot} membreId={p.membreId} produits={p.produits} catalogue={p.catalogue} listes={p.listes} elements={p.elements} aujourdhui={p.aujourdhui} />
     ),
   },
+
+  entretien: {
+    id: "entretien",
+    picto: "outil",
+    libelle: "Entretien",
+    widget: (d) => {
+      const lignes = organiserEntretien(d.taches, d.aujourdhui);
+      const dus = lignes.filter((l) => l.du);
+      return {
+        chiffre: dus.length,
+        legende: lignes.length === 0 ? "Choisis ce qui concerne la maison" : dus.length ? "à faire cette semaine" : "Rien cette semaine",
+        lignes: (dus.length ? dus : lignes).slice(0, 3).map((l) => `${l.tache.titre} · ${l.quand}`),
+        urgent: lignes.some((l) => l.quand.startsWith("en retard")),
+      };
+    },
+    page: (p) => <Entretien depot={p.depot} membreId={p.membreId} taches={p.taches} aujourdhui={p.aujourdhui} />,
+  },
 };
 
 /** Le pictogramme d'une section, y compris celles qui arrivent bientôt. */
@@ -189,5 +208,6 @@ export const PICTOS: Record<WidgetId, NomIcone> = {
   agenda: "calendrier",
   mitsu: "chat",
   stock: "frigo",
+  entretien: "outil",
   jardin: "feuille",
 };

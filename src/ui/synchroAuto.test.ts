@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Synchro } from "../donnees/synchro";
-import { DELAI_APRES_MODIFICATION, INTERVALLE, planifierSynchro, type Environnement } from "./synchroAuto";
+import { DELAI_APRES_MODIFICATION, DELAI_TEMPS_REEL, INTERVALLE, planifierSynchro, synchroEnDirect, type Environnement } from "./synchroAuto";
 
 function preparer() {
   const synchro = { demarrer: vi.fn(async () => {}), synchroniser: vi.fn(async () => {}) } as unknown as Synchro & {
@@ -83,5 +83,30 @@ describe("synchro automatique", () => {
     await vi.advanceTimersByTimeAsync(INTERVALLE * 2);
     expect(synchro.synchroniser).toHaveBeenCalledTimes(1);
     expect(ecouteurs.size).toBe(0);
+  });
+});
+
+describe("synchro en direct", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("un seul passage pour une rafale de changements signalés par le serveur", async () => {
+    const synchro = { synchroniser: vi.fn(async () => {}) } as unknown as Synchro & { synchroniser: ReturnType<typeof vi.fn> };
+    let signaler = () => {};
+    const fermer = vi.fn();
+    const arreter = synchroEnDirect(synchro, (r) => {
+      signaler = r;
+      return fermer;
+    });
+    signaler();
+    signaler();
+    signaler();
+    await vi.advanceTimersByTimeAsync(DELAI_TEMPS_REEL);
+    expect(synchro.synchroniser).toHaveBeenCalledTimes(1);
+    signaler();
+    arreter();
+    await vi.advanceTimersByTimeAsync(DELAI_TEMPS_REEL);
+    expect(synchro.synchroniser).toHaveBeenCalledTimes(1);
+    expect(fermer).toHaveBeenCalled();
   });
 });

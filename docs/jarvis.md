@@ -1,0 +1,57 @@
+# Jarvis : l'assistant du foyer
+
+Le bouton étoile en haut de l'accueil ouvre Jarvis. On lui écrit, ou on touche le micro et on lui
+parle : « ajoute du lait et des œufs », « la litière est faite », « Sarah sort les poubelles samedi »,
+« qu'est-ce qui périme bientôt ? ». Il répond en une phrase et agit tout seul ; chaque réponse qui a
+changé quelque chose a son bouton **Annuler**. Quand on lui a parlé, il répond aussi à voix haute.
+
+Ce qu'il sait faire (Kora 0.1.0) : ajouter et cocher des courses, créer une tâche (unique ou qui
+revient, pour quelqu'un ou libre), marquer une tâche faite, ranger des produits au frigo, au
+congélateur ou au placard, noter une pesée de Mitsu, et répondre sur l'état du foyer.
+Il confie aussi une tâche à quelqu'un. Il ne supprime rien et ne dépense rien. Siri viendra avec
+l'app native.
+
+- **Photo** : le bouton appareil photo envoie une lettre, une facture ou une carte de rendez-vous ;
+  Jarvis crée une tâche à la date de chaque rendez-vous ou échéance. La photo est réduite à
+  1600 pixels en JPEG sur le téléphone avant de partir, et n'est gardée nulle part.
+- **Ticket de caisse** : la même photo range les achats au stock, avec leur quantité ; sans date
+  écrite, la durée habituelle du foyer (ou celle que Kora connaît) donne la date de péremption, et
+  les courses correspondantes se cochent. La part budget viendra avec le module Budget.
+- **Recette** : coller le lien d'une recette (Betty Bossi, Fooby, Marmiton…). Le serveur ouvre la page
+  (https public seulement, 8 secondes, 1,5 Mo au plus), lit les ingrédients dans ses données
+  structurées ou, à défaut, son texte, et Jarvis n'ajoute aux courses que ce qui manque.
+- **Conseil de la semaine** : depuis Jarvis, « Préparer la semaine ensemble ». Le modèle plus réfléchi
+  (`claude-sonnet-5-5`) propose qui fait quoi, cinq repas qui finissent d'abord ce qui arrive à sa
+  date, et les courses. Chaque proposition se coche ou se décoche, puis **Valider ensemble**
+  applique le reste (avec Annuler). Compter quelques centimes par conseil.
+
+## Comment ça marche
+
+- `src/domaine/jarvisModele.ts` (copié dans la fonction serveur) et `src/domaine/jarvis.ts` : ses consignes, ses outils, la lecture des recettes, ce qu'il sait du foyer, comment ses actions
+  modifient les données, et le plafond de dépense (testé). C'est la règle que reprendra l'app native.
+- `src/ui/ecrans/Jarvis.tsx`, `src/ui/ecrans/Conseil.tsx` et `src/ui/jarvis.ts` : la conversation, le conseil, les photos, la voix (reconnaissance et
+  synthèse de l'iPhone), l'enregistrement dans le Dépôt et l'annulation.
+- `supabase/functions/jarvis/` : la fonction serveur. Elle vérifie que le téléphone est membre du
+  foyer, refuse au-delà du plafond, interroge Claude (modèle léger `claude-haiku-5-5`), compte la
+  dépense et renvoie la réponse et les actions. Le téléphone vérifie chaque action avant de l'appliquer.
+- `supabase/schema.sql`, section « Jarvis » : la table `prive.conso_jarvis` (dépense par foyer et par
+  mois) et la fonction `jarvis_compter`, réservée au serveur.
+
+## Le budget
+
+Plafond de **5 CHF par mois** pour tout le foyer : à 80 %, Jarvis l'écrit sous la conversation ; au
+plafond, il se tait jusqu'au 1er du mois suivant. Une demande ordinaire coûte moins d'un millième de
+franc. Le compte se fait en millionièmes de franc, avec un dollar compté 0,90 CHF (prudent).
+Par sécurité, fixer aussi une limite mensuelle sur la console Anthropic (Limits > Spend limit).
+
+## Mise en route (une fois)
+
+1. Sur https://console.anthropic.com : créer une clé d'API (Settings > API keys) et une limite de
+   dépense mensuelle.
+2. Dans Supabase > Edge Functions > Secrets : ajouter `ANTHROPIC_API_KEY` avec cette clé. Elle ne passe
+   jamais par le dépôt ni par un téléphone.
+3. Appliquer la section « Jarvis » de `supabase/schema.sql`.
+4. Déployer la fonction `jarvis` (fichiers `index.ts` et `domaine.js`, sans vérification JWT : elle
+   contrôle elle-même la session du téléphone).
+
+Après une modification de `src/domaine/jarvis.ts` : `npm run fonction`, puis redéployer `jarvis`.
