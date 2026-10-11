@@ -154,6 +154,23 @@ export function creerServicesSupabase(url: string, cle: string): ServicesDistant
       await appelerFonction(await supabase(), "rappels", { mode: "essai", endpoint });
     },
 
+    ecouterFoyer(foyerId, rappel) {
+      let arrete = false;
+      let fermer = () => {};
+      void supabase().then((sb) => {
+        if (arrete) return;
+        const canal = sb
+          .channel(`foyer-${foyerId}`)
+          .on("postgres_changes", { event: "*", schema: "public", table: "documents", filter: `foyer_id=eq.${foyerId}` }, rappel)
+          .subscribe();
+        fermer = () => void sb.removeChannel(canal);
+      });
+      return () => {
+        arrete = true;
+        fermer();
+      };
+    },
+
     async demanderJarvis(demande) {
       return (await appelerFonction(await supabase(), "jarvis", demande)) as unknown as ReponseJarvis;
     },

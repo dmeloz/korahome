@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, useSyncExternalStore, type FormEvent } from "react";
 import { afficherCode, decrireDerniereSynchro, normaliserCode } from "../../domaine/synchro";
 import type { Foyer } from "../../domaine/types";
-import type { Compte, FoyerPartage, ServeurJarvis, ServeurRappels } from "../../donnees/distant";
+import type { Compte, FoyerPartage, ServeurJarvis, ServeurRappels, TempsReel } from "../../donnees/distant";
 import type { StatutSynchro, Synchro } from "../../donnees/synchro";
 
 export interface ServicesPartage {
@@ -11,6 +11,8 @@ export interface ServicesPartage {
   rappels: ServeurRappels;
   /** Jarvis aussi : la clé de l'API reste sur le serveur. */
   jarvis: ServeurJarvis;
+  /** Le serveur prévient dès que l'autre iPhone change quelque chose. */
+  tempsReel: TempsReel;
 }
 
 const LONGUEUR_MOT_DE_PASSE = 8;

@@ -20,7 +20,7 @@ import { noter } from "./journal";
 import { MODULES, type DonneesModule } from "./modules";
 import { enregistrerPastilleVisible, lirePastilleVisible } from "./rapport";
 import { lirePreferences, mettreAJourRappels } from "./rappels";
-import { planifierSynchro } from "./synchroAuto";
+import { planifierSynchro, synchroEnDirect } from "./synchroAuto";
 import { useDonnees } from "./useDonnees";
 
 // Pas de barre d'onglets : tout part du tableau de bord, chaque widget ouvre la
@@ -51,8 +51,14 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   const partageActif = useSyncExternalStore(synchro?.abonner ?? sansAbonnement, () => (synchro?.statut().etat ?? "inactif") !== "inactif");
   useEffect(() => (synchro ? planifierSynchro(synchro, depot) : undefined), [synchro, depot]);
 
-  // Le serveur des rappels sait qui utilise ce téléphone, même après un changement dans Réglages.
   const foyerPartage = partageActif && foyer ? foyer.id : null;
+  // Ce que l'autre iPhone change arrive à l'instant.
+  useEffect(
+    () => (partage && foyerPartage ? synchroEnDirect(partage.synchro, (r) => partage.tempsReel.ecouterFoyer(foyerPartage, r)) : undefined),
+    [partage, foyerPartage],
+  );
+
+  // Le serveur des rappels sait qui utilise ce téléphone, même après un changement dans Réglages.
   const membreRappels = foyer?.membres.some((m) => m.id === membreId) ? membreId : null;
   useEffect(() => {
     if (partage && foyerPartage) mettreAJourRappels(partage.rappels, foyerPartage, membreRappels, lirePreferences()).catch(() => {});

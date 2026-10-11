@@ -77,4 +77,10 @@ export interface ServeurJarvis {
   demanderJarvis(demande: DemandeJarvis): Promise<ReponseJarvis>;
 }
 
-export type ServicesDistants = Distant & Compte & ServeurRappels & ServeurJarvis;
+/** Le serveur prévient dès qu'un document du foyer change : l'autre iPhone le voit à l'instant. */
+export interface TempsReel {
+  /** Appelle `rappel` à chaque changement sur le serveur ; renvoie de quoi arrêter d'écouter. */
+  ecouterFoyer(foyerId: Id, rappel: () => void): () => void;
+}
+
+export type ServicesDistants = Distant & Compte & ServeurRappels & ServeurJarvis & TempsReel;

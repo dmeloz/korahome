@@ -43,6 +43,15 @@ alter table public.documents add constraint documents_collection_check
 
 create index if not exists documents_nouveautes on public.documents (foyer_id, maj_serveur);
 
+-- La synchro à l'instant (Kora 0.1.0) : le serveur prévient les téléphones du foyer dès
+-- qu'un document change (Supabase Realtime, qui respecte les règles de lecture ci-dessous).
+do $$
+begin
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'documents') then
+    alter publication supabase_realtime add table public.documents;
+  end if;
+end $$;
+
 -- La modification la plus récente gagne ; l'heure du serveur est toujours celle de l'arrivée.
 create or replace function public.documents_plus_recent()
 returns trigger language plpgsql set search_path = '' as $$
