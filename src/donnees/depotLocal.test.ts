@@ -5,6 +5,7 @@ import { creerFoyer, listesInitiales } from "../domaine/foyer";
 import { basculerCoche, nouvelElement } from "../domaine/listes";
 import { ajouterPesee, nouvelAnimal } from "../domaine/mitsu";
 import { basculerRegle, nouveauRetour } from "../domaine/retours";
+import { apprendre } from "../domaine/catalogue";
 import { deplacer, nouveauProduit } from "../domaine/stock";
 import { marquerFaite, tachesDeDepart } from "../domaine/taches";
 import { creerDepotLocal } from "./depotLocal";
@@ -135,6 +136,32 @@ describe("dépôt local", () => {
     const depot = creerDepotLocal("v6", fabrique);
     expect(await depot.lireEtat()).toEqual({ foyerId: "f1", curseur: null, derniere: null });
     expect(await depot.lireProduits()).toEqual([]);
+  });
+
+  it("relit le serveur une fois à l'arrivée de la Base, et la partage", async () => {
+    const fabrique = new IDBFactory();
+    const ancienne = fabrique.open("v7", 7);
+    await new Promise<void>((ok) => {
+      ancienne.onupgradeneeded = () => {
+        for (const m of ["foyer", "listes", "elements", "taches", "retours", "animaux", "stock", "synchro"]) ancienne.result.createObjectStore(m, { keyPath: "id" });
+        ancienne.result.createObjectStore("attente", { keyPath: "cle" });
+        ancienne.transaction!.objectStore("synchro").put({ id: "etat", foyerId: "f1", curseur: "2026-10-11T10:00:00Z", derniere: null });
+      };
+      ancienne.onsuccess = () => {
+        ancienne.result.close();
+        ok();
+      };
+    });
+    const depot = creerDepotLocal("v7", fabrique);
+    expect(await depot.lireEtat()).toEqual({ foyerId: "f1", curseur: null, derniere: null });
+    const ctx = contexteTest();
+    const lait = nouveauProduit({ texte: "2 l lait", lieu: "frigo", peremption: "2026-10-18" }, null, ctx);
+    const habituel = apprendre([], lait, "2026-10-11", ctx);
+    await depot.enregistrerHabituel(habituel);
+    expect(await depot.lireCatalogue()).toEqual([habituel]);
+    expect((await depot.lireEnAttente()).map((c) => c.collection)).toEqual(["catalogue"]);
+    await depot.supprimerHabituel(habituel.id);
+    expect(await depot.lireCatalogue()).toEqual([]);
   });
 
   it("conserve le suivi de Mitsu", async () => {

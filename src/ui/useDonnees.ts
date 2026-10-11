@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import type { ProduitHabituel } from "../domaine/catalogue";
 import type { Animal } from "../domaine/mitsu";
 import type { RetourTest } from "../domaine/retours";
 import type { Produit } from "../domaine/stock";
@@ -14,14 +15,15 @@ export interface Donnees {
   retours: RetourTest[];
   animaux: Animal[];
   produits: Produit[];
+  catalogue: ProduitHabituel[];
 }
 
 /** Charge toutes les données et les recharge à chaque changement du dépôt. */
 export function useDonnees(depot: Depot): Donnees {
-  const [donnees, setDonnees] = useState<Donnees>({ pret: false, foyer: null, listes: [], elements: [], taches: [], retours: [], animaux: [], produits: [] });
+  const [donnees, setDonnees] = useState<Donnees>({ pret: false, foyer: null, listes: [], elements: [], taches: [], retours: [], animaux: [], produits: [], catalogue: [] });
 
   const charger = useCallback(async () => {
-    const [foyer, listes, elements, taches, retours, animaux, produits] = await Promise.all([
+    const [foyer, listes, elements, taches, retours, animaux, produits, catalogue] = await Promise.all([
       depot.lireFoyer(),
       depot.lireListes(),
       depot.lireElements(),
@@ -29,10 +31,11 @@ export function useDonnees(depot: Depot): Donnees {
       depot.lireRetours(),
       depot.lireAnimaux(),
       depot.lireProduits(),
+      depot.lireCatalogue(),
     ]);
     listes.sort((a, b) => a.creeLe.localeCompare(b.creeLe));
     animaux.sort((a, b) => a.creeLe.localeCompare(b.creeLe));
-    setDonnees({ pret: true, foyer, listes, elements, taches, retours, animaux, produits });
+    setDonnees({ pret: true, foyer, listes, elements, taches, retours, animaux, produits, catalogue });
   }, [depot]);
 
   useEffect(() => {

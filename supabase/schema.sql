@@ -24,7 +24,7 @@ create table if not exists public.membres_foyer (
 
 create table if not exists public.documents (
   foyer_id text not null references public.foyers (id) on delete cascade,
-  collection text not null check (collection in ('foyer', 'listes', 'elements', 'taches', 'animaux', 'stock', 'retours')),
+  collection text not null check (collection in ('foyer', 'listes', 'elements', 'taches', 'animaux', 'stock', 'catalogue', 'retours')),
   id text not null,
   -- Le document complet ; null quand il a été supprimé.
   donnees jsonb,
@@ -36,10 +36,11 @@ create table if not exists public.documents (
 );
 
 -- Les notes de test se partagent depuis Kora 0.0.7, le stock (frigo, congélateur, placard)
--- depuis Kora 0.0.9 : une base plus ancienne reçoit la nouvelle liste.
+-- depuis Kora 0.0.9, la Base des produits habituels depuis Kora 0.0.10 : une base plus
+-- ancienne reçoit la nouvelle liste.
 alter table public.documents drop constraint if exists documents_collection_check;
 alter table public.documents add constraint documents_collection_check
-  check (collection in ('foyer', 'listes', 'elements', 'taches', 'animaux', 'stock', 'retours'));
+  check (collection in ('foyer', 'listes', 'elements', 'taches', 'animaux', 'stock', 'catalogue', 'retours'));
 
 create index if not exists documents_nouveautes on public.documents (foyer_id, maj_serveur);
 
