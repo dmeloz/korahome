@@ -7,6 +7,11 @@ import {
   ordreAffichage,
   retirerWidget,
   widgetsAAjouter,
+  basculerTaille,
+  deplacerVers,
+  nettoyerTailles,
+  tailleDe,
+  type Disposition,
 } from "./tableauDeBord";
 
 describe("tableau de bord", () => {
@@ -47,5 +52,26 @@ describe("tableau de bord", () => {
     const d = ["courses", "listes", "taches"] as const;
     expect(ordreAffichage([...d], new Set(["taches"]))).toEqual(["taches", "courses", "listes"]);
     expect(ordreAffichage([...d], new Set())).toEqual(["courses", "listes", "taches"]);
+  });
+});
+
+describe("taille et glisser des widgets", () => {
+  it("un widget est grand tant qu'on ne l'a pas réduit", () => {
+    expect(tailleDe({}, "taches")).toBe("grand");
+    const petit = basculerTaille({}, "taches");
+    expect(tailleDe(petit, "taches")).toBe("petit");
+    expect(tailleDe(basculerTaille(petit, "taches"), "taches")).toBe("grand");
+  });
+
+  it("relit les tailles en ignorant le reste", () => {
+    expect(nettoyerTailles({ taches: "petit", courses: "grand", inconnu: "petit" })).toEqual({ taches: "petit" });
+    expect(nettoyerTailles("n'importe quoi")).toEqual({});
+  });
+
+  it("glisse un widget à la place d'un autre, vers le haut comme vers le bas", () => {
+    const d: Disposition = ["taches", "courses", "listes", "mitsu"];
+    expect(deplacerVers(d, "mitsu", "courses")).toEqual(["taches", "mitsu", "courses", "listes"]);
+    expect(deplacerVers(d, "taches", "listes")).toEqual(["courses", "listes", "taches", "mitsu"]);
+    expect(deplacerVers(d, "taches", "taches")).toBe(d);
   });
 });

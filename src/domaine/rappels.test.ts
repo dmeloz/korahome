@@ -2,7 +2,20 @@ import { describe, expect, it } from "vitest";
 import { contexteTest } from "./contexteTest";
 import { creerFoyer } from "./foyer";
 import { ajouterSoin, nouvelAnimal, nouveauSoin } from "./mitsu";
-import { decalerHeure, formaterHeure, heureValide, jourEtHeure, PREFERENCES_DE_DEPART, rappelDu, rappelDuMatin, tachesDuMatin } from "./rappels";
+import {
+  basculerJour,
+  decalerHeure,
+  decrireJours,
+  formaterHeure,
+  heureValide,
+  jourDeLaSemaine,
+  jourEtHeure,
+  nettoyerJours,
+  PREFERENCES_DE_DEPART,
+  rappelDu,
+  rappelDuMatin,
+  tachesDuMatin,
+} from "./rappels";
 import { marquerFaite, nouvelleTache } from "./taches";
 
 const AUJOURDHUI = "2026-10-12";
@@ -77,5 +90,41 @@ describe("l'heure du rappel", () => {
     expect(heureValide(23)).toBe(false);
     expect(heureValide("8")).toBe(false);
     expect(formaterHeure(7)).toBe("7:00");
+  });
+});
+
+describe("les jours du rappel", () => {
+  it("arrive tous les jours au départ", () => {
+    expect(PREFERENCES_DE_DEPART.jours).toEqual([1, 2, 3, 4, 5, 6, 0]);
+    expect(decrireJours(PREFERENCES_DE_DEPART.jours)).toBe("Tous les jours");
+  });
+
+  it("se décrit comme dans l'app Horloge", () => {
+    expect(decrireJours([1, 2, 3, 4, 5])).toBe("En semaine");
+    expect(decrireJours([0, 6])).toBe("Le week-end");
+    expect(decrireJours([5, 1, 3])).toBe("lun, mer, ven");
+  });
+
+  it("ajoute et retire un jour, mais jamais le dernier", () => {
+    expect(basculerJour([1, 2], 0)).toEqual([1, 2, 0]);
+    expect(basculerJour([1, 2], 1)).toEqual([2]);
+    expect(basculerJour([3], 3)).toEqual([3]);
+  });
+
+  it("relit des jours enregistrés, ou tous les jours à défaut", () => {
+    expect(nettoyerJours([0, 3, 3, 9])).toEqual([3, 0]);
+    expect(nettoyerJours(undefined)).toEqual([1, 2, 3, 4, 5, 6, 0]);
+    expect(nettoyerJours([])).toEqual([1, 2, 3, 4, 5, 6, 0]);
+  });
+
+  it("ne part que les jours choisis", () => {
+    // Le 12 octobre 2026 est un lundi, le 17 un samedi ; 8 h à Zurich = 6 h UTC en été.
+    expect(jourDeLaSemaine("2026-10-12")).toBe(1);
+    const lundi = new Date("2026-10-12T06:10:00Z");
+    const samedi = new Date("2026-10-17T06:10:00Z");
+    expect(rappelDu(lundi, 8, null, "Europe/Zurich", [1, 2, 3, 4, 5])).toBe("2026-10-12");
+    expect(rappelDu(samedi, 8, null, "Europe/Zurich", [1, 2, 3, 4, 5])).toBeNull();
+    expect(rappelDu(samedi, 8, null, "Europe/Zurich", [6, 0])).toBe("2026-10-17");
+    expect(rappelDu(samedi, 8, null)).toBe("2026-10-17");
   });
 });

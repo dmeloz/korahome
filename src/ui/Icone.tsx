@@ -14,6 +14,13 @@ const TRACES = {
   moins: "M6 12h12",
   ajouter: "M12 5v14M5 12h14",
   suivant: "M9 5l7 7-7 7",
+  cloche: "M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5a2 2 0 0 0 4 0",
+  partage: "M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4",
+  info: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5M12 8h.01",
+  note: "M5 4h10l4 4v12H5zM14 4v5h5M8 13h8M8 17h5",
+  pastilleDev: "M7 8h10a4 4 0 0 1 0 8H7a4 4 0 0 1 0-8zM8.5 12h.01",
+  agrandir: "M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7",
+  reduire: "M4 14h6v6M20 10h-6V4M10 14l-7 7M14 10l7-7",
 } as const;
 
 export type NomIcone = keyof typeof TRACES;

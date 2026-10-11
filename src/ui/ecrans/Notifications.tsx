@@ -1,5 +1,17 @@
 import { useEffect, useState } from "react";
-import { decalerHeure, formaterHeure, HEURE_MAX, HEURE_MIN, type PreferencesRappels } from "../../domaine/rappels";
+import type { Animal } from "../../domaine/mitsu";
+import {
+  basculerJour,
+  decrireJours,
+  formaterHeure,
+  HEURE_MAX,
+  HEURE_MIN,
+  JOURS_SEMAINE,
+  RACCOURCIS_JOURS,
+  rappelDuMatin,
+  type PreferencesRappels,
+} from "../../domaine/rappels";
+import type { Foyer, Jour, Tache } from "../../domaine/types";
 import type { ServeurRappels } from "../../donnees/distant";
 import {
   activerRappels,
@@ -23,6 +35,11 @@ export function Notifications(props: {
   foyerId: string | null;
   membreId: string | null;
   ouvrirPartage: () => void;
+  /** Pour l'aperçu du rappel. */
+  foyer: Foyer;
+  taches: Tache[];
+  animaux: Animal[];
+  aujourdhui: Jour;
 }) {
   const [etat, setEtat] = useState<EtatRappels | null>(null);
   const [preferences, setPreferences] = useState(lirePreferences);
@@ -57,33 +74,88 @@ export function Notifications(props: {
       if (etat === "actifs" && serveur && foyerId) await mettreAJourRappels(serveur, foyerId, membreId, suivantes);
     });
 
+  const heures = Array.from({ length: HEURE_MAX - HEURE_MIN + 1 }, (_, i) => HEURE_MIN + i);
+  const memesJours = (jours: readonly number[]) =>
+    jours.length === preferences.jours.length && jours.every((j) => preferences.jours.includes(j));
+
+  // Comme une alarme de l'app Horloge : la grande heure ouvre la roue de l'iPhone,
+  // les jours se cochent un par un ou d'un raccourci.
   const reglerHeure = (
-    <div className="rappels-reglage-heure">
-      <button
-        className="bouton-icone"
-        aria-label="Une heure plus tôt"
-        disabled={occupe || preferences.heure <= HEURE_MIN}
-        onClick={() => changer({ ...preferences, heure: decalerHeure(preferences.heure, -1) })}
-      >
-        −
-      </button>
-      <p className="rappels-heure" aria-live="polite">{heure}</p>
-      <button
-        className="bouton-icone"
-        aria-label="Une heure plus tard"
-        disabled={occupe || preferences.heure >= HEURE_MAX}
-        onClick={() => changer({ ...preferences, heure: decalerHeure(preferences.heure, 1) })}
-      >
-        +
-      </button>
-    </div>
+    <>
+      <label className="rappels-horloge">
+        <span className="rappels-heure" aria-hidden>{heure}</span>
+        <span className="discret">{decrireJours(preferences.jours)}</span>
+        <select
+          className="rappels-roue"
+          aria-label="Heure du rappel"
+          value={preferences.heure}
+          disabled={occupe}
+          onChange={(e) => changer({ ...preferences, heure: Number(e.target.value) })}
+        >
+          {heures.map((h) => (
+            <option key={h} value={h}>{formaterHeure(h)}</option>
+          ))}
+        </select>
+      </label>
+      <div className="rappels-jours" role="group" aria-label="Jours du rappel">
+        {JOURS_SEMAINE.map((j) => {
+          const actif = preferences.jours.includes(j.numero);
+          return (
+            <button
+              key={j.numero}
+              className={`rappels-jour${actif ? " actif" : ""}`}
+              aria-pressed={actif}
+              aria-label={j.nom}
+              disabled={occupe || (actif && preferences.jours.length === 1)}
+              onClick={() => changer({ ...preferences, jours: basculerJour(preferences.jours, j.numero) })}
+            >
+              {j.initiale}
+            </button>
+          );
+        })}
+      </div>
+      <div className="puces rappels-raccourcis">
+        {RACCOURCIS_JOURS.map((r) => (
+          <button
+            key={r.libelle}
+            className={`puce${memesJours(r.jours) ? " active" : ""}`}
+            disabled={occupe}
+            onClick={() => changer({ ...preferences, jours: [...r.jours] })}
+          >
+            {r.libelle}
+          </button>
+        ))}
+      </div>
+    </>
+  );
+
+  // Ce que dirait le rappel si on était au matin, présenté comme une notification de l'iPhone.
+  const rappel = rappelDuMatin({ foyer: props.foyer, membreId, taches: props.taches, animaux: props.animaux, aujourdhui: props.aujourdhui, preferences });
+  const apercu = (
+    <>
+      <h2 className="rayon">Aperçu</h2>
+      {rappel ? (
+        <div className="notification-ios" aria-label="Aperçu du rappel">
+          <span className="notification-icone" aria-hidden>KH</span>
+          <div className="notification-texte">
+            <p className="notification-entete">
+              <strong>{rappel.titre}</strong>
+              <span>{heure}</span>
+            </p>
+            <p>{rappel.corps}</p>
+          </div>
+        </div>
+      ) : (
+        <p className="discret rappels-vide">Rien à signaler aujourd'hui : ce jour-là, pas de notification.</p>
+      )}
+    </>
   );
 
   return (
     <main className="rappels">
       <h1>Notifications</h1>
       <p className="discret rappels-intro">
-        Chaque jour à l'heure que tu choisis, un seul rappel avec ce qui t'attend dans la journée. Rien à faire : pas
+        Aux jours et à l'heure que tu choisis, un seul rappel avec ce qui t'attend dans la journée. Rien à faire : pas
         de notification. Chacun règle les siens sur son iPhone.
       </p>
 
@@ -110,6 +182,7 @@ export function Notifications(props: {
           <p className="discret">Pour les rouvrir : Réglages de l'iPhone, Notifications, KoraHome, puis « Autoriser les notifications ».</p>
         </div>
       ) : etat === "inactifs" ? (
+        <>
         <div className="carte rappels-carte">
           {reglerHeure}
           <p className="discret">L'iPhone va te demander l'autorisation : touche « Autoriser ».</p>
@@ -127,13 +200,15 @@ export function Notifications(props: {
             {occupe ? "Un instant…" : "Activer les rappels du matin"}
           </button>
         </div>
+        {apercu}
+        </>
       ) : (
         <>
           <div className="carte rappels-carte rappels-actifs">
             <span className="partage-point" aria-hidden />
-            <p>Activés sur cet iPhone, chaque jour à {heure}.</p>
+            <p>Activés sur cet iPhone : {decrireJours(preferences.jours).toLowerCase()} à {heure}.</p>
           </div>
-          <h2 className="rayon">Heure du rappel</h2>
+          <h2 className="rayon">Horaire</h2>
           <div className="carte rappels-carte">{reglerHeure}</div>
           <h2 className="rayon">Dans le rappel</h2>
           <ul className="carte groupe">
@@ -155,6 +230,7 @@ export function Notifications(props: {
               </li>
             ))}
           </ul>
+          {apercu}
           <div className="rappels-actions">
             <button
               className="lien"

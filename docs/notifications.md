@@ -1,6 +1,6 @@
 # Notifications : les rappels du matin
 
-Chaque jour à l'heure choisie sur l'iPhone (8 h au départ, de 5 h à 22 h, heure de Zurich), chaque iPhone inscrit reçoit **une seule** notification qui
+Aux jours et à l'heure choisis sur l'iPhone (tous les jours à 8 h au départ, de 5 h à 22 h, heure de Zurich), chaque iPhone inscrit reçoit **une seule** notification qui
 résume sa journée : ses tâches et les tâches libres (du jour et en retard), et ce qui presse pour Mitsu
 (commande, provisions, soins). Rien à faire : pas de notification. La pastille de l'icône affiche le
 nombre de rappels et s'efface à l'ouverture de l'app.
@@ -12,8 +12,11 @@ nombre de rappels et s'efface à l'ouverture de l'app.
 3. Réglages > Notifications > Rappels du matin > « Activer les rappels du matin », puis « Autoriser ».
 4. « Recevoir le rappel d'aujourd'hui maintenant » envoie tout de suite un essai.
 
-Chacun choisit sur son iPhone ce que contient son rappel (tâches, Mitsu). Le rappel suit la personne
-choisie dans « Qui utilise ce téléphone ? ».
+Chacun choisit sur son iPhone, comme une alarme de l'app Horloge : l'heure (la roue de l'iPhone), les
+jours (L M M J V S D, ou « Tous les jours », « En semaine », « Le week-end ») et ce que contient le
+rappel (tâches, Mitsu), avec un aperçu de la notification. Les jours voyagent dans les `preferences`
+de l'abonnement (`jours`, 0 = dimanche) : pas de changement de table. Le rappel suit la personne
+choisie dans Réglages > Ce téléphone.
 
 ## Comment ça marche
 
