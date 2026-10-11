@@ -24,7 +24,13 @@ export default defineConfig({
       registerType: "prompt",
       // Au tout premier lancement, l'app est prise en charge tout de suite.
       // Les rappels du matin : réception et toucher d'une notification (public/notifications-sw.js).
-      workbox: { clientsClaim: true, importScripts: ["notifications-sw.js"] },
+      // Le lecteur de codes-barres (WebAssembly) est gardé avec l'app pour marcher hors ligne.
+      workbox: {
+        clientsClaim: true,
+        importScripts: ["notifications-sw.js"],
+        globPatterns: ["**/*.{js,css,html,svg,png,wasm}"],
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+      },
       includeAssets: ["favicon.svg", "apple-touch-icon.png"],
       manifest: {
         name: "KoraHome",

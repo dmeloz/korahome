@@ -1,3 +1,4 @@
+import type { ProduitHabituel } from "../domaine/catalogue";
 import type { Animal } from "../domaine/mitsu";
 import type { Produit } from "../domaine/stock";
 import type { RetourTest } from "../domaine/retours";
@@ -10,9 +11,10 @@ import type { Depot } from "./depot";
 // Version 6 : les notes de test se partagent aussi ; celles déjà écrites partent au prochain envoi.
 // Version 7 : frigo, congélateur et placard ; tout est relu du serveur une fois, pour
 // retrouver le stock déjà partagé par l'autre téléphone.
+// Version 8 : la Base des produits habituels ; relecture du serveur une fois, pour la même raison.
 // La mise à jour crée seulement les magasins manquants.
-const VERSION = 7;
-const MAGASINS = ["foyer", "listes", "elements", "taches", "retours", "animaux", "stock", "attente", "synchro"] as const;
+const VERSION = 8;
+const MAGASINS = ["foyer", "listes", "elements", "taches", "retours", "animaux", "stock", "catalogue", "attente", "synchro"] as const;
 type Magasin = (typeof MAGASINS)[number];
 const CLES: Partial<Record<Magasin, string>> = { attente: "cle" };
 
@@ -76,7 +78,7 @@ function ouvrir(nomBase: string, fabrique: IDBFactory): Promise<IDBDatabase> {
           }
         });
       }
-      if (evenement.oldVersion < 7 && avant.contains("synchro")) {
+      if (evenement.oldVersion < 8 && avant.contains("synchro")) {
         const synchro = req.transaction!.objectStore("synchro");
         puis(synchro.get("etat") as IDBRequest<{ curseur: string | null } | undefined>, (etat) => {
           if (etat) synchro.put({ ...etat, curseur: null });
@@ -187,6 +189,10 @@ export function creerDepotLocal(
     lireProduits: () => tous<Produit>("stock"),
     enregistrerProduit: (produit) => poser("stock", [produit]),
     supprimerProduit: (id) => supprimer("stock", [id]),
+
+    lireCatalogue: () => tous<ProduitHabituel>("catalogue"),
+    enregistrerHabituel: (habituel) => poser("catalogue", [habituel]),
+    supprimerHabituel: (id) => supprimer("catalogue", [id]),
 
     lireRetours: () => tous<RetourTest>("retours"),
     enregistrerRetour: (retour) => poser("retours", [retour]),

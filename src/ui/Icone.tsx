@@ -22,6 +22,7 @@ const TRACES = {
   agrandir: "M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7",
   reduire: "M4 14h6v6M20 10h-6V4M10 14l-7 7M14 10l7-7",
   cadenas: "M7.5 11V8a4.5 4.5 0 0 1 9 0v3M6 11h12v9H6zM12 15v2",
+  codeBarres: "M3 7V4h3M18 4h3v3M21 17v3h-3M6 20H3v-3M7 8v8M10 8v8M13 8v8M15.5 8v8M17.5 8v8",
 } as const;
 
 export type NomIcone = keyof typeof TRACES;

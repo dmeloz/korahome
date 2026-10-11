@@ -16,14 +16,29 @@ export const LIEUX: Record<Lieu, string> = {
 
 export const ORDRE_LIEUX: readonly Lieu[] = ["frigo", "congelateur", "placard"];
 
+/** Les unités d'un produit : on compte les pièces, on pèse le reste. */
+export type Unite = "piece" | "g" | "kg" | "ml" | "l";
+
+export const UNITES: Record<Unite, string> = { piece: "pièce", g: "g", kg: "kg", ml: "ml", l: "l" };
+export const ORDRE_UNITES: readonly Unite[] = ["piece", "g", "kg", "ml", "l"];
+
 export interface Produit {
   id: Id;
   nom: string;
-  /** « 2 », « 500 g », « 1 l » ; null quand on ne l'a pas noté. */
+  /**
+   * La quantité en texte (« 2 », « 500 g »), tenue à jour à chaque écriture pour les
+   * versions de Kora d'avant les unités ; null quand on ne l'a pas notée.
+   */
   quantite: string | null;
+  /** Depuis Kora 0.0.10 : la quantité en nombre et son unité. Absents des produits plus anciens. */
+  nombre?: number | null;
+  unite?: Unite | null;
   lieu: Lieu;
   /** La date limite (à consommer ou de préférence) ; null quand il n'y en a pas. */
   peremption: Jour | null;
+  /** Code-barres scanné et photo de la fiche Open Food Facts, quand il y en a. */
+  code?: string | null;
+  image?: string | null;
   ajoutePar: Id | null;
   creeLe: string;
 }
@@ -31,22 +46,110 @@ export interface Produit {
 /** Un produit dont la date tombe dans 3 jours ou moins est à consommer bientôt. */
 export const JOURS_BIENTOT = 3;
 
+export interface NouveauProduit {
+  nom: string;
+  nombre: number | null;
+  unite: Unite | null;
+  lieu: Lieu;
+  peremption: Jour | null;
+  code?: string | null;
+  image?: string | null;
+}
+
+export function creerProduit(saisie: NouveauProduit, ajoutePar: Id | null, ctx: Contexte): Produit {
+  const nom = majuscule(saisie.nom.trim().replace(/\s+/g, " "));
+  if (nom.length === 0) throw new ErreurValidation("Le produit est vide.");
+  return avecQuantite({
+    id: ctx.nouvelId(),
+    nom,
+    quantite: null,
+    nombre: saisie.nombre,
+    unite: saisie.nombre === null ? null : (saisie.unite ?? "piece"),
+    lieu: saisie.lieu,
+    peremption: saisie.peremption,
+    code: saisie.code ?? null,
+    image: saisie.image ?? null,
+    ajoutePar,
+    creeLe: ctx.maintenant(),
+  });
+}
+
+/** Ajout d'une ligne de texte, comme en 0.0.9 : « 2 yaourts ». */
 export function nouveauProduit(
   saisie: { texte: string; lieu: Lieu; peremption: Jour | null },
   ajoutePar: Id | null,
   ctx: Contexte,
 ): Produit {
   const { texte, quantite } = analyserSaisie(saisie.texte);
-  if (texte.length === 0) throw new ErreurValidation("Le produit est vide.");
-  return {
-    id: ctx.nouvelId(),
-    nom: texte,
-    quantite,
-    lieu: saisie.lieu,
-    peremption: saisie.peremption,
-    ajoutePar,
-    creeLe: ctx.maintenant(),
-  };
+  const { nombre, unite } = lireQuantite(quantite);
+  return creerProduit({ nom: texte, nombre, unite, lieu: saisie.lieu, peremption: saisie.peremption }, ajoutePar, ctx);
+}
+
+const majuscule = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/** « 500 g » → 500 g ; « 1,5 l » → 1.5 l ; « 2 » → 2 pièces ; « 33 cl » → 330 ml. */
+export function lireQuantite(texte: string | null): { nombre: number | null; unite: Unite | null } {
+  const m = texte?.trim().toLowerCase().match(/^(\d+(?:[.,]\d+)?)\s*([a-zéèêîôû]*)$/);
+  if (!m) return { nombre: null, unite: null };
+  const n = Number(m[1].replace(",", "."));
+  const u = m[2];
+  if (u === "cl") return { nombre: n * 10, unite: "ml" };
+  if (u === "g" || u === "kg" || u === "ml" || u === "l") return { nombre: n, unite: u };
+  return { nombre: n, unite: "piece" };
+}
+
+/** Le nombre et l'unité d'un produit, y compris d'un produit écrit avant les unités. */
+export function quantiteDe(p: Produit): { nombre: number | null; unite: Unite | null } {
+  if (p.nombre !== undefined) return { nombre: p.nombre ?? null, unite: p.nombre == null ? null : (p.unite ?? "piece") };
+  return lireQuantite(p.quantite);
+}
+
+const nombreEnTexte = (n: number) => String(Math.round(n * 100) / 100).replace(".", ",");
+
+/** « 2 », « 500 g », « 1,5 l » ; null sans quantité. */
+export function decrireQuantite(nombre: number | null, unite: Unite | null): string | null {
+  if (nombre === null) return null;
+  return !unite || unite === "piece" ? nombreEnTexte(nombre) : `${nombreEnTexte(nombre)} ${unite}`;
+}
+
+/** Recopie la quantité en texte, que lisent encore les téléphones restés en 0.0.9. */
+export function avecQuantite(p: Produit): Produit {
+  const { nombre, unite } = quantiteDe(p);
+  return { ...p, nombre, unite, quantite: decrireQuantite(nombre, unite) };
+}
+
+/** De combien les boutons − et + changent la quantité : par petits pas sous 100 g (ou 0,5 kg). */
+export function pasDe(unite: Unite | null, nombre: number, sens: 1 | -1): number {
+  const petit = (seuil: number) => (sens === 1 ? nombre < seuil : nombre <= seuil);
+  if (unite === "g" || unite === "ml") return petit(100) ? 25 : 100;
+  if (unite === "kg" || unite === "l") return petit(0.5) ? 0.25 : 0.5;
+  return 1;
+}
+
+/**
+ * Un toucher sur − ou + : la quantité change d'un pas. Sans quantité notée, on compte
+ * une pièce. Arrivé à zéro, le produit est fini : null.
+ */
+export function ajuster(p: Produit, sens: 1 | -1): Produit | null {
+  const { nombre, unite } = quantiteDe(p);
+  const actuel = nombre ?? 1;
+  const pas = pasDe(unite, actuel, sens);
+  const suivant = Math.round((actuel + sens * pas) * 100) / 100;
+  if (suivant <= 0) return null;
+  return avecQuantite({ ...p, nombre: suivant, unite: unite ?? "piece" });
+}
+
+/**
+ * Ce qui reste de sa durée de vie, de 1 (tout frais) à 0 (à sa date) ; null sans date.
+ * La durée court du jour de l'ajout à la date limite.
+ */
+export function fraicheur(p: Produit, aujourdhui: Jour): number | null {
+  if (!p.peremption) return null;
+  const total = ecartJours(p.creeLe.slice(0, 10), p.peremption);
+  const reste = ecartJours(aujourdhui, p.peremption);
+  if (reste <= 0) return 0;
+  if (total <= 0) return 1;
+  return Math.min(1, reste / total);
 }
 
 /** Les dates proposées d'un toucher, comme des raccourcis. */
@@ -88,7 +191,9 @@ export function decrirePeremption(p: Produit, aujourdhui: Jour): string | null {
   if (ecart === 0) return "à consommer aujourd'hui";
   if (ecart === 1) return "demain";
   if (ecart <= 7) return `dans ${ecart} jours`;
-  return `jusqu'au ${p.peremption.slice(8, 10)}.${p.peremption.slice(5, 7)}`;
+  const jourMois = `${p.peremption.slice(8, 10)}.${p.peremption.slice(5, 7)}`;
+  // Au-delà de six mois, l'année évite de lire « jusqu'au 11.10 » comme cette semaine.
+  return ecart > 180 ? `jusqu'au ${jourMois}.${p.peremption.slice(2, 4)}` : `jusqu'au ${jourMois}`;
 }
 
 export interface GroupeStock {
@@ -114,7 +219,48 @@ export function organiserStock(produits: readonly Produit[], aujourdhui: Jour, l
 }
 
 export function deplacer(p: Produit, lieu: Lieu): Produit {
-  return { ...p, lieu };
+  return avecQuantite({ ...p, lieu });
+}
+
+const JOURS_SEMAINE = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+
+/** « Aujourd'hui », « Demain », « Vendredi 16.10 ». */
+export function nommerJour(jour: Jour, aujourdhui: Jour): string {
+  const ecart = ecartJours(aujourdhui, jour);
+  if (ecart === 0) return "Aujourd'hui";
+  if (ecart === 1) return "Demain";
+  const [a, m, j] = jour.split("-").map(Number);
+  return `${JOURS_SEMAINE[new Date(Date.UTC(a, m - 1, j)).getUTCDay()]} ${jour.slice(8, 10)}.${jour.slice(5, 7)}`;
+}
+
+export interface JourCalendrier {
+  cle: string;
+  titre: string;
+  produits: Produit[];
+  /** Déjà passé, aujourd'hui ou dans les trois jours. */
+  urgent: boolean;
+}
+
+/**
+ * Les dates à venir, jour par jour : ce qui est déjà passé d'abord, puis chaque jour
+ * des deux prochaines semaines qui a quelque chose, puis « Plus tard ».
+ */
+export function calendrierDates(produits: readonly Produit[], aujourdhui: Jour, jours = 14): JourCalendrier[] {
+  const dates = produits.filter((p) => p.peremption).sort(parDate);
+  const resultat: JourCalendrier[] = [];
+  const passes = dates.filter((p) => ecartJours(aujourdhui, p.peremption!) < 0);
+  if (passes.length) resultat.push({ cle: "passe", titre: "Date passée", produits: passes, urgent: true });
+  const parJour = new Map<Jour, Produit[]>();
+  for (const p of dates) {
+    const ecart = ecartJours(aujourdhui, p.peremption!);
+    if (ecart >= 0 && ecart < jours) parJour.set(p.peremption!, [...(parJour.get(p.peremption!) ?? []), p]);
+  }
+  for (const [jour, ceJour] of parJour) {
+    resultat.push({ cle: jour, titre: nommerJour(jour, aujourdhui), produits: ceJour, urgent: ecartJours(aujourdhui, jour) <= JOURS_BIENTOT });
+  }
+  const tard = dates.filter((p) => ecartJours(aujourdhui, p.peremption!) >= jours);
+  if (tard.length) resultat.push({ cle: "tard", titre: "Plus tard", produits: tard, urgent: false });
+  return resultat;
 }
 
 /** Ce que le stock montre sur l'accueil et dans le rappel du matin. */
