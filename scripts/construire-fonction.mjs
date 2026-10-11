@@ -1,4 +1,4 @@
-// Copie les règles de chaque fonction serveur (src/domaine/rappels.ts, src/domaine/jarvis.ts et
+// Copie les règles de chaque fonction serveur (src/domaine/rappels.ts, src/domaine/jarvisModele.ts et
 // ce dont elles dépendent) en un seul fichier JavaScript : supabase/functions/<nom>/domaine.js.
 // Lancé par `npm run fonction` ; un test vérifie que les fichiers sont à jour.
 import { writeFileSync } from "node:fs";

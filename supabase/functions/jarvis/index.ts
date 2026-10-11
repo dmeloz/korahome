@@ -6,7 +6,7 @@
 // réponse et les actions demandées. C'est le téléphone qui les applique (avec Annuler).
 //
 // La clé de l'API Claude reste ici, dans le secret ANTHROPIC_API_KEY : jamais dans l'app.
-// Les consignes et les outils viennent de src/domaine/jarvis.ts, copié dans domaine.js par
+// Les consignes et les outils viennent de src/domaine/jarvisModele.ts, copié dans domaine.js par
 // `npm run fonction`. Déploiement : docs/jarvis.md.
 
 import Anthropic from "npm:@anthropic-ai/sdk";
