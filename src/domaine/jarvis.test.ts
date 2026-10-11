@@ -140,6 +140,19 @@ describe("les actions de Jarvis", () => {
     expect(r.faits[1]).toBe("Pesée notée : Mitsu, 3,2 kg.");
   });
 
+  it("devine la date d'un produit de ticket de caisse", () => {
+    const { d, melo } = foyerDeTest();
+    const r = appliquerActions(
+      [{ outil: "ajouter_au_stock", produits: [{ nom: "1 l lait", lieu: "frigo", peremption: null }, { nom: "bidule", lieu: "placard", peremption: null }] }],
+      d,
+      melo,
+      AUJOURDHUI,
+      ctx(),
+    );
+    expect(r.modifications[0]).toMatchObject({ apres: { nom: "Lait", peremption: "2026-10-19" } });
+    expect(r.modifications[1]).toMatchObject({ apres: { peremption: null } });
+  });
+
   it("explique ce qu'il ne trouve pas, sans s'arrêter", () => {
     const { d, melo } = foyerDeTest();
     const r = appliquerActions(

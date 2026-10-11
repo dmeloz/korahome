@@ -134,7 +134,7 @@ export function Jarvis(props: {
       <h1>Jarvis</h1>
       {echanges.length === 0 ? (
         <div className="jarvis-accueil">
-          <p className="discret">Écris ou parle : Jarvis ajoute aux courses, crée ou coche les tâches, range le frigo, note les pesées et répond sur la maison. Photographie une lettre ou une carte de rendez-vous, colle le lien d'une recette : il s'en occupe. Tout se défait avec Annuler.</p>
+          <p className="discret">Écris ou parle : Jarvis ajoute aux courses, crée ou coche les tâches, range le frigo, note les pesées et répond sur la maison. Photographie une lettre, un rendez-vous ou un ticket de caisse, colle le lien d'une recette : il s'en occupe. Tout se défait avec Annuler.</p>
           <button className="carte jarvis-conseil" onClick={props.ouvrirConseil}>
             <Icone nom="calendrier" taille={24} />
             <span className="ligne-texte">

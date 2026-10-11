@@ -8,11 +8,12 @@
 // - le plafond de dépense du foyer (5 CHF par mois).
 // Jarvis ne supprime rien : il ajoute, coche et met à jour. Tout se rattrape avec Annuler.
 
+import { proposer, type ProduitHabituel } from "./catalogue";
 import { analyserSaisie, nouvelElement, trouverDoublon } from "./listes";
 import { ajouterPesee, choseAFaire, formaterPoids, poidsActuel, rationDuJour, type Animal } from "./mitsu";
 import { normaliser } from "./rayons";
 import { decrirePeremption, LIEUX, nouveauProduit, type Lieu, type Produit } from "./stock";
-import { decrireEcheance, decrireRecurrence, ecartJours, estTerminee, marquerFaite, nouvelleTache } from "./taches";
+import { decaler, decrireEcheance, decrireRecurrence, ecartJours, estTerminee, marquerFaite, nouvelleTache } from "./taches";
 import type { Contexte, Element, Foyer, Id, Jour, Liste, Recurrence, Tache } from "./types";
 export {
   CONSIGNES_CONSEIL,
@@ -41,6 +42,8 @@ export interface DonneesFoyer {
   taches: Tache[];
   animaux: Animal[];
   produits: Produit[];
+  /** Les habitudes du foyer (où il range, combien de temps ça se garde). */
+  catalogue?: ProduitHabituel[];
 }
 
 const listeCourses = (d: DonneesFoyer) => d.listes.find((l) => l.type === "courses") ?? null;
@@ -290,7 +293,10 @@ export function appliquerActions(
         case "ajouter_au_stock": {
           const ranges: string[] = [];
           for (const p of action.produits) {
-            const produit = nouveauProduit({ texte: p.nom, lieu: p.lieu, peremption: p.peremption }, membreId, ctx);
+            // Sans date (un ticket de caisse), la durée habituelle du foyer, sinon celle que Kora connaît.
+            const duree = p.peremption ? null : proposer(donnees.catalogue ?? [], p.nom)?.dureeJours;
+            const peremption = p.peremption ?? (duree ? decaler(aujourdhui, { unite: "jour", tous: duree }) : null);
+            const produit = nouveauProduit({ texte: p.nom, lieu: p.lieu, peremption }, membreId, ctx);
             modifications.push({ collection: "stock", avant: null, apres: produit });
             ranges.push(`${produit.nom.toLowerCase()} (${LIEUX[produit.lieu].toLowerCase()})`);
           }

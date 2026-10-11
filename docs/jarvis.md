@@ -14,6 +14,9 @@ l'app native.
 - **Photo** : le bouton appareil photo envoie une lettre, une facture ou une carte de rendez-vous ;
   Jarvis crée une tâche à la date de chaque rendez-vous ou échéance. La photo est réduite à
   1600 pixels en JPEG sur le téléphone avant de partir, et n'est gardée nulle part.
+- **Ticket de caisse** : la même photo range les achats au stock, avec leur quantité ; sans date
+  écrite, la durée habituelle du foyer (ou celle que Kora connaît) donne la date de péremption, et
+  les courses correspondantes se cochent. La part budget viendra avec le module Budget.
 - **Recette** : coller le lien d'une recette (Betty Bossi, Fooby, Marmiton…). Le serveur ouvre la page
   (https public seulement, 8 secondes, 1,5 Mo au plus), lit les ingrédients dans ses données
   structurées ou, à défaut, son texte, et Jarvis n'ajoute aux courses que ce qui manque.
