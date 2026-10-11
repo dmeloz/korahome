@@ -22,6 +22,7 @@ import { MODULES, type DonneesModule } from "./modules";
 import { enregistrerPastilleVisible, lirePastilleVisible } from "./rapport";
 import { afficherPastilleIcone, lirePreferences, mettreAJourRappels } from "./rappels";
 import { planifierSynchro, synchroEnDirect } from "./synchroAuto";
+import { avecTransition } from "./transitions";
 import { useDonnees } from "./useDonnees";
 
 // Pas de barre d'onglets : tout part du tableau de bord, chaque widget ouvre la
@@ -74,10 +75,12 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   }, [pret, foyer, membreRappels, taches, animaux, produits, aujourdhui]);
 
   const page = pile[pile.length - 1];
+  // Le glissement du doigt anime déjà la page : sans transition dans ce cas-là.
   const revenir = () => {
     setPile((avant) => (avant.length > 1 ? avant.slice(0, -1) : avant));
     window.scrollTo(0, 0);
   };
+  const revenirAnime = () => avecTransition("arriere", revenir);
   const glissement = useGlissementRetour(pile.length > 1, revenir);
   const nomEcran = !pret ? "Chargement" : !foyer ? "Bienvenue" : nommer(page);
   ecranCourant = nomEcran;
@@ -135,10 +138,11 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   const donnees: DonneesModule = { foyer, membreId: membre, listes, elements, taches, animaux, produits, aujourdhui: aujourdhuiLocal() };
   const precedente = pile.length > 1 ? pile[pile.length - 2] : null;
 
-  const ouvrir = (p: Page) => {
-    setPile((avant) => [...avant, p]);
-    window.scrollTo(0, 0);
-  };
+  const ouvrir = (p: Page) =>
+    avecTransition("avant", () => {
+      setPile((avant) => [...avant, p]);
+      window.scrollTo(0, 0);
+    });
   const ouvrirListe = (id: string) => ouvrir({ nom: "liste", id });
   const ouvertes = retours.filter((r) => !r.regleLe).length;
 
@@ -231,7 +235,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       style={glissement.decalage ? { transform: `translateX(${glissement.decalage}px)` } : undefined}
     >
       {precedente && (
-        <button className="retour" onClick={revenir}>
+        <button className="retour" onClick={revenirAnime}>
           <Icone nom="retour" taille={22} />
           {libelle(precedente)}
         </button>

@@ -5,6 +5,7 @@ import type { Depot } from "../../donnees/depot";
 import { useAnnoncer } from "../annulation";
 import { contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
+import { vibrer } from "../haptique";
 
 export function DetailListe(props: {
   depot: Depot;
@@ -32,7 +33,10 @@ export function DetailListe(props: {
     setMessage(null);
   }
 
-  const basculer = (el: Element) => props.depot.enregistrerElement(basculerCoche(el, contexteReel));
+  const basculer = (el: Element) => {
+    vibrer();
+    return props.depot.enregistrerElement(basculerCoche(el, contexteReel));
+  };
   const viderCoches = () => props.depot.supprimerElements(coches.map((c) => c.id));
   async function supprimer(el: Element) {
     await props.depot.supprimerElements([el.id]);

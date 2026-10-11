@@ -6,6 +6,7 @@ import { contexteReel } from "../contexte";
 import { Icone } from "../Icone";
 import { annulerModifications, direAVoixHaute, ecouter, enregistrerModifications, voixDisponible } from "../jarvis";
 import type { DonneesModule } from "../modules";
+import { vibrer } from "../haptique";
 
 interface Echange extends TourJarvis {
   n: number;
@@ -62,6 +63,7 @@ export function Jarvis(props: {
       });
       const resultat = appliquerActions(lireActions(reponse.appels), donnees, donnees.membreId, donnees.aujourdhui, contexteReel);
       await enregistrerModifications(depot, resultat.modifications);
+      if (resultat.modifications.length) vibrer();
       const dit = [reponse.texte, ...resultat.faits, ...resultat.echecs].filter(Boolean).join(" ") || "C'est fait.";
       ajouter({ role: "jarvis", texte: dit, modifications: resultat.modifications.length ? resultat.modifications : undefined });
       setAlerte(

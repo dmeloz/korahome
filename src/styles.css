@@ -895,3 +895,50 @@ h1 {
 @media (prefers-reduced-motion: reduce) {
   .bulle, .bulle.attente span, .jarvis-saisie button.ecoute { animation: none; }
 }
+
+/* Allure iOS 26 : un fond qui respire, des surfaces de verre, des pages qui glissent. */
+:root {
+  --verre: color-mix(in srgb, var(--surface) 74%, transparent);
+  --reflet: inset 0 1px 0 rgb(255 255 255 / 0.06);
+  --lueur: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+@media (prefers-color-scheme: light) {
+  :root { --reflet: inset 0 1px 0 rgb(255 255 255 / 0.75); --lueur: color-mix(in srgb, var(--accent) 12%, transparent); }
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 55% at 85% -12%, var(--lueur), transparent 62%),
+    radial-gradient(90% 45% at -10% 105%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 70%);
+}
+.carte, .widget {
+  background: var(--verre);
+  -webkit-backdrop-filter: blur(22px) saturate(1.4);
+  backdrop-filter: blur(22px) saturate(1.4);
+}
+.carte { box-shadow: var(--reflet); }
+.widget { box-shadow: var(--reflet), var(--ombre); }
+.bouton-icone {
+  background: var(--verre);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  box-shadow: var(--reflet);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.34s;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+html[data-sens="avant"]::view-transition-old(root) { animation-name: page-recule; }
+html[data-sens="avant"]::view-transition-new(root) { animation-name: page-arrive; }
+html[data-sens="arriere"]::view-transition-old(root) { animation-name: page-part; z-index: 1; }
+html[data-sens="arriere"]::view-transition-new(root) { animation-name: page-revient; }
+@keyframes page-arrive { from { transform: translateX(100%); } }
+@keyframes page-recule { to { transform: translateX(-28%); opacity: 0.6; } }
+@keyframes page-part { to { transform: translateX(100%); } }
+@keyframes page-revient { from { transform: translateX(-28%); opacity: 0.6; } }

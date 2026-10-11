@@ -17,6 +17,7 @@ import {
 import { enregistrerDisposition, enregistrerTailles, lireDisposition, lireTailles } from "../contexte";
 import { Icone } from "../Icone";
 import { MODULES, PICTOS, type ApercuWidget, type DonneesModule } from "../modules";
+import { vibrer } from "../haptique";
 
 function salutation(heure: number): string {
   if (heure < 5) return "Bonne nuit";
@@ -70,7 +71,7 @@ export function Accueil(props: {
       minuterie: setTimeout(() => {
         appui.current = null;
         ignorerClic.current = true;
-        navigator.vibrate?.(10);
+        vibrer();
         setEdition(true);
       }, APPUI_LONG_MS),
     };
