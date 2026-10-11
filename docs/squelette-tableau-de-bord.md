@@ -19,7 +19,9 @@ C'est la structure de toutes les apps de la maison, à reprendre telle quelle po
 | Le catalogue des widgets et les règles du tableau (ajouter, retirer, déplacer, faire remonter l'urgent), testées | `src/domaine/tableauDeBord.ts` |
 | Le registre des modules : pour chacun, son widget et sa page | `src/ui/modules.tsx` |
 | Le tableau de bord | `src/ui/ecrans/Accueil.tsx` |
-| La navigation par pile, avec le bouton de retour | `src/ui/App.tsx` |
+| La navigation par pile, avec le bouton de retour et le glissement depuis le bord gauche | `src/ui/App.tsx` |
+| Les gestes (revenir, glisser une ligne pour la supprimer), testés | `src/ui/gestes.ts` |
+| Une ligne qu'on glisse vers la gauche pour la supprimer, avec « Annuler » | `src/ui/Glissable.tsx`, `src/ui/annulation.tsx` |
 
 ## Brancher un nouveau module
 
@@ -29,5 +31,6 @@ C'est la structure de toutes les apps de la maison, à reprendre telle quelle po
 4. Ajouter une entrée dans `MODULES` (`src/ui/modules.tsx`) :
    - `widget` dit ce que le module montre sur l'accueil : un chiffre, une légende, jusqu'à trois lignes, et s'il est urgent ;
    - `page` affiche sa page.
+5. Dans ses listes, envelopper chaque ligne supprimable dans `<Glissable onSupprimer={…}>` et proposer « Annuler » avec `useAnnoncer()`.
 
 Un test vérifie que chaque widget disponible a son module.

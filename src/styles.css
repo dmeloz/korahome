@@ -787,3 +787,50 @@ h1 {
 .valeur-reglage { font-size: 15px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 55%; }
 .alerte-ligne { position: static; flex: none; }
 .coche-reglage { color: var(--accent); display: grid; }
+
+/* Glisser une ligne vers la gauche pour la supprimer, comme dans Mail. */
+.glissable { position: relative; overflow: hidden; transition: opacity 0.18s ease; }
+.glissable.partie { opacity: 0; }
+.glissable-action {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 16px;
+  border: none;
+  background: #c4553a;
+  white-space: nowrap;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+}
+.glissable-contenu {
+  position: relative;
+  background: var(--surface);
+  touch-action: pan-y;
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.glissable-contenu.glisse { transition: none; }
+
+/* Revenir en glissant depuis le bord gauche : la page suit le doigt. */
+.contenu { touch-action: pan-y; }
+.contenu.retour-glisse { box-shadow: -18px 0 40px -20px rgb(0 0 0 / 0.7); min-height: 100vh; background: var(--fond); }
+.contenu.retour-anime { transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
+@media (prefers-reduced-motion: reduce) {
+  .glissable-contenu, .contenu.retour-anime { transition: none; }
+}
+
+/* « Ce téléphone » verrouillé sur une personne. */
+.verrou {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.verrou .profil-texte { flex: 1; }
+.verrou-cadenas { color: var(--accent); display: grid; }
+.feuille-alerte { text-align: center; }
+.feuille-alerte h2 { margin: 4px 0 6px; font-size: 19px; }
+.feuille-alerte .feuille-actions { flex-direction: column; align-items: stretch; gap: 8px; margin-top: 16px; }
