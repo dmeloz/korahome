@@ -834,3 +834,17 @@ h1 {
 .feuille-alerte { text-align: center; }
 .feuille-alerte h2 { margin: 4px 0 6px; font-size: 19px; }
 .feuille-alerte .feuille-actions { flex-direction: column; align-items: stretch; gap: 8px; margin-top: 16px; }
+
+/* Frigo et placards. */
+.produit { gap: 12px; }
+.produit-texte { display: flex; flex-direction: column; gap: 2px; }
+.point-produit { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--trait); }
+.point-produit.etat-bientot { background: var(--accent); }
+.point-produit.etat-aujourdhui, .point-produit.etat-perime { background: var(--urgent); }
+.produit-actions { flex-wrap: wrap; }
+.date-produit { display: inline-flex; align-items: center; gap: 6px; position: relative; }
+.date-produit input { position: absolute; inset: 0; opacity: 0; }
+.indice { font-size: 13px; text-align: center; margin-top: 16px; }
+.segments button { white-space: nowrap; }
+/* Le bandeau « Annuler » passe devant la pastille « Dev ». */
+.toast { z-index: 11; }

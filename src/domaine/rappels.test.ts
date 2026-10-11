@@ -16,6 +16,7 @@ import {
   rappelDuMatin,
   tachesDuMatin,
 } from "./rappels";
+import { nouveauProduit } from "./stock";
 import { marquerFaite, nouvelleTache } from "./taches";
 
 const AUJOURDHUI = "2026-10-12";
@@ -41,6 +42,15 @@ describe("le rappel du matin", () => {
   it("salue la personne et résume sa journée", () => {
     const r = rappelDuMatin({ foyer, membreId: sarah.id, taches, animaux: [], aujourdhui: AUJOURDHUI, preferences: PREFERENCES_DE_DEPART });
     expect(r).toEqual({ titre: "Bonjour Sarah", corps: "Aujourd'hui : Arrosage, Ménage\nEn retard : Linge", nombre: 3 });
+  });
+
+  it("dit ce qui arrive à sa date au frigo, sauf si on ne le veut pas", () => {
+    const yaourts = nouveauProduit({ texte: "Yaourts", lieu: "frigo", peremption: "2026-10-13" }, null, ctx);
+    const riz = nouveauProduit({ texte: "Riz", lieu: "placard", peremption: "2027-06-01" }, null, ctx);
+    const faites = taches.map((t) => marquerFaite(t, melo.id, AUJOURDHUI, ctx));
+    const entree = { foyer, membreId: melo.id, taches: faites, animaux: [], produits: [yaourts, riz], aujourdhui: AUJOURDHUI };
+    expect(rappelDuMatin({ ...entree, preferences: PREFERENCES_DE_DEPART })).toEqual({ titre: "Bonjour Melo", corps: "À consommer : Yaourts", nombre: 1 });
+    expect(rappelDuMatin({ ...entree, preferences: { ...PREFERENCES_DE_DEPART, stock: false } })).toBeNull();
   });
 
   it("n'envoie rien quand il n'y a rien à faire", () => {

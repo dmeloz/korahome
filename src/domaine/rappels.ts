@@ -1,10 +1,12 @@
 import { choseAFaire, type Animal } from "./mitsu";
+import { resumeStock, type Produit } from "./stock";
 import { ecartJours, estTerminee } from "./taches";
 import type { Foyer, Id, Jour, Tache } from "./types";
 
 // Le rappel du matin : une seule notification par personne, à son heure (8 h au départ), qui résume ce
 // qui l'attend ce jour-là. Chacun reçoit ses tâches et les tâches libres (pas
-// celles que l'autre a prises), et ce qui presse pour Mitsu. Rien à signaler :
+// celles que l'autre a prises), ce qui presse pour Mitsu et ce qui arrive à sa
+// date au frigo ou au placard. Rien à signaler :
 // pas de notification. Ce module sert aussi au serveur qui envoie les rappels
 // (supabase/functions/rappels) : il reste sans dépendance.
 
@@ -12,6 +14,8 @@ import type { Foyer, Id, Jour, Tache } from "./types";
 export interface PreferencesRappels {
   taches: boolean;
   mitsu: boolean;
+  /** Ce qui arrive à sa date au frigo, au congélateur ou au placard. */
+  stock: boolean;
   /** L'heure du rappel, heure pleine, à Zurich. */
   heure: number;
   /** Les jours où le rappel arrive : 0 dimanche, 1 lundi… 6 samedi. */
@@ -25,7 +29,7 @@ export const HEURE_MIN = 5;
 export const HEURE_MAX = 22;
 
 export const TOUS_LES_JOURS = [1, 2, 3, 4, 5, 6, 0];
-export const PREFERENCES_DE_DEPART: PreferencesRappels = { taches: true, mitsu: true, heure: HEURE_DU_RAPPEL, jours: TOUS_LES_JOURS };
+export const PREFERENCES_DE_DEPART: PreferencesRappels = { taches: true, mitsu: true, stock: true, heure: HEURE_DU_RAPPEL, jours: TOUS_LES_JOURS };
 export const FUSEAU_DU_FOYER = "Europe/Zurich";
 
 export function heureValide(heure: unknown): heure is number {
@@ -121,6 +125,8 @@ export function rappelDuMatin(entree: {
   membreId: Id | null;
   taches: Tache[];
   animaux: Animal[];
+  /** Le stock du foyer ; absent, rien n'est dit du frigo. */
+  produits?: readonly Produit[];
   aujourdhui: Jour;
   preferences: PreferencesRappels;
 }): RappelDuMatin | null {
@@ -142,6 +148,12 @@ export function rappelDuMatin(entree: {
       lignes.push(`${animal.nom} : ${urgentes.slice(0, 2).map((c) => c.texte).join(" · ")}${urgentes.length > 2 ? "…" : ""}`);
       nombre += urgentes.length;
     }
+  }
+
+  if (preferences.stock && entree.produits) {
+    const { aConsommer } = resumeStock(entree.produits, aujourdhui);
+    if (aConsommer.length) lignes.push(`À consommer : ${enumerer(aConsommer.map((p) => p.nom))}`);
+    nombre += aConsommer.length;
   }
 
   if (nombre === 0) return null;

@@ -39,7 +39,7 @@ let ecranCourant = "Accueil";
 export const ecranAffiche = () => ecranCourant;
 
 export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJour: MiseAJour; partage: ServicesPartage | null }) {
-  const { pret, foyer, listes, elements, taches, retours, animaux } = useDonnees(depot);
+  const { pret, foyer, listes, elements, taches, retours, animaux, produits } = useDonnees(depot);
   const [pile, setPile] = useState<Page[]>([{ nom: "accueil" }]);
   const [membreId, setMembreId] = useState<string | null>(lireMembreCourant);
   const nouvelleVersion = useSyncExternalStore(miseAJour.abonner, miseAJour.prete);
@@ -114,7 +114,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       />
     );
   }
-  const donnees: DonneesModule = { foyer, membreId: membre, listes, elements, taches, animaux, aujourdhui: aujourdhuiLocal() };
+  const donnees: DonneesModule = { foyer, membreId: membre, listes, elements, taches, animaux, produits, aujourdhui: aujourdhuiLocal() };
   const precedente = pile.length > 1 ? pile[pile.length - 2] : null;
 
   const ouvrir = (p: Page) => {
@@ -155,6 +155,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         foyer={foyer}
         taches={taches}
         animaux={animaux}
+        produits={produits}
         aujourdhui={donnees.aujourdhui}
       />
     );

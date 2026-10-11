@@ -1,4 +1,5 @@
 import type { Animal } from "../domaine/mitsu";
+import type { Produit } from "../domaine/stock";
 import type { RetourTest } from "../domaine/retours";
 import { cleDe, COLLECTIONS_SYNCHRO, distantGagne, type Changement, type CollectionSynchro } from "../domaine/synchro";
 import type { Element, Foyer, Id, Liste, Tache } from "../domaine/types";
@@ -7,9 +8,11 @@ import type { Depot } from "./depot";
 // Version 2 : ajout des tâches. Version 3 : notes de test. Version 4 : suivi de Mitsu.
 // Version 5 : partage (modifications en attente d'envoi, état de la synchro).
 // Version 6 : les notes de test se partagent aussi ; celles déjà écrites partent au prochain envoi.
+// Version 7 : frigo, congélateur et placard ; tout est relu du serveur une fois, pour
+// retrouver le stock déjà partagé par l'autre téléphone.
 // La mise à jour crée seulement les magasins manquants.
-const VERSION = 6;
-const MAGASINS = ["foyer", "listes", "elements", "taches", "retours", "animaux", "attente", "synchro"] as const;
+const VERSION = 7;
+const MAGASINS = ["foyer", "listes", "elements", "taches", "retours", "animaux", "stock", "attente", "synchro"] as const;
 type Magasin = (typeof MAGASINS)[number];
 const CLES: Partial<Record<Magasin, string>> = { attente: "cle" };
 
@@ -71,6 +74,12 @@ function ouvrir(nomBase: string, fabrique: IDBFactory): Promise<IDBDatabase> {
             const enAttente: EnAttente = { cle: cleDe({ collection: "retours", id: doc.id }), collection: "retours", id: doc.id, donnees: doc, maj };
             tx.objectStore("attente").put(enAttente);
           }
+        });
+      }
+      if (evenement.oldVersion < 7 && avant.contains("synchro")) {
+        const synchro = req.transaction!.objectStore("synchro");
+        puis(synchro.get("etat") as IDBRequest<{ curseur: string | null } | undefined>, (etat) => {
+          if (etat) synchro.put({ ...etat, curseur: null });
         });
       }
     };
@@ -174,6 +183,10 @@ export function creerDepotLocal(
 
     lireAnimaux: () => tous<Animal>("animaux"),
     enregistrerAnimal: (animal) => poser("animaux", [animal]),
+
+    lireProduits: () => tous<Produit>("stock"),
+    enregistrerProduit: (produit) => poser("stock", [produit]),
+    supprimerProduit: (id) => supprimer("stock", [id]),
 
     lireRetours: () => tous<RetourTest>("retours"),
     enregistrerRetour: (retour) => poser("retours", [retour]),
