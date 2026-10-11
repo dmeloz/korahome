@@ -27,6 +27,7 @@ const TRACES = {
   outil: "M14.7 6.3a4 4 0 0 0-5.2 5.2L4 17l3 3 5.5-5.5a4 4 0 0 0 5.2-5.2l-2.6 2.6-2.4-.6-.6-2.4z",
   photo: "M4 8a1 1 0 0 1 1-1h3l1.5-2h5L16 7h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z",
   cadenas: "M7.5 11V8a4.5 4.5 0 0 1 9 0v3M6 11h12v9H6zM12 15v2",
+  codeBarres: "M3 7V4h3M18 4h3v3M21 17v3h-3M6 20H3v-3M7 8v8M10 8v8M13 8v8M15.5 8v8M17.5 8v8",
 } as const;
 
 export type NomIcone = keyof typeof TRACES;

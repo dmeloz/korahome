@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { compterAPrendre } from "../domaine/listes";
 import { choseAFaire, decrireAge, formaterPoids, poidsActuel, rationDuJour, type Animal } from "../domaine/mitsu";
 import type { WidgetId } from "../domaine/tableauDeBord";
+import type { ProduitHabituel } from "../domaine/catalogue";
 import { decrirePeremption, resumeStock, type Produit } from "../domaine/stock";
 import { compterDues, decrireEcheance, organiserTaches } from "../domaine/taches";
 import type { Element, Foyer, Jour, Liste, Tache } from "../domaine/types";
@@ -28,6 +29,7 @@ export interface DonneesModule {
   taches: Tache[];
   animaux: Animal[];
   produits: Produit[];
+  catalogue: ProduitHabituel[];
   aujourdhui: Jour;
 }
 
@@ -176,7 +178,7 @@ export const MODULES: Partial<Record<WidgetId, ModuleUI>> = {
       };
     },
     page: (p) => (
-      <Stock depot={p.depot} membreId={p.membreId} produits={p.produits} listes={p.listes} elements={p.elements} aujourdhui={p.aujourdhui} />
+      <Stock depot={p.depot} membreId={p.membreId} produits={p.produits} catalogue={p.catalogue} listes={p.listes} elements={p.elements} aujourdhui={p.aujourdhui} />
     ),
   },
 
