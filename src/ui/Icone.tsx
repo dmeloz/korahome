@@ -21,6 +21,7 @@ const TRACES = {
   pastilleDev: "M7 8h10a4 4 0 0 1 0 8H7a4 4 0 0 1 0-8zM8.5 12h.01",
   agrandir: "M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7",
   reduire: "M4 14h6v6M20 10h-6V4M10 14l-7 7M14 10l7-7",
+  cadenas: "M7.5 11V8a4.5 4.5 0 0 1 9 0v3M6 11h12v9H6zM12 15v2",
 } as const;
 
 export type NomIcone = keyof typeof TRACES;

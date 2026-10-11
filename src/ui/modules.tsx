@@ -2,12 +2,14 @@ import type { ReactNode } from "react";
 import { compterAPrendre } from "../domaine/listes";
 import { choseAFaire, decrireAge, formaterPoids, poidsActuel, rationDuJour, type Animal } from "../domaine/mitsu";
 import type { WidgetId } from "../domaine/tableauDeBord";
+import { decrirePeremption, resumeStock, type Produit } from "../domaine/stock";
 import { compterDues, decrireEcheance, organiserTaches } from "../domaine/taches";
 import type { Element, Foyer, Jour, Liste, Tache } from "../domaine/types";
 import type { Depot } from "../donnees/depot";
 import { DetailListe } from "./ecrans/DetailListe";
 import { Listes } from "./ecrans/Listes";
 import { Mitsu } from "./ecrans/Mitsu";
+import { Stock } from "./ecrans/Stock";
 import { Taches } from "./ecrans/Taches";
 import type { NomIcone } from "./Icone";
 
@@ -23,6 +25,7 @@ export interface DonneesModule {
   elements: Element[];
   taches: Tache[];
   animaux: Animal[];
+  produits: Produit[];
   aujourdhui: Jour;
 }
 
@@ -149,6 +152,29 @@ export const MODULES: Partial<Record<WidgetId, ModuleUI>> = {
     },
     page: (p) => (
       <Mitsu depot={p.depot} foyer={p.foyer} membreId={p.membreId} animaux={p.animaux} listes={p.listes} elements={p.elements} />
+    ),
+  },
+
+  stock: {
+    id: "stock",
+    picto: "frigo",
+    libelle: "Frigo",
+    widget: (d) => {
+      const { aConsommer, urgent } = resumeStock(d.produits, d.aujourdhui);
+      return {
+        chiffre: aConsommer.length,
+        legende:
+          d.produits.length === 0
+            ? "Ajoute ce qu'il y a au frigo"
+            : aConsommer.length
+              ? "à consommer bientôt"
+              : `${pluriel(d.produits.length, "produit")}, rien ne presse`,
+        lignes: aConsommer.slice(0, 3).map((p) => `${p.nom} · ${decrirePeremption(p, d.aujourdhui)}`),
+        urgent,
+      };
+    },
+    page: (p) => (
+      <Stock depot={p.depot} membreId={p.membreId} produits={p.produits} listes={p.listes} elements={p.elements} aujourdhui={p.aujourdhui} />
     ),
   },
 };

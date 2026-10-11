@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { GENRES, basculerRegle, etatRetour, grouperParEcran, heureCourte, type EtatRetour, type RetourTest } from "../../domaine/retours";
 import type { Foyer } from "../../domaine/types";
 import type { DepotLocal } from "../../donnees/depotLocal";
+import { useAnnoncer } from "../annulation";
 import { contexteReel } from "../contexte";
+import { Glissable } from "../Glissable";
 import { effacerJournal, lireJournal } from "../journal";
 import { construireRapport, copierRapport, partagerRapport } from "../rapport";
 
@@ -20,6 +22,7 @@ export function RetoursTest(props: { depot: DepotLocal; foyer: Foyer; retours: R
   const [ouvert, setOuvert] = useState<EtatRetour>("nouvelle");
   const [enAttente, setEnAttente] = useState<ReadonlySet<string>>(new Set());
   const [, rafraichir] = useState(0);
+  const annoncer = useAnnoncer();
   const journal = lireJournal();
   const prenom = (id: string | null) => props.foyer.membres.find((m) => m.id === id)?.prenom;
   const rapport = () => construireRapport(props.retours, props.foyer.membres);
@@ -45,8 +48,14 @@ export function RetoursTest(props: { depot: DepotLocal; foyer: Foyer; retours: R
     setEtat((await copierRapport(rapport().texte)) ? "Rapport copié. Colle-le dans la conversation." : "Copie impossible sur cet appareil.");
   }
 
+  const supprimer = async (r: RetourTest) => {
+    await props.depot.supprimerRetour(r.id);
+    annoncer("Note supprimée.", () => props.depot.enregistrerRetour(r));
+  };
+
   const ligne = (r: RetourTest) => (
-    <li key={r.id} className={`retour-test${r.regleLe ? " reglee" : ""}`}>
+    <li key={r.id}>
+      <Glissable className={`retour-test${r.regleLe ? " reglee" : ""}`} onSupprimer={() => void supprimer(r)}>
       <button
         className="case"
         aria-label={r.regleLe ? "Rouvrir la note" : "Marquer la note réglée"}
@@ -62,6 +71,7 @@ export function RetoursTest(props: { depot: DepotLocal; foyer: Foyer; retours: R
           {r.version !== __VERSION__ ? ` · ${r.version}` : ""}
         </span>
       </div>
+      </Glissable>
     </li>
   );
 

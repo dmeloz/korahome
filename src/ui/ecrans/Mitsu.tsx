@@ -41,7 +41,9 @@ import {
 import { decrireEcheance } from "../../domaine/taches";
 import type { Element, Foyer, Liste } from "../../domaine/types";
 import type { Depot } from "../../donnees/depot";
+import { useAnnoncer } from "../annulation";
 import { aujourdhuiLocal, contexteReel } from "../contexte";
+import { Glissable } from "../Glissable";
 
 const dateCourte = (jour: string) =>
   new Date(`${jour}T12:00:00`).toLocaleDateString("fr-CH", { day: "numeric", month: "long" });
@@ -153,6 +155,13 @@ function Suivi(props: Props & { animal: Animal }) {
   const pesee = historiquePesees(animal);
   const aFaire = choseAFaire(animal, aujourdhui);
   const courses = props.listes.find((l) => l.type === "courses");
+
+  const annoncer = useAnnoncer();
+  /** Retire d'un glissement, avec « Annuler » qui remet la fiche telle qu'elle était. */
+  const retirer = (apres: Animal, texte: string) => {
+    const avant = animal;
+    void enregistrer(apres, () => annoncer(texte, () => enregistrer(avant)));
+  };
 
   async function enregistrer(apres: Animal, suite?: () => void) {
     try {
@@ -414,7 +423,8 @@ function Suivi(props: Props & { animal: Animal }) {
               const suivie = articleDe(p, animal) !== undefined;
               const alerte = suivie ? vides.some((v) => v.provision.id === p.id) : !!prev && prev.etat !== "ok";
               return (
-                <li key={p.id} className="mitsu-provision">
+                <li key={p.id}>
+                  <Glissable className="mitsu-provision" libelle="Retirer" onSupprimer={() => retirer(retirerProvision(animal, p.id), `« ${p.nom} » retiré.`)}>
                   <div className="ligne-texte">
                     <strong>{p.nom}</strong>
                     <span className={`tache-details${alerte ? " retard" : ""}`}>
@@ -438,6 +448,7 @@ function Suivi(props: Props & { animal: Animal }) {
                     )}
                     <button className="lien" onClick={() => enregistrer(retirerProvision(animal, p.id))}>Paquet fini</button>
                   </div>
+                  </Glissable>
                 </li>
               );
             })}
@@ -474,7 +485,8 @@ function Suivi(props: Props & { animal: Animal }) {
         ) : (
           <ul className="carte groupe">
             {soinsAVenir(animal).map((s) => (
-              <li key={s.id} className="mitsu-provision">
+              <li key={s.id}>
+                <Glissable className="mitsu-provision" libelle="Retirer" onSupprimer={() => retirer(retirerSoin(animal, s.id), `« ${s.libelle} » retiré du carnet.`)}>
                 <div className="ligne-texte">
                   <strong>{s.libelle}</strong>
                   <span className={`tache-details${s.date < aujourdhui ? " retard" : ""}`}>
@@ -485,6 +497,7 @@ function Suivi(props: Props & { animal: Animal }) {
                   <button className="lien" onClick={() => enregistrer(marquerSoinFait(animal, s.id, aujourdhui, contexteReel))}>Fait aujourd'hui</button>
                   <button className="lien danger" onClick={() => enregistrer(retirerSoin(animal, s.id))}>Retirer</button>
                 </div>
+                </Glissable>
               </li>
             ))}
             {soinsFaits(animal).slice(0, 5).map((s) => (

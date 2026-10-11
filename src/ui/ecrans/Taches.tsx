@@ -16,6 +16,7 @@ import {
 import type { Foyer, Tache } from "../../domaine/types";
 import type { Depot } from "../../donnees/depot";
 import { aujourdhuiLocal, contexteReel } from "../contexte";
+import { Glissable } from "../Glissable";
 
 const FILTRES: { id: Filtre; libelle: string }[] = [
   { id: "toutes", libelle: "Toutes" },
@@ -79,6 +80,7 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
     await props.depot.supprimerTache(t.id);
     setASupprimer(null);
     setOuverte(null);
+    setAnnulable({ texte: `« ${t.titre} » supprimée.`, avant: t });
   }
 
   const ajouterSemaine = () =>
@@ -101,6 +103,7 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
 
     return (
       <li key={t.id}>
+        <Glissable onSupprimer={() => void supprimer(t)}>
         <div className={`ligne tache${terminee ? " coche" : ""}`}>
           <button
             className="case"
@@ -126,6 +129,7 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
             </span>
           )}
         </div>
+        </Glissable>
         {estOuverte && (
           <div className="tache-actions">
             {moi && t.responsable !== moi && (

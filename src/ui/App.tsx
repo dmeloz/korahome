@@ -1,7 +1,8 @@
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { WidgetId } from "../domaine/tableauDeBord";
 import type { Foyer } from "../domaine/types";
 import type { DepotLocal } from "../donnees/depotLocal";
+import { FournisseurAnnulation } from "./annulation";
 import { CoinDev } from "./CoinDev";
 import { aujourdhuiLocal, choisirMembreCourant, lireMembreCourant } from "./contexte";
 import { Accueil } from "./ecrans/Accueil";
@@ -13,6 +14,7 @@ import { Reglages, Telephone } from "./ecrans/Reglages";
 import { RetoursTest } from "./ecrans/RetoursTest";
 import { Icone } from "./Icone";
 import type { MiseAJour } from "./miseAJour";
+import { BORD_RETOUR, directionGeste, finRetour } from "./gestes";
 import { noter } from "./journal";
 import { MODULES, type DonneesModule } from "./modules";
 import { enregistrerPastilleVisible, lirePastilleVisible } from "./rapport";
@@ -37,7 +39,7 @@ let ecranCourant = "Accueil";
 export const ecranAffiche = () => ecranCourant;
 
 export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJour: MiseAJour; partage: ServicesPartage | null }) {
-  const { pret, foyer, listes, elements, taches, retours, animaux } = useDonnees(depot);
+  const { pret, foyer, listes, elements, taches, retours, animaux, produits } = useDonnees(depot);
   const [pile, setPile] = useState<Page[]>([{ nom: "accueil" }]);
   const [membreId, setMembreId] = useState<string | null>(lireMembreCourant);
   const nouvelleVersion = useSyncExternalStore(miseAJour.abonner, miseAJour.prete);
@@ -55,6 +57,11 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   }, [partage, foyerPartage, membreRappels]);
 
   const page = pile[pile.length - 1];
+  const revenir = () => {
+    setPile((avant) => (avant.length > 1 ? avant.slice(0, -1) : avant));
+    window.scrollTo(0, 0);
+  };
+  const glissement = useGlissementRetour(pile.length > 1, revenir);
   const nomEcran = !pret ? "Chargement" : !foyer ? "Bienvenue" : nommer(page);
   ecranCourant = nomEcran;
   useEffect(() => {
@@ -107,15 +114,11 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       />
     );
   }
-  const donnees: DonneesModule = { foyer, membreId: membre, listes, elements, taches, animaux, aujourdhui: aujourdhuiLocal() };
+  const donnees: DonneesModule = { foyer, membreId: membre, listes, elements, taches, animaux, produits, aujourdhui: aujourdhuiLocal() };
   const precedente = pile.length > 1 ? pile[pile.length - 2] : null;
 
   const ouvrir = (p: Page) => {
     setPile((avant) => [...avant, p]);
-    window.scrollTo(0, 0);
-  };
-  const revenir = () => {
-    setPile((avant) => (avant.length > 1 ? avant.slice(0, -1) : avant));
     window.scrollTo(0, 0);
   };
   const ouvrirListe = (id: string) => ouvrir({ nom: "liste", id });
@@ -152,6 +155,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         foyer={foyer}
         taches={taches}
         animaux={animaux}
+        produits={produits}
         aujourdhui={donnees.aujourdhui}
       />
     );
@@ -192,7 +196,11 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   }
 
   return (
-    <div className="contenu">
+    <FournisseurAnnulation>
+    <div
+      className={`contenu${glissement.decalage ? " retour-glisse" : ""}${glissement.anime ? " retour-anime" : ""}`}
+      style={glissement.decalage ? { transform: `translateX(${glissement.decalage}px)` } : undefined}
+    >
       {precedente && (
         <button className="retour" onClick={revenir}>
           <Icone nom="retour" taille={22} />
@@ -211,7 +219,69 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       )}
       {bandeauVersion}
     </div>
+    </FournisseurAnnulation>
   );
+}
+
+/**
+ * Comme sur l'iPhone : glisser depuis le bord gauche ramène à la page précédente.
+ * La page suit le doigt, puis part vers la droite ou revient en place.
+ */
+function useGlissementRetour(actif: boolean, revenir: () => void) {
+  const [decalage, setDecalage] = useState(0);
+  const [anime, setAnime] = useState(false);
+  const rappel = useRef(revenir);
+  rappel.current = revenir;
+
+  useEffect(() => {
+    if (!actif) return;
+    let geste: { x: number; y: number; t: number; horizontal: boolean } | null = null;
+    const largeur = () => window.innerWidth;
+    const debut = (e: PointerEvent) => {
+      geste = e.clientX <= BORD_RETOUR && e.isPrimary ? { x: e.clientX, y: e.clientY, t: e.timeStamp, horizontal: false } : null;
+    };
+    const mouvement = (e: PointerEvent) => {
+      if (!geste) return;
+      const dx = e.clientX - geste.x;
+      if (!geste.horizontal) {
+        const direction = directionGeste(dx, e.clientY - geste.y);
+        if (direction === "verticale" || (direction === "horizontale" && dx < 0)) geste = null;
+        if (direction !== "horizontale" || !geste) return;
+        geste.horizontal = true;
+      }
+      setAnime(false);
+      setDecalage(Math.max(0, dx));
+    };
+    const fin = (e: PointerEvent) => {
+      const g = geste;
+      geste = null;
+      if (!g?.horizontal) return;
+      setAnime(true);
+      if (e.type === "pointerup" && finRetour(e.clientX - g.x, e.timeStamp - g.t, largeur())) {
+        setDecalage(largeur());
+        setTimeout(() => {
+          rappel.current();
+          setAnime(false);
+          setDecalage(0);
+          noter("geste", "Glisser pour revenir", ecranCourant);
+        }, 220);
+      } else {
+        setDecalage(0);
+      }
+    };
+    window.addEventListener("pointerdown", debut);
+    window.addEventListener("pointermove", mouvement);
+    window.addEventListener("pointerup", fin);
+    window.addEventListener("pointercancel", fin);
+    return () => {
+      window.removeEventListener("pointerdown", debut);
+      window.removeEventListener("pointermove", mouvement);
+      window.removeEventListener("pointerup", fin);
+      window.removeEventListener("pointercancel", fin);
+    };
+  }, [actif]);
+
+  return { decalage, anime };
 }
 
 const sansAbonnement = () => () => {};
@@ -227,7 +297,7 @@ function ChoixMembre({ foyer, choisir }: { foyer: Foyer; choisir: (id: string) =
     <main className="bienvenue">
       <div className="monogramme" aria-hidden>KH</div>
       <h1>{foyer.nom}</h1>
-      <p className="discret">Qui utilise ce téléphone ?</p>
+      <p className="discret">Qui utilise ce téléphone ? Le choix se verrouille ensuite, et se change dans Réglages.</p>
       <ul className="carte groupe choix-membre">
         {foyer.membres.map((m) => (
           <li key={m.id}>

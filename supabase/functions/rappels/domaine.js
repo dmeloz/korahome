@@ -234,6 +234,35 @@ function choseAFaire(animal, aujourdhui) {
 	return [...urgentes, ...bientot];
 }
 //#endregion
+//#region src/domaine/listes.ts
+const UNITES = "(?:kg|g|l|cl|ml|x|paquets?|boites?|boîtes?|bouteilles?|pots?|sachets?|tranches?)";
+new RegExp(`^(\\d+(?:[.,]\\d+)?\\s*${UNITES}?)\\s+(?:de\\s+|d')?(.+)$`, "i");
+new RegExp(`^(.+?)\\s+(?:x\\s*)?(\\d+(?:[.,]\\d+)?\\s*${UNITES}?)$`, "i");
+function etatProduit(p, aujourdhui) {
+	if (!p.peremption) return "sansDate";
+	const ecart = ecartJours(aujourdhui, p.peremption);
+	if (ecart < 0) return "perime";
+	if (ecart === 0) return "aujourdhui";
+	return ecart <= 3 ? "bientot" : "ok";
+}
+/** Périmé, à consommer aujourd'hui ou dans les trois jours. */
+function estAConsommer(p, aujourdhui) {
+	const e = etatProduit(p, aujourdhui);
+	return e === "perime" || e === "aujourdhui" || e === "bientot";
+}
+const parDate = (a, b) => (a.peremption ?? "9999-12-31").localeCompare(b.peremption ?? "9999-12-31") || a.nom.localeCompare(b.nom, "fr");
+/** Ce que le stock montre sur l'accueil et dans le rappel du matin. */
+function resumeStock(produits, aujourdhui) {
+	const aConsommer = produits.filter((p) => estAConsommer(p, aujourdhui)).sort(parDate);
+	return {
+		aConsommer,
+		urgent: aConsommer.some((p) => {
+			const e = etatProduit(p, aujourdhui);
+			return e === "perime" || e === "aujourdhui";
+		})
+	};
+}
+//#endregion
 //#region src/domaine/rappels.ts
 /** L'heure proposée au départ, décidée avec le foyer ; chacun peut la changer. */
 const HEURE_DU_RAPPEL = 8;
@@ -252,6 +281,7 @@ const TOUS_LES_JOURS = [
 const PREFERENCES_DE_DEPART = {
 	taches: true,
 	mitsu: true,
+	stock: true,
 	heure: 8,
 	jours: TOUS_LES_JOURS
 };
@@ -387,6 +417,11 @@ function rappelDuMatin(entree) {
 		if (!urgentes.length) continue;
 		lignes.push(`${animal.nom} : ${urgentes.slice(0, 2).map((c) => c.texte).join(" · ")}${urgentes.length > 2 ? "…" : ""}`);
 		nombre += urgentes.length;
+	}
+	if (preferences.stock && entree.produits) {
+		const { aConsommer } = resumeStock(entree.produits, aujourdhui);
+		if (aConsommer.length) lignes.push(`À consommer : ${enumerer(aConsommer.map((p) => p.nom))}`);
+		nombre += aConsommer.length;
 	}
 	if (nombre === 0) return null;
 	const prenom = entree.foyer?.membres.find((m) => m.id === entree.membreId)?.prenom;

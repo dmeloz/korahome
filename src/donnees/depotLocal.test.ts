@@ -5,6 +5,7 @@ import { creerFoyer, listesInitiales } from "../domaine/foyer";
 import { basculerCoche, nouvelElement } from "../domaine/listes";
 import { ajouterPesee, nouvelAnimal } from "../domaine/mitsu";
 import { basculerRegle, nouveauRetour } from "../domaine/retours";
+import { deplacer, nouveauProduit } from "../domaine/stock";
 import { marquerFaite, tachesDeDepart } from "../domaine/taches";
 import { creerDepotLocal } from "./depotLocal";
 
@@ -102,6 +103,38 @@ describe("dépôt local", () => {
     const retours = await depot.lireRetours();
     expect(retours).toHaveLength(1);
     expect(retours[0].regleLe).not.toBeNull();
+  });
+
+  it("conserve le stock et le partage", async () => {
+    const ctx = contexteTest();
+    const depot = depotNeuf();
+    const lait = nouveauProduit({ texte: "Lait", lieu: "frigo", peremption: "2026-10-14" }, null, ctx);
+    const pates = nouveauProduit({ texte: "Pâtes", lieu: "placard", peremption: null }, null, ctx);
+    await depot.enregistrerProduit(lait);
+    await depot.enregistrerProduit(pates);
+    await depot.enregistrerProduit(deplacer(lait, "congelateur"));
+    await depot.supprimerProduit(pates.id);
+    expect(await depot.lireProduits()).toEqual([{ ...lait, lieu: "congelateur" }]);
+    expect((await depot.lireEnAttente()).filter((c) => c.collection === "stock").map((c) => c.id).sort()).toEqual([lait.id, pates.id].sort());
+  });
+
+  it("relit tout le serveur une fois après l'arrivée du stock", async () => {
+    const fabrique = new IDBFactory();
+    const ancienne = fabrique.open("v6", 6);
+    await new Promise<void>((ok) => {
+      ancienne.onupgradeneeded = () => {
+        for (const m of ["foyer", "listes", "elements", "taches", "retours", "animaux", "synchro"]) ancienne.result.createObjectStore(m, { keyPath: "id" });
+        ancienne.result.createObjectStore("attente", { keyPath: "cle" });
+        ancienne.transaction!.objectStore("synchro").put({ id: "etat", foyerId: "f1", curseur: "2026-10-10T10:00:00Z", derniere: null });
+      };
+      ancienne.onsuccess = () => {
+        ancienne.result.close();
+        ok();
+      };
+    });
+    const depot = creerDepotLocal("v6", fabrique);
+    expect(await depot.lireEtat()).toEqual({ foyerId: "f1", curseur: null, derniere: null });
+    expect(await depot.lireProduits()).toEqual([]);
   });
 
   it("conserve le suivi de Mitsu", async () => {

@@ -1,0 +1,84 @@
+import { describe, expect, it } from "vitest";
+import { contexteTest } from "./contexteTest";
+import {
+  datesRapides,
+  decrirePeremption,
+  deplacer,
+  etatProduit,
+  nouveauProduit,
+  organiserStock,
+  resumeStock,
+  type Lieu,
+} from "./stock";
+
+const aujourdhui = "2026-10-11";
+const ctx = contexteTest();
+const produit = (texte: string, lieu: Lieu, peremption: string | null) => nouveauProduit({ texte, lieu, peremption }, "m1", ctx);
+
+describe("ajouter un produit", () => {
+  it("sépare la quantité du nom et garde le lieu et la date", () => {
+    const p = produit("2 yaourts nature", "frigo", "2026-10-14");
+    expect(p).toMatchObject({ nom: "Yaourts nature", quantite: "2", lieu: "frigo", peremption: "2026-10-14", ajoutePar: "m1" });
+  });
+
+  it("refuse un produit vide", () => {
+    expect(() => produit("  ", "placard", null)).toThrow();
+  });
+
+  it("propose des dates d'un toucher", () => {
+    expect(datesRapides(aujourdhui).map((d) => d.jour)).toEqual(["2026-10-12", "2026-10-14", "2026-10-18", "2026-11-11", "2027-01-11"]);
+  });
+});
+
+describe("dates", () => {
+  it("dit où en est chaque produit", () => {
+    expect(etatProduit(produit("a", "frigo", "2026-10-09"), aujourdhui)).toBe("perime");
+    expect(etatProduit(produit("a", "frigo", "2026-10-11"), aujourdhui)).toBe("aujourdhui");
+    expect(etatProduit(produit("a", "frigo", "2026-10-14"), aujourdhui)).toBe("bientot");
+    expect(etatProduit(produit("a", "frigo", "2026-10-15"), aujourdhui)).toBe("ok");
+    expect(etatProduit(produit("a", "placard", null), aujourdhui)).toBe("sansDate");
+  });
+
+  it("le dit en mots", () => {
+    const d = (j: string | null) => decrirePeremption(produit("a", "frigo", j), aujourdhui);
+    expect(d("2026-10-08")).toBe("périmé depuis 3 jours");
+    expect(d("2026-10-10")).toBe("périmé depuis hier");
+    expect(d("2026-10-11")).toBe("à consommer aujourd'hui");
+    expect(d("2026-10-12")).toBe("demain");
+    expect(d("2026-10-16")).toBe("dans 5 jours");
+    expect(d("2026-11-02")).toBe("jusqu'au 02.11");
+    expect(d(null)).toBeNull();
+  });
+});
+
+describe("ranger le stock", () => {
+  const lait = produit("Lait", "frigo", "2026-10-12");
+  const beurre = produit("Beurre", "frigo", "2026-11-20");
+  const pates = produit("Pâtes", "placard", null);
+  const petitsPois = produit("Petits pois", "congelateur", "2027-03-01");
+  const jambon = produit("Jambon", "frigo", "2026-10-10");
+  const tout = [beurre, pates, lait, petitsPois, jambon];
+
+  it("met ce qui arrive à sa date en tête, puis chaque lieu", () => {
+    expect(organiserStock(tout, aujourdhui).map((g) => [g.titre, g.produits.map((p) => p.nom)])).toEqual([
+      ["À consommer", ["Jambon", "Lait"]],
+      ["Frigo", ["Beurre"]],
+      ["Congélateur", ["Petits pois"]],
+      ["Placard", ["Pâtes"]],
+    ]);
+  });
+
+  it("filtre sur un lieu", () => {
+    expect(organiserStock(tout, aujourdhui, "placard").map((g) => g.titre)).toEqual(["Placard"]);
+  });
+
+  it("change un produit de lieu", () => {
+    expect(deplacer(lait, "congelateur").lieu).toBe("congelateur");
+  });
+
+  it("résume pour l'accueil : urgent seulement si c'est pour aujourd'hui ou déjà passé", () => {
+    expect(resumeStock(tout, aujourdhui)).toMatchObject({ urgent: true });
+    expect(resumeStock(tout, aujourdhui).aConsommer.map((p) => p.nom)).toEqual(["Jambon", "Lait"]);
+    expect(resumeStock([lait, beurre], aujourdhui).urgent).toBe(false);
+  });
+});

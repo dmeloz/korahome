@@ -1,8 +1,8 @@
 # Notifications : les rappels du matin
 
 Aux jours et à l'heure choisis sur l'iPhone (tous les jours à 8 h au départ, de 5 h à 22 h, heure de Zurich), chaque iPhone inscrit reçoit **une seule** notification qui
-résume sa journée : ses tâches et les tâches libres (du jour et en retard), et ce qui presse pour Mitsu
-(commande, provisions, soins). Rien à faire : pas de notification. La pastille de l'icône affiche le
+résume sa journée : ses tâches et les tâches libres (du jour et en retard), ce qui presse pour Mitsu
+(commande, provisions, soins) et ce qui arrive à sa date au frigo ou au placard dans les trois jours. Rien à faire : pas de notification. La pastille de l'icône affiche le
 nombre de rappels et s'efface à l'ouverture de l'app.
 
 ## Sur l'iPhone
@@ -14,7 +14,7 @@ nombre de rappels et s'efface à l'ouverture de l'app.
 
 Chacun choisit sur son iPhone, comme une alarme de l'app Horloge : l'heure (la roue de l'iPhone), les
 jours (L M M J V S D, ou « Tous les jours », « En semaine », « Le week-end ») et ce que contient le
-rappel (tâches, Mitsu), avec un aperçu de la notification. Les jours voyagent dans les `preferences`
+rappel (tâches, Mitsu, frigo et placards), avec un aperçu de la notification. Les jours voyagent dans les `preferences`
 de l'abonnement (`jours`, 0 = dimanche) : pas de changement de table. Le rappel suit la personne
 choisie dans Réglages > Ce téléphone.
 
@@ -32,7 +32,7 @@ choisie dans Réglages > Ce téléphone.
 
 ## Modifier les règles
 
-Après une modification de `src/domaine/rappels.ts` (ou de `taches.ts`, `mitsu.ts`) :
+Après une modification de `src/domaine/rappels.ts` (ou de `taches.ts`, `mitsu.ts`, `stock.ts`) :
 
 1. `npm run fonction` régénère `supabase/functions/rappels/domaine.js` (un test vérifie qu'il est à jour).
 2. Redéployer la fonction `rappels` (fichiers `index.ts` et `domaine.js`, sans vérification JWT :

@@ -2,7 +2,9 @@ import { useState, type FormEvent } from "react";
 import { basculerCoche, nouvelElement, organiserListe, trouverDoublon } from "../../domaine/listes";
 import type { Element, Foyer, Liste } from "../../domaine/types";
 import type { Depot } from "../../donnees/depot";
+import { useAnnoncer } from "../annulation";
 import { contexteReel } from "../contexte";
+import { Glissable } from "../Glissable";
 
 export function DetailListe(props: {
   depot: Depot;
@@ -15,6 +17,7 @@ export function DetailListe(props: {
   const [message, setMessage] = useState<string | null>(null);
   const { aPrendre, coches } = organiserListe(props.liste, props.elements);
   const siens = props.elements.filter((e) => e.listeId === props.liste.id);
+  const annoncer = useAnnoncer();
 
   async function ajouter(e: FormEvent) {
     e.preventDefault();
@@ -31,12 +34,17 @@ export function DetailListe(props: {
 
   const basculer = (el: Element) => props.depot.enregistrerElement(basculerCoche(el, contexteReel));
   const viderCoches = () => props.depot.supprimerElements(coches.map((c) => c.id));
+  async function supprimer(el: Element) {
+    await props.depot.supprimerElements([el.id]);
+    annoncer(`« ${el.texte} » supprimé.`, () => props.depot.enregistrerElement(el));
+  }
   const prenom = (id: string | null) => props.foyer.membres.find((m) => m.id === id);
 
   function ligne(el: Element) {
     const auteur = prenom(el.ajoutePar);
     return (
       <li key={el.id}>
+        <Glissable onSupprimer={() => void supprimer(el)}>
         <button className={`ligne element${el.coche ? " coche" : ""}`} onClick={() => basculer(el)}>
           <span className="case" aria-hidden>{el.coche ? "✓" : ""}</span>
           <span className="ligne-texte">
@@ -49,6 +57,7 @@ export function DetailListe(props: {
             </span>
           )}
         </button>
+        </Glissable>
       </li>
     );
   }

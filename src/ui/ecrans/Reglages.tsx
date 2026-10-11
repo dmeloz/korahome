@@ -61,6 +61,7 @@ export function Reglages(props: {
           <strong>{moi?.prenom ?? "Qui utilise ce téléphone ?"}</strong>
           <span className="discret">{props.foyer.nom} · ce téléphone</span>
         </span>
+        {moi && <span className="verrou-cadenas" aria-label="verrouillé"><Icone nom="cadenas" taille={16} /></span>}
         <span className="chevron"><Icone nom="suivant" taille={16} /></span>
       </button>
 
@@ -110,26 +111,85 @@ export function Reglages(props: {
   );
 }
 
-/** « Ce téléphone » : qui l'utilise, ce qui décide des tâches « miennes » et des rappels. */
+/**
+ * « Ce téléphone » : qui l'utilise, ce qui décide des tâches « miennes », des rappels
+ * et de la signature des notes. Une fois choisie, la personne est verrouillée :
+ * en changer demande une confirmation, pour qu'un toucher distrait ne mélange rien.
+ */
 export function Telephone(props: { foyer: Foyer; membreId: string | null; choisir: (id: string) => void }) {
+  const moi = props.foyer.membres.find((m) => m.id === props.membreId);
+  const [deverrouille, setDeverrouille] = useState(!moi);
+  const [confirmer, setConfirmer] = useState(false);
+
   return (
     <main className="reglages">
       <h1>Ce téléphone</h1>
-      <p className="discret rappels-intro">
-        Qui l'utilise ? Ce choix décide de tes tâches, de tes rappels et de la signature de tes notes. Il reste sur cet
-        iPhone.
-      </p>
-      <ul className="carte groupe">
-        {props.foyer.membres.map((m) => (
-          <li key={m.id}>
-            <button className="ligne ligne-reglage" onClick={() => props.choisir(m.id)}>
-              <span className="initiale" style={{ background: m.couleur }}>{m.prenom.charAt(0)}</span>
-              <span className="ligne-texte">{m.prenom}</span>
-              {props.membreId === m.id && <span className="coche-reglage" aria-label="sélectionné"><Icone nom="coche" taille={18} /></span>}
-            </button>
-          </li>
-        ))}
-      </ul>
+      {moi && !deverrouille ? (
+        <>
+          <div className="carte profil verrou">
+            <span className="initiale profil-initiale" style={{ background: moi.couleur }}>{moi.prenom.charAt(0)}</span>
+            <span className="profil-texte">
+              <strong>{moi.prenom}</strong>
+              <span className="discret">Ce téléphone est à {moi.prenom}</span>
+            </span>
+            <span className="verrou-cadenas" aria-label="verrouillé"><Icone nom="cadenas" taille={20} /></span>
+          </div>
+          <p className="discret rappels-intro">
+            Les tâches « miennes », les rappels du matin et la signature des notes sont à son nom. Ce réglage reste sur cet
+            iPhone.
+          </p>
+          <button className="lien" onClick={() => setConfirmer(true)}>Changer de personne</button>
+        </>
+      ) : (
+        <>
+          <p className="discret rappels-intro">
+            Qui l'utilise ? Ce choix décide de tes tâches, de tes rappels et de la signature de tes notes. Il se verrouille
+            ensuite sur cet iPhone.
+          </p>
+          <ul className="carte groupe">
+            {props.foyer.membres.map((m) => (
+              <li key={m.id}>
+                <button
+                  className="ligne ligne-reglage"
+                  onClick={() => {
+                    props.choisir(m.id);
+                    setDeverrouille(false);
+                  }}
+                >
+                  <span className="initiale" style={{ background: m.couleur }}>{m.prenom.charAt(0)}</span>
+                  <span className="ligne-texte">{m.prenom}</span>
+                  {props.membreId === m.id && <span className="coche-reglage" aria-label="sélectionné"><Icone nom="coche" taille={18} /></span>}
+                </button>
+              </li>
+            ))}
+          </ul>
+          {moi && <button className="lien" onClick={() => setDeverrouille(false)}>Garder {moi.prenom}</button>}
+        </>
+      )}
+
+      {confirmer && moi && (
+        <div className="voile" onClick={() => setConfirmer(false)}>
+          <div className="feuille feuille-alerte" role="alertdialog" aria-labelledby="titre-changer" onClick={(e) => e.stopPropagation()}>
+            <div className="poignee" aria-hidden />
+            <h2 id="titre-changer">Changer de personne ?</h2>
+            <p className="discret">
+              Ce téléphone ne sera plus à {moi.prenom} : ses tâches et ses rappels passeront à la personne choisie.
+            </p>
+            <div className="feuille-actions">
+              <button
+                className="bouton-principal"
+                onClick={() => {
+                  setConfirmer(false);
+                  setDeverrouille(true);
+                }}
+              >
+                Changer
+              </button>
+              <button className="lien" onClick={() => setConfirmer(false)}>Annuler</button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

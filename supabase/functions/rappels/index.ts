@@ -27,7 +27,7 @@ interface Abonnement {
   user_id: string;
   membre_id: string | null;
   cles: { p256dh: string; auth: string };
-  preferences: { taches?: boolean; mitsu?: boolean; jours?: number[] };
+  preferences: { taches?: boolean; mitsu?: boolean; stock?: boolean; jours?: number[] };
   heure: number;
   dernier_envoi: string | null;
 }
@@ -52,13 +52,13 @@ async function reglages(): Promise<{ publique: string; privee: string; cleCron: 
   return { publique: r.vapid_publique, privee: r.vapid_privee, cleCron: r.cle_cron };
 }
 
-/** Le foyer, ses tâches et ses animaux, tels que les téléphones les ont partagés. */
+/** Le foyer, ses tâches, ses animaux et son stock, tels que les téléphones les ont partagés. */
 async function donneesDuFoyer(foyerId: string) {
   const lignes = await echec(
-    serveur.from("documents").select("collection, donnees").eq("foyer_id", foyerId).in("collection", ["foyer", "taches", "animaux"]).not("donnees", "is", null),
+    serveur.from("documents").select("collection, donnees").eq("foyer_id", foyerId).in("collection", ["foyer", "taches", "animaux", "stock"]).not("donnees", "is", null),
   );
   const de = (c: string) => (lignes as { collection: string; donnees: any }[]).filter((l) => l.collection === c).map((l) => l.donnees);
-  return { foyer: de("foyer")[0] ?? null, taches: de("taches"), animaux: de("animaux") };
+  return { foyer: de("foyer")[0] ?? null, taches: de("taches"), animaux: de("animaux"), produits: de("stock") };
 }
 
 function rappelPour(a: Abonnement, donnees: Awaited<ReturnType<typeof donneesDuFoyer>>, aujourdhui: string) {
