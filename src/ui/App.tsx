@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { rappelDuMatin } from "../domaine/rappels";
 import type { WidgetId } from "../domaine/tableauDeBord";
 import type { Foyer } from "../domaine/types";
 import type { DepotLocal } from "../donnees/depotLocal";
@@ -19,7 +20,7 @@ import { BORD_RETOUR, directionGeste, finRetour } from "./gestes";
 import { noter } from "./journal";
 import { MODULES, type DonneesModule } from "./modules";
 import { enregistrerPastilleVisible, lirePastilleVisible } from "./rapport";
-import { lirePreferences, mettreAJourRappels } from "./rappels";
+import { afficherPastilleIcone, lirePreferences, mettreAJourRappels } from "./rappels";
 import { planifierSynchro, synchroEnDirect } from "./synchroAuto";
 import { useDonnees } from "./useDonnees";
 
@@ -63,6 +64,14 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   useEffect(() => {
     if (partage && foyerPartage) mettreAJourRappels(partage.rappels, foyerPartage, membreRappels, lirePreferences()).catch(() => {});
   }, [partage, foyerPartage, membreRappels]);
+
+  // La pastille de l'icône suit ce qui presse pour la personne de ce téléphone, mis à jour à chaque changement.
+  const aujourdhui = aujourdhuiLocal();
+  useEffect(() => {
+    if (!pret) return;
+    const rappel = rappelDuMatin({ foyer, membreId: membreRappels, taches, animaux, produits, aujourdhui, preferences: lirePreferences() });
+    afficherPastilleIcone(rappel?.nombre ?? 0);
+  }, [pret, foyer, membreRappels, taches, animaux, produits, aujourdhui]);
 
   const page = pile[pile.length - 1];
   const revenir = () => {

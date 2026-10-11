@@ -7,7 +7,6 @@ import { creerSynchro } from "./donnees/synchro";
 import { App, ecranAffiche } from "./ui/App";
 import { installerJournal } from "./ui/journal";
 import { creerMiseAJour, surveillerMisesAJour } from "./ui/miseAJour";
-import { effacerPastilleIcone } from "./ui/rappels";
 import "./styles.css";
 
 const miseAJour = creerMiseAJour(
@@ -18,9 +17,8 @@ const miseAJour = creerMiseAJour(
 
 installerJournal(ecranAffiche);
 
-// Au retour dans l'app : la pastille des rappels s'efface, et on regarde si une version attend.
-const auRetour: (() => void)[] = [effacerPastilleIcone];
-effacerPastilleIcone();
+// Au retour dans l'app, on regarde si une version attend.
+const auRetour: (() => void)[] = [];
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") auRetour.forEach((f) => f());
 });
