@@ -240,10 +240,20 @@ const HEURE_DU_RAPPEL = 8;
 /** Les heures possibles : de 5 h à 22 h. */
 const HEURE_MIN = 5;
 const HEURE_MAX = 22;
+const TOUS_LES_JOURS = [
+	1,
+	2,
+	3,
+	4,
+	5,
+	6,
+	0
+];
 const PREFERENCES_DE_DEPART = {
 	taches: true,
 	mitsu: true,
-	heure: 8
+	heure: 8,
+	jours: TOUS_LES_JOURS
 };
 const FUSEAU_DU_FOYER = "Europe/Zurich";
 function heureValide(heure) {
@@ -252,6 +262,96 @@ function heureValide(heure) {
 /** Une heure plus tôt (-1) ou plus tard (+1), sans sortir des heures possibles. */
 function decalerHeure(heure, sens) {
 	return Math.min(22, Math.max(5, heure + sens));
+}
+/** Les jours de la semaine, dans l'ordre suisse : lundi d'abord. */
+const JOURS_SEMAINE = [
+	{
+		numero: 1,
+		court: "lun",
+		initiale: "L",
+		nom: "lundi"
+	},
+	{
+		numero: 2,
+		court: "mar",
+		initiale: "M",
+		nom: "mardi"
+	},
+	{
+		numero: 3,
+		court: "mer",
+		initiale: "M",
+		nom: "mercredi"
+	},
+	{
+		numero: 4,
+		court: "jeu",
+		initiale: "J",
+		nom: "jeudi"
+	},
+	{
+		numero: 5,
+		court: "ven",
+		initiale: "V",
+		nom: "vendredi"
+	},
+	{
+		numero: 6,
+		court: "sam",
+		initiale: "S",
+		nom: "samedi"
+	},
+	{
+		numero: 0,
+		court: "dim",
+		initiale: "D",
+		nom: "dimanche"
+	}
+];
+const SEMAINE = [
+	1,
+	2,
+	3,
+	4,
+	5
+];
+const WEEK_END = [6, 0];
+const memes = (a, b) => a.length === b.length && b.every((j) => a.includes(j));
+/** Relit les jours enregistrés : sans doublon, dans l'ordre de la semaine ; tous les jours si rien de valable. */
+function nettoyerJours(bruts) {
+	if (!Array.isArray(bruts)) return [...TOUS_LES_JOURS];
+	const jours = TOUS_LES_JOURS.filter((j) => bruts.includes(j));
+	return jours.length ? jours : [...TOUS_LES_JOURS];
+}
+/** Ajoute ou retire un jour ; le dernier jour ne peut pas être retiré (couper les rappels sert à ça). */
+function basculerJour(jours, jour) {
+	if (jours.includes(jour)) return jours.length > 1 ? jours.filter((j) => j !== jour) : [...jours];
+	return TOUS_LES_JOURS.filter((j) => j === jour || jours.includes(j));
+}
+/** Les raccourcis, comme dans l'app Horloge de l'iPhone. */
+const RACCOURCIS_JOURS = [
+	{
+		libelle: "Tous les jours",
+		jours: TOUS_LES_JOURS
+	},
+	{
+		libelle: "En semaine",
+		jours: SEMAINE
+	},
+	{
+		libelle: "Le week-end",
+		jours: WEEK_END
+	}
+];
+/** « Tous les jours », « En semaine », « Le week-end », ou « lun, mer, ven ». */
+function decrireJours(jours) {
+	const raccourci = RACCOURCIS_JOURS.find((r) => memes(jours, r.jours));
+	if (raccourci) return raccourci.libelle;
+	return JOURS_SEMAINE.filter((j) => jours.includes(j.numero)).map((j) => j.court).join(", ");
+}
+/** Le jour de la semaine d'une date « AAAA-MM-JJ ». */
+function jourDeLaSemaine(jour) {
+	return (/* @__PURE__ */ new Date(`${jour}T12:00:00Z`)).getUTCDay();
 }
 /** « 8:00 », « 18:00 ». */
 function formaterHeure(heure) {
@@ -314,12 +414,13 @@ function jourEtHeure(instant, fuseau = FUSEAU_DU_FOYER) {
 /**
 * Le serveur passe chaque heure : un téléphone reçoit son rappel au premier passage
 * à partir de son heure, une seule fois par jour (un passage manqué est rattrapé
-* dans la matinée, jamais l'après-midi).
+* dans la matinée, jamais l'après-midi), et seulement les jours choisis.
 */
-function rappelDu(instant, heure, dernierEnvoi, fuseau = FUSEAU_DU_FOYER) {
+function rappelDu(instant, heure, dernierEnvoi, fuseau = FUSEAU_DU_FOYER, jours = TOUS_LES_JOURS) {
 	const local = jourEtHeure(instant, fuseau);
 	if (local.heure < heure || local.heure >= Math.max(heure + 1, 12)) return null;
+	if (!nettoyerJours(jours).includes(jourDeLaSemaine(local.jour))) return null;
 	return dernierEnvoi === local.jour ? null : local.jour;
 }
 //#endregion
-export { FUSEAU_DU_FOYER, HEURE_DU_RAPPEL, HEURE_MAX, HEURE_MIN, PREFERENCES_DE_DEPART, decalerHeure, formaterHeure, heureValide, jourEtHeure, rappelDu, rappelDuMatin, tachesDuMatin };
+export { FUSEAU_DU_FOYER, HEURE_DU_RAPPEL, HEURE_MAX, HEURE_MIN, JOURS_SEMAINE, PREFERENCES_DE_DEPART, RACCOURCIS_JOURS, TOUS_LES_JOURS, basculerJour, decalerHeure, decrireJours, formaterHeure, heureValide, jourDeLaSemaine, jourEtHeure, nettoyerJours, rappelDu, rappelDuMatin, tachesDuMatin };

@@ -1,17 +1,33 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { Foyer } from "../../domaine/types";
-import { formaterHeure } from "../../domaine/rappels";
-import { choisirMembreCourant } from "../contexte";
+import { decrireJours, formaterHeure } from "../../domaine/rappels";
 import { lirePreferences } from "../rappels";
-import { Icone } from "../Icone";
+import { Icone, type NomIcone } from "../Icone";
 import { MESSAGES_VERIFICATION, type ResultatVerification } from "../miseAJour";
 
 const ETATS_PARTAGE = { indisponible: "Bientôt", inactif: "Désactivé", actif: "Activé" } as const;
 
+// Des Réglages épurés, à la manière de ceux de l'iPhone : la personne du
+// téléphone en tête, puis quelques lignes groupées, chacune avec son pictogramme.
+
+function Ligne(props: { picto: NomIcone; titre: string; valeur?: ReactNode; onClick: () => void; chevron?: boolean; alerte?: boolean }) {
+  return (
+    <li>
+      <button className="ligne ligne-reglage" onClick={props.onClick}>
+        <span className="picto-reglage"><Icone nom={props.picto} taille={18} /></span>
+        <span className="ligne-texte">{props.titre}</span>
+        {props.alerte && <span className="alerte alerte-ligne" aria-hidden />}
+        {props.valeur !== undefined && <span className="discret valeur-reglage">{props.valeur}</span>}
+        {props.chevron !== false && <span className="chevron"><Icone nom="suivant" taille={16} /></span>}
+      </button>
+    </li>
+  );
+}
+
 export function Reglages(props: {
   foyer: Foyer;
   membreId: string | null;
-  changerMembre: (id: string) => void;
+  ouvrirTelephone: () => void;
   verifierMiseAJour: () => Promise<ResultatVerification>;
   nouvelleVersion: boolean;
   appliquerMiseAJour: () => void;
@@ -24,90 +40,95 @@ export function Reglages(props: {
   changerPastille: (visible: boolean) => void;
 }) {
   const [verification, setVerification] = useState<string | null>(null);
-  const verifier = async () => {
+  const moi = props.foyer.membres.find((m) => m.id === props.membreId);
+  const rappels = lirePreferences();
+
+  const version = async () => {
+    if (props.nouvelleVersion) return props.appliquerMiseAJour();
     setVerification("Vérification…");
     setVerification(MESSAGES_VERIFICATION[await props.verifierMiseAJour()]);
   };
+
   return (
-    <main>
+    <main className="reglages">
       <h1>Réglages</h1>
-      <h2 className="rayon">Foyer</h2>
-      <div className="carte">
-        <p><strong>{props.foyer.nom}</strong></p>
-      </div>
-      <h2 className="rayon">Partage</h2>
+
+      <button className="carte profil" onClick={props.ouvrirTelephone}>
+        <span className="initiale profil-initiale" style={{ background: moi?.couleur ?? "var(--surface-haute)" }}>
+          {moi?.prenom.charAt(0) ?? "?"}
+        </span>
+        <span className="profil-texte">
+          <strong>{moi?.prenom ?? "Qui utilise ce téléphone ?"}</strong>
+          <span className="discret">{props.foyer.nom} · ce téléphone</span>
+        </span>
+        <span className="chevron"><Icone nom="suivant" taille={16} /></span>
+      </button>
+
       <ul className="carte groupe">
-        <li>
-          <button className="ligne" onClick={props.ouvrirPartage}>
-            <span className="ligne-texte">Partage entre vos iPhone</span>
-            <span className="discret">{ETATS_PARTAGE[props.partage]}</span>
-            <span className="chevron"><Icone nom="suivant" taille={18} /></span>
-          </button>
-        </li>
+        <Ligne picto="partage" titre="Partage" valeur={ETATS_PARTAGE[props.partage]} onClick={props.ouvrirPartage} />
+        <Ligne
+          picto="cloche"
+          titre="Notifications"
+          valeur={`${formaterHeure(rappels.heure)} · ${decrireJours(rappels.jours)}`}
+          onClick={props.ouvrirNotifications}
+        />
       </ul>
-      <h2 className="rayon">Notifications</h2>
+
       <ul className="carte groupe">
-        <li>
-          <button className="ligne" onClick={props.ouvrirNotifications}>
-            <span className="ligne-texte">Rappel du jour</span>
-            <span className="discret">{formaterHeure(lirePreferences().heure)}</span>
-            <span className="chevron"><Icone nom="suivant" taille={18} /></span>
-          </button>
-        </li>
+        <Ligne
+          picto="info"
+          titre={`Kora ${__VERSION__}`}
+          valeur={props.nouvelleVersion ? "Mettre à jour" : verification ?? "Vérifier"}
+          alerte={props.nouvelleVersion}
+          chevron={false}
+          onClick={() => void version()}
+        />
       </ul>
-      <h2 className="rayon">Qui utilise ce téléphone ?</h2>
-      <ul className="carte groupe">
-        {props.foyer.membres.map((m) => (
-          <li key={m.id}>
-            <button
-              className="ligne"
-              onClick={() => {
-                choisirMembreCourant(m.id);
-                props.changerMembre(m.id);
-              }}
-            >
-              <span className="initiale" style={{ background: m.couleur }}>{m.prenom.charAt(0)}</span>
-              <span className="ligne-texte">{m.prenom}</span>
-              {props.membreId === m.id && <span aria-label="sélectionné">✓</span>}
-            </button>
-          </li>
-        ))}
-      </ul>
-      <h2 className="rayon">Application</h2>
-      <div className="carte version">
-        <p><strong>Kora {__VERSION__}</strong></p>
-        {props.nouvelleVersion ? (
-          <>
-            <p className="version-dispo"><span className="alerte" aria-hidden />Nouvelle version disponible</p>
-            <button className="bouton-principal" onClick={props.appliquerMiseAJour}>Mettre à jour</button>
-          </>
-        ) : (
-          <>
-            <button className="lien" onClick={verifier}>Vérifier les mises à jour</button>
-            {verification && <p className="discret" role="status">{verification}</p>}
-          </>
-        )}
-      </div>
+
       <h2 className="rayon">Développement</h2>
       <ul className="carte groupe">
-        <li>
-          <button className="ligne" onClick={props.ouvrirRetours}>
-            <span className="ligne-texte">Retours de test</span>
-            {props.notesOuvertes > 0 && <span className="pastille">{props.notesOuvertes}</span>}
-            <span className="chevron"><Icone nom="suivant" taille={18} /></span>
-          </button>
-        </li>
+        <Ligne
+          picto="note"
+          titre="Retours de test"
+          valeur={props.notesOuvertes > 0 ? <span className="pastille">{props.notesOuvertes}</span> : undefined}
+          onClick={props.ouvrirRetours}
+        />
         <li>
           <button
-            className="ligne"
+            className="ligne ligne-reglage"
             role="switch"
             aria-checked={props.pastilleVisible}
             onClick={() => props.changerPastille(!props.pastilleVisible)}
           >
-            <span className="ligne-texte">Pastille « Dev » sur chaque écran</span>
+            <span className="picto-reglage"><Icone nom="pastilleDev" taille={18} /></span>
+            <span className="ligne-texte">Pastille « Dev »</span>
             <span className={`interrupteur${props.pastilleVisible ? " actif" : ""}`} aria-hidden />
           </button>
         </li>
+      </ul>
+    </main>
+  );
+}
+
+/** « Ce téléphone » : qui l'utilise, ce qui décide des tâches « miennes » et des rappels. */
+export function Telephone(props: { foyer: Foyer; membreId: string | null; choisir: (id: string) => void }) {
+  return (
+    <main className="reglages">
+      <h1>Ce téléphone</h1>
+      <p className="discret rappels-intro">
+        Qui l'utilise ? Ce choix décide de tes tâches, de tes rappels et de la signature de tes notes. Il reste sur cet
+        iPhone.
+      </p>
+      <ul className="carte groupe">
+        {props.foyer.membres.map((m) => (
+          <li key={m.id}>
+            <button className="ligne ligne-reglage" onClick={() => props.choisir(m.id)}>
+              <span className="initiale" style={{ background: m.couleur }}>{m.prenom.charAt(0)}</span>
+              <span className="ligne-texte">{m.prenom}</span>
+              {props.membreId === m.id && <span className="coche-reglage" aria-label="sélectionné"><Icone nom="coche" taille={18} /></span>}
+            </button>
+          </li>
+        ))}
       </ul>
     </main>
   );

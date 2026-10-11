@@ -79,3 +79,38 @@ export function widgetsAAjouter(d: Disposition): { prets: DefinitionWidget[]; bi
 export function ordreAffichage(d: Disposition, urgents: ReadonlySet<WidgetId>): Disposition {
   return [...d.filter((id) => urgents.has(id)), ...d.filter((id) => !urgents.has(id))];
 }
+
+/** Un widget petit (une case, le chiffre seul) ou grand (toute la largeur, avec le détail). */
+export type TailleWidget = "petit" | "grand";
+export type Tailles = Partial<Record<WidgetId, TailleWidget>>;
+
+/** Relit les tailles enregistrées ; tout ce qui n'est pas « petit » est grand. */
+export function nettoyerTailles(brutes: unknown): Tailles {
+  const tailles: Tailles = {};
+  if (!brutes || typeof brutes !== "object") return tailles;
+  for (const [id, taille] of Object.entries(brutes)) {
+    if (PAR_ID.has(id as WidgetId) && taille === "petit") tailles[id as WidgetId] = "petit";
+  }
+  return tailles;
+}
+
+export function tailleDe(tailles: Tailles, id: WidgetId): TailleWidget {
+  return tailles[id] ?? "grand";
+}
+
+export function basculerTaille(tailles: Tailles, id: WidgetId): Tailles {
+  const suivantes = { ...tailles };
+  if (tailleDe(tailles, id) === "grand") suivantes[id] = "petit";
+  else delete suivantes[id];
+  return suivantes;
+}
+
+/** Glisse un widget à la place d'un autre, comme sur l'écran d'accueil de l'iPhone. */
+export function deplacerVers(d: Disposition, id: WidgetId, cible: WidgetId): Disposition {
+  const i = d.indexOf(id);
+  const j = d.indexOf(cible);
+  if (i < 0 || j < 0 || i === j) return d;
+  const copie = d.filter((x) => x !== id);
+  copie.splice(j, 0, id);
+  return copie;
+}

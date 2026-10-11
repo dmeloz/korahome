@@ -9,7 +9,7 @@ import { Bienvenue } from "./ecrans/Bienvenue";
 import { DetailListe } from "./ecrans/DetailListe";
 import { Notifications } from "./ecrans/Notifications";
 import { Partage, type ServicesPartage } from "./ecrans/Partage";
-import { Reglages } from "./ecrans/Reglages";
+import { Reglages, Telephone } from "./ecrans/Reglages";
 import { RetoursTest } from "./ecrans/RetoursTest";
 import { Icone } from "./Icone";
 import type { MiseAJour } from "./miseAJour";
@@ -29,6 +29,7 @@ type Page =
   | { nom: "reglages" }
   | { nom: "partage" }
   | { nom: "notifications" }
+  | { nom: "telephone" }
   | { nom: "retours" };
 
 // L'écran affiché, lu par le journal des retours de test à chaque geste.
@@ -66,6 +67,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     if (p.nom === "retours") return "Retours de test";
     if (p.nom === "partage") return "Partage";
     if (p.nom === "notifications") return "Notifications";
+    if (p.nom === "telephone") return "Ce téléphone";
     if (p.nom === "module") return MODULES[p.id]?.libelle ?? "Retour";
     return listes.find((l) => l.id === p.id)?.nom ?? "Liste";
   }
@@ -147,6 +149,21 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         foyerId={foyerPartage}
         membreId={membre}
         ouvrirPartage={() => ouvrir({ nom: "partage" })}
+        foyer={foyer}
+        taches={taches}
+        animaux={animaux}
+        aujourdhui={donnees.aujourdhui}
+      />
+    );
+  } else if (page.nom === "telephone") {
+    ecran = (
+      <Telephone
+        foyer={foyer}
+        membreId={membre}
+        choisir={(id) => {
+          choisirMembreCourant(id);
+          setMembreId(id);
+        }}
       />
     );
   } else if (page.nom === "retours") {
@@ -156,7 +173,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       <Reglages
         foyer={foyer}
         membreId={membre}
-        changerMembre={setMembreId}
+        ouvrirTelephone={() => ouvrir({ nom: "telephone" })}
         verifierMiseAJour={miseAJour.verifier}
         nouvelleVersion={nouvelleVersion}
         appliquerMiseAJour={() => void miseAJour.appliquer()}

@@ -14,6 +14,8 @@ export interface PreferencesRappels {
   mitsu: boolean;
   /** L'heure du rappel, heure pleine, à Zurich. */
   heure: number;
+  /** Les jours où le rappel arrive : 0 dimanche, 1 lundi… 6 samedi. */
+  jours: number[];
 }
 
 /** L'heure proposée au départ, décidée avec le foyer ; chacun peut la changer. */
@@ -22,7 +24,8 @@ export const HEURE_DU_RAPPEL = 8;
 export const HEURE_MIN = 5;
 export const HEURE_MAX = 22;
 
-export const PREFERENCES_DE_DEPART: PreferencesRappels = { taches: true, mitsu: true, heure: HEURE_DU_RAPPEL };
+export const TOUS_LES_JOURS = [1, 2, 3, 4, 5, 6, 0];
+export const PREFERENCES_DE_DEPART: PreferencesRappels = { taches: true, mitsu: true, heure: HEURE_DU_RAPPEL, jours: TOUS_LES_JOURS };
 export const FUSEAU_DU_FOYER = "Europe/Zurich";
 
 export function heureValide(heure: unknown): heure is number {
@@ -32,6 +35,53 @@ export function heureValide(heure: unknown): heure is number {
 /** Une heure plus tôt (-1) ou plus tard (+1), sans sortir des heures possibles. */
 export function decalerHeure(heure: number, sens: -1 | 1): number {
   return Math.min(HEURE_MAX, Math.max(HEURE_MIN, heure + sens));
+}
+
+/** Les jours de la semaine, dans l'ordre suisse : lundi d'abord. */
+export const JOURS_SEMAINE: readonly { numero: number; court: string; initiale: string; nom: string }[] = [
+  { numero: 1, court: "lun", initiale: "L", nom: "lundi" },
+  { numero: 2, court: "mar", initiale: "M", nom: "mardi" },
+  { numero: 3, court: "mer", initiale: "M", nom: "mercredi" },
+  { numero: 4, court: "jeu", initiale: "J", nom: "jeudi" },
+  { numero: 5, court: "ven", initiale: "V", nom: "vendredi" },
+  { numero: 6, court: "sam", initiale: "S", nom: "samedi" },
+  { numero: 0, court: "dim", initiale: "D", nom: "dimanche" },
+];
+
+const SEMAINE = [1, 2, 3, 4, 5];
+const WEEK_END = [6, 0];
+const memes = (a: readonly number[], b: readonly number[]) => a.length === b.length && b.every((j) => a.includes(j));
+
+/** Relit les jours enregistrés : sans doublon, dans l'ordre de la semaine ; tous les jours si rien de valable. */
+export function nettoyerJours(bruts: unknown): number[] {
+  if (!Array.isArray(bruts)) return [...TOUS_LES_JOURS];
+  const jours = TOUS_LES_JOURS.filter((j) => bruts.includes(j));
+  return jours.length ? jours : [...TOUS_LES_JOURS];
+}
+
+/** Ajoute ou retire un jour ; le dernier jour ne peut pas être retiré (couper les rappels sert à ça). */
+export function basculerJour(jours: readonly number[], jour: number): number[] {
+  if (jours.includes(jour)) return jours.length > 1 ? jours.filter((j) => j !== jour) : [...jours];
+  return TOUS_LES_JOURS.filter((j) => j === jour || jours.includes(j));
+}
+
+/** Les raccourcis, comme dans l'app Horloge de l'iPhone. */
+export const RACCOURCIS_JOURS: readonly { libelle: string; jours: number[] }[] = [
+  { libelle: "Tous les jours", jours: TOUS_LES_JOURS },
+  { libelle: "En semaine", jours: SEMAINE },
+  { libelle: "Le week-end", jours: WEEK_END },
+];
+
+/** « Tous les jours », « En semaine », « Le week-end », ou « lun, mer, ven ». */
+export function decrireJours(jours: readonly number[]): string {
+  const raccourci = RACCOURCIS_JOURS.find((r) => memes(jours, r.jours));
+  if (raccourci) return raccourci.libelle;
+  return JOURS_SEMAINE.filter((j) => jours.includes(j.numero)).map((j) => j.court).join(", ");
+}
+
+/** Le jour de la semaine d'une date « AAAA-MM-JJ ». */
+export function jourDeLaSemaine(jour: Jour): number {
+  return new Date(`${jour}T12:00:00Z`).getUTCDay();
 }
 
 /** « 8:00 », « 18:00 ». */
@@ -112,10 +162,17 @@ export function jourEtHeure(instant: Date, fuseau: string = FUSEAU_DU_FOYER): { 
 /**
  * Le serveur passe chaque heure : un téléphone reçoit son rappel au premier passage
  * à partir de son heure, une seule fois par jour (un passage manqué est rattrapé
- * dans la matinée, jamais l'après-midi).
+ * dans la matinée, jamais l'après-midi), et seulement les jours choisis.
  */
-export function rappelDu(instant: Date, heure: number, dernierEnvoi: Jour | null, fuseau: string = FUSEAU_DU_FOYER): Jour | null {
+export function rappelDu(
+  instant: Date,
+  heure: number,
+  dernierEnvoi: Jour | null,
+  fuseau: string = FUSEAU_DU_FOYER,
+  jours: readonly number[] = TOUS_LES_JOURS,
+): Jour | null {
   const local = jourEtHeure(instant, fuseau);
   if (local.heure < heure || local.heure >= Math.max(heure + 1, 12)) return null;
+  if (!nettoyerJours(jours).includes(jourDeLaSemaine(local.jour))) return null;
   return dernierEnvoi === local.jour ? null : local.jour;
 }

@@ -1,7 +1,7 @@
 // KoraHome : la fonction qui envoie les rappels du matin (Supabase Edge Function, Deno).
 //
 // - Chaque heure, le serveur l'appelle (pg_cron, voir supabase/schema.sql) avec sa clé
-//   « x-cle-cron » : chaque téléphone abonné reçoit son rappel de 8 h, une fois par jour.
+//   « x-cle-cron » : chaque téléphone abonné reçoit son rappel à son heure, les jours choisis.
 // - Un téléphone l'appelle avec sa session pour lire la clé publique d'envoi (« cle »)
 //   ou recevoir tout de suite un rappel d'essai (« essai »).
 //
@@ -27,7 +27,7 @@ interface Abonnement {
   user_id: string;
   membre_id: string | null;
   cles: { p256dh: string; auth: string };
-  preferences: { taches?: boolean; mitsu?: boolean };
+  preferences: { taches?: boolean; mitsu?: boolean; jours?: number[] };
   heure: number;
   dernier_envoi: string | null;
 }
@@ -96,7 +96,7 @@ async function passageDuMatin(cles: { publique: string; privee: string }) {
   const parFoyer = new Map<string, Promise<Awaited<ReturnType<typeof donneesDuFoyer>>>>();
   const bilan: Record<string, number> = {};
   for (const a of abonnements) {
-    const jour = rappelDu(maintenant, a.heure, a.dernier_envoi, FUSEAU_DU_FOYER);
+    const jour = rappelDu(maintenant, a.heure, a.dernier_envoi, FUSEAU_DU_FOYER, a.preferences?.jours);
     if (!jour) continue;
     if (!parFoyer.has(a.foyer_id)) parFoyer.set(a.foyer_id, donneesDuFoyer(a.foyer_id));
     const message = rappelPour(a, await parFoyer.get(a.foyer_id)!, jour);

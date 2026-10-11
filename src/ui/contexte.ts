@@ -49,3 +49,23 @@ export function enregistrerDisposition(disposition: readonly string[]): void {
     // Stockage indisponible : la disposition vaut pour cette visite seulement.
   }
 }
+
+const CLE_TAILLES = "korahome.taillesWidgets";
+
+/** La taille de chaque widget (petit ou grand). Propre à chaque téléphone, comme la disposition. */
+export function lireTailles(): unknown {
+  try {
+    const brut = localStorage.getItem(CLE_TAILLES);
+    return brut === null ? undefined : JSON.parse(brut);
+  } catch {
+    return undefined;
+  }
+}
+
+export function enregistrerTailles(tailles: object): void {
+  try {
+    localStorage.setItem(CLE_TAILLES, JSON.stringify(tailles));
+  } catch {
+    // Stockage indisponible : les tailles valent pour cette visite seulement.
+  }
+}
