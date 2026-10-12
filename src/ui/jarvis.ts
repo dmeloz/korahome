@@ -53,32 +53,91 @@ function fabriqueReconnaissance(): (new () => Reconnaissance) | null {
 /** L'iPhone sait-il transcrire la voix dans l'app ? Sinon, la dictée du clavier reste là. */
 export const voixDisponible = () => fabriqueReconnaissance() !== null;
 
+/** Au-delà, l'écoute s'arrête d'elle-même : l'iPhone oublie parfois de dire qu'il a fini. */
+export const DUREE_ECOUTE_MAX = 15_000;
+
+/**
+ * La phrase entendue. Safari sur iPhone répète parfois toute la phrase dans chaque
+ * morceau (« ajoute », « ajoute du lait ») : un morceau qui reprend le précédent le remplace.
+ */
+export function phraseEntendue(morceaux: readonly string[]): string {
+  let phrase = "";
+  for (const m of morceaux) {
+    const t = m.trim();
+    if (!t) continue;
+    if (!phrase || t.toLowerCase().startsWith(phrase.toLowerCase())) phrase = t;
+    else if (!phrase.toLowerCase().endsWith(t.toLowerCase())) phrase = `${phrase} ${t}`;
+  }
+  return phrase;
+}
+
+function messageErreur(code: string): string | null {
+  if (code === "not-allowed" || code === "service-not-allowed") return "L'iPhone refuse le micro à Kora : utilise la dictée du clavier (le micro en bas du clavier).";
+  if (code === "audio-capture") return "Le micro est occupé, réessaie dans un instant.";
+  if (code === "network") return "La reconnaissance de la voix demande internet.";
+  if (code === "no-speech" || code === "aborted") return null;
+  return "Je n'ai pas bien entendu.";
+}
+
 /**
  * Écoute une phrase en français. `enCours` reçoit la transcription au fil de la parole,
- * `fin` la phrase complète (vide si rien n'a été compris). Renvoie de quoi arrêter.
+ * `fin` la phrase complète (vide si rien n'a été compris), une seule fois quoi qu'il arrive.
+ * Renvoie de quoi arrêter.
  */
-export function ecouter(enCours: (texte: string) => void, fin: (texte: string, erreur: string | null) => void): () => void {
+export function ecouter(
+  enCours: (texte: string) => void,
+  fin: (texte: string, erreur: string | null) => void,
+  minuterie: { attendre: (f: () => void, ms: number) => unknown; annuler: (id: unknown) => void } = {
+    attendre: (f, ms) => setTimeout(f, ms),
+    annuler: (id) => clearTimeout(id as ReturnType<typeof setTimeout>),
+  },
+): () => void {
   const Fabrique = fabriqueReconnaissance();
   if (!Fabrique) {
     fin("", "La voix n'est pas disponible sur ce téléphone.");
     return () => {};
   }
-  const r = new Fabrique();
-  r.lang = "fr-FR";
-  r.interimResults = true;
-  r.continuous = false;
   let texte = "";
   let erreur: string | null = null;
-  r.onresult = (e) => {
-    texte = Array.from(e.results, (res) => res[0]?.transcript ?? "").join("");
-    enCours(texte);
+  let termine = false;
+  let r: Reconnaissance | null = null;
+  let delai: unknown = null;
+  const terminer = () => {
+    if (termine) return;
+    termine = true;
+    if (delai !== null) minuterie.annuler(delai);
+    fin(texte, erreur);
   };
-  r.onerror = (e) => {
-    erreur = e.error === "not-allowed" || e.error === "service-not-allowed" ? "Autorise le micro pour KoraHome dans les réglages de l'iPhone." : e.error === "no-speech" ? null : "Je n'ai pas bien entendu.";
+  const arreter = () => {
+    try {
+      r?.stop();
+    } catch {
+      // déjà arrêtée
+    }
+    // Si l'iPhone ne prévient pas de la fin, on la donne nous-mêmes peu après.
+    minuterie.attendre(terminer, 1500);
   };
-  r.onend = () => fin(texte.trim(), erreur);
-  r.start();
-  return () => r.stop();
+  try {
+    r = new Fabrique();
+    r.lang = "fr-FR";
+    r.interimResults = true;
+    r.continuous = false;
+    r.onresult = (e) => {
+      texte = phraseEntendue(Array.from(e.results, (res) => res[0]?.transcript ?? ""));
+      enCours(texte);
+    };
+    r.onerror = (e) => {
+      erreur = messageErreur(e.error);
+    };
+    r.onend = terminer;
+    r.start();
+  } catch {
+    erreur = "Le micro n'a pas pu démarrer : utilise la dictée du clavier.";
+    terminer();
+    return () => {};
+  }
+  delai = minuterie.attendre(arreter, DUREE_ECOUTE_MAX);
+  return arreter;
 }
 
 /** Jarvis ne parle à voix haute que quand on lui a parlé. */
