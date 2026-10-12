@@ -70,29 +70,42 @@ function facteurCroissance(ageMois, sterilise) {
 	if (ageMois < 12) return 1.6;
 	return sterilise ? 1.2 : 1.4;
 }
+/** Énergie moyenne d'une friandise pour chat, en kcal par gramme. */
+const KCAL_PAR_GRAMME_FRIANDISE = 3.5;
 /**
 * Ration de croquettes du jour. La ration du paquet, quand elle est notée, fait foi.
 * Sinon : besoin au repos 70 × poids(kg)^0,75 kcal, multiplié selon l'âge, divisé
 * par l'énergie des croquettes. C'est une estimation, à arrondir à 5 g.
+* Les friandises du jour, quand elles sont notées, sont retirées des croquettes.
 */
 function rationDuJour(animal, aujourdhui) {
 	const k = animal.reglages.kcalParGramme;
+	const friandises = animal.reglages.friandisesParJour ?? 0;
+	const max = (kcal) => Math.max(1, Math.round(kcal * .1 / KCAL_PAR_GRAMME_FRIANDISE));
 	if (animal.reglages.rationDuPaquet) {
 		const g = animal.reglages.rationDuPaquet;
+		const kcal = Math.round(g * k);
 		return {
-			grammes: g,
-			kcal: Math.round(g * k),
-			source: "paquet"
+			grammes: Math.max(0, Math.round(g - friandises * KCAL_PAR_GRAMME_FRIANDISE / k)),
+			kcal,
+			source: "paquet",
+			friandisesMax: max(kcal)
 		};
 	}
 	const poids = poidsActuel(animal);
 	if (!poids) return null;
 	const kcal = 70 * Math.pow(poids.grammes / 1e3, .75) * facteurCroissance(ageEnMois(animal.naissance, aujourdhui), animal.sterilise);
+	const croquettes = Math.max(0, kcal - friandises * KCAL_PAR_GRAMME_FRIANDISE);
 	return {
-		grammes: Math.round(kcal / k / 5) * 5,
+		grammes: Math.round(croquettes / k / 5) * 5,
 		kcal: Math.round(kcal),
-		source: "estimee"
+		source: "estimee",
+		friandisesMax: max(kcal)
 	};
+}
+/** Les pesées de la plus récente à la plus ancienne. */
+function historiquePesees(animal) {
+	return [...animal.pesees].sort((a, b) => b.jour.localeCompare(a.jour));
 }
 /** Prochaine pesée, au rythme choisi après la dernière. */
 function prochainePesee(animal, aujourdhui) {
@@ -177,6 +190,93 @@ function aAjouterALaCommande(animal, aujourdhui) {
 function soinsAVenir(animal) {
 	return animal.soins.filter((s) => !s.fait).sort((a, b) => a.date.localeCompare(b.date));
 }
+/** Poids médian d'une chatte, mois par mois jusqu'à 1 an (en grammes). Les mâles pèsent environ 20 % de plus. */
+const POIDS_FEMELLE = [
+	100,
+	500,
+	900,
+	1400,
+	1900,
+	2300,
+	2700,
+	3e3,
+	3200,
+	3400,
+	3500,
+	3600,
+	3700
+];
+/**
+* Le poids habituel d'un chat de cet âge, avec une marge large (± 25 %) : les chats varient
+* beaucoup, c'est un repère pour repérer une courbe qui décroche, pas une norme. Après 1 an,
+* le repère reste celui de 12 mois.
+*/
+function poidsRepere(naissance, jour, sexe = "femelle") {
+	const mois = Math.max(0, ecartJours(naissance, jour) / 30.44);
+	const i = Math.min(Math.floor(mois), POIDS_FEMELLE.length - 1);
+	const suivant = POIDS_FEMELLE[Math.min(i + 1, POIDS_FEMELLE.length - 1)];
+	const femelle = POIDS_FEMELLE[i] + (suivant - POIDS_FEMELLE[i]) * Math.min(1, mois - i);
+	const median = Math.round(femelle * (sexe === "male" ? 1.2 : 1));
+	return {
+		min: Math.round(median * .75),
+		median,
+		max: Math.round(median * 1.25)
+	};
+}
+/** Ce que disent ses dernières pesées : une perte de poids, ou un poids loin du repère de son âge. */
+function alertePoids(animal) {
+	const [derniere, precedente] = historiquePesees(animal);
+	if (!derniere) return null;
+	if (precedente) {
+		const perte = precedente.grammes - derniere.grammes;
+		const chaton = ageEnMois(animal.naissance, derniere.jour) < 12;
+		if (perte > 0 && (chaton ? perte >= 50 : perte >= precedente.grammes * .05)) return {
+			texte: `${animal.nom} a perdu ${perte} g depuis le ${precedente.jour.slice(8, 10)}/${precedente.jour.slice(5, 7)} : à signaler au vétérinaire`,
+			urgent: true
+		};
+	}
+	const repere = poidsRepere(animal.naissance, derniere.jour, animal.sexe);
+	if (derniere.grammes < repere.min) return {
+		texte: "Poids sous le repère de son âge : à montrer au vétérinaire",
+		urgent: false
+	};
+	if (derniere.grammes > repere.max) return {
+		texte: "Poids au-dessus du repère de son âge : à montrer au vétérinaire",
+		urgent: false
+	};
+	return null;
+}
+const TYPES_EVENEMENT = {
+	litiere: "Litière changée",
+	vomi: "A vomi",
+	pas_mange: "N'a pas mangé",
+	selles: "Selles molles",
+	boite: "Boite",
+	cachee: "Se cache, abattue",
+	autre: "Autre"
+};
+/**
+* Un souci qui revient appelle le vétérinaire : ne pas manger deux jours sur trois (un chat qui
+* ne mange plus se met vite en danger), vomir ou avoir les selles molles trois fois en une
+* semaine, boiter ou se cacher deux fois en une semaine.
+*/
+function alertesJournal(animal, aujourdhui) {
+	const journal = animal.journal ?? [];
+	const depuis = (jours, quoi) => journal.filter((e) => e.quoi === quoi && e.jour <= aujourdhui && ecartJours(e.jour, aujourdhui) < jours);
+	const alertes = [];
+	const pasMange = new Set(depuis(3, "pas_mange").map((e) => e.jour)).size;
+	if (pasMange >= 2) alertes.push(`${animal.nom} n'a pas mangé ${pasMange} jours : appeler le vétérinaire`);
+	for (const [quoi, seuil] of [
+		["vomi", 3],
+		["selles", 3],
+		["boite", 2],
+		["cachee", 2]
+	]) {
+		const n = depuis(7, quoi).length;
+		if (n >= seuil) alertes.push(`${TYPES_EVENEMENT[quoi]} ${n} fois en 7 jours : appeler le vétérinaire`);
+	}
+	return alertes;
+}
 /** Tout ce qui demande un geste, du plus pressé au moins pressé. */
 function choseAFaire(animal, aujourdhui) {
 	const urgentes = [];
@@ -222,6 +322,12 @@ function choseAFaire(animal, aujourdhui) {
 			urgent: true
 		});
 	}
+	for (const texte of alertesJournal(animal, aujourdhui)) urgentes.unshift({
+		texte,
+		urgent: true
+	});
+	const poids = alertePoids(animal);
+	if (poids) (poids.urgent ? urgentes : bientot).push(poids);
 	if (prochainePesee(animal, aujourdhui) <= aujourdhui) bientot.push({
 		texte: animal.pesees.length ? "La peser" : "La peser une première fois",
 		urgent: false

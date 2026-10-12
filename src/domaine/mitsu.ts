@@ -86,6 +86,8 @@ export interface ReglagesSuivi {
   kcalParGramme: number;
   /** La ration du paquet, en grammes par jour ; null = estimée par l'app. */
   rationDuPaquet: number | null;
+  /** Les friandises données chaque jour, en grammes : retirées de la ration de croquettes. */
+  friandisesParJour?: number;
 }
 
 export interface Animal {
@@ -99,7 +101,26 @@ export interface Animal {
   soins: Soin[];
   commande: CommandeReguliere | null;
   reglages: ReglagesSuivi;
+  /** Absent sur les fiches créées avant la 0.0.14 : femelle. */
+  sexe?: Sexe;
+  /** Ce qui se passe au quotidien : litière, soucis de santé. */
+  journal?: EvenementJournal[];
+  /** Puce, vétérinaire, assurance, consignes pour la garde. */
+  infos?: InfosAnimal;
+  /** Les propositions du carnet que le foyer a écartées. */
+  carnetEcarte?: string[];
   creeLe: string;
+}
+
+export type Sexe = "femelle" | "male";
+
+export interface InfosAnimal {
+  puce?: string;
+  veterinaire?: string;
+  telephoneVeto?: string;
+  assurance?: string;
+  /** Ce qu'il faut savoir pour la garder (caractère, cachettes, habitudes). */
+  consignes?: string;
 }
 
 export const REGLAGES_DE_DEPART: ReglagesSuivi = {
@@ -194,28 +215,41 @@ export function facteurCroissance(ageMois: number, sterilise: boolean): number {
 }
 
 export interface Ration {
+  /** Croquettes du jour, friandises déjà retirées. */
   grammes: number;
+  /** Tout ce qu'il lui faut dans la journée, friandises comprises. */
   kcal: number;
   /** « paquet » : la ration notée depuis le paquet ; « estimee » : calculée. */
   source: "paquet" | "estimee";
+  /** Les friandises ne dépassent pas 10 % de ce qu'elle mange : au plus tant de grammes. */
+  friandisesMax: number;
 }
+
+/** Énergie moyenne d'une friandise pour chat, en kcal par gramme. */
+export const KCAL_PAR_GRAMME_FRIANDISE = 3.5;
 
 /**
  * Ration de croquettes du jour. La ration du paquet, quand elle est notée, fait foi.
  * Sinon : besoin au repos 70 × poids(kg)^0,75 kcal, multiplié selon l'âge, divisé
  * par l'énergie des croquettes. C'est une estimation, à arrondir à 5 g.
+ * Les friandises du jour, quand elles sont notées, sont retirées des croquettes.
  */
 export function rationDuJour(animal: Animal, aujourdhui: Jour): Ration | null {
   const k = animal.reglages.kcalParGramme;
+  const friandises = animal.reglages.friandisesParJour ?? 0;
+  const max = (kcal: number) => Math.max(1, Math.round((kcal * 0.1) / KCAL_PAR_GRAMME_FRIANDISE));
   if (animal.reglages.rationDuPaquet) {
     const g = animal.reglages.rationDuPaquet;
-    return { grammes: g, kcal: Math.round(g * k), source: "paquet" };
+    const kcal = Math.round(g * k);
+    const grammes = Math.max(0, Math.round(g - (friandises * KCAL_PAR_GRAMME_FRIANDISE) / k));
+    return { grammes, kcal, source: "paquet", friandisesMax: max(kcal) };
   }
   const poids = poidsActuel(animal);
   if (!poids) return null;
   const repos = 70 * Math.pow(poids.grammes / 1000, 0.75);
   const kcal = repos * facteurCroissance(ageEnMois(animal.naissance, aujourdhui), animal.sterilise);
-  return { grammes: Math.round(kcal / k / 5) * 5, kcal: Math.round(kcal), source: "estimee" };
+  const croquettes = Math.max(0, kcal - friandises * KCAL_PAR_GRAMME_FRIANDISE);
+  return { grammes: Math.round(croquettes / k / 5) * 5, kcal: Math.round(kcal), source: "estimee", friandisesMax: max(kcal) };
 }
 
 export function ajouterPesee(animal: Animal, grammes: number, jour: Jour, par: Id | null, ctx: Contexte): Animal {
@@ -482,6 +516,251 @@ export function soinsFaits(animal: Animal): Soin[] {
   return animal.soins.filter((s) => s.fait).sort((a, b) => b.date.localeCompare(a.date));
 }
 
+// ----- Croissance -----
+
+/** Poids médian d'une chatte, mois par mois jusqu'à 1 an (en grammes). Les mâles pèsent environ 20 % de plus. */
+const POIDS_FEMELLE = [100, 500, 900, 1400, 1900, 2300, 2700, 3000, 3200, 3400, 3500, 3600, 3700];
+
+export interface Repere {
+  min: number;
+  median: number;
+  max: number;
+}
+
+/**
+ * Le poids habituel d'un chat de cet âge, avec une marge large (± 25 %) : les chats varient
+ * beaucoup, c'est un repère pour repérer une courbe qui décroche, pas une norme. Après 1 an,
+ * le repère reste celui de 12 mois.
+ */
+export function poidsRepere(naissance: Jour, jour: Jour, sexe: Sexe = "femelle"): Repere {
+  const mois = Math.max(0, ecartJours(naissance, jour) / 30.44);
+  const i = Math.min(Math.floor(mois), POIDS_FEMELLE.length - 1);
+  const suivant = POIDS_FEMELLE[Math.min(i + 1, POIDS_FEMELLE.length - 1)];
+  const femelle = POIDS_FEMELLE[i] + (suivant - POIDS_FEMELLE[i]) * Math.min(1, mois - i);
+  const median = Math.round(femelle * (sexe === "male" ? 1.2 : 1));
+  return { min: Math.round(median * 0.75), median, max: Math.round(median * 1.25) };
+}
+
+export interface AlertePoids {
+  texte: string;
+  urgent: boolean;
+}
+
+/** Ce que disent ses dernières pesées : une perte de poids, ou un poids loin du repère de son âge. */
+export function alertePoids(animal: Animal): AlertePoids | null {
+  const [derniere, precedente] = historiquePesees(animal);
+  if (!derniere) return null;
+  if (precedente) {
+    const perte = precedente.grammes - derniere.grammes;
+    const chaton = ageEnMois(animal.naissance, derniere.jour) < 12;
+    // Un chaton grandit : toute perte nette compte. Un adulte varie un peu.
+    if (perte > 0 && (chaton ? perte >= 50 : perte >= precedente.grammes * 0.05)) {
+      return { texte: `${animal.nom} a perdu ${perte} g depuis le ${precedente.jour.slice(8, 10)}/${precedente.jour.slice(5, 7)} : à signaler au vétérinaire`, urgent: true };
+    }
+  }
+  const repere = poidsRepere(animal.naissance, derniere.jour, animal.sexe);
+  if (derniere.grammes < repere.min) return { texte: "Poids sous le repère de son âge : à montrer au vétérinaire", urgent: false };
+  if (derniere.grammes > repere.max) return { texte: "Poids au-dessus du repère de son âge : à montrer au vétérinaire", urgent: false };
+  return null;
+}
+
+// ----- Carnet de santé prérempli -----
+
+export interface PropositionCarnet {
+  /** Identifie la proposition, pour pouvoir l'écarter. */
+  cle: string;
+  type: TypeSoin;
+  libelle: string;
+  date: Jour;
+}
+
+const VACCIN_PRIMO = "Vaccin typhus et coryza";
+
+/**
+ * Le calendrier habituel d'un chaton, à confirmer avec son carnet : vaccins typhus et coryza
+ * à 8, 12 et 16 semaines puis un rappel un an plus tard, vermifuge et antipuces s'il n'y en a
+ * aucun de noté, et la question de la stérilisation vers 6 mois. Ce qui figure déjà dans le
+ * carnet (même type à trois semaines près) ou a été écarté n'est pas proposé.
+ */
+export function propositionsCarnet(animal: Animal, aujourdhui: Jour): PropositionCarnet[] {
+  const n = animal.naissance;
+  const toutes: PropositionCarnet[] = [
+    { cle: "vaccin-8s", type: "vaccin", libelle: `${VACCIN_PRIMO} (1re injection)`, date: plusJours(n, 56) },
+    { cle: "vaccin-12s", type: "vaccin", libelle: `${VACCIN_PRIMO} (2e injection)`, date: plusJours(n, 84) },
+    { cle: "vaccin-16s", type: "vaccin", libelle: `${VACCIN_PRIMO} (3e injection)`, date: plusJours(n, 112) },
+    { cle: "vaccin-rappel", type: "vaccin", libelle: "Rappel des vaccins (un an après)", date: plusMois(plusJours(n, 112), 12) },
+  ];
+  if (!animal.soins.some((s) => s.type === "vermifuge")) {
+    toutes.push({ cle: "vermifuge", type: "vermifuge", libelle: TYPES_SOIN.vermifuge, date: aujourdhui });
+  }
+  if (!animal.soins.some((s) => s.type === "antiparasitaire")) {
+    toutes.push({ cle: "antiparasitaire", type: "antiparasitaire", libelle: TYPES_SOIN.antiparasitaire, date: aujourdhui });
+  }
+  if (!animal.sterilise && !animal.soins.some((s) => s.type === "sterilisation" || /st[ée]rilis/i.test(s.libelle))) {
+    // « Autre » : en parler ne la rend pas stérilisée, et ne revient pas chaque année.
+    const sixMois = plusMois(n, 6);
+    toutes.push({ cle: "sterilisation", type: "autre", libelle: "Parler de la stérilisation au vétérinaire", date: sixMois > aujourdhui ? sixMois : aujourdhui });
+  }
+  const ecartees = new Set(animal.carnetEcarte ?? []);
+  return toutes.filter(
+    (p) => !ecartees.has(p.cle) && !animal.soins.some((s) => s.type === p.type && Math.abs(ecartJours(s.date, p.date)) <= 21),
+  );
+}
+
+/**
+ * Reprend une proposition dans le carnet : « fait » la note comme faite à sa date (sans prévoir de
+ * suivant, le carnet dit déjà la suite) ; sinon elle est prévue, au plus tôt aujourd'hui.
+ */
+export function reprendreProposition(animal: Animal, p: PropositionCarnet, fait: boolean, aujourdhui: Jour, ctx: Contexte): Animal {
+  const date = fait ? (p.date > aujourdhui ? aujourdhui : p.date) : p.date < aujourdhui ? aujourdhui : p.date;
+  const apres = ajouterSoin(animal, { id: ctx.nouvelId(), type: p.type, libelle: p.libelle, date, fait });
+  // Vermifuge et antipuces reviennent : le suivant est prévu tout de suite.
+  const rythme = fait && (p.type === "vermifuge" || p.type === "antiparasitaire") ? rythmeDuSoin(p.type, ageEnMois(animal.naissance, date)) : null;
+  return rythme ? ajouterSoin(apres, { id: ctx.nouvelId(), type: p.type, libelle: p.libelle, date: plusMois(date, rythme), fait: false }) : apres;
+}
+
+export function ecarterProposition(animal: Animal, cle: string): Animal {
+  return { ...animal, carnetEcarte: [...new Set([...(animal.carnetEcarte ?? []), cle])] };
+}
+
+/** Un soin noté d'un coup, par exemple relu sur une photo du carnet : fait (à sa date) ou à venir. */
+export function noterSoin(animal: Animal, champs: { type: TypeSoin; libelle: string; date: Jour; fait: boolean }, ctx: Contexte): Animal {
+  const soin = { ...nouveauSoin(champs.type, champs.date, champs.libelle, ctx), fait: champs.fait };
+  // Le même soin à la même date n'est noté qu'une fois.
+  if (animal.soins.some((s) => s.type === soin.type && s.date === soin.date && s.libelle === soin.libelle)) return animal;
+  return { ...ajouterSoin(animal, soin), sterilise: animal.sterilise || (soin.type === "sterilisation" && soin.fait) };
+}
+
+// ----- Journal du quotidien -----
+
+export type TypeEvenement = "litiere" | "vomi" | "pas_mange" | "selles" | "boite" | "cachee" | "autre";
+
+export const TYPES_EVENEMENT: Record<TypeEvenement, string> = {
+  litiere: "Litière changée",
+  vomi: "A vomi",
+  pas_mange: "N'a pas mangé",
+  selles: "Selles molles",
+  boite: "Boite",
+  cachee: "Se cache, abattue",
+  autre: "Autre",
+};
+
+/** Les événements qui sont des soucis de santé (la litière et « autre » n'en sont pas). */
+export const SOUCIS: readonly TypeEvenement[] = ["vomi", "pas_mange", "selles", "boite", "cachee"];
+
+export interface EvenementJournal {
+  id: Id;
+  jour: Jour;
+  quoi: TypeEvenement;
+  note: string;
+  par: Id | null;
+  creeLe: string;
+}
+
+export function noterEvenement(animal: Animal, quoi: TypeEvenement, jour: Jour, note: string, par: Id | null, ctx: Contexte): Animal {
+  verifierJour(jour, "Journal");
+  if (!(quoi in TYPES_EVENEMENT)) throw new ErreurValidation("Cet événement n'existe pas.");
+  const texte = note.trim().replace(/\s+/g, " ");
+  if (quoi === "autre" && !texte) throw new ErreurValidation("Écris ce qui s'est passé.");
+  const evenement: EvenementJournal = { id: ctx.nouvelId(), jour, quoi, note: texte, par, creeLe: ctx.maintenant() };
+  return { ...animal, journal: [...(animal.journal ?? []), evenement] };
+}
+
+export function retirerEvenement(animal: Animal, id: Id): Animal {
+  return { ...animal, journal: (animal.journal ?? []).filter((e) => e.id !== id) };
+}
+
+/** Le journal, du plus récent au plus ancien. */
+export function journalRecent(animal: Animal): EvenementJournal[] {
+  return [...(animal.journal ?? [])].sort((a, b) => b.jour.localeCompare(a.jour) || b.creeLe.localeCompare(a.creeLe));
+}
+
+export function derniereLitiere(animal: Animal): EvenementJournal | null {
+  return journalRecent(animal).find((e) => e.quoi === "litiere") ?? null;
+}
+
+/**
+ * Un souci qui revient appelle le vétérinaire : ne pas manger deux jours sur trois (un chat qui
+ * ne mange plus se met vite en danger), vomir ou avoir les selles molles trois fois en une
+ * semaine, boiter ou se cacher deux fois en une semaine.
+ */
+export function alertesJournal(animal: Animal, aujourdhui: Jour): string[] {
+  const journal = animal.journal ?? [];
+  const depuis = (jours: number, quoi: TypeEvenement) =>
+    journal.filter((e) => e.quoi === quoi && e.jour <= aujourdhui && ecartJours(e.jour, aujourdhui) < jours);
+  const alertes: string[] = [];
+  const pasMange = new Set(depuis(3, "pas_mange").map((e) => e.jour)).size;
+  if (pasMange >= 2) alertes.push(`${animal.nom} n'a pas mangé ${pasMange} jours : appeler le vétérinaire`);
+  for (const [quoi, seuil] of [["vomi", 3], ["selles", 3], ["boite", 2], ["cachee", 2]] as const) {
+    const n = depuis(7, quoi).length;
+    if (n >= seuil) alertes.push(`${TYPES_EVENEMENT[quoi]} ${n} fois en 7 jours : appeler le vétérinaire`);
+  }
+  return alertes;
+}
+
+// ----- Fiches à partager -----
+
+const dateFr = (jour: Jour) => `${jour.slice(8, 10)}.${jour.slice(5, 7)}.${jour.slice(0, 4)}`;
+
+/** La dernière visite chez le vétérinaire (une visite ou un vaccin faits), pour savoir depuis quand résumer. */
+export function derniereVisite(animal: Animal): Jour | null {
+  return soinsFaits(animal).find((s) => s.type === "visite" || s.type === "vaccin")?.date ?? null;
+}
+
+/** Le résumé à montrer au vétérinaire : poids, alimentation, soins, et les soucis notés depuis la dernière visite. */
+export function resumeVeto(animal: Animal, aujourdhui: Jour): string {
+  const l: string[] = [];
+  l.push(`${animal.nom}, ${animal.sexe === "male" ? "mâle" : "femelle"}${animal.sterilise ? (animal.sexe === "male" ? " castré" : " stérilisée") : ""}, née le ${dateFr(animal.naissance)} (${decrireAge(animal.naissance, aujourdhui)}).`);
+  if (animal.infos?.puce) l.push(`Puce : ${animal.infos.puce}.`);
+  const pesees = historiquePesees(animal);
+  l.push(pesees.length ? `Poids : ${pesees.slice(0, 4).map((p) => `${formaterPoids(p.grammes)} le ${dateFr(p.jour)}`).join(", ")}.` : "Poids : pas de pesée notée.");
+  const croquettes = animal.provisions.filter((p) => p.type === "croquettes").map((p) => p.nom);
+  const ration = rationDuJour(animal, aujourdhui);
+  l.push(`Alimentation : ${croquettes.length ? croquettes.join(", ") : "croquettes"}${ration ? `, environ ${ration.grammes} g par jour` : ""}${animal.reglages.friandisesParJour ? `, ${animal.reglages.friandisesParJour} g de friandises` : ""}.`);
+  const faits = soinsFaits(animal).filter((s) => s.type !== "filtre");
+  if (faits.length) l.push(`Soins faits : ${faits.slice(0, 8).map((s) => `${s.libelle} (${dateFr(s.date)})`).join(", ")}.`);
+  const avenir = soinsAVenir(animal).filter((s) => s.type !== "filtre");
+  if (avenir.length) l.push(`Prévu : ${avenir.slice(0, 5).map((s) => `${s.libelle} (${dateFr(s.date)})`).join(", ")}.`);
+  const depuis = derniereVisite(animal) ?? plusMois(aujourdhui, -6);
+  const soucis = journalRecent(animal).filter((e) => SOUCIS.includes(e.quoi) && e.jour >= depuis);
+  l.push(
+    soucis.length
+      ? `Depuis le ${dateFr(depuis)} : ${soucis.map((e) => `${TYPES_EVENEMENT[e.quoi].toLowerCase()} le ${dateFr(e.jour)}${e.note ? ` (${e.note})` : ""}`).join(", ")}.`
+      : `Aucun souci noté depuis le ${dateFr(depuis)}.`,
+  );
+  const autres = journalRecent(animal).filter((e) => e.quoi === "autre" && e.jour >= depuis);
+  if (autres.length) l.push(`Remarques : ${autres.map((e) => `${e.note} (${dateFr(e.jour)})`).join(", ")}.`);
+  return l.join("\n");
+}
+
+/** Ce qu'il faut à la personne qui la garde : repas, litière, fontaine, vétérinaire. */
+export function ficheDeGarde(animal: Animal, aujourdhui: Jour): string {
+  const l: string[] = [`Garder ${animal.nom} (${decrireAge(animal.naissance, aujourdhui)})`];
+  const ration = rationDuJour(animal, aujourdhui);
+  const croquettes = animal.provisions.find((p) => p.type === "croquettes")?.nom;
+  l.push(`Repas : ${ration ? `${ration.grammes} g de croquettes par jour` : "croquettes"}${croquettes ? ` (${croquettes})` : ""}, en deux ou trois fois. Eau fraîche dans la fontaine.`);
+  if (ration) l.push(`Friandises : ${ration.friandisesMax} g par jour au plus.`);
+  const litiere = animal.provisions.find((p) => p.type === "litiere")?.nom;
+  l.push(`Litière : retirer les selles chaque jour${litiere ? ` (${litiere})` : ""}.`);
+  if (animal.provisions.some((p) => p.type === "filtres")) l.push("Fontaine : le filtre se change une fois par mois.");
+  const i = animal.infos ?? {};
+  if (i.consignes) l.push(`À savoir : ${i.consignes}`);
+  if (i.veterinaire || i.telephoneVeto) l.push(`Vétérinaire : ${[i.veterinaire, i.telephoneVeto].filter(Boolean).join(", ")}.`);
+  if (i.puce) l.push(`Puce : ${i.puce}.`);
+  if (i.assurance) l.push(`Assurance : ${i.assurance}.`);
+  l.push("Appeler le vétérinaire si elle ne mange plus pendant un jour, vomit plusieurs fois ou se cache sans ressortir.");
+  return l.join("\n");
+}
+
+export function modifierInfos(animal: Animal, infos: InfosAnimal): Animal {
+  const propre: InfosAnimal = {};
+  for (const [cle, valeur] of Object.entries(infos) as [keyof InfosAnimal, string | undefined][]) {
+    const v = valeur?.trim();
+    if (v) propre[cle] = v;
+  }
+  return { ...animal, infos: propre };
+}
+
 // ----- Ce qui est à faire -----
 
 export interface ChoseAFaire {
@@ -533,6 +812,10 @@ export function choseAFaire(animal: Animal, aujourdhui: Jour): ChoseAFaire[] {
     const quand = ecart < 0 ? "en retard" : ecart === 0 ? "aujourd'hui" : ecart === 1 ? "demain" : `dans ${ecart} jours`;
     urgentes.push({ texte: `${s.libelle} ${quand}`, urgent: true });
   }
+
+  for (const texte of alertesJournal(animal, aujourdhui)) urgentes.unshift({ texte, urgent: true });
+  const poids = alertePoids(animal);
+  if (poids) (poids.urgent ? urgentes : bientot).push(poids);
 
   const pesee = prochainePesee(animal, aujourdhui);
   if (pesee <= aujourdhui) {
