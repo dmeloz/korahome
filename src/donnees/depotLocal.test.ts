@@ -6,6 +6,7 @@ import { basculerCoche, nouvelElement } from "../domaine/listes";
 import { ajouterPesee, nouvelAnimal } from "../domaine/mitsu";
 import { basculerRegle, nouveauRetour } from "../domaine/retours";
 import { apprendre } from "../domaine/catalogue";
+import { ajouterPlante, nouvellePlante, nouvelleZone } from "../domaine/jardin";
 import { deplacer, nouveauProduit } from "../domaine/stock";
 import { marquerFaite, tachesDeDepart } from "../domaine/taches";
 import { creerDepotLocal } from "./depotLocal";
@@ -162,6 +163,20 @@ describe("dépôt local", () => {
     expect((await depot.lireEnAttente()).map((c) => c.collection)).toEqual(["catalogue"]);
     await depot.supprimerHabituel(habituel.id);
     expect(await depot.lireCatalogue()).toEqual([]);
+  });
+
+  it("conserve le jardin et le partage", async () => {
+    const ctx = contexteTest();
+    const depot = depotNeuf();
+    const zone = ajouterPlante(
+      nouvelleZone({ nom: "Pots du balcon", type: "pot", exposition: "soleil", abri: "dehors" }, ctx),
+      nouvellePlante("basilic", "2026-10-12", null, ctx),
+    );
+    await depot.enregistrerZone(zone);
+    expect(await depot.lireZones()).toEqual([zone]);
+    expect((await depot.lireEnAttente()).map((c) => c.collection)).toEqual(["jardin"]);
+    await depot.supprimerZone(zone.id);
+    expect(await depot.lireZones()).toEqual([]);
   });
 
   it("conserve le suivi de Mitsu", async () => {

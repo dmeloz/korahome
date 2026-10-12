@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { contexteTest } from "./contexteTest";
 import { creerFoyer } from "./foyer";
+import { ajouterPlante, nouvellePlante, nouvelleZone } from "./jardin";
 import { ajouterSoin, nouvelAnimal, nouveauSoin } from "./mitsu";
 import {
   basculerJour,
@@ -70,6 +71,26 @@ describe("le rappel du matin", () => {
     const r = rappelDuMatin({ ...entree, preferences: PREFERENCES_DE_DEPART });
     expect(r?.corps).toBe("Mitsu : Vermifuge demain");
     expect(rappelDuMatin({ ...entree, preferences: { ...PREFERENCES_DE_DEPART, mitsu: false } })).toBeNull();
+  });
+});
+
+describe("le jardin dans le rappel du matin", () => {
+  const balcon = ajouterPlante(
+    { ...nouvelleZone({ nom: "Pots du balcon", type: "pot", exposition: "soleil", abri: "dehors" }, ctx), arroseeLe: AUJOURDHUI },
+    nouvellePlante("basilic", AUJOURDHUI, null, ctx),
+  );
+  const gel = { lieu: "Renens", jours: [{ jour: "2026-10-13", min: -1, max: 9, pluie: 0, code: 0 }], lue: "2026-10-12T05:00:00.000Z" };
+  const entree = { foyer, membreId: melo.id, taches: [], animaux: [], zones: [balcon], meteo: gel, aujourdhui: AUJOURDHUI };
+
+  it("prévient du gel annoncé", () => {
+    const r = rappelDuMatin({ ...entree, maintenant: "2026-10-12T06:00:00.000Z", preferences: PREFERENCES_DE_DEPART });
+    expect(r?.corps).toBe("Jardin : Gel cette nuit (-1°) : rentre ou couvre basilic");
+    expect(r?.nombre).toBe(1);
+  });
+
+  it("ignore une météo trop ancienne et respecte le choix de chacun", () => {
+    expect(rappelDuMatin({ ...entree, maintenant: "2026-10-13T06:00:00.000Z", preferences: PREFERENCES_DE_DEPART })).toBeNull();
+    expect(rappelDuMatin({ ...entree, preferences: { ...PREFERENCES_DE_DEPART, jardin: false } })).toBeNull();
   });
 });
 

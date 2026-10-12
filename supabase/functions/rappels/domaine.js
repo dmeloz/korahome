@@ -2,6 +2,429 @@
 //#region src/domaine/foyer.ts
 var ErreurValidation = class extends Error {};
 //#endregion
+//#region src/domaine/meteo.ts
+/** Le jardin du foyer, à Renens (VD). */
+const LIEU_DU_JARDIN = {
+	nom: "Renens",
+	latitude: 46.5354,
+	longitude: 6.5918
+};
+function adresseMeteo(lieu = LIEU_DU_JARDIN) {
+	return `https://api.open-meteo.com/v1/forecast?${new URLSearchParams({
+		latitude: String(lieu.latitude),
+		longitude: String(lieu.longitude),
+		daily: "temperature_2m_min,temperature_2m_max,precipitation_sum,weather_code",
+		timezone: "Europe/Zurich",
+		past_days: "2",
+		forecast_days: "7"
+	})}`;
+}
+const nombres = (v) => Array.isArray(v) && v.every((x) => typeof x === "number" || x === null);
+/** Relit la réponse d'Open-Meteo ; null si elle n'a pas la forme attendue. */
+function lireMeteo(brut, lue, lieu = LIEU_DU_JARDIN) {
+	const d = brut?.daily;
+	if (!d || !Array.isArray(d.time)) return null;
+	const { time, temperature_2m_min: min, temperature_2m_max: max, precipitation_sum: pluie, weather_code: code } = d;
+	if (!nombres(min) || !nombres(max) || !nombres(pluie) || !nombres(code)) return null;
+	const jours = [];
+	time.forEach((jour, i) => {
+		if (typeof jour !== "string" || min[i] === null || max[i] === null) return;
+		jours.push({
+			jour,
+			min: min[i],
+			max: max[i],
+			pluie: pluie[i] ?? 0,
+			code: code[i] ?? 0
+		});
+	});
+	return jours.length ? {
+		lieu: lieu.nom,
+		jours,
+		lue
+	} : null;
+}
+function meteoDu(meteo, jour) {
+	return meteo?.jours.find((j) => j.jour === jour) ?? null;
+}
+/** Une météo de plus de 12 heures ne sert plus aux alertes. */
+function meteoFraiche(meteo, maintenant, heures = 12) {
+	return !!meteo && Date.parse(maintenant) - Date.parse(meteo.lue) < heures * 36e5;
+}
+//#endregion
+//#region src/domaine/plantes.ts
+const mois = (de, a) => {
+	const liste = [];
+	for (let m = de;; m = m % 12 + 1) {
+		liste.push(m);
+		if (m === a) return liste;
+	}
+};
+const e = (cle, nom, categorie, exposition, arrosageJours, options) => ({
+	cle,
+	nom,
+	categorie,
+	exposition,
+	arrosageJours,
+	autres: [],
+	gelive: false,
+	vivace: false,
+	semisAbri: [],
+	semisDehors: [],
+	plantation: [],
+	recolte: [],
+	...options
+});
+const ESPECES = [
+	e("basilic", "Basilic", "aromatique", "soleil", 2, {
+		gelive: true,
+		semisAbri: mois(3, 4),
+		semisDehors: mois(5, 6),
+		plantation: mois(5, 6),
+		recolte: mois(6, 9),
+		conseil: "Pince les fleurs pour garder des feuilles tendres, et rentre-le dès que les nuits passent sous 10 °C."
+	}),
+	e("persil", "Persil", "aromatique", "mi-ombre", 3, {
+		semisAbri: [3],
+		semisDehors: mois(4, 7),
+		plantation: mois(4, 6),
+		recolte: mois(5, 11),
+		conseil: "Il germe lentement (trois semaines) : garde la terre humide en attendant."
+	}),
+	e("ciboulette", "Ciboulette", "aromatique", "mi-ombre", 3, {
+		vivace: true,
+		semisDehors: mois(3, 5),
+		plantation: [
+			3,
+			4,
+			5,
+			9,
+			10
+		],
+		recolte: mois(3, 10),
+		conseil: "Coupe-la à 2 cm du sol : elle repousse plusieurs fois dans l'année."
+	}),
+	e("menthe", "Menthe", "aromatique", "mi-ombre", 2, {
+		vivace: true,
+		plantation: [
+			3,
+			4,
+			5,
+			9,
+			10
+		],
+		recolte: mois(5, 10),
+		conseil: "Plante-la seule dans son pot : ses racines envahissent tout."
+	}),
+	e("thym", "Thym", "aromatique", "soleil", 7, {
+		vivace: true,
+		plantation: [
+			3,
+			4,
+			5,
+			9
+		],
+		recolte: mois(1, 12),
+		conseil: "Arrose peu : il craint bien plus l'humidité que la sécheresse."
+	}),
+	e("romarin", "Romarin", "aromatique", "soleil", 7, {
+		vivace: true,
+		plantation: [
+			4,
+			5,
+			9
+		],
+		recolte: mois(1, 12),
+		conseil: "Terre légère et peu d'eau ; en pot, abrite-le du vent froid en hiver."
+	}),
+	e("sauge", "Sauge", "aromatique", "soleil", 5, {
+		vivace: true,
+		plantation: [
+			4,
+			5,
+			9
+		],
+		recolte: mois(4, 10),
+		conseil: "Taille-la au printemps pour qu'elle reste touffue."
+	}),
+	e("origan", "Origan", "aromatique", "soleil", 5, {
+		autres: ["marjolaine"],
+		vivace: true,
+		semisAbri: [3, 4],
+		plantation: [4, 5],
+		recolte: mois(6, 9),
+		conseil: "Le goût est le plus fort juste avant la floraison : c'est le moment d'en sécher."
+	}),
+	e("coriandre", "Coriandre", "aromatique", "mi-ombre", 3, {
+		semisDehors: [
+			4,
+			5,
+			6,
+			8,
+			9
+		],
+		recolte: mois(5, 10),
+		conseil: "Elle monte vite en graines à la chaleur : sèmes-en un peu toutes les trois semaines."
+	}),
+	e("aneth", "Aneth", "aromatique", "soleil", 3, {
+		semisDehors: mois(4, 7),
+		recolte: mois(6, 9),
+		conseil: "Sème-le directement en place : il n'aime pas être déplacé."
+	}),
+	e("laurier", "Laurier", "aromatique", "soleil", 7, {
+		autres: ["laurier sauce"],
+		vivace: true,
+		plantation: [4, 5],
+		recolte: mois(1, 12),
+		conseil: "En pot, il supporte le froid jusqu'à −5 °C : au-delà, rentre-le ou emballe le pot."
+	}),
+	e("estragon", "Estragon", "aromatique", "soleil", 4, {
+		vivace: true,
+		plantation: [4, 5],
+		recolte: mois(6, 9),
+		conseil: "Prends l'estragon français, bien plus parfumé que le russe."
+	}),
+	e("melisse", "Mélisse", "aromatique", "mi-ombre", 3, {
+		autres: ["melisse citronnelle"],
+		vivace: true,
+		plantation: [
+			4,
+			5,
+			9
+		],
+		recolte: mois(5, 9),
+		conseil: "Coupe-la après la floraison pour une seconde récolte."
+	}),
+	e("verveine", "Verveine citronnelle", "aromatique", "soleil", 3, {
+		autres: ["verveine citron"],
+		gelive: true,
+		vivace: true,
+		plantation: [5, 6],
+		recolte: mois(6, 9),
+		conseil: "Elle gèle dehors : rentre le pot dans un endroit clair et frais pour l'hiver."
+	}),
+	e("tomate", "Tomate", "legume", "soleil", 2, {
+		autres: ["tomates cerises", "tomate cerise"],
+		gelive: true,
+		semisAbri: [3, 4],
+		plantation: [5, 6],
+		recolte: mois(7, 10),
+		conseil: "Tuteure-la, retire les gourmands et arrose au pied, jamais sur les feuilles."
+	}),
+	e("courgette", "Courgette", "legume", "soleil", 2, {
+		gelive: true,
+		semisAbri: [4],
+		semisDehors: [5, 6],
+		plantation: [5, 6],
+		recolte: mois(7, 9),
+		conseil: "Un pied suffit pour deux personnes, mais il lui faut près d'un mètre carré."
+	}),
+	e("poivron", "Poivron", "legume", "soleil", 2, {
+		autres: ["piment"],
+		gelive: true,
+		semisAbri: [2, 3],
+		plantation: [5, 6],
+		recolte: mois(7, 10),
+		conseil: "Il lui faut l'endroit le plus chaud : contre un mur au soleil, c'est idéal."
+	}),
+	e("aubergine", "Aubergine", "legume", "soleil", 2, {
+		gelive: true,
+		semisAbri: [2, 3],
+		plantation: [5, 6],
+		recolte: [8, 9],
+		conseil: "La plus frileuse de toutes : plante-la fin mai, au soleil et à l'abri du vent."
+	}),
+	e("concombre", "Concombre", "legume", "soleil", 2, {
+		gelive: true,
+		semisAbri: [4],
+		semisDehors: [5, 6],
+		plantation: [5, 6],
+		recolte: mois(7, 9),
+		conseil: "Fais-le grimper sur un treillis : il prend moins de place et les fruits restent propres."
+	}),
+	e("salade", "Salade", "legume", "mi-ombre", 2, {
+		autres: [
+			"laitue",
+			"batavia",
+			"feuille de chene",
+			"romaine"
+		],
+		semisAbri: [2, 3],
+		semisDehors: mois(3, 8),
+		plantation: mois(3, 9),
+		recolte: mois(5, 10),
+		conseil: "Sème quelques graines toutes les trois semaines pour en avoir tout l'été."
+	}),
+	e("roquette", "Roquette", "legume", "mi-ombre", 2, {
+		semisDehors: mois(3, 9),
+		recolte: mois(4, 11),
+		conseil: "Prête en un mois ; à l'ombre l'été, elle pique moins."
+	}),
+	e("mache", "Mâche", "legume", "mi-ombre", 3, {
+		autres: ["doucette", "rampon"],
+		semisDehors: [8, 9],
+		recolte: [
+			10,
+			11,
+			12,
+			1,
+			2,
+			3
+		],
+		conseil: "La salade de l'hiver : elle supporte le gel sans souci."
+	}),
+	e("epinard", "Épinard", "legume", "mi-ombre", 2, {
+		semisDehors: [
+			3,
+			4,
+			8,
+			9
+		],
+		recolte: [
+			4,
+			5,
+			6,
+			10,
+			11
+		],
+		conseil: "Sème-le au printemps ou à la fin de l'été : il monte en graines en pleine chaleur."
+	}),
+	e("radis", "Radis", "legume", "soleil", 2, {
+		semisDehors: mois(3, 9),
+		recolte: mois(4, 10),
+		conseil: "Prêt en quatre semaines : parfait pour commencer un bac."
+	}),
+	e("carotte", "Carotte", "legume", "soleil", 3, {
+		semisDehors: mois(3, 7),
+		recolte: mois(6, 11),
+		conseil: "Il lui faut 25 cm de terre légère, sans cailloux : un bac surélevé est idéal."
+	}),
+	e("haricot", "Haricot", "legume", "soleil", 3, {
+		autres: ["haricots verts", "haricot vert"],
+		gelive: true,
+		semisDehors: mois(5, 7),
+		recolte: mois(7, 9),
+		conseil: "Sème-le quand la terre est chaude, après les Saints de glace."
+	}),
+	e("petit-pois", "Petit pois", "legume", "soleil", 3, {
+		autres: ["pois", "petits pois"],
+		semisDehors: [3, 4],
+		recolte: [6, 7],
+		conseil: "Il aime la fraîcheur du printemps : sème-le tôt, avec un support pour grimper."
+	}),
+	e("betterave", "Betterave", "legume", "soleil", 3, {
+		semisDehors: mois(4, 6),
+		recolte: mois(7, 10),
+		conseil: "Éclaircis à 10 cm : chaque graine donne plusieurs plants."
+	}),
+	e("blette", "Blette", "legume", "mi-ombre", 3, {
+		autres: ["bette", "cotes de bette"],
+		semisDehors: mois(4, 6),
+		recolte: mois(6, 11),
+		conseil: "Cueille les feuilles extérieures : le cœur continue de pousser."
+	}),
+	e("poireau", "Poireau", "legume", "soleil", 3, {
+		semisAbri: [2, 3],
+		plantation: mois(5, 7),
+		recolte: [
+			9,
+			10,
+			11,
+			12,
+			1,
+			2,
+			3
+		],
+		conseil: "Butte-le au fil de l'été pour un fût bien blanc."
+	}),
+	e("oignon", "Oignon", "legume", "soleil", 5, {
+		autres: ["echalote"],
+		plantation: [3, 4],
+		recolte: [7, 8],
+		conseil: "Arrête d'arroser quand les feuilles jaunissent : il se conserve mieux."
+	}),
+	e("ail", "Ail", "legume", "soleil", 7, {
+		plantation: [
+			10,
+			11,
+			2,
+			3
+		],
+		recolte: [6, 7],
+		conseil: "Plante les gousses pointe en haut, à l'automne pour de plus grosses têtes."
+	}),
+	e("chou-kale", "Chou kale", "legume", "mi-ombre", 3, {
+		autres: ["kale", "chou frise"],
+		semisDehors: mois(4, 6),
+		plantation: [6, 7],
+		recolte: [
+			9,
+			10,
+			11,
+			12,
+			1,
+			2
+		],
+		conseil: "Le gel le rend plus doux : récolte-le tout l'hiver."
+	}),
+	e("courge", "Courge", "legume", "soleil", 3, {
+		autres: [
+			"potiron",
+			"butternut",
+			"potimarron"
+		],
+		gelive: true,
+		semisAbri: [4],
+		semisDehors: [5, 6],
+		plantation: [5, 6],
+		recolte: [9, 10],
+		conseil: "Très gourmande en place : un pied par grand bac, pas plus."
+	}),
+	e("pomme-de-terre", "Pomme de terre", "legume", "soleil", 4, {
+		autres: ["patate", "pommes de terre"],
+		plantation: [4, 5],
+		recolte: mois(7, 9),
+		conseil: "Ça marche très bien en sac de culture : on ajoute de la terre au fil de la pousse."
+	}),
+	e("fraise", "Fraisier", "fruit", "soleil", 2, {
+		autres: ["fraises", "fraisier"],
+		vivace: true,
+		plantation: [
+			3,
+			4,
+			8,
+			9
+		],
+		recolte: mois(5, 7),
+		conseil: "Coupe les stolons pour des fruits plus gros, ou garde-les pour de nouveaux plants."
+	}),
+	e("capucine", "Capucine", "fleur", "soleil", 3, {
+		gelive: true,
+		semisDehors: [5, 6],
+		recolte: mois(6, 10),
+		conseil: "Ses fleurs se mangent, et elle attire les pucerons loin des légumes."
+	}),
+	e("souci", "Souci", "fleur", "soleil", 4, {
+		autres: ["calendula"],
+		semisDehors: mois(3, 6),
+		recolte: mois(6, 10),
+		conseil: "Il éloigne certains insectes des tomates : sème-le à leur pied."
+	}),
+	e("lavande", "Lavande", "fleur", "soleil", 10, {
+		vivace: true,
+		plantation: [
+			4,
+			5,
+			9
+		],
+		recolte: [7, 8],
+		conseil: "Taille-la juste après la floraison, sans couper dans le vieux bois."
+	})
+];
+const PAR_CLE = new Map(ESPECES.map((x) => [x.cle, x]));
+function espece(cle) {
+	return cle ? PAR_CLE.get(cle) ?? null : null;
+}
+//#endregion
 //#region src/domaine/taches.ts
 const RE_JOUR = /^\d{4}-\d{2}-\d{2}$/;
 function versDate(jour) {
@@ -33,6 +456,116 @@ function ecartJours(a, b) {
 /** Une tâche unique faite est terminée ; une tâche qui revient ne l'est jamais. */
 function estTerminee(tache) {
 	return !tache.recurrence && tache.faiteLe !== null;
+}
+//#endregion
+//#region src/domaine/jardin.ts
+const plusJours$1 = (jour, n) => decaler(jour, {
+	unite: "jour",
+	tous: n
+});
+const moisDe = (jour) => Number(jour.slice(5, 7));
+const especeDe = (p) => espece(p.espece);
+/** Pour une plante que Kora ne connaît pas : tous les 3 jours en été. */
+const ARROSAGE_PAR_DEFAUT = 3;
+/** L'hiver, la terre sèche bien moins vite ; dedans, le chauffage la sèche quand même. */
+const FACTEUR_SAISON = [
+	4,
+	4,
+	2,
+	1.5,
+	1,
+	1,
+	1,
+	1,
+	1.2,
+	1.5,
+	2.5,
+	4
+];
+/** Plus il y a de terre, plus elle garde l'eau. */
+const FACTEUR_CONTENANT = {
+	pot: 1,
+	jardiniere: 1.2,
+	bac: 1.5,
+	"pleine-terre": 2
+};
+function facteurChaleur(jour, abri) {
+	if (!jour || abri === "interieur") return 1;
+	if (jour.max >= 30) return .5;
+	if (jour.max >= 26) return .75;
+	return 1;
+}
+/** Tous les combien de jours arroser cette zone aujourd'hui ; null tant qu'elle est vide. */
+function intervalleArrosage(zone, aujourdhui, meteo) {
+	if (zone.plantes.length === 0) return null;
+	const base = Math.min(...zone.plantes.map((p) => especeDe(p)?.arrosageJours ?? ARROSAGE_PAR_DEFAUT));
+	const saison = FACTEUR_SAISON[moisDe(aujourdhui) - 1];
+	const n = base * (zone.abri === "interieur" ? Math.min(saison, 2) : saison) * FACTEUR_CONTENANT[zone.type] * facteurChaleur(meteoDu(meteo, aujourdhui), zone.abri);
+	return Math.max(1, Math.round(n));
+}
+function etatArrosage(zone, aujourdhui, meteo) {
+	const intervalle = intervalleArrosage(zone, aujourdhui, meteo);
+	if (intervalle === null) return null;
+	const pluies = zone.abri === "dehors" ? (meteo?.jours ?? []).filter((j) => j.pluie >= 5) : [];
+	const derniereAverse = pluies.filter((j) => j.jour < aujourdhui).map((j) => j.jour).sort().pop() ?? null;
+	const parLaPluie = !!derniereAverse && (!zone.arroseeLe || derniereAverse > zone.arroseeLe);
+	const dernier = parLaPluie ? derniereAverse : zone.arroseeLe;
+	const prochain = dernier ? plusJours$1(dernier, intervalle) : aujourdhui;
+	const pluiePrevue = pluies.find((j) => j.jour === aujourdhui || j.jour === plusJours$1(aujourdhui, 1)) ?? null;
+	return {
+		intervalle,
+		dernier,
+		parLaPluie,
+		prochain,
+		pluiePrevue,
+		du: prochain <= aujourdhui && !pluiePrevue
+	};
+}
+/**
+* Le gel annoncé pour les deux nuits qui viennent, et ce qu'il menace. La minimale d'un
+* jour tombe au petit matin : celle de demain, c'est la nuit qui vient.
+*/
+function alerteGel(zones, meteo, aujourdhui) {
+	const froid = (meteo?.jours ?? []).filter((j) => j.jour > aujourdhui && j.jour <= plusJours$1(aujourdhui, 2) && j.min <= 2).sort((a, b) => a.jour.localeCompare(b.jour))[0];
+	if (!froid) return null;
+	const plantes = /* @__PURE__ */ new Set();
+	for (const z of zones) {
+		if (z.abri === "interieur") continue;
+		for (const p of z.plantes) {
+			const x = especeDe(p);
+			const enPot = z.type === "pot" || z.type === "jardiniere";
+			if (x?.gelive || froid.min <= -5 && enPot) plantes.add(p.nom.toLowerCase());
+		}
+	}
+	return plantes.size ? {
+		jour: froid.jour,
+		min: froid.min,
+		plantes: [...plantes]
+	} : null;
+}
+const enumerer$1 = (mots) => mots.length <= 1 ? mots[0] ?? "" : `${mots.slice(0, -1).join(", ")} et ${mots[mots.length - 1]}`;
+/** Tout ce qui demande un geste au jardin aujourd'hui, du plus pressé au moins pressé. */
+function gestesDuJardin(zones, meteo, aujourdhui) {
+	const gestes = [];
+	const gel = alerteGel(zones, meteo, aujourdhui);
+	if (gel) {
+		const quand = gel.jour === plusJours$1(aujourdhui, 1) ? "cette nuit" : "demain dans la nuit";
+		gestes.push({
+			texte: `Gel ${quand} (${Math.round(gel.min)}°) : rentre ou couvre ${enumerer$1(gel.plantes.slice(0, 4))}`,
+			urgent: true
+		});
+	}
+	for (const z of zones) if (etatArrosage(z, aujourdhui, meteo)?.du) gestes.push({
+		texte: `Arroser : ${z.nom.toLowerCase()}`,
+		urgent: true,
+		zoneId: z.id
+	});
+	const jour = meteoDu(meteo, aujourdhui);
+	if (jour && jour.max >= 30 && zones.some((z) => z.plantes.length && z.abri !== "interieur")) gestes.push({
+		texte: `Forte chaleur (${Math.round(jour.max)}°) : arrose tôt le matin ou le soir`,
+		urgent: false
+	});
+	return gestes;
 }
 //#endregion
 //#region src/domaine/mitsu.ts
@@ -282,6 +815,7 @@ const PREFERENCES_DE_DEPART = {
 	taches: true,
 	mitsu: true,
 	stock: true,
+	jardin: true,
 	heure: 8,
 	jours: TOUS_LES_JOURS
 };
@@ -423,6 +957,12 @@ function rappelDuMatin(entree) {
 		if (aConsommer.length) lignes.push(`À consommer : ${enumerer(aConsommer.map((p) => p.nom))}`);
 		nombre += aConsommer.length;
 	}
+	if (preferences.jardin && entree.zones?.length) {
+		const meteo = !entree.maintenant || meteoFraiche(entree.meteo ?? null, entree.maintenant) ? entree.meteo ?? null : null;
+		const gestes = gestesDuJardin(entree.zones, meteo, aujourdhui).filter((g) => g.urgent);
+		if (gestes.length) lignes.push(`Jardin : ${gestes.slice(0, 2).map((g) => g.texte).join(" · ")}${gestes.length > 2 ? "…" : ""}`);
+		nombre += gestes.length;
+	}
 	if (nombre === 0) return null;
 	const prenom = entree.foyer?.membres.find((m) => m.id === entree.membreId)?.prenom;
 	return {
@@ -458,4 +998,4 @@ function rappelDu(instant, heure, dernierEnvoi, fuseau = FUSEAU_DU_FOYER, jours 
 	return dernierEnvoi === local.jour ? null : local.jour;
 }
 //#endregion
-export { FUSEAU_DU_FOYER, HEURE_DU_RAPPEL, HEURE_MAX, HEURE_MIN, JOURS_SEMAINE, PREFERENCES_DE_DEPART, RACCOURCIS_JOURS, TOUS_LES_JOURS, basculerJour, decalerHeure, decrireJours, formaterHeure, heureValide, jourDeLaSemaine, jourEtHeure, nettoyerJours, rappelDu, rappelDuMatin, tachesDuMatin };
+export { FUSEAU_DU_FOYER, HEURE_DU_RAPPEL, HEURE_MAX, HEURE_MIN, JOURS_SEMAINE, PREFERENCES_DE_DEPART, RACCOURCIS_JOURS, TOUS_LES_JOURS, adresseMeteo, basculerJour, decalerHeure, decrireJours, formaterHeure, heureValide, jourDeLaSemaine, jourEtHeure, lireMeteo, nettoyerJours, rappelDu, rappelDuMatin, tachesDuMatin };

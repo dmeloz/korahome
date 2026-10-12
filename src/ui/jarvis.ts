@@ -1,4 +1,5 @@
 import { annulation, type Modification } from "../domaine/jarvis";
+import type { Zone } from "../domaine/jardin";
 import type { Animal } from "../domaine/mitsu";
 import type { Produit } from "../domaine/stock";
 import type { Element, Tache } from "../domaine/types";
@@ -9,7 +10,14 @@ import type { Depot } from "../donnees/depot";
 
 type Ecritures = Pick<
   Depot,
-  "enregistrerElement" | "supprimerElements" | "enregistrerTache" | "supprimerTache" | "enregistrerProduit" | "supprimerProduit" | "enregistrerAnimal"
+  | "enregistrerElement"
+  | "supprimerElements"
+  | "enregistrerTache"
+  | "supprimerTache"
+  | "enregistrerProduit"
+  | "supprimerProduit"
+  | "enregistrerAnimal"
+  | "enregistrerZone"
 >;
 
 export async function enregistrerModifications(depot: Ecritures, modifications: readonly Modification[]): Promise<void> {
@@ -17,6 +25,7 @@ export async function enregistrerModifications(depot: Ecritures, modifications: 
     if (m.collection === "elements") await depot.enregistrerElement(m.apres);
     else if (m.collection === "taches") await depot.enregistrerTache(m.apres);
     else if (m.collection === "stock") await depot.enregistrerProduit(m.apres);
+    else if (m.collection === "jardin") await depot.enregistrerZone(m.apres);
     else await depot.enregistrerAnimal(m.apres);
   }
 }
@@ -27,6 +36,10 @@ export async function annulerModifications(depot: Ecritures, modifications: read
     if (collection === "elements") await (remettre ? depot.enregistrerElement(remettre as Element) : depot.supprimerElements([id]));
     else if (collection === "taches") await (remettre ? depot.enregistrerTache(remettre as Tache) : depot.supprimerTache(id));
     else if (collection === "stock") await (remettre ? depot.enregistrerProduit(remettre as Produit) : depot.supprimerProduit(id));
+    else if (collection === "jardin") {
+      // Jarvis ne crée pas de zone : il y a toujours une version d'avant.
+      if (remettre) await depot.enregistrerZone(remettre as Zone);
+    }
     else if (remettre) await depot.enregistrerAnimal(remettre as Animal);
   }
 }

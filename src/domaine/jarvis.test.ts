@@ -16,6 +16,7 @@ import {
 } from "./jarvis";
 import { extraireRecette, lienAutorise, lienDans, lirePage, messageDemande, texteDePage } from "./jarvisModele";
 import { nouvelElement, nouvelleListe } from "./listes";
+import { ajouterPlante, nouvellePlante, nouvelleZone } from "./jardin";
 import { nouvelAnimal } from "./mitsu";
 import { nouvelleTache } from "./taches";
 
@@ -253,5 +254,48 @@ describe("les recettes derrière un lien", () => {
     for (const a of ["http://fooby.ch", "https://localhost/x", "https://127.0.0.1/", "https://[::1]/", "https://intranet/", "https://nas.local/", "https://a.ch:8443/", "pas une adresse"]) {
       expect(lienAutorise(a), a).toBe(false);
     }
+  });
+});
+
+describe("Jarvis au jardin", () => {
+  function avecJardin(nombre: 1 | 2) {
+    const { d, melo } = foyerDeTest();
+    const c = contexteTest();
+    const balcon = ajouterPlante(nouvelleZone({ nom: "Pots du balcon", type: "pot", exposition: "soleil", abri: "dehors" }, c), nouvellePlante("thym", AUJOURDHUI, null, c));
+    const bac = nouvelleZone({ nom: "Grand bac", type: "bac", exposition: "mi-ombre", abri: "dehors" }, c);
+    return { d: { ...d, zones: nombre === 1 ? [balcon] : [balcon, bac] }, melo };
+  }
+
+  it("lit les outils du jardin", () => {
+    expect(lireActions([{ nom: "ajouter_plante", entree: { plantes: ["basilic", ""], zone: null } }])).toEqual([{ outil: "ajouter_plante", plantes: ["basilic"], zone: null }]);
+    expect(lireActions([{ nom: "arrosage_fait", entree: { zone: "Grand bac" } }])).toEqual([{ outil: "arrosage_fait", zone: "Grand bac" }]);
+    expect(OUTILS_JARVIS.map((o) => o.name)).toContain("ajouter_plante");
+  });
+
+  it("ajoute une plante reconnue dans la seule zone, ou dans celle qu'on nomme", () => {
+    const seul = avecJardin(1);
+    const r1 = appliquerActions([{ outil: "ajouter_plante", plantes: ["basilic"], zone: null }], seul.d, seul.melo, AUJOURDHUI, ctx());
+    expect(r1.faits).toEqual(["Planté dans pots du balcon : basilic."]);
+    expect(r1.modifications[0]).toMatchObject({ collection: "jardin", apres: { plantes: [{ nom: "Thym" }, { nom: "Basilic", espece: "basilic" }] } });
+
+    const deux = avecJardin(2);
+    expect(appliquerActions([{ outil: "ajouter_plante", plantes: ["menthe"], zone: null }], deux.d, deux.melo, AUJOURDHUI, ctx()).echecs).toEqual(["Dans quelle zone du jardin ?"]);
+    const r2 = appliquerActions([{ outil: "ajouter_plante", plantes: ["menthe"], zone: "grand bac" }], deux.d, deux.melo, AUJOURDHUI, ctx());
+    expect(r2.faits).toEqual(["Planté dans grand bac : menthe."]);
+  });
+
+  it("note l'arrosage de tout ce qui pousse, et se défait", () => {
+    const { d, melo } = avecJardin(2);
+    const r = appliquerActions([{ outil: "arrosage_fait", zone: null }], d, melo, AUJOURDHUI, ctx());
+    // Le grand bac est vide : rien à arroser.
+    expect(r.faits).toEqual(["Arrosage noté : pots du balcon."]);
+    expect(r.modifications[0]).toMatchObject({ collection: "jardin", apres: { arroseeLe: AUJOURDHUI, arrosePar: melo } });
+    expect(annulation(r.modifications)).toEqual([{ collection: "jardin", id: d.zones[0].id, remettre: d.zones[0] }]);
+  });
+
+  it("parle du jardin à Jarvis quand il y en a un", () => {
+    const { d, melo } = avecJardin(1);
+    expect(decrireFoyer(d, melo, AUJOURDHUI)).toContain("- Pots du balcon (pot, plein soleil, dehors) : thym");
+    expect(decrireFoyer(foyerDeTest().d, melo, AUJOURDHUI)).not.toContain("Jardin");
   });
 });

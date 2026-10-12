@@ -1,3 +1,5 @@
+import { gestesDuJardin, type Zone } from "./jardin";
+import { meteoFraiche, type Meteo } from "./meteo";
 import { choseAFaire, type Animal } from "./mitsu";
 import { resumeStock, type Produit } from "./stock";
 import { ecartJours, estTerminee } from "./taches";
@@ -5,10 +7,14 @@ import type { Foyer, Id, Jour, Tache } from "./types";
 
 // Le rappel du matin : une seule notification par personne, à son heure (8 h au départ), qui résume ce
 // qui l'attend ce jour-là. Chacun reçoit ses tâches et les tâches libres (pas
-// celles que l'autre a prises), ce qui presse pour Mitsu et ce qui arrive à sa
-// date au frigo ou au placard. Rien à signaler :
+// celles que l'autre a prises), ce qui presse pour Mitsu, ce qui arrive à sa
+// date au frigo ou au placard, et au jardin le gel annoncé et ce qui est à
+// arroser. Rien à signaler :
 // pas de notification. Ce module sert aussi au serveur qui envoie les rappels
 // (supabase/functions/rappels) : il reste sans dépendance.
+
+/** Le serveur lit la météo du jardin à la même adresse que le téléphone. */
+export { adresseMeteo, lireMeteo } from "./meteo";
 
 /** Ce que chaque personne choisit de recevoir, sur son téléphone. */
 export interface PreferencesRappels {
@@ -16,6 +22,8 @@ export interface PreferencesRappels {
   mitsu: boolean;
   /** Ce qui arrive à sa date au frigo, au congélateur ou au placard. */
   stock: boolean;
+  /** Le gel annoncé et les zones du jardin à arroser. */
+  jardin: boolean;
   /** L'heure du rappel, heure pleine, à Zurich. */
   heure: number;
   /** Les jours où le rappel arrive : 0 dimanche, 1 lundi… 6 samedi. */
@@ -29,7 +37,7 @@ export const HEURE_MIN = 5;
 export const HEURE_MAX = 22;
 
 export const TOUS_LES_JOURS = [1, 2, 3, 4, 5, 6, 0];
-export const PREFERENCES_DE_DEPART: PreferencesRappels = { taches: true, mitsu: true, stock: true, heure: HEURE_DU_RAPPEL, jours: TOUS_LES_JOURS };
+export const PREFERENCES_DE_DEPART: PreferencesRappels = { taches: true, mitsu: true, stock: true, jardin: true, heure: HEURE_DU_RAPPEL, jours: TOUS_LES_JOURS };
 export const FUSEAU_DU_FOYER = "Europe/Zurich";
 
 export function heureValide(heure: unknown): heure is number {
@@ -127,6 +135,11 @@ export function rappelDuMatin(entree: {
   animaux: Animal[];
   /** Le stock du foyer ; absent, rien n'est dit du frigo. */
   produits?: readonly Produit[];
+  /** Le jardin et sa météo ; une météo de plus de 12 heures n'est pas prise en compte. */
+  zones?: readonly Zone[];
+  meteo?: Meteo | null;
+  /** L'instant présent (ISO 8601), pour juger la météo ; sans lui, elle est prise telle quelle. */
+  maintenant?: string;
   aujourdhui: Jour;
   preferences: PreferencesRappels;
 }): RappelDuMatin | null {
@@ -154,6 +167,13 @@ export function rappelDuMatin(entree: {
     const { aConsommer } = resumeStock(entree.produits, aujourdhui);
     if (aConsommer.length) lignes.push(`À consommer : ${enumerer(aConsommer.map((p) => p.nom))}`);
     nombre += aConsommer.length;
+  }
+
+  if (preferences.jardin && entree.zones?.length) {
+    const meteo = !entree.maintenant || meteoFraiche(entree.meteo ?? null, entree.maintenant) ? (entree.meteo ?? null) : null;
+    const gestes = gestesDuJardin(entree.zones, meteo, aujourdhui).filter((g) => g.urgent);
+    if (gestes.length) lignes.push(`Jardin : ${gestes.slice(0, 2).map((g) => g.texte).join(" · ")}${gestes.length > 2 ? "…" : ""}`);
+    nombre += gestes.length;
   }
 
   if (nombre === 0) return null;

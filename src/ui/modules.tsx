@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
+import { gestesDuJardin, type Zone } from "../domaine/jardin";
 import { compterAPrendre } from "../domaine/listes";
+import { decrireTemps, formaterTemperatures, meteoDu, type Meteo } from "../domaine/meteo";
 import { choseAFaire, decrireAge, formaterPoids, poidsActuel, rationDuJour, type Animal } from "../domaine/mitsu";
 import type { WidgetId } from "../domaine/tableauDeBord";
 import type { ProduitHabituel } from "../domaine/catalogue";
@@ -7,9 +9,11 @@ import { decrirePeremption, resumeStock, type Produit } from "../domaine/stock";
 import { compterDues, decrireEcheance, organiserTaches } from "../domaine/taches";
 import type { Element, Foyer, Jour, Liste, Tache } from "../domaine/types";
 import type { Depot } from "../donnees/depot";
+import type { ServeurJarvis } from "../donnees/distant";
 import { organiserEntretien } from "../domaine/entretien";
 import { DetailListe } from "./ecrans/DetailListe";
 import { Entretien } from "./ecrans/Entretien";
+import { Jardin } from "./ecrans/Jardin";
 import { Listes } from "./ecrans/Listes";
 import { Mitsu } from "./ecrans/Mitsu";
 import { Stock } from "./ecrans/Stock";
@@ -30,6 +34,9 @@ export interface DonneesModule {
   animaux: Animal[];
   produits: Produit[];
   catalogue: ProduitHabituel[];
+  zones: Zone[];
+  /** La météo du jardin, récente ; null hors ligne ou sans jardin. */
+  meteo: Meteo | null;
   aujourdhui: Jour;
 }
 
@@ -37,6 +44,8 @@ export interface PropsPage extends DonneesModule {
   depot: Depot;
   /** Ouvre une liste, par-dessus la page du module. */
   ouvrirListe: (id: string) => void;
+  /** Jarvis, quand le foyer est partagé (il passe par son serveur). */
+  jarvis: { serveur: ServeurJarvis; foyerId: string } | null;
 }
 
 /** Ce qu'un widget montre sur le tableau de bord. */
@@ -197,6 +206,26 @@ export const MODULES: Partial<Record<WidgetId, ModuleUI>> = {
       };
     },
     page: (p) => <Entretien depot={p.depot} membreId={p.membreId} taches={p.taches} aujourdhui={p.aujourdhui} />,
+  },
+
+  jardin: {
+    id: "jardin",
+    picto: "feuille",
+    libelle: "Jardin",
+    widget: (d) => {
+      const jour = meteoDu(d.meteo, d.aujourdhui);
+      const temps = jour ? `${decrireTemps(jour.code)} · ${formaterTemperatures(jour)}` : null;
+      if (d.zones.length === 0) return { chiffre: 0, legende: "Ajoute tes pots et tes bacs", lignes: temps ? [temps] : [], urgent: false };
+      const gestes = gestesDuJardin(d.zones, d.meteo, d.aujourdhui);
+      const urgents = gestes.filter((g) => g.urgent);
+      return {
+        chiffre: urgents.length,
+        legende: urgents.length ? "à faire au jardin" : (temps ?? "Rien à faire aujourd'hui"),
+        lignes: gestes.slice(0, 3).map((g) => g.texte),
+        urgent: urgents.length > 0,
+      };
+    },
+    page: (p) => <Jardin {...p} />,
   },
 };
 

@@ -10,7 +10,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
-import { FUSEAU_DU_FOYER, jourEtHeure, PREFERENCES_DE_DEPART, rappelDu, rappelDuMatin } from "./domaine.js";
+import { adresseMeteo, FUSEAU_DU_FOYER, jourEtHeure, lireMeteo, PREFERENCES_DE_DEPART, rappelDu, rappelDuMatin } from "./domaine.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -27,7 +27,7 @@ interface Abonnement {
   user_id: string;
   membre_id: string | null;
   cles: { p256dh: string; auth: string };
-  preferences: { taches?: boolean; mitsu?: boolean; stock?: boolean; jours?: number[] };
+  preferences: { taches?: boolean; mitsu?: boolean; stock?: boolean; jardin?: boolean; jours?: number[] };
   heure: number;
   dernier_envoi: string | null;
 }
@@ -52,18 +52,35 @@ async function reglages(): Promise<{ publique: string; privee: string; cleCron: 
   return { publique: r.vapid_publique, privee: r.vapid_privee, cleCron: r.cle_cron };
 }
 
-/** Le foyer, ses tâches, ses animaux et son stock, tels que les téléphones les ont partagés. */
+/** Le foyer, ses tâches, ses animaux, son stock et son jardin, tels que les téléphones les ont partagés. */
 async function donneesDuFoyer(foyerId: string) {
   const lignes = await echec(
-    serveur.from("documents").select("collection, donnees").eq("foyer_id", foyerId).in("collection", ["foyer", "taches", "animaux", "stock"]).not("donnees", "is", null),
+    serveur
+      .from("documents")
+      .select("collection, donnees")
+      .eq("foyer_id", foyerId)
+      .in("collection", ["foyer", "taches", "animaux", "stock", "jardin"])
+      .not("donnees", "is", null),
   );
   const de = (c: string) => (lignes as { collection: string; donnees: any }[]).filter((l) => l.collection === c).map((l) => l.donnees);
-  return { foyer: de("foyer")[0] ?? null, taches: de("taches"), animaux: de("animaux"), produits: de("stock") };
+  return { foyer: de("foyer")[0] ?? null, taches: de("taches"), animaux: de("animaux"), produits: de("stock"), zones: de("jardin") };
 }
 
-function rappelPour(a: Abonnement, donnees: Awaited<ReturnType<typeof donneesDuFoyer>>, aujourdhui: string) {
+/** La météo du jardin (Open-Meteo, sans clé) ; sans elle, le rappel parle seulement de l'arrosage. */
+async function meteoDuJardin() {
+  try {
+    const reponse = await fetch(adresseMeteo(), { signal: AbortSignal.timeout(8000) });
+    return reponse.ok ? lireMeteo(await reponse.json(), new Date().toISOString()) : null;
+  } catch (e) {
+    console.error("Météo indisponible", (e as Error).message);
+    return null;
+  }
+}
+
+function rappelPour(a: Abonnement, donnees: Awaited<ReturnType<typeof donneesDuFoyer>>, aujourdhui: string, meteo: Awaited<ReturnType<typeof meteoDuJardin>>) {
   return rappelDuMatin({
     ...donnees,
+    meteo,
     membreId: a.membre_id,
     aujourdhui,
     preferences: { ...PREFERENCES_DE_DEPART, ...a.preferences },
@@ -94,12 +111,15 @@ async function passageDuMatin(cles: { publique: string; privee: string }) {
   const maintenant = new Date();
   const abonnements = (await echec(serveur.from("abonnements_push").select("*"))) as Abonnement[];
   const parFoyer = new Map<string, Promise<Awaited<ReturnType<typeof donneesDuFoyer>>>>();
+  // Lue une fois par passage, et seulement s'il y a quelqu'un à prévenir.
+  let meteo: ReturnType<typeof meteoDuJardin> | null = null;
   const bilan: Record<string, number> = {};
   for (const a of abonnements) {
     const jour = rappelDu(maintenant, a.heure, a.dernier_envoi, FUSEAU_DU_FOYER, a.preferences?.jours);
     if (!jour) continue;
     if (!parFoyer.has(a.foyer_id)) parFoyer.set(a.foyer_id, donneesDuFoyer(a.foyer_id));
-    const message = rappelPour(a, await parFoyer.get(a.foyer_id)!, jour);
+    meteo ??= meteoDuJardin();
+    const message = rappelPour(a, await parFoyer.get(a.foyer_id)!, jour, await meteo);
     const resultat = message ? await envoyer(a, message, cles) : "rien";
     // Une seule tentative par jour, même sans rien à dire : pas de rappel l'après-midi.
     if (resultat !== "oublie") await echec(serveur.from("abonnements_push").update({ dernier_envoi: jour }).eq("endpoint", a.endpoint));
@@ -112,7 +132,7 @@ async function essai(utilisateur: string, endpoint: string, cles: { publique: st
   const [a] = (await echec(serveur.from("abonnements_push").select("*").eq("endpoint", endpoint).eq("user_id", utilisateur))) as Abonnement[];
   if (!a) return repondre({ erreur: "Ce téléphone n'est pas inscrit aux rappels." }, 404);
   const { jour } = jourEtHeure(new Date(), FUSEAU_DU_FOYER);
-  const message = rappelPour(a, await donneesDuFoyer(a.foyer_id), jour) ?? {
+  const message = rappelPour(a, await donneesDuFoyer(a.foyer_id), jour, await meteoDuJardin()) ?? {
     titre: "Tout est en ordre",
     corps: `Rien à faire aujourd'hui. Les rappels arriveront ici chaque matin à ${a.heure} h.`,
     nombre: 0,

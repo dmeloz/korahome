@@ -9,7 +9,9 @@
 // Jarvis ne supprime rien : il ajoute, coche et met à jour. Tout se rattrape avec Annuler.
 
 import { proposer, type ProduitHabituel } from "./catalogue";
+import { ajouterPlante, arroser, decrireJardin, nouvellePlante, type Zone } from "./jardin";
 import { analyserSaisie, nouvelElement, trouverDoublon } from "./listes";
+import type { Meteo } from "./meteo";
 import { ajouterPesee, choseAFaire, formaterPoids, poidsActuel, rationDuJour, type Animal } from "./mitsu";
 import { normaliser } from "./rayons";
 import { decrirePeremption, LIEUX, nouveauProduit, type Lieu, type Produit } from "./stock";
@@ -44,6 +46,9 @@ export interface DonneesFoyer {
   produits: Produit[];
   /** Les habitudes du foyer (où il range, combien de temps ça se garde). */
   catalogue?: ProduitHabituel[];
+  /** Le jardin et sa météo. */
+  zones?: Zone[];
+  meteo?: Meteo | null;
 }
 
 const listeCourses = (d: DonneesFoyer) => d.listes.find((l) => l.type === "courses") ?? null;
@@ -101,6 +106,7 @@ export function decrireFoyer(d: DonneesFoyer, membreId: Id | null, aujourdhui: J
         `${ration ? `, ration ${ration.grammes} g par jour` : ""}${aFaire.length ? `, à faire : ${aFaire.join(" ; ")}` : ""}.`,
     );
   }
+  if (d.zones?.length) lignes.push(...decrireJardin(d.zones, d.meteo ?? null, aujourdhui));
   return lignes.join("\n");
 }
 
@@ -113,7 +119,9 @@ export type ActionJarvis =
   | { outil: "tache_faite"; titre: string }
   | { outil: "attribuer_tache"; titre: string; responsable: string | null }
   | { outil: "ajouter_au_stock"; produits: { nom: string; lieu: Lieu; peremption: Jour | null }[] }
-  | { outil: "noter_pesee"; animal: string; grammes: number };
+  | { outil: "noter_pesee"; animal: string; grammes: number }
+  | { outil: "ajouter_plante"; plantes: string[]; zone: string | null }
+  | { outil: "arrosage_fait"; zone: string | null };
 
 const estTexte = (v: unknown): v is string => typeof v === "string" && v.trim().length > 0;
 const textes = (v: unknown): string[] => (Array.isArray(v) ? v.filter(estTexte) : []);
@@ -153,6 +161,11 @@ export function lireActions(appels: readonly { nom: string; entree: unknown }[])
       if (produits.length) actions.push({ outil: nom, produits });
     } else if (nom === "noter_pesee") {
       if (estTexte(e.animal) && typeof e.grammes === "number") actions.push({ outil: nom, animal: e.animal, grammes: e.grammes });
+    } else if (nom === "ajouter_plante") {
+      const plantes = textes(e.plantes);
+      if (plantes.length) actions.push({ outil: nom, plantes, zone: estTexte(e.zone) ? e.zone : null });
+    } else if (nom === "arrosage_fait") {
+      actions.push({ outil: nom, zone: estTexte(e.zone) ? e.zone : null });
     }
   }
   return actions;
@@ -163,7 +176,8 @@ export type Modification =
   | { collection: "elements"; avant: Element | null; apres: Element }
   | { collection: "taches"; avant: Tache | null; apres: Tache }
   | { collection: "stock"; avant: Produit | null; apres: Produit }
-  | { collection: "animaux"; avant: Animal; apres: Animal };
+  | { collection: "animaux"; avant: Animal; apres: Animal }
+  | { collection: "jardin"; avant: Zone; apres: Zone };
 
 export interface ResultatActions {
   modifications: Modification[];
@@ -203,7 +217,22 @@ export function appliquerActions(
   let elements = [...donnees.elements];
   let taches = [...donnees.taches];
   let animaux = [...donnees.animaux];
+  let zones = [...(donnees.zones ?? [])];
   const liste = listeCourses(donnees);
+
+  /** Une zone modifiée : la version d'avant reste celle de sa première modification. */
+  const modifierZone = (avant: Zone, apres: Zone) => {
+    zones = zones.map((z) => (z.id === apres.id ? apres : z));
+    const deja = modifications.find((m): m is Extract<Modification, { collection: "jardin" }> => m.collection === "jardin" && m.apres.id === apres.id);
+    if (deja) deja.apres = apres;
+    else modifications.push({ collection: "jardin", avant, apres });
+  };
+  /** La zone nommée ; sans nom, la seule zone du jardin. */
+  const zoneNommee = (nom: string | null): Zone | string => {
+    if (nom) return trouverParNom(zones, nom, (z) => z.nom) ?? `Je ne trouve pas la zone « ${nom} » au jardin.`;
+    if (zones.length === 1) return zones[0];
+    return zones.length === 0 ? "Crée d'abord une zone dans le Jardin (un pot, un bac)." : "Dans quelle zone du jardin ?";
+  };
 
   for (const action of actions) {
     try {
@@ -320,6 +349,34 @@ export function appliquerActions(
           faits.push(`Pesée notée : ${animal.nom}, ${formaterPoids(Math.round(action.grammes))}.`);
           break;
         }
+        case "ajouter_plante": {
+          const zone = zoneNommee(action.zone);
+          if (typeof zone === "string") {
+            echecs.push(zone);
+            break;
+          }
+          let apres = zone;
+          for (const texte of action.plantes) apres = ajouterPlante(apres, nouvellePlante(texte, aujourdhui, membreId, ctx));
+          modifierZone(zone, apres);
+          faits.push(`Planté dans ${zone.nom.toLowerCase()} : ${enumerer(action.plantes.map((p) => p.toLowerCase()))}.`);
+          break;
+        }
+        case "arrosage_fait": {
+          // Sans zone nommée : tout le jardin a été arrosé.
+          const cibles = action.zone ? [zoneNommee(action.zone)] : zones.filter((z) => z.plantes.length > 0);
+          const arrosees: string[] = [];
+          for (const zone of cibles) {
+            if (typeof zone === "string") {
+              echecs.push(zone);
+              continue;
+            }
+            modifierZone(zone, arroser(zone, aujourdhui, membreId));
+            arrosees.push(zone.nom.toLowerCase());
+          }
+          if (arrosees.length) faits.push(`Arrosage noté : ${enumerer(arrosees)}.`);
+          else if (!action.zone) echecs.push("Il n'y a encore rien à arroser au jardin.");
+          break;
+        }
       }
     } catch (e) {
       echecs.push(e instanceof Error ? e.message : "Cette action n'a pas pu se faire.");
@@ -345,6 +402,10 @@ export function decrireAction(action: ActionJarvis): string {
       return `Ranger : ${enumerer(action.produits.map((p) => p.nom))}`;
     case "noter_pesee":
       return `Pesée de ${action.animal} : ${action.grammes} g`;
+    case "ajouter_plante":
+      return `Planter : ${enumerer(action.plantes)}${action.zone ? ` (${action.zone})` : ""}`;
+    case "arrosage_fait":
+      return action.zone ? `Arrosé : ${action.zone}` : "Arrosé : tout le jardin";
   }
 }
 

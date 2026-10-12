@@ -194,6 +194,34 @@ const OUTILS_JARVIS = [
 				}
 			}
 		}
+	},
+	{
+		name: "ajouter_plante",
+		description: "Ajoute des plantes dans une zone du jardin (un pot, un bac, une jardinière).",
+		strict: true,
+		input_schema: {
+			type: "object",
+			additionalProperties: false,
+			required: ["plantes", "zone"],
+			properties: {
+				plantes: {
+					type: "array",
+					items: texte("Le nom courant de la plante en français : « basilic », « tomate cerise ».")
+				},
+				zone: ouNul("Le nom de la zone telle qu'elle figure dans le jardin ; null si le jardin n'a qu'une zone.")
+			}
+		}
+	},
+	{
+		name: "arrosage_fait",
+		description: "Note que le jardin, ou une de ses zones, vient d'être arrosé.",
+		strict: true,
+		input_schema: {
+			type: "object",
+			additionalProperties: false,
+			required: ["zone"],
+			properties: { zone: ouNul("Le nom de la zone arrosée ; null si tout le jardin a été arrosé.") }
+		}
 	}
 ];
 const CONSIGNES_JARVIS = `Tu es Jarvis, l'assistant d'un foyer en Suisse romande, dans l'app KoraHome sur iPhone.
@@ -206,7 +234,8 @@ Si la demande n'est pas claire ou ne correspond à aucun outil, pose une seule q
 Pour une question sur le foyer, réponds à partir de l'état du foyer fourni ; s'il ne contient pas la réponse, dis-le.
 Avec une photo (lettre, facture, carte de rendez-vous, flyer) : relève les rendez-vous, échéances et paiements, et crée pour chacun une tâche unique à sa date, avec l'heure et le lieu dans le titre s'ils sont indiqués.
 Avec un ticket de caisse : range au stock (ajouter_au_stock) les produits alimentaires achetés, avec leur quantité dans le nom (« 1 l lait », « 500 g beurre ») et le lieu où on les range d'habitude ; laisse la date de péremption vide si elle n'est pas écrite, l'app la devine. Coche aussi les courses correspondantes (cocher_courses).
-Avec une recette : compare ses ingrédients au stock et à la liste de courses, et n'ajoute aux courses que ce qui manque, avec les quantités de la recette.`;
+Avec une recette : compare ses ingrédients au stock et à la liste de courses, et n'ajoute aux courses que ce qui manque, avec les quantités de la recette.
+Avec une photo de plante : reconnais-la (nom courant en français, le plus précis possible). Si on te demande de l'ajouter, utilise ajouter_plante, et écris quand même une phrase : son nom, puis son besoin principal (soleil, arrosage, gel). Si tu n'es pas sûr, dis-le et donne les deux noms les plus probables.`;
 /** Le conseil du dimanche : Jarvis prépare la semaine, le foyer valide ensemble. */
 const CONSIGNES_CONSEIL = `Tu es Jarvis, l'assistant d'un foyer en Suisse romande. C'est le conseil de la semaine : le foyer décide ensemble de la semaine qui vient, et tu prépares une proposition qu'il validera ligne par ligne.
 Utilise les outils pour proposer :
