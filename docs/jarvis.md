@@ -7,7 +7,7 @@ changé quelque chose a son bouton **Annuler**. Quand on lui a parlé, il répon
 
 Ce qu'il sait faire (Kora 0.1.0) : ajouter et cocher des courses, créer une tâche (unique ou qui
 revient, pour quelqu'un ou libre), marquer une tâche faite, ranger des produits au frigo, au
-congélateur ou au placard, noter une pesée de Mitsu, et répondre sur l'état du foyer.
+congélateur ou au placard, noter une pesée de Mitsu (même à une date passée), tenir son journal (litière, soucis) et son carnet de santé (y compris relu sur une photo du carnet), et répondre sur l'état du foyer.
 Il confie aussi une tâche à quelqu'un. Il ne supprime rien et ne dépense rien. Siri viendra avec
 l'app native.
 

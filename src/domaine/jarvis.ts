@@ -12,7 +12,22 @@ import { proposer, type ProduitHabituel } from "./catalogue";
 import { ajouterPlante, arroser, decrireJardin, nouvellePlante, type Zone } from "./jardin";
 import { analyserSaisie, nouvelElement, trouverDoublon } from "./listes";
 import type { Meteo } from "./meteo";
-import { ajouterPesee, choseAFaire, formaterPoids, poidsActuel, rationDuJour, type Animal } from "./mitsu";
+import {
+  ajouterPesee,
+  choseAFaire,
+  formaterPoids,
+  journalRecent,
+  noterEvenement,
+  noterSoin,
+  poidsActuel,
+  rationDuJour,
+  soinsAVenir,
+  TYPES_EVENEMENT,
+  TYPES_SOIN,
+  type Animal,
+  type TypeEvenement,
+  type TypeSoin,
+} from "./mitsu";
 import { normaliser } from "./rayons";
 import { decrirePeremption, LIEUX, nouveauProduit, type Lieu, type Produit } from "./stock";
 import { decaler, decrireEcheance, decrireRecurrence, ecartJours, estTerminee, marquerFaite, nouvelleTache } from "./taches";
@@ -105,6 +120,10 @@ export function decrireFoyer(d: DonneesFoyer, membreId: Id | null, aujourdhui: J
       `Animal ${a.nom} : ${poids ? `${formaterPoids(poids.grammes)} (pesé le ${poids.jour})` : "pas encore pesé"}` +
         `${ration ? `, ration ${ration.grammes} g par jour` : ""}${aFaire.length ? `, à faire : ${aFaire.join(" ; ")}` : ""}.`,
     );
+    const soins = soinsAVenir(a).slice(0, 4);
+    if (soins.length) lignes.push(`Carnet de ${a.nom}, prévu : ${soins.map((x) => `${x.libelle} le ${x.date}`).join(", ")}.`);
+    const journal = journalRecent(a).slice(0, 5);
+    if (journal.length) lignes.push(`Journal de ${a.nom} : ${journal.map((e) => `${TYPES_EVENEMENT[e.quoi].toLowerCase()}${e.note ? ` (${e.note})` : ""} le ${e.jour}`).join(", ")}.`);
   }
   if (d.zones?.length) lignes.push(...decrireJardin(d.zones, d.meteo ?? null, aujourdhui));
   return lignes.join("\n");
@@ -119,7 +138,9 @@ export type ActionJarvis =
   | { outil: "tache_faite"; titre: string }
   | { outil: "attribuer_tache"; titre: string; responsable: string | null }
   | { outil: "ajouter_au_stock"; produits: { nom: string; lieu: Lieu; peremption: Jour | null }[] }
-  | { outil: "noter_pesee"; animal: string; grammes: number }
+  | { outil: "noter_pesee"; animal: string; grammes: number; jour?: Jour | null }
+  | { outil: "noter_journal"; animal: string; quoi: TypeEvenement; note: string; jour: Jour | null }
+  | { outil: "noter_soin"; animal: string; type: TypeSoin; libelle: string; date: Jour; fait: boolean }
   | { outil: "ajouter_plante"; plantes: string[]; zone: string | null }
   | { outil: "arrosage_fait"; zone: string | null };
 
@@ -160,7 +181,16 @@ export function lireActions(appels: readonly { nom: string; entree: unknown }[])
         .map((p) => ({ nom: p.nom as string, lieu: p.lieu as Lieu, peremption: jourOuNul(p.peremption) }));
       if (produits.length) actions.push({ outil: nom, produits });
     } else if (nom === "noter_pesee") {
-      if (estTexte(e.animal) && typeof e.grammes === "number") actions.push({ outil: nom, animal: e.animal, grammes: e.grammes });
+      if (estTexte(e.animal) && typeof e.grammes === "number") actions.push({ outil: nom, animal: e.animal, grammes: e.grammes, jour: jourOuNul(e.jour) });
+    } else if (nom === "noter_journal") {
+      if (estTexte(e.animal) && typeof e.quoi === "string" && e.quoi in TYPES_EVENEMENT) {
+        actions.push({ outil: nom, animal: e.animal, quoi: e.quoi as TypeEvenement, note: typeof e.note === "string" ? e.note : "", jour: jourOuNul(e.jour) });
+      }
+    } else if (nom === "noter_soin") {
+      const date = jourOuNul(e.date);
+      if (estTexte(e.animal) && typeof e.type === "string" && e.type in TYPES_SOIN && e.type !== "filtre" && date) {
+        actions.push({ outil: nom, animal: e.animal, type: e.type as TypeSoin, libelle: estTexte(e.libelle) ? e.libelle : "", date, fait: e.fait === true });
+      }
     } else if (nom === "ajouter_plante") {
       const plantes = textes(e.plantes);
       if (plantes.length) actions.push({ outil: nom, plantes, zone: estTexte(e.zone) ? e.zone : null });
@@ -332,21 +362,33 @@ export function appliquerActions(
           faits.push(`Rangé : ${enumerer(ranges)}.`);
           break;
         }
-        case "noter_pesee": {
+        case "noter_pesee":
+        case "noter_journal":
+        case "noter_soin": {
           const animal = trouverParNom(animaux, action.animal, (a) => a.nom);
           if (!animal) {
             echecs.push(`Je ne connais pas d'animal nommé ${action.animal}.`);
             break;
           }
-          const pese = ajouterPesee(animal, action.grammes, aujourdhui, membreId, ctx);
-          animaux = animaux.map((a) => (a.id === pese.id ? pese : a));
-          // Deux pesées du même animal dans une demande : la version d'avant reste la toute première.
+          let apres: Animal;
+          if (action.outil === "noter_pesee") {
+            apres = ajouterPesee(animal, action.grammes, action.jour ?? aujourdhui, membreId, ctx);
+            faits.push(`Pesée notée : ${animal.nom}, ${formaterPoids(Math.round(action.grammes))}${action.jour && action.jour !== aujourdhui ? ` le ${action.jour}` : ""}.`);
+          } else if (action.outil === "noter_journal") {
+            apres = noterEvenement(animal, action.quoi, action.jour ?? aujourdhui, action.note, membreId, ctx);
+            faits.push(`Noté pour ${animal.nom} : ${TYPES_EVENEMENT[action.quoi].toLowerCase()}${action.note ? ` (${action.note})` : ""}.`);
+          } else {
+            apres = noterSoin(animal, action, ctx);
+            if (apres === animal) break;
+            faits.push(`Carnet de ${animal.nom} : ${apres.soins[apres.soins.length - 1].libelle.toLowerCase()}, ${action.fait ? "fait" : "prévu"} le ${action.date}.`);
+          }
+          animaux = animaux.map((a) => (a.id === apres.id ? apres : a));
+          // Plusieurs notes sur le même animal dans une demande : la version d'avant reste la toute première.
           const deja = modifications.find(
             (m): m is Extract<Modification, { collection: "animaux" }> => m.collection === "animaux" && m.apres.id === animal.id,
           );
-          if (deja) deja.apres = pese;
-          else modifications.push({ collection: "animaux", avant: animal, apres: pese });
-          faits.push(`Pesée notée : ${animal.nom}, ${formaterPoids(Math.round(action.grammes))}.`);
+          if (deja) deja.apres = apres;
+          else modifications.push({ collection: "animaux", avant: animal, apres });
           break;
         }
         case "ajouter_plante": {
@@ -402,6 +444,10 @@ export function decrireAction(action: ActionJarvis): string {
       return `Ranger : ${enumerer(action.produits.map((p) => p.nom))}`;
     case "noter_pesee":
       return `Pesée de ${action.animal} : ${action.grammes} g`;
+    case "noter_journal":
+      return `${action.animal} : ${TYPES_EVENEMENT[action.quoi].toLowerCase()}${action.note ? ` (${action.note})` : ""}`;
+    case "noter_soin":
+      return `Carnet de ${action.animal} : ${action.libelle || TYPES_SOIN[action.type]}, ${action.fait ? "fait" : "prévu"} le ${action.date}`;
     case "ajouter_plante":
       return `Planter : ${enumerer(action.plantes)}${action.zone ? ` (${action.zone})` : ""}`;
     case "arrosage_fait":

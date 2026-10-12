@@ -68,7 +68,7 @@ describe("ration de croquettes", () => {
     const ctx = contexteTest();
     const a = ajouterPesee(mitsu(ctx), 2500, "2026-10-09", null, ctx);
     // 5 mois, 2,5 kg : 70 × 2,5^0,75 × 2 ≈ 278 kcal, soit ≈ 70 g à 4 kcal/g.
-    expect(rationDuJour(a, "2026-10-09")).toEqual({ grammes: 70, kcal: 278, source: "estimee" });
+    expect(rationDuJour(a, "2026-10-09")).toEqual({ grammes: 70, kcal: 278, source: "estimee", friandisesMax: 8 });
   });
 
   it("baisse quand elle devient adulte, et encore un peu une fois stérilisée", () => {
@@ -82,7 +82,7 @@ describe("ration de croquettes", () => {
 
   it("suit la ration du paquet quand elle est notée", () => {
     const a = { ...mitsu(), reglages: { ...mitsu().reglages, rationDuPaquet: 55 } };
-    expect(rationDuJour(a, "2026-10-09")).toEqual({ grammes: 55, kcal: 220, source: "paquet" });
+    expect(rationDuJour(a, "2026-10-09")).toEqual({ grammes: 55, kcal: 220, source: "paquet", friandisesMax: 6 });
   });
 });
 

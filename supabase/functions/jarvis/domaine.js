@@ -180,17 +180,90 @@ const OUTILS_JARVIS = [
 	},
 	{
 		name: "noter_pesee",
-		description: "Note le poids d'un animal du foyer, pesé aujourd'hui.",
+		description: "Note le poids d'un animal du foyer.",
 		strict: true,
 		input_schema: {
 			type: "object",
 			additionalProperties: false,
-			required: ["animal", "grammes"],
+			required: [
+				"animal",
+				"grammes",
+				"jour"
+			],
 			properties: {
 				animal: texte("Le nom de l'animal."),
 				grammes: {
 					type: "integer",
 					description: "Le poids en grammes."
+				},
+				jour: ouNul("Le jour de la pesée, AAAA-MM-JJ, s'il est écrit (carnet, facture du vétérinaire) ; null pour aujourd'hui.")
+			}
+		}
+	},
+	{
+		name: "noter_journal",
+		description: "Note dans le journal d'un animal ce qui s'est passé : litière changée, a vomi, n'a pas mangé, selles molles, boite, se cache ou autre remarque.",
+		strict: true,
+		input_schema: {
+			type: "object",
+			additionalProperties: false,
+			required: [
+				"animal",
+				"quoi",
+				"note",
+				"jour"
+			],
+			properties: {
+				animal: texte("Le nom de l'animal."),
+				quoi: {
+					type: "string",
+					enum: [
+						"litiere",
+						"vomi",
+						"pas_mange",
+						"selles",
+						"boite",
+						"cachee",
+						"autre"
+					]
+				},
+				note: texte("Une précision courte, ou une chaîne vide. Obligatoire pour « autre »."),
+				jour: ouNul("Le jour, AAAA-MM-JJ, si ce n'est pas aujourd'hui (« hier soir ») ; null pour aujourd'hui.")
+			}
+		}
+	},
+	{
+		name: "noter_soin",
+		description: "Note un soin dans le carnet de santé d'un animal : déjà fait à une date (relu sur le carnet), ou prévu.",
+		strict: true,
+		input_schema: {
+			type: "object",
+			additionalProperties: false,
+			required: [
+				"animal",
+				"type",
+				"libelle",
+				"date",
+				"fait"
+			],
+			properties: {
+				animal: texte("Le nom de l'animal."),
+				type: {
+					type: "string",
+					enum: [
+						"vaccin",
+						"vermifuge",
+						"antiparasitaire",
+						"sterilisation",
+						"visite",
+						"autre"
+					]
+				},
+				libelle: texte("Le soin tel qu'écrit : « Vaccin typhus et coryza (rappel) », « Milbemax »."),
+				date: texte("La date du soin, AAAA-MM-JJ."),
+				fait: {
+					type: "boolean",
+					description: "true si le soin a déjà été fait, false s'il est prévu."
 				}
 			}
 		}
@@ -234,6 +307,8 @@ Si la demande n'est pas claire ou ne correspond à aucun outil, pose une seule q
 Pour une question sur le foyer, réponds à partir de l'état du foyer fourni ; s'il ne contient pas la réponse, dis-le.
 Avec une photo (lettre, facture, carte de rendez-vous, flyer) : relève les rendez-vous, échéances et paiements, et crée pour chacun une tâche unique à sa date, avec l'heure et le lieu dans le titre s'ils sont indiqués.
 Avec un ticket de caisse : range au stock (ajouter_au_stock) les produits alimentaires achetés, avec leur quantité dans le nom (« 1 l lait », « 500 g beurre ») et le lieu où on les range d'habitude ; laisse la date de péremption vide si elle n'est pas écrite, l'app la devine. Coche aussi les courses correspondantes (cocher_courses).
+Avec une page de carnet de santé ou une facture de vétérinaire : note chaque vaccin, vermifuge, antiparasitaire ou visite avec noter_soin (fait: true à sa date, et fait: false pour la date du prochain rappel écrite), et les poids écrits avec noter_pesee à leur date.
+Quand on te dit qu'un animal a vomi, n'a pas mangé, ou que la litière est changée, note-le avec noter_journal ; si une tâche correspond (litière), marque-la aussi faite.
 Avec une recette : compare ses ingrédients au stock et à la liste de courses, et n'ajoute aux courses que ce qui manque, avec les quantités de la recette.
 Avec une photo de plante : reconnais-la (nom courant en français, le plus précis possible). Si on te demande de l'ajouter, utilise ajouter_plante, et écris quand même une phrase : son nom, puis son besoin principal (soleil, arrosage, gel). Si tu n'es pas sûr, dis-le et donne les deux noms les plus probables.`;
 /** Le conseil du dimanche : Jarvis prépare la semaine, le foyer valide ensemble. */

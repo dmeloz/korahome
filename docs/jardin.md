@@ -1,6 +1,6 @@
 # Le jardin
 
-Le widget **Jardin** ouvre la page du jardin du foyer (Kora 0.0.13).
+Le widget **Jardin** ouvre la page du jardin du foyer (Kora 0.0.15).
 
 - **Zones** : un pot, une jardinière, un bac ou de la pleine terre, avec son soleil (plein soleil
   6 h et plus, mi-ombre 3 à 6 h, ombre ; l'app Shadowmap aide à le mesurer) et son abri (dehors,
