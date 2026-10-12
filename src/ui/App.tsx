@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { rappelDuMatin } from "../domaine/rappels";
 import type { WidgetId } from "../domaine/tableauDeBord";
 import type { Foyer } from "../domaine/types";
 import type { DepotLocal } from "../donnees/depotLocal";
@@ -7,6 +8,8 @@ import { CoinDev } from "./CoinDev";
 import { aujourdhuiLocal, choisirMembreCourant, lireMembreCourant } from "./contexte";
 import { Accueil } from "./ecrans/Accueil";
 import { Bienvenue } from "./ecrans/Bienvenue";
+import { Conseil } from "./ecrans/Conseil";
+import { Jarvis } from "./ecrans/Jarvis";
 import { DetailListe } from "./ecrans/DetailListe";
 import { Notifications } from "./ecrans/Notifications";
 import { Partage, type ServicesPartage } from "./ecrans/Partage";
@@ -18,8 +21,9 @@ import { BORD_RETOUR, directionGeste, finRetour } from "./gestes";
 import { noter } from "./journal";
 import { MODULES, type DonneesModule } from "./modules";
 import { enregistrerPastilleVisible, lirePastilleVisible } from "./rapport";
-import { lirePreferences, mettreAJourRappels } from "./rappels";
-import { planifierSynchro } from "./synchroAuto";
+import { afficherPastilleIcone, lirePreferences, mettreAJourRappels } from "./rappels";
+import { planifierSynchro, synchroEnDirect } from "./synchroAuto";
+import { avecTransition } from "./transitions";
 import { useDonnees } from "./useDonnees";
 
 // Pas de barre d'onglets : tout part du tableau de bord, chaque widget ouvre la
@@ -32,7 +36,9 @@ type Page =
   | { nom: "partage" }
   | { nom: "notifications" }
   | { nom: "telephone" }
-  | { nom: "retours" };
+  | { nom: "retours" }
+  | { nom: "jarvis" }
+  | { nom: "conseil" };
 
 // L'écran affiché, lu par le journal des retours de test à chaque geste.
 let ecranCourant = "Accueil";
@@ -49,18 +55,34 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   const partageActif = useSyncExternalStore(synchro?.abonner ?? sansAbonnement, () => (synchro?.statut().etat ?? "inactif") !== "inactif");
   useEffect(() => (synchro ? planifierSynchro(synchro, depot) : undefined), [synchro, depot]);
 
-  // Le serveur des rappels sait qui utilise ce téléphone, même après un changement dans Réglages.
   const foyerPartage = partageActif && foyer ? foyer.id : null;
+  // Ce que l'autre iPhone change arrive à l'instant.
+  useEffect(
+    () => (partage && foyerPartage ? synchroEnDirect(partage.synchro, (r) => partage.tempsReel.ecouterFoyer(foyerPartage, r)) : undefined),
+    [partage, foyerPartage],
+  );
+
+  // Le serveur des rappels sait qui utilise ce téléphone, même après un changement dans Réglages.
   const membreRappels = foyer?.membres.some((m) => m.id === membreId) ? membreId : null;
   useEffect(() => {
     if (partage && foyerPartage) mettreAJourRappels(partage.rappels, foyerPartage, membreRappels, lirePreferences()).catch(() => {});
   }, [partage, foyerPartage, membreRappels]);
 
+  // La pastille de l'icône suit ce qui presse pour la personne de ce téléphone, mis à jour à chaque changement.
+  const aujourdhui = aujourdhuiLocal();
+  useEffect(() => {
+    if (!pret) return;
+    const rappel = rappelDuMatin({ foyer, membreId: membreRappels, taches, animaux, produits, aujourdhui, preferences: lirePreferences() });
+    afficherPastilleIcone(rappel?.nombre ?? 0);
+  }, [pret, foyer, membreRappels, taches, animaux, produits, aujourdhui]);
+
   const page = pile[pile.length - 1];
+  // Le glissement du doigt anime déjà la page : sans transition dans ce cas-là.
   const revenir = () => {
     setPile((avant) => (avant.length > 1 ? avant.slice(0, -1) : avant));
     window.scrollTo(0, 0);
   };
+  const revenirAnime = () => avecTransition("arriere", revenir);
   const glissement = useGlissementRetour(pile.length > 1, revenir);
   const nomEcran = !pret ? "Chargement" : !foyer ? "Bienvenue" : nommer(page);
   ecranCourant = nomEcran;
@@ -75,6 +97,8 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     if (p.nom === "partage") return "Partage";
     if (p.nom === "notifications") return "Notifications";
     if (p.nom === "telephone") return "Ce téléphone";
+    if (p.nom === "jarvis") return "Jarvis";
+    if (p.nom === "conseil") return "Conseil";
     if (p.nom === "module") return MODULES[p.id]?.libelle ?? "Retour";
     return listes.find((l) => l.id === p.id)?.nom ?? "Liste";
   }
@@ -117,10 +141,11 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   const donnees: DonneesModule = { foyer, membreId: membre, listes, elements, taches, animaux, produits, catalogue, aujourdhui: aujourdhuiLocal() };
   const precedente = pile.length > 1 ? pile[pile.length - 2] : null;
 
-  const ouvrir = (p: Page) => {
-    setPile((avant) => [...avant, p]);
-    window.scrollTo(0, 0);
-  };
+  const ouvrir = (p: Page) =>
+    avecTransition("avant", () => {
+      setPile((avant) => [...avant, p]);
+      window.scrollTo(0, 0);
+    });
   const ouvrirListe = (id: string) => ouvrir({ nom: "liste", id });
   const ouvertes = retours.filter((r) => !r.regleLe).length;
 
@@ -131,6 +156,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         donnees={donnees}
         ouvrirModule={(id) => ouvrir({ nom: "module", id })}
         ouvrirReglages={() => ouvrir({ nom: "reglages" })}
+        ouvrirJarvis={() => ouvrir({ nom: "jarvis" })}
         nouvelleVersion={nouvelleVersion}
       />
     );
@@ -170,6 +196,19 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         }}
       />
     );
+  } else if (page.nom === "conseil" && partage && foyerPartage) {
+    ecran = <Conseil donnees={donnees} depot={depot} serveur={partage.jarvis} foyerPartage={foyerPartage} />;
+  } else if (page.nom === "jarvis" || page.nom === "conseil") {
+    ecran = (
+      <Jarvis
+        donnees={donnees}
+        depot={depot}
+        serveur={partage?.jarvis ?? null}
+        foyerPartage={foyerPartage}
+        ouvrirPartage={() => ouvrir({ nom: "partage" })}
+        ouvrirConseil={() => ouvrir({ nom: "conseil" })}
+      />
+    );
   } else if (page.nom === "retours") {
     ecran = <RetoursTest depot={depot} foyer={foyer} retours={retours} partageActif={partageActif} />;
   } else {
@@ -202,7 +241,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       style={glissement.decalage ? { transform: `translateX(${glissement.decalage}px)` } : undefined}
     >
       {precedente && (
-        <button className="retour" onClick={revenir}>
+        <button className="retour" onClick={revenirAnime}>
           <Icone nom="retour" taille={22} />
           {libelle(precedente)}
         </button>

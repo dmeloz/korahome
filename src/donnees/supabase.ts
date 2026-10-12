@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { COLLECTIONS_SYNCHRO, type Changement, type CollectionSynchro } from "../domaine/synchro";
-import type { FoyerPartage, ServicesDistants } from "./distant";
+import type { FoyerPartage, ReponseJarvis, ServicesDistants } from "./distant";
 
 // Le serveur partagé du foyer, sur Supabase (tables et règles : supabase/schema.sql).
 // La bibliothèque n'est chargée qu'au premier usage, pour garder le démarrage rapide.
@@ -42,9 +42,9 @@ export function configurationSupabase(): { url: string; cle: string } | null {
   return url && cle ? { url, cle } : null;
 }
 
-/** La fonction serveur des rappels ; ses messages d'erreur sont déjà en français. */
-async function appelerRappels(sb: SupabaseClient, corps: object): Promise<Record<string, unknown>> {
-  const { data, error } = await sb.functions.invoke("rappels", { body: corps });
+/** Une fonction serveur (rappels, jarvis) ; ses messages d'erreur sont déjà en français. */
+async function appelerFonction(sb: SupabaseClient, nom: "rappels" | "jarvis", corps: object): Promise<Record<string, unknown>> {
+  const { data, error } = await sb.functions.invoke(nom, { body: corps });
   if (error) {
     const detail = await (error as { context?: Response }).context?.json?.().catch(() => null);
     throw new Error(traduireErreur(detail?.erreur ?? error.message));
@@ -134,7 +134,7 @@ export function creerServicesSupabase(url: string, cle: string): ServicesDistant
     },
 
     async cleRappels() {
-      return (await appelerRappels(await supabase(), { mode: "cle" })).cle as string;
+      return (await appelerFonction(await supabase(), "rappels", { mode: "cle" })).cle as string;
     },
     async inscrireRappels(i) {
       const { error } = await (await supabase()).rpc("enregistrer_abonnement", {
@@ -151,7 +151,28 @@ export function creerServicesSupabase(url: string, cle: string): ServicesDistant
       echec((await (await supabase()).rpc("retirer_abonnement", { p_endpoint: endpoint })).error);
     },
     async essaiRappel(endpoint) {
-      await appelerRappels(await supabase(), { mode: "essai", endpoint });
+      await appelerFonction(await supabase(), "rappels", { mode: "essai", endpoint });
+    },
+
+    ecouterFoyer(foyerId, rappel) {
+      let arrete = false;
+      let fermer = () => {};
+      void supabase().then((sb) => {
+        if (arrete) return;
+        const canal = sb
+          .channel(`foyer-${foyerId}`)
+          .on("postgres_changes", { event: "*", schema: "public", table: "documents", filter: `foyer_id=eq.${foyerId}` }, rappel)
+          .subscribe();
+        fermer = () => void sb.removeChannel(canal);
+      });
+      return () => {
+        arrete = true;
+        fermer();
+      };
+    },
+
+    async demanderJarvis(demande) {
+      return (await appelerFonction(await supabase(), "jarvis", demande)) as unknown as ReponseJarvis;
     },
 
     async envoyer(foyerId, changements) {

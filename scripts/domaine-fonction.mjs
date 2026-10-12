@@ -1,13 +1,20 @@
 import { fileURLToPath } from "node:url";
 import { rolldown } from "rolldown";
 
-/** Le code de src/domaine/rappels.ts, réuni en un module sans dépendance. */
-export async function construireDomaine() {
+/** Les fonctions serveur et les règles qu'elles embarquent : supabase/functions/<nom>/domaine.js. */
+export const FONCTIONS = ["rappels", "jarvis"];
+
+/** Le fichier de règles de chaque fonction. */
+const SOURCES = { rappels: "rappels", jarvis: "jarvisModele" };
+
+/** Le code des règles de la fonction <nom>, réuni en un module sans dépendance. */
+export async function construireDomaine(nom = "rappels") {
+  const source = SOURCES[nom];
   const paquet = await rolldown({
-    input: fileURLToPath(new URL("../src/domaine/rappels.ts", import.meta.url)),
+    input: fileURLToPath(new URL(`../src/domaine/${source}.ts`, import.meta.url)),
     logLevel: "silent",
   });
   const { output } = await paquet.generate({ format: "esm" });
   await paquet.close();
-  return `// Généré par \`npm run fonction\` depuis src/domaine/rappels.ts : ne pas modifier à la main.\n${output[0].code}`;
+  return `// Généré par \`npm run fonction\` depuis src/domaine/${source}.ts : ne pas modifier à la main.\n${output[0].code}`;
 }

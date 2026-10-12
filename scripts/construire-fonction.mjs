@@ -1,10 +1,12 @@
-// Copie les règles des rappels (src/domaine/rappels.ts et ce dont elles dépendent) en un
-// seul fichier JavaScript pour la fonction serveur : supabase/functions/rappels/domaine.js.
-// Lancé par `npm run fonction` ; un test vérifie que le fichier est à jour.
+// Copie les règles de chaque fonction serveur (src/domaine/rappels.ts, src/domaine/jarvisModele.ts et
+// ce dont elles dépendent) en un seul fichier JavaScript : supabase/functions/<nom>/domaine.js.
+// Lancé par `npm run fonction` ; un test vérifie que les fichiers sont à jour.
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { construireDomaine } from "./domaine-fonction.mjs";
+import { construireDomaine, FONCTIONS } from "./domaine-fonction.mjs";
 
-const cible = fileURLToPath(new URL("../supabase/functions/rappels/domaine.js", import.meta.url));
-writeFileSync(cible, await construireDomaine());
-console.log(`Écrit : ${cible}`);
+for (const nom of FONCTIONS) {
+  const cible = fileURLToPath(new URL(`../supabase/functions/${nom}/domaine.js`, import.meta.url));
+  writeFileSync(cible, await construireDomaine(nom));
+  console.log(`Écrit : ${cible}`);
+}

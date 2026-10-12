@@ -2,7 +2,7 @@
 // Chaque téléphone garde sa disposition. L'ordre choisi reste stable, mais un
 // widget qui a quelque chose d'urgent à montrer remonte en haut.
 
-export type WidgetId = "taches" | "courses" | "listes" | "agenda" | "mitsu" | "stock" | "jardin";
+export type WidgetId = "taches" | "courses" | "listes" | "agenda" | "mitsu" | "stock" | "entretien" | "jardin";
 
 export interface DefinitionWidget {
   id: WidgetId;
@@ -19,6 +19,7 @@ export const CATALOGUE: readonly DefinitionWidget[] = [
   { id: "agenda", titre: "Agenda", description: "Les rendez-vous du jour et de la semaine.", disponible: false },
   { id: "mitsu", titre: "Mitsu", description: "Croquettes, litière, poids et vétérinaire.", disponible: true },
   { id: "stock", titre: "Frigo et placards", description: "Ce qu'il y a à la maison et ce qui arrive à sa date.", disponible: true },
+  { id: "entretien", titre: "Entretien", description: "Détartrer, changer les filtres, tester le détecteur : rien ne s'oublie.", disponible: true },
   { id: "jardin", titre: "Jardin", description: "Arrosage, météo et alerte gel.", disponible: false },
 ];
 

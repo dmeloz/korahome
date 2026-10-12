@@ -44,7 +44,7 @@ describe("tableau de bord", () => {
 
   it("sépare ce qu'on peut ajouter de ce qui arrive bientôt", () => {
     const { prets, bientot } = widgetsAAjouter(["taches"]);
-    expect(prets.map((w) => w.id)).toEqual(["courses", "listes", "mitsu", "stock"]);
+    expect(prets.map((w) => w.id)).toEqual(["courses", "listes", "mitsu", "stock", "entretien"]);
     expect(bientot.map((w) => w.id)).toEqual(["agenda", "jardin"]);
   });
 

@@ -140,6 +140,8 @@ export function organiserTaches(
   ];
   for (const t of aFaire) {
     const ecart = ecartJours(aujourdhui, t.echeance);
+    // L'entretien de la maison a sa page : il ne rejoint les tâches que la semaine où il est dû.
+    if (t.categorie === "entretien" && ecart > 7) continue;
     const i = ecart < 0 ? 0 : ecart === 0 ? 1 : ecart <= 7 ? 2 : 3;
     groupes[i].taches.push(t);
   }

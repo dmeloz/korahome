@@ -17,6 +17,7 @@ import type { Foyer, Tache } from "../../domaine/types";
 import type { Depot } from "../../donnees/depot";
 import { aujourdhuiLocal, contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
+import { vibrer } from "../haptique";
 
 const FILTRES: { id: Filtre; libelle: string }[] = [
   { id: "toutes", libelle: "Toutes" },
@@ -61,6 +62,7 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
   }
 
   async function faire(t: Tache) {
+    vibrer();
     const apres = marquerFaite(t, moi, aujourdhui, contexteReel);
     await props.depot.enregistrerTache(apres);
     const suite = apres.recurrence ? ` Prochaine fois ${decrireEcheance(apres.echeance, aujourdhui)}.` : "";
