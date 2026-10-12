@@ -275,7 +275,7 @@ export function Stock(props: {
         <button type="submit" disabled={!compris?.nom} aria-label="Ajouter">+</button>
       </div>
       {recherche && <p className="discret composer-aide">Lecture de la fiche du produit…</p>}
-      {!compris && !recherche && <p className="discret composer-aide">Écris ou dicte une phrase : la quantité, le lieu et la date se remplissent seuls.</p>}
+      {!compris && !recherche && props.produits.length > 0 && <p className="discret composer-aide">Écris ou dicte une phrase : la quantité, le lieu et la date se remplissent seuls.</p>}
 
       {suggestions.length > 0 && (
         <div className="puces suggestions" role="group" aria-label="Produits habituels">
@@ -361,11 +361,12 @@ export function Stock(props: {
   return (
     <main className="page-stock">
       <h1>Frigo et placards</h1>
-      <p className="discret sous-titre">
-        {props.produits.length === 0
-          ? "Rien d'enregistré pour l'instant."
-          : `${props.produits.length} produit${props.produits.length > 1 ? "s" : ""}${resume.aConsommer.length ? ` · ${resume.aConsommer.length} à consommer` : " · rien ne presse"}`}
-      </p>
+      {/* Stock vide : la carte plus bas explique tout, une seule fois. */}
+      {props.produits.length > 0 && (
+        <p className="discret sous-titre">
+          {`${props.produits.length} produit${props.produits.length > 1 ? "s" : ""}${resume.aConsommer.length ? ` · ${resume.aConsommer.length} à consommer` : " · rien ne presse"}`}
+        </p>
+      )}
 
       <div className="segments" role="group" aria-label="Vue">
         {(
