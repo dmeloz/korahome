@@ -47,7 +47,10 @@ export function Jarvis(props: {
     conversation = echanges;
     bas.current?.scrollIntoView({ block: "end", behavior: "smooth" });
   }, [echanges]);
-  useEffect(() => () => ecoute?.(), [ecoute]);
+  // En quittant la page, le micro se coupe.
+  const arretEcoute = useRef<(() => void) | null>(null);
+  arretEcoute.current = ecoute;
+  useEffect(() => () => arretEcoute.current?.(), []);
 
   const ajouter = (e: Omit<Echange, "n">) => setEchanges((avant) => [...avant, { ...e, n: ++compteur }]);
 
@@ -95,12 +98,15 @@ export function Jarvis(props: {
       ecoute();
       return;
     }
+    setAlerte(null);
+    let fini = false;
     const arreter = ecouter(setSaisie, (texte, erreur) => {
+      fini = true;
       setEcoute(null);
       if (erreur) setAlerte(erreur);
       if (texte) void demander(texte, true);
     });
-    setEcoute(() => arreter);
+    if (!fini) setEcoute(() => arreter);
   }
 
   async function joindrePhoto(fichier: File | undefined) {
@@ -114,7 +120,7 @@ export function Jarvis(props: {
 
   const envoyer = (e: FormEvent) => {
     e.preventDefault();
-    void demander(saisie, false);
+    if (!ecoute) void demander(saisie, false);
   };
 
   if (!serveur || !foyerPartage) {
@@ -190,9 +196,9 @@ export function Jarvis(props: {
           enterKeyHint="send"
           aria-label="Demande à Jarvis"
         />
-        {voix && !saisie.trim() ? (
+        {voix && (ecoute || !saisie.trim()) ? (
           <button type="button" className={ecoute ? "ecoute" : undefined} onClick={parler} aria-label={ecoute ? "Arrêter d'écouter" : "Parler à Jarvis"}>
-            <Icone nom="micro" taille={22} />
+            <Icone nom={ecoute ? "arreter" : "micro"} taille={22} />
           </button>
         ) : (
           <button type="submit" disabled={!saisie.trim() || enCours} aria-label="Envoyer">
