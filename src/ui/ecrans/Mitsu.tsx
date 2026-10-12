@@ -44,6 +44,7 @@ import type { Depot } from "../../donnees/depot";
 import { useAnnoncer } from "../annulation";
 import { aujourdhuiLocal, contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
+import { CarnetPropose, CourbePoids, Fiches, Infos, Journal } from "./MitsuSuivi";
 
 const dateCourte = (jour: string) =>
   new Date(`${jour}T12:00:00`).toLocaleDateString("fr-CH", { day: "numeric", month: "long" });
@@ -141,6 +142,7 @@ function Suivi(props: Props & { animal: Animal }) {
 
   // Champs des petits formulaires.
   const [poids, setPoids] = useState("");
+  const [jourPesee, setJourPesee] = useState(aujourdhui);
   const [typeProvision, setTypeProvision] = useState<TypeProvision>("croquettes");
   const [nomProvision, setNomProvision] = useState("");
   const [quantite, setQuantite] = useState("");
@@ -173,6 +175,12 @@ function Suivi(props: Props & { animal: Animal }) {
     }
   }
 
+  /** Enregistre ; avec un texte, l'annonce avec « Annuler » qui remet la fiche d'avant. */
+  function modifier(fabrique: () => Animal, annonce?: string) {
+    const avant = animal;
+    tenter(fabrique, annonce ? () => annoncer(annonce, () => enregistrer(avant)) : undefined);
+  }
+
   function tenter(fabrique: () => Animal, suite?: () => void) {
     try {
       void enregistrer(fabrique(), suite);
@@ -188,8 +196,9 @@ function Suivi(props: Props & { animal: Animal }) {
 
   function peser(e: FormEvent) {
     e.preventDefault();
-    tenter(() => ajouterPesee(animal, kgEnGrammes(poids), aujourdhui, props.membreId, contexteReel), () => {
+    tenter(() => ajouterPesee(animal, kgEnGrammes(poids), jourPesee, props.membreId, contexteReel), () => {
       setPoids("");
+      setJourPesee(aujourdhui);
       setOuvert(null);
     });
   }
@@ -276,6 +285,10 @@ function Suivi(props: Props & { animal: Animal }) {
         </Section>
       )}
 
+      <Section titre="Journal">
+        <Journal animal={animal} aujourdhui={aujourdhui} modifier={modifier} membres={props.foyer.membres} membreId={props.membreId} />
+      </Section>
+
       <Section titre="Ration du jour">
         <div className="carte mitsu-ration">
           {ration ? (
@@ -300,6 +313,21 @@ function Suivi(props: Props & { animal: Animal }) {
             />
             <button type="submit" aria-label="Enregistrer la ration">✓</button>
           </form>
+          <div>
+            <p className="discret">
+              Friandises par jour{ration ? ` (au plus ${ration.friandisesMax} g)` : ""} : elles sont retirées des croquettes.
+            </p>
+            <div className="puces" role="group" aria-label="Friandises par jour">
+              {[0, 2, 4, 6, 8].map((g) => {
+                const actif = (animal.reglages.friandisesParJour ?? 0) === g;
+                return (
+                  <button type="button" key={g} className={`puce${actif ? " active" : ""}`} aria-pressed={actif} onClick={() => enregistrer({ ...animal, reglages: { ...animal.reglages, friandisesParJour: g || undefined } })}>
+                    {g ? `${g} g` : "Aucune"}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <p className="discret">Passage aux croquettes adulte vers le {dateCourte(passageAdulte(animal.naissance))}.</p>
         </div>
       </Section>
@@ -311,6 +339,10 @@ function Suivi(props: Props & { animal: Animal }) {
         {ouvert === "pesee" && (
           <form onSubmit={peser} className="ajout">
             <input inputMode="decimal" value={poids} onChange={(e) => setPoids(e.target.value)} placeholder="Poids en kg, ex. 2,45" aria-label="Poids en kilos" autoFocus />
+            <label className="puce puce-date">
+              {jourPesee === aujourdhui ? "Aujourd'hui" : dateCourte(jourPesee)}
+              <input type="date" value={jourPesee} max={aujourdhui} onChange={(e) => setJourPesee(e.target.value || aujourdhui)} aria-label="Jour de la pesée" />
+            </label>
             <button type="submit" disabled={!poids.trim()} aria-label="Enregistrer le poids">+</button>
           </form>
         )}
@@ -329,8 +361,9 @@ function Suivi(props: Props & { animal: Animal }) {
               )}
             </>
           ) : (
-            <p className="discret">Aucune pesée pour l'instant.</p>
+            <p className="discret">Aucune pesée pour l'instant. Une pesée du vétérinaire compte aussi : choisis son jour en la notant.</p>
           )}
+          <CourbePoids animal={animal} aujourdhui={aujourdhui} />
         </div>
       </Section>
 
@@ -480,9 +513,8 @@ function Suivi(props: Props & { animal: Animal }) {
             <button type="submit" className="bouton-principal">Ajouter au carnet</button>
           </form>
         )}
-        {animal.soins.length === 0 ? (
-          <p className="carte discret">Recopie les prochaines dates de son carnet (vaccins, vermifuge, antipuces). Quand un soin est fait, l'app prévoit le suivant.</p>
-        ) : (
+        <CarnetPropose animal={animal} aujourdhui={aujourdhui} modifier={modifier} />
+        {animal.soins.length > 0 && (
           <ul className="carte groupe">
             {soinsAVenir(animal).map((s) => (
               <li key={s.id}>
@@ -509,6 +541,10 @@ function Suivi(props: Props & { animal: Animal }) {
         )}
       </Section>
 
+      <Section titre="À partager">
+        <Fiches animal={animal} aujourdhui={aujourdhui} informer={setMessage} />
+      </Section>
+
       <Section
         titre="Sa fiche"
         action={<button className="lien" onClick={() => basculer("fiche")}>{ouvert === "fiche" ? "Fermer" : "Modifier"}</button>}
@@ -518,6 +554,11 @@ function Suivi(props: Props & { animal: Animal }) {
             Née le {dateCourte(animal.naissance)}
             {animal.arrivee ? `, arrivée le ${dateCourte(animal.arrivee)}` : ""}. Commande {animal.reglages.delaiCommande} jours avant la fin d'une provision.
           </p>
+          {ouvert !== "fiche" && (animal.infos?.veterinaire || animal.infos?.puce) && (
+            <p className="discret">
+              {[animal.infos.veterinaire && `Vétérinaire : ${animal.infos.veterinaire}${animal.infos.telephoneVeto ? `, ${animal.infos.telephoneVeto}` : ""}`, animal.infos.puce && `Puce ${animal.infos.puce}`].filter(Boolean).join(" · ")}
+            </p>
+          )}
           {ouvert === "fiche" && (
             <div className="formulaire mitsu-fiche">
               <label>
@@ -548,10 +589,21 @@ function Suivi(props: Props & { animal: Animal }) {
                   ))}
                 </div>
               </div>
+              <div className="puces" role="group" aria-label="Sexe">
+                {(["femelle", "male"] as const).map((x) => {
+                  const actif = (animal.sexe ?? "femelle") === x;
+                  return (
+                    <button type="button" key={x} className={`puce${actif ? " active" : ""}`} aria-pressed={actif} onClick={() => enregistrer({ ...animal, sexe: x })}>
+                      {x === "femelle" ? "Femelle" : "Mâle"}
+                    </button>
+                  );
+                })}
+              </div>
               <button type="button" className="ligne mitsu-interrupteur" onClick={() => enregistrer({ ...animal, sterilise: !animal.sterilise })} aria-pressed={animal.sterilise}>
-                <span className="ligne-texte">Stérilisée</span>
+                <span className="ligne-texte">{animal.sexe === "male" ? "Castré" : "Stérilisée"}</span>
                 <span className={`interrupteur${animal.sterilise ? " actif" : ""}`} aria-hidden />
               </button>
+              <Infos animal={animal} modifier={modifier} />
             </div>
           )}
         </div>

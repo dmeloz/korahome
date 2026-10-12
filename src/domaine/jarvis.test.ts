@@ -140,6 +140,28 @@ describe("les actions de Jarvis", () => {
     expect(r.faits[1]).toBe("Pesée notée : Mitsu, 3,2 kg.");
   });
 
+  it("tient le journal et le carnet de Mitsu, avec une seule annulation", () => {
+    const { d, melo } = foyerDeTest();
+    const actions = lireActions([
+      { nom: "noter_journal", entree: { animal: "Mitsu", quoi: "vomi", note: "", jour: null } },
+      { nom: "noter_journal", entree: { animal: "Mitsu", quoi: "inconnu", note: "", jour: null } },
+      { nom: "noter_soin", entree: { animal: "mitsu", type: "vaccin", libelle: "Rappel typhus coryza", date: "2026-07-07", fait: true } },
+      { nom: "noter_pesee", entree: { animal: "mitsu", grammes: 1800, jour: "2026-07-07" } },
+    ]);
+    expect(actions).toHaveLength(3);
+    const r = appliquerActions(actions, d, melo, AUJOURDHUI, ctx());
+    expect(r.echecs).toEqual([]);
+    expect(r.faits).toEqual([
+      "Noté pour Mitsu : a vomi.",
+      "Carnet de Mitsu : rappel typhus coryza, fait le 2026-07-07.",
+      "Pesée notée : Mitsu, 1,8 kg le 2026-07-07.",
+    ]);
+    expect(r.modifications).toHaveLength(1);
+    const apres = r.modifications[0].apres as { journal: unknown[]; soins: unknown[]; pesees: { jour: string }[] };
+    expect(apres.journal).toHaveLength(1);
+    expect(apres.pesees.map((p) => p.jour)).toContain("2026-07-07");
+  });
+
   it("devine la date d'un produit de ticket de caisse", () => {
     const { d, melo } = foyerDeTest();
     const r = appliquerActions(
