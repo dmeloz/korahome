@@ -427,6 +427,7 @@ h1 {
 .lien.danger { color: var(--urgent); font-weight: 600; }
 
 .toast {
+  z-index: 40;
   position: fixed;
   left: 16px;
   right: 16px;
@@ -521,10 +522,26 @@ h1 {
   border-radius: 20px 20px 0 0;
   box-shadow: 0 -20px 40px -24px rgb(0 0 0 / 0.7);
 }
+/* Toutes les feuilles montent du bas et redescendent de la même façon, comme sur l'iPhone. */
+.feuille { max-height: calc(100dvh - env(safe-area-inset-top) - 24px); transition: transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.feuille.tiree { transition: none; }
+.feuille-prise { touch-action: none; display: grid; gap: 6px; padding-top: 2px; }
+.feuille-entete { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.feuille-entete h2 { margin: 0; font-size: 19px; }
+.feuille-entete .lien { font-weight: 600; }
+.feuille-corps { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
 @media (prefers-reduced-motion: no-preference) {
-  .feuille { animation: monter 0.18s ease-out; }
-  @keyframes monter { from { transform: translateY(24px); opacity: 0; } }
+  .voile { animation: voile-apparait 0.24s ease-out; }
+  .voile.sortie { animation: voile-disparait 0.24s ease-in forwards; }
+  .feuille { animation: feuille-monte 0.36s cubic-bezier(0.2, 0.9, 0.25, 1); }
+  .voile.sortie .feuille { animation: feuille-descend 0.24s cubic-bezier(0.4, 0, 1, 1) forwards; }
+  @keyframes voile-apparait { from { background: rgb(0 0 0 / 0); } }
+  @keyframes voile-disparait { to { background: rgb(0 0 0 / 0); } }
+  @keyframes feuille-monte { from { transform: translateY(100%); } }
+  @keyframes feuille-descend { to { transform: translateY(100%); } }
 }
+.voile.sortie { pointer-events: none; }
 .poignee { width: 36px; height: 5px; border-radius: 3px; background: var(--trait); margin: 0 auto 4px; }
 .feuille-surtitre { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .champ-note {
@@ -589,11 +606,11 @@ h1 {
 .mitsu-chiffre { font-size: 17px; }
 .mitsu-chiffre strong { font-size: 28px; font-weight: 600; color: var(--accent); margin-right: 4px; }
 .mitsu-historique { font-size: 14px; margin-top: 6px; }
-.mitsu-formulaire { margin-top: 0; padding: 16px; gap: 12px; }
+.mitsu-formulaire { margin: 0; padding: 0; gap: 12px; }
 .mitsu-provision { display: flex; flex-direction: column; gap: 2px; padding: 12px 16px 4px; }
 .mitsu-provision .ligne-texte { display: flex; flex-direction: column; gap: 2px; }
 .mitsu-actions { padding: 0; }
-.mitsu-fiche { margin-top: 12px; padding: 0; gap: 12px; }
+.mitsu-fiche { margin: 0; padding: 0; gap: 12px; }
 .mitsu-interrupteur { padding: 6px 0; min-height: 44px; color: var(--texte); font-size: 17px; }
 .urgent-texte { color: var(--urgent); }
 .mitsu-commande { display: grid; gap: 10px; }
@@ -817,8 +834,12 @@ h1 {
 
 /* Revenir en glissant depuis le bord gauche : la page suit le doigt. */
 .contenu { touch-action: pan-y; }
-.contenu.retour-glisse { box-shadow: -18px 0 40px -20px rgb(0 0 0 / 0.7); min-height: 100vh; background: var(--fond); }
-.contenu.retour-anime { transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
+/* La pile des pages : celle du dessus défile, celles d'en dessous attendent, figées à leur place. */
+.page-dessus { position: relative; z-index: 1; min-height: 100vh; background: var(--fond); }
+.page-dessous { position: fixed; left: 0; right: 0; z-index: 0; visibility: hidden; pointer-events: none; overflow: hidden; height: auto; }
+.page-dessous.visible { visibility: visible; }
+.contenu.retour-glisse { box-shadow: -18px 0 40px -20px rgb(0 0 0 / 0.7); }
+.contenu.retour-anime { transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
 @media (prefers-reduced-motion: reduce) {
   .glissable-contenu, .contenu.retour-anime { transition: none; }
 }
@@ -832,6 +853,7 @@ h1 {
 .verrou .profil-texte { flex: 1; }
 .verrou-cadenas { color: var(--accent); display: grid; }
 .feuille-alerte { text-align: center; }
+.feuille-formulaire { display: flex; flex-direction: column; gap: 10px; }
 .feuille-alerte h2 { margin: 4px 0 6px; font-size: 19px; }
 .feuille-alerte .feuille-actions { flex-direction: column; align-items: stretch; gap: 8px; margin-top: 16px; }
 
@@ -969,7 +991,11 @@ h1 {
 
 /* La Base. */
 .compteur { font-family: var(--police-fixe); font-size: 12px; color: var(--discret); }
-.reglage-habituel { display: grid; gap: 8px; padding: 0 16px 12px 66px; justify-items: start; }
+.reglage-habituel { display: grid; gap: 12px; justify-items: stretch; }
+.produit-feuille, .tache-feuille { margin: 0; padding: 0; gap: 14px; }
+.feuille-corps .formulaire { margin: 0; padding: 0; }
+.feuille-corps .formulaire > .lien { align-self: flex-start; text-align: left; padding: 4px 0; }
+.reglage-habituel .lien { justify-self: start; }
 .reglage-habituel .lien { font-size: 15px; padding: 2px 0; }
 
 /* Le scan. */
@@ -1214,7 +1240,7 @@ html[data-sens="arriere"]::view-transition-new(root) { animation-name: page-revi
   text-align: left;
 }
 .jardin-plante-conseil { margin: 6px 0 0; font-size: 14px; }
-.jardin-formulaire { margin-top: 0; padding: 16px; gap: 14px; }
+.jardin-formulaire { margin: 0; padding: 0; gap: 14px; }
 .jardin-aide { margin: 6px 0 0; font-size: 14px; }
 .jardin-modifier { margin: 0; padding: 4px 0 0; gap: 12px; }
 .jardin-modifier .lien.danger { align-self: flex-start; padding: 4px 0; font-size: 15px; }
@@ -1238,3 +1264,120 @@ html[data-sens="arriere"]::view-transition-new(root) { animation-name: page-revi
 }
 .jardin-idee { display: grid; gap: 8px; padding-top: 10px; border-top: 1px solid var(--trait); }
 .jardin-idee p { margin: 0; }
+
+/* Ticket de caisse : Jarvis lit, on vérifie, tout se range. */
+.ticket-lecture { display: grid; gap: 8px; justify-items: start; }
+.ticket-lignes { margin: 0; }
+.ticket-lignes .ligne { gap: 10px; }
+.ticket-lignes .ligne.coche .ligne-texte { color: var(--discret); text-decoration: line-through; }
+
+/* ===== Le bandeau du couple et « Nos mots » ===== */
+.bandeau-couple {
+  display: block;
+  width: 100%;
+  margin: -8px 0 16px;
+  padding: 10px 0;
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--verre);
+  box-shadow: var(--reflet);
+  border: 1px solid var(--trait);
+  cursor: pointer;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  -webkit-user-select: none;
+  user-select: none;
+}
+.bandeau-couple.vide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--discret);
+  font: inherit;
+  font-size: 15px;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+.bandeau-couple.vide svg { color: var(--accent); }
+.bandeau-fil {
+  display: inline-flex;
+  width: max-content;
+  animation: bandeau-defile linear infinite;
+  will-change: transform;
+}
+.bandeau-couple:active .bandeau-fil { animation-play-state: paused; }
+.bandeau-copie { display: inline-flex; gap: 28px; padding-right: 28px; }
+.bandeau-element {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-size: 15px;
+  color: var(--discret);
+}
+.bandeau-element.genre-mot { color: var(--texte); font-weight: 500; }
+.bandeau-element.genre-mot svg { color: var(--accent); opacity: 0.55; transition: opacity 0.2s, transform 0.2s; }
+.bandeau-element.genre-mot.aime svg { opacity: 1; fill: currentColor; transform: scale(1.12); }
+.bandeau-element.genre-clin { color: var(--accent); font-style: italic; }
+.bandeau-element.genre-compte { color: var(--texte); }
+.bandeau-element + .bandeau-element::before { content: "·"; margin-right: 22px; color: var(--trait); }
+@keyframes bandeau-defile {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bandeau-couple { overflow-x: auto; -webkit-mask-image: none; mask-image: none; padding-inline: 14px; }
+  .bandeau-fil { animation: none; }
+  .bandeau-copie + .bandeau-copie { display: none; }
+}
+
+.mot-nouveau { display: flex; flex-direction: column; gap: 10px; padding: 14px; }
+.mot-nouveau textarea {
+  width: 100%;
+  resize: none;
+  border: 0;
+  background: transparent;
+  color: var(--texte);
+  font: inherit;
+  font-size: 17px;
+  line-height: 1.4;
+  outline: none;
+}
+.mot-bas { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.mot-bas .compteur { font-size: 13px; font-variant-numeric: tabular-nums; }
+.humeurs { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.humeurs p { margin: 0; }
+.humeurs-choix { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 2px; }
+.humeur-bouton {
+  aspect-ratio: 1;
+  min-width: 0;
+  padding: 0;
+  line-height: 1;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: none;
+  font-size: 22px;
+  filter: grayscale(0.6);
+  opacity: 0.7;
+  transition: transform 0.15s, filter 0.15s, opacity 0.15s;
+}
+.humeur-bouton.active { background: var(--accent-doux); border-color: var(--accent); filter: none; opacity: 1; transform: scale(1.08); }
+.compte-nouveau { flex-wrap: wrap; }
+.compte-nouveau input:first-child { flex-basis: 100%; }
+.compte-nouveau input[type="date"] { color: var(--discret); min-height: 48px; }
+.mots .mot { display: flex; align-items: center; gap: 10px; }
+.mots .mot .ligne-texte { flex: 1; }
+.coeur-mot {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: none;
+  color: var(--discret);
+  font: inherit;
+  font-size: 14px;
+  padding: 6px;
+}
+.coeur-mot.rempli { color: var(--accent); }
+.coeur-mot.aime svg { fill: currentColor; }

@@ -30,7 +30,11 @@ l'app native.
   1600 pixels en JPEG sur le téléphone avant de partir, et n'est gardée nulle part.
 - **Ticket de caisse** : la même photo range les achats au stock, avec leur quantité ; sans date
   écrite, la durée habituelle du foyer (ou celle que Kora connaît) donne la date de péremption, et
-  les courses correspondantes se cochent. La part budget viendra avec le module Budget.
+  les courses correspondantes se cochent. La part budget viendra avec le module Budget. Dans Frigo
+  et placards, le bouton ticket à côté du scanner fait la même chose avec une relecture d'abord :
+  on décoche une ligne, on change son lieu d'un toucher, puis « Tout ranger » (avec Annuler).
+- **Clin d'œil du jour** : une phrase chaleureuse par jour pour le bandeau de l'accueil (voir
+  `docs/bandeau-couple.md`).
 - **Recette** : coller le lien d'une recette (Betty Bossi, Fooby, Marmiton…). Le serveur ouvre la page
   (https public seulement, 8 secondes, 1,5 Mo au plus), lit les ingrédients dans ses données
   structurées ou, à défaut, son texte, et Jarvis n'ajoute aux courses que ce qui manque.

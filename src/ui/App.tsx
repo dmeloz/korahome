@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { meteoFraiche } from "../domaine/meteo";
 import { rappelDuMatin } from "../domaine/rappels";
 import type { WidgetId } from "../domaine/tableauDeBord";
@@ -11,6 +11,7 @@ import { Accueil } from "./ecrans/Accueil";
 import { Bienvenue } from "./ecrans/Bienvenue";
 import { Conseil } from "./ecrans/Conseil";
 import { MemoireJarvis } from "./ecrans/MemoireJarvis";
+import { NosMots } from "./ecrans/NosMots";
 import { Jarvis } from "./ecrans/Jarvis";
 import { DetailListe } from "./ecrans/DetailListe";
 import { Notifications } from "./ecrans/Notifications";
@@ -42,18 +43,23 @@ type Page =
   | { nom: "retours" }
   | { nom: "jarvis" }
   | { nom: "conseil" }
-  | { nom: "memoire" };
+  | { nom: "memoire" }
+  | { nom: "mots" };
+
+/** Une page de la pile, avec l'endroit où elle était défilée quand on en est parti. */
+type Entree = Page & { defilement?: number };
 
 // L'écran affiché, lu par le journal des retours de test à chaque geste.
 let ecranCourant = "Accueil";
 export const ecranAffiche = () => ecranCourant;
 
 export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJour: MiseAJour; partage: ServicesPartage | null }) {
-  const { pret, foyer, listes, elements, taches, retours, animaux, produits, catalogue, zones, souvenirs } = useDonnees(depot);
-  // Une météo trop ancienne (téléphone resté hors ligne) ne déclenche plus d'alerte.
-  const meteoLue = useMeteo(zones.length > 0);
+  const { pret, foyer, listes, elements, taches, retours, animaux, produits, catalogue, zones, souvenirs, couple } = useDonnees(depot);
+  // La météo sert au jardin et au bandeau de l'accueil. Trop ancienne (téléphone resté
+  // hors ligne), elle ne déclenche plus d'alerte.
+  const meteoLue = useMeteo(true);
   const meteo = meteoFraiche(meteoLue, new Date().toISOString()) ? meteoLue : null;
-  const [pile, setPile] = useState<Page[]>([{ nom: "accueil" }]);
+  const [pile, setPile] = useState<Entree[]>([{ nom: "accueil" }]);
   const [membreId, setMembreId] = useState<string | null>(lireMembreCourant);
   const nouvelleVersion = useSyncExternalStore(miseAJour.abonner, miseAJour.prete);
   const [pastille, setPastille] = useState(lirePastilleVisible);
@@ -85,10 +91,11 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
 
   const page = pile[pile.length - 1];
   // Le glissement du doigt anime déjà la page : sans transition dans ce cas-là.
-  const revenir = () => {
-    setPile((avant) => (avant.length > 1 ? avant.slice(0, -1) : avant));
-    window.scrollTo(0, 0);
-  };
+  const revenir = () => setPile((avant) => (avant.length > 1 ? avant.slice(0, -1) : avant));
+  // Comme sur l'iPhone, une page retrouvée est défilée là où on l'avait laissée ; une nouvelle page part du haut.
+  useLayoutEffect(() => {
+    window.scrollTo(0, page.defilement ?? 0);
+  }, [pile.length]); // eslint-disable-line react-hooks/exhaustive-deps
   const revenirAnime = () => avecTransition("arriere", revenir);
   const glissement = useGlissementRetour(pile.length > 1, revenir);
   const nomEcran = !pret ? "Chargement" : !foyer ? "Bienvenue" : nommer(page);
@@ -107,6 +114,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     if (p.nom === "jarvis") return "Jarvis";
     if (p.nom === "conseil") return "Conseil";
     if (p.nom === "memoire") return "Mémoire de Jarvis";
+    if (p.nom === "mots") return "Nos mots";
     if (p.nom === "module") return MODULES[p.id]?.libelle ?? "Retour";
     return listes.find((l) => l.id === p.id)?.nom ?? "Liste";
   }
@@ -146,17 +154,19 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       />
     );
   }
-  const donnees: DonneesModule = { foyer, membreId: membre, listes, elements, taches, animaux, produits, catalogue, zones, meteo, aujourdhui: aujourdhuiLocal(), souvenirs, retours };
-  const precedente = pile.length > 1 ? pile[pile.length - 2] : null;
+  const donnees: DonneesModule = { foyer, membreId: membre, listes, elements, taches, animaux, produits, catalogue, zones, meteo, aujourdhui: aujourdhuiLocal(), souvenirs, retours, couple };
 
   const ouvrir = (p: Page) =>
     avecTransition("avant", () => {
-      setPile((avant) => [...avant, p]);
-      window.scrollTo(0, 0);
+      const defilement = window.scrollY;
+      setPile((avant) => [...avant.slice(0, -1), { ...avant[avant.length - 1], defilement }, p]);
     });
   const ouvrirListe = (id: string) => ouvrir({ nom: "liste", id });
   const ouvertes = retours.filter((r) => !r.regleLe).length;
 
+  const leFoyer: Foyer = foyer;
+  const jarvisPartage = partage && foyerPartage ? { serveur: partage.jarvis, foyerId: foyerPartage } : null;
+  function ecranDe(page: Page) {
   let ecran;
   if (page.nom === "accueil") {
     ecran = (
@@ -165,21 +175,23 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         ouvrirModule={(id) => ouvrir({ nom: "module", id })}
         ouvrirReglages={() => ouvrir({ nom: "reglages" })}
         ouvrirJarvis={() => ouvrir({ nom: "jarvis" })}
+        ouvrirMots={() => ouvrir({ nom: "mots" })}
+        depot={depot}
+        jarvis={jarvisPartage}
         nouvelleVersion={nouvelleVersion}
       />
     );
   } else if (page.nom === "module") {
-    const jarvis = partage && foyerPartage ? { serveur: partage.jarvis, foyerId: foyerPartage } : null;
-    ecran = MODULES[page.id]?.page({ ...donnees, depot, ouvrirListe, jarvis });
+    ecran = MODULES[page.id]?.page({ ...donnees, depot, ouvrirListe, jarvis: jarvisPartage });
   } else if (page.nom === "liste") {
     const liste = listes.find((l) => l.id === page.id);
     ecran = liste ? (
-      <DetailListe depot={depot} foyer={foyer} membreId={membre} liste={liste} elements={elements} />
+      <DetailListe depot={depot} foyer={leFoyer} membreId={membre} liste={liste} elements={elements} />
     ) : (
       <main><p className="vide">Cette liste n'existe plus.</p></main>
     );
   } else if (page.nom === "partage") {
-    ecran = <Partage services={partage} foyer={foyer} />;
+    ecran = <Partage services={partage} foyer={leFoyer} />;
   } else if (page.nom === "notifications") {
     ecran = (
       <Notifications
@@ -187,7 +199,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         foyerId={foyerPartage}
         membreId={membre}
         ouvrirPartage={() => ouvrir({ nom: "partage" })}
-        foyer={foyer}
+        foyer={leFoyer}
         taches={taches}
         animaux={animaux}
         produits={produits}
@@ -199,7 +211,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   } else if (page.nom === "telephone") {
     ecran = (
       <Telephone
-        foyer={foyer}
+        foyer={leFoyer}
         membreId={membre}
         choisir={(id) => {
           choisirMembreCourant(id);
@@ -222,13 +234,17 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       />
     );
   } else if (page.nom === "memoire") {
-    ecran = <MemoireJarvis depot={depot} foyer={foyer} membreId={membre} souvenirs={souvenirs} retours={retours} />;
+    ecran = <MemoireJarvis depot={depot} foyer={leFoyer} membreId={membre} souvenirs={souvenirs} retours={retours} />;
+  } else if (page.nom === "mots") {
+    const notifier =
+      partage && foyerPartage ? (m: { id: string; de: string | null; texte: string }) => partage.rappels.notifierMot({ foyerId: foyerPartage, id: m.id, de: m.de, texte: m.texte }) : null;
+    ecran = <NosMots donnees={donnees} depot={depot} notifier={notifier} />;
   } else if (page.nom === "retours") {
-    ecran = <RetoursTest depot={depot} foyer={foyer} retours={retours} partageActif={partageActif} />;
+    ecran = <RetoursTest depot={depot} foyer={leFoyer} retours={retours} partageActif={partageActif} />;
   } else {
     ecran = (
       <Reglages
-        foyer={foyer}
+        foyer={leFoyer}
         membreId={membre}
         ouvrirTelephone={() => ouvrir({ nom: "telephone" })}
         verifierMiseAJour={miseAJour.verifier}
@@ -248,19 +264,49 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     );
   }
 
+  return ecran;
+  }
+
+  // Toutes les pages de la pile restent montées, comme sur l'iPhone : celle d'en dessous
+  // garde son état et apparaît sous le doigt quand on glisse pour revenir.
+  const progression = glissement.decalage / Math.max(window.innerWidth, 1);
   return (
     <FournisseurAnnulation>
+    {pile.map((p, i) => {
+      const dessus = i === pile.length - 1;
+      const avant = i > 0 ? pile[i - 1] : null;
+      const retour = avant && (
+        <button className="retour" onClick={dessus ? revenirAnime : undefined} tabIndex={dessus ? undefined : -1}>
+          <Icone nom="retour" taille={22} />
+          {libelle(avant)}
+        </button>
+      );
+      if (!dessus) {
+        const visible = i === pile.length - 2 && (glissement.decalage > 0 || glissement.anime);
+        return (
+          <div
+            key={`${i}-${p.nom}`}
+            className={`contenu page-dessous${visible ? " visible" : ""}${glissement.anime ? " retour-anime" : ""}`}
+            style={{
+              top: -(p.defilement ?? 0),
+              ...(visible ? { transform: `translateX(${(progression - 1) * 28}%)`, filter: `brightness(${0.7 + 0.3 * progression})` } : {}),
+            }}
+            aria-hidden
+            inert
+          >
+            {retour}
+            {ecranDe(p)}
+          </div>
+        );
+      }
+      return (
     <div
-      className={`contenu${glissement.decalage ? " retour-glisse" : ""}${glissement.anime ? " retour-anime" : ""}`}
+      key={`${i}-${p.nom}`}
+      className={`contenu page-dessus${glissement.decalage ? " retour-glisse" : ""}${glissement.anime ? " retour-anime" : ""}`}
       style={glissement.decalage ? { transform: `translateX(${glissement.decalage}px)` } : undefined}
     >
-      {precedente && (
-        <button className="retour" onClick={revenirAnime}>
-          <Icone nom="retour" taille={22} />
-          {libelle(precedente)}
-        </button>
-      )}
-      {ecran}
+      {retour}
+      {ecranDe(p)}
       {pastille && !nouvelleVersion && page.nom !== "retours" && (
         <CoinDev
           depot={depot}
@@ -272,14 +318,21 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       )}
       {bandeauVersion}
     </div>
+      );
+    })}
     </FournisseurAnnulation>
   );
 }
 
 /**
- * Comme sur l'iPhone : glisser depuis le bord gauche ramène à la page précédente.
- * La page suit le doigt, puis part vers la droite ou revient en place.
+ * Comme sur l'iPhone (iOS 26) : glisser vers la droite, depuis le bord ou depuis le milieu de
+ * la page, ramène à la page précédente. La page suit le doigt et laisse voir celle d'en
+ * dessous, puis part vers la droite ou revient en place. Une ligne qu'on glisse, une bande
+ * qui défile de côté ou un champ gardent leur geste, sauf depuis le bord.
  */
+/** Ce qui a déjà son propre geste de côté. */
+const ZONES_A_GESTE = ".glissable.ouverte, .defilant, .bandeau-couple, input, textarea, select, [data-geste-propre]";
+
 function useGlissementRetour(actif: boolean, revenir: () => void) {
   const [decalage, setDecalage] = useState(0);
   const [anime, setAnime] = useState(false);
@@ -291,7 +344,11 @@ function useGlissementRetour(actif: boolean, revenir: () => void) {
     let geste: { x: number; y: number; t: number; horizontal: boolean } | null = null;
     const largeur = () => window.innerWidth;
     const debut = (e: PointerEvent) => {
-      geste = e.clientX <= BORD_RETOUR && e.isPrimary ? { x: e.clientX, y: e.clientY, t: e.timeStamp, horizontal: false } : null;
+      const cible = e.target instanceof Element ? e.target : null;
+      const libre = e.clientX <= BORD_RETOUR || !cible?.closest(ZONES_A_GESTE);
+      geste = libre && e.isPrimary && !document.documentElement.classList.contains("feuille-ouverte")
+        ? { x: e.clientX, y: e.clientY, t: e.timeStamp, horizontal: false }
+        : null;
     };
     const mouvement = (e: PointerEvent) => {
       if (!geste) return;

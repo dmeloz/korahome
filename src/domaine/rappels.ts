@@ -15,6 +15,8 @@ import type { Foyer, Id, Jour, Tache } from "./types";
 
 /** Le serveur lit la météo du jardin à la même adresse que le téléphone. */
 export { adresseMeteo, lireMeteo } from "./meteo";
+/** Et il annonce les mots du couple, tout de suite ou à l'heure prévue. */
+export { fenetreMotsProgrammes, notificationMot } from "./bandeau";
 
 /** Ce que chaque personne choisit de recevoir, sur son téléphone. */
 export interface PreferencesRappels {
@@ -24,6 +26,8 @@ export interface PreferencesRappels {
   stock: boolean;
   /** Le gel annoncé et les zones du jardin à arroser. */
   jardin: boolean;
+  /** Les mots du couple : une notification quand l'autre en écrit un. */
+  mots: boolean;
   /** L'heure du rappel, heure pleine, à Zurich. */
   heure: number;
   /** Les jours où le rappel arrive : 0 dimanche, 1 lundi… 6 samedi. */
@@ -37,7 +41,7 @@ export const HEURE_MIN = 5;
 export const HEURE_MAX = 22;
 
 export const TOUS_LES_JOURS = [1, 2, 3, 4, 5, 6, 0];
-export const PREFERENCES_DE_DEPART: PreferencesRappels = { taches: true, mitsu: true, stock: true, jardin: true, heure: HEURE_DU_RAPPEL, jours: TOUS_LES_JOURS };
+export const PREFERENCES_DE_DEPART: PreferencesRappels = { taches: true, mitsu: true, stock: true, jardin: true, mots: true, heure: HEURE_DU_RAPPEL, jours: TOUS_LES_JOURS };
 export const FUSEAU_DU_FOYER = "Europe/Zurich";
 
 export function heureValide(heure: unknown): heure is number {

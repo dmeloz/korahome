@@ -1,4 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from "react";
+import { Feuille } from "../Feuille";
 import { ErreurValidation } from "../../domaine/foyer";
 import { nouvelElement } from "../../domaine/listes";
 import {
@@ -193,6 +194,7 @@ function Suivi(props: Props & { animal: Animal }) {
     setOuvert(ouvert === quoi ? null : quoi);
     setErreur(null);
   };
+  const fermer = () => setOuvert(null);
 
   function peser(e: FormEvent) {
     e.preventDefault();
@@ -334,9 +336,9 @@ function Suivi(props: Props & { animal: Animal }) {
 
       <Section
         titre="Poids"
-        action={<button className="lien" onClick={() => basculer("pesee")}>{ouvert === "pesee" ? "Fermer" : "Peser"}</button>}
+        action={<button className="lien" onClick={() => basculer("pesee")}>Peser</button>}
       >
-        {ouvert === "pesee" && (
+        <Feuille ouverte={ouvert === "pesee"} onFermer={fermer} titre={`Peser ${animal.nom}`} fermer="Annuler">
           <form onSubmit={peser} className="ajout">
             <input inputMode="decimal" value={poids} onChange={(e) => setPoids(e.target.value)} placeholder="Poids en kg, ex. 2,45" aria-label="Poids en kilos" autoFocus />
             <label className="puce puce-date">
@@ -345,7 +347,7 @@ function Suivi(props: Props & { animal: Animal }) {
             </label>
             <button type="submit" disabled={!poids.trim()} aria-label="Enregistrer le poids">+</button>
           </form>
-        )}
+        </Feuille>
         <div className="carte">
           {pesee[0] ? (
             <>
@@ -412,10 +414,10 @@ function Suivi(props: Props & { animal: Animal }) {
 
       <Section
         titre="Provisions"
-        action={<button className="lien" onClick={() => basculer("provision")}>{ouvert === "provision" ? "Fermer" : "Ajouter"}</button>}
+        action={<button className="lien" onClick={() => basculer("provision")}>Ajouter</button>}
       >
-        {ouvert === "provision" && (
-          <form onSubmit={ajouterUneProvision} className="carte formulaire mitsu-formulaire">
+        <Feuille ouverte={ouvert === "provision"} onFermer={fermer} titre="Nouvelle provision" fermer="Annuler">
+          <form onSubmit={ajouterUneProvision} className="formulaire mitsu-formulaire">
             <div className="puces" role="group" aria-label="Type">
               {(Object.keys(TYPES_PROVISION) as TypeProvision[]).map((t) => (
                 <button type="button" key={t} className={`puce${t === typeProvision ? " active" : ""}`} aria-pressed={t === typeProvision} onClick={() => setTypeProvision(t)}>
@@ -446,7 +448,7 @@ function Suivi(props: Props & { animal: Animal }) {
             </label>
             <button type="submit" className="bouton-principal" disabled={!quantite.trim()}>Ajouter</button>
           </form>
-        )}
+        </Feuille>
         {animal.provisions.length === 0 ? (
           <p className="carte discret">Ajoute le sac de croquettes et la litière en cours : l'app te dira quand commander.</p>
         ) : (
@@ -491,10 +493,10 @@ function Suivi(props: Props & { animal: Animal }) {
 
       <Section
         titre="Santé et entretien"
-        action={<button className="lien" onClick={() => basculer("soin")}>{ouvert === "soin" ? "Fermer" : "Ajouter"}</button>}
+        action={<button className="lien" onClick={() => basculer("soin")}>Ajouter</button>}
       >
-        {ouvert === "soin" && (
-          <form onSubmit={ajouterUnSoin} className="carte formulaire mitsu-formulaire">
+        <Feuille ouverte={ouvert === "soin"} onFermer={fermer} titre="Ajouter au carnet" fermer="Annuler">
+          <form onSubmit={ajouterUnSoin} className="formulaire mitsu-formulaire">
             <div className="puces" role="group" aria-label="Soin">
               {(Object.keys(TYPES_SOIN) as TypeSoin[]).map((t) => (
                 <button type="button" key={t} className={`puce${t === typeSoin ? " active" : ""}`} aria-pressed={t === typeSoin} onClick={() => setTypeSoin(t)}>
@@ -512,7 +514,7 @@ function Suivi(props: Props & { animal: Animal }) {
             </label>
             <button type="submit" className="bouton-principal">Ajouter au carnet</button>
           </form>
-        )}
+        </Feuille>
         <CarnetPropose animal={animal} aujourdhui={aujourdhui} modifier={modifier} />
         {animal.soins.length > 0 && (
           <ul className="carte groupe">
@@ -547,19 +549,19 @@ function Suivi(props: Props & { animal: Animal }) {
 
       <Section
         titre="Sa fiche"
-        action={<button className="lien" onClick={() => basculer("fiche")}>{ouvert === "fiche" ? "Fermer" : "Modifier"}</button>}
+        action={<button className="lien" onClick={() => basculer("fiche")}>Modifier</button>}
       >
         <div className="carte">
           <p className="discret">
             Née le {dateCourte(animal.naissance)}
             {animal.arrivee ? `, arrivée le ${dateCourte(animal.arrivee)}` : ""}. Commande {animal.reglages.delaiCommande} jours avant la fin d'une provision.
           </p>
-          {ouvert !== "fiche" && (animal.infos?.veterinaire || animal.infos?.puce) && (
+          {(animal.infos?.veterinaire || animal.infos?.puce) && (
             <p className="discret">
               {[animal.infos.veterinaire && `Vétérinaire : ${animal.infos.veterinaire}${animal.infos.telephoneVeto ? `, ${animal.infos.telephoneVeto}` : ""}`, animal.infos.puce && `Puce ${animal.infos.puce}`].filter(Boolean).join(" · ")}
             </p>
           )}
-          {ouvert === "fiche" && (
+          <Feuille ouverte={ouvert === "fiche"} onFermer={fermer} titre={`Fiche de ${animal.nom}`}>
             <div className="formulaire mitsu-fiche">
               <label>
                 Née le
@@ -605,7 +607,7 @@ function Suivi(props: Props & { animal: Animal }) {
               </button>
               <Infos animal={animal} modifier={modifier} />
             </div>
-          )}
+          </Feuille>
         </div>
       </Section>
 

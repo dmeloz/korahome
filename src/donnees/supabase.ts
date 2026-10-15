@@ -142,7 +142,7 @@ export function creerServicesSupabase(url: string, cle: string): ServicesDistant
         p_foyer_id: i.foyerId,
         p_membre_id: i.membreId,
         p_cles: i.cles,
-        p_preferences: { taches: i.preferences.taches, mitsu: i.preferences.mitsu, stock: i.preferences.stock, jardin: i.preferences.jardin, jours: i.preferences.jours },
+        p_preferences: { taches: i.preferences.taches, mitsu: i.preferences.mitsu, stock: i.preferences.stock, jardin: i.preferences.jardin, mots: i.preferences.mots, jours: i.preferences.jours },
         p_heure: i.preferences.heure,
       });
       echec(error);
@@ -152,6 +152,9 @@ export function creerServicesSupabase(url: string, cle: string): ServicesDistant
     },
     async essaiRappel(endpoint) {
       await appelerFonction(await supabase(), "rappels", { mode: "essai", endpoint });
+    },
+    async notifierMot(mot) {
+      await appelerFonction(await supabase(), "rappels", { mode: "mot", ...mot });
     },
 
     ecouterFoyer(foyerId, rappel) {

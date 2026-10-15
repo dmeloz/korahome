@@ -56,8 +56,9 @@ export function Glissable(props: { children: ReactNode; onSupprimer: () => void;
     const dx = e.clientX - g.x;
     if (g.mode === "?") {
       const direction = directionGeste(dx, e.clientY - g.y);
-      if (direction === "verticale") geste.current = null;
-      if (direction !== "horizontale") return;
+      // Vers la droite sur une ligne fermée : c'est le retour à la page précédente, pas la ligne.
+      if (direction === "verticale" || (direction === "horizontale" && dx > 0 && g.base === 0)) geste.current = null;
+      if (direction !== "horizontale" || !geste.current) return;
       g.mode = "h";
       (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
       window.dispatchEvent(new CustomEvent(OUVERTURE, { detail: id }));
@@ -79,7 +80,7 @@ export function Glissable(props: { children: ReactNode; onSupprimer: () => void;
   }
 
   return (
-    <div ref={boite} className={`glissable${partie ? " partie" : ""}`}>
+    <div ref={boite} className={`glissable${partie ? " partie" : ""}${position ? " ouverte" : ""}`}>
       <button
         className="glissable-action"
         tabIndex={position === 0 ? -1 : 0}

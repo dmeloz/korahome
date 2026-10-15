@@ -4,13 +4,15 @@
 //   « x-cle-cron » : chaque téléphone abonné reçoit son rappel à son heure, les jours choisis.
 // - Un téléphone l'appelle avec sa session pour lire la clé publique d'envoi (« cle »)
 //   ou recevoir tout de suite un rappel d'essai (« essai »).
+// - Un mot du couple est annoncé à l'autre téléphone : tout de suite quand le téléphone qui
+//   l'écrit appelle avec « mot », ou au passage de l'heure prévue pour un mot programmé.
 //
 // Les règles (quoi rappeler, à quelle heure) viennent de src/domaine/rappels.ts, copié
 // dans domaine.js par `npm run fonction`. Déploiement : docs/notifications.md.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
-import { adresseMeteo, FUSEAU_DU_FOYER, jourEtHeure, lireMeteo, PREFERENCES_DE_DEPART, rappelDu, rappelDuMatin } from "./domaine.js";
+import { adresseMeteo, fenetreMotsProgrammes, FUSEAU_DU_FOYER, jourEtHeure, lireMeteo, notificationMot, PREFERENCES_DE_DEPART, rappelDu, rappelDuMatin } from "./domaine.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -27,7 +29,7 @@ interface Abonnement {
   user_id: string;
   membre_id: string | null;
   cles: { p256dh: string; auth: string };
-  preferences: { taches?: boolean; mitsu?: boolean; stock?: boolean; jardin?: boolean; jours?: number[] };
+  preferences: { taches?: boolean; mitsu?: boolean; stock?: boolean; jardin?: boolean; mots?: boolean; jours?: number[] };
   heure: number;
   dernier_envoi: string | null;
 }
@@ -107,6 +109,43 @@ async function envoyer(a: Abonnement, message: { titre: string; corps: string; n
   }
 }
 
+/** Annonce un mot aux téléphones du foyer, sauf à ceux de la personne qui l'a écrit. */
+async function annoncerMot(
+  foyerId: string,
+  mot: { id: string; de: string | null; texte: string },
+  auteur: string | null,
+  cles: { publique: string; privee: string },
+) {
+  const abonnements = (await echec(serveur.from("abonnements_push").select("*").eq("foyer_id", foyerId))) as Abonnement[];
+  const destinataires = abonnements.filter(
+    (a) => a.preferences?.mots !== false && a.user_id !== auteur && (mot.de === null || a.membre_id !== mot.de),
+  );
+  if (!destinataires.length) return 0;
+  const { foyer } = await donneesDuFoyer(foyerId);
+  const { titre, corps } = notificationMot(foyer ?? { membres: [] }, mot);
+  let envoyes = 0;
+  for (const a of destinataires) if ((await envoyer(a, { titre, corps, nombre: 0 }, cles)) === "envoye") envoyes++;
+  return envoyes;
+}
+
+/** Les mots programmés devenus visibles depuis le passage précédent. */
+async function motsProgrammes(cles: { publique: string; privee: string }) {
+  const { apres, jusqua } = fenetreMotsProgrammes(new Date());
+  const lignes = (await echec(
+    serveur
+      .from("documents")
+      .select("foyer_id, donnees")
+      .eq("collection", "couple")
+      .eq("donnees->>type", "mot")
+      .eq("donnees->>programme", "true")
+      .gt("donnees->>visibleDes", apres)
+      .lte("donnees->>visibleDes", jusqua),
+  )) as { foyer_id: string; donnees: { id: string; de: string | null; texte: string } }[];
+  let envoyes = 0;
+  for (const l of lignes) envoyes += await annoncerMot(l.foyer_id, l.donnees, null, cles);
+  return envoyes;
+}
+
 async function passageDuMatin(cles: { publique: string; privee: string }) {
   const maintenant = new Date();
   const abonnements = (await echec(serveur.from("abonnements_push").select("*"))) as Abonnement[];
@@ -150,7 +189,9 @@ Deno.serve(async (req) => {
     const cleCron = req.headers.get("x-cle-cron");
     if (cleCron) {
       if (cleCron !== cles.cleCron) return repondre({ erreur: "Clé inconnue" }, 401);
-      return repondre(await passageDuMatin(cles));
+      const bilan = await passageDuMatin(cles);
+      const mots = await motsProgrammes(cles).catch((e) => (console.error("Mots programmés", (e as Error).message), 0));
+      return repondre({ ...bilan, mots });
     }
 
     if (corps.mode === "cle") return repondre({ cle: cles.publique });
@@ -159,6 +200,13 @@ Deno.serve(async (req) => {
     const { data } = await serveur.auth.getUser(jeton);
     if (!data.user) return repondre({ erreur: "Connexion requise" }, 401);
     if (corps.mode === "essai" && typeof corps.endpoint === "string") return await essai(data.user.id, corps.endpoint, cles);
+    if (corps.mode === "mot" && typeof corps.foyerId === "string" && typeof corps.texte === "string") {
+      const { data: membre } = await serveur.from("membres_foyer").select("user_id").eq("foyer_id", corps.foyerId).eq("user_id", data.user.id).maybeSingle();
+      if (!membre) return repondre({ erreur: "Ce foyer appartient à un autre compte" }, 403);
+      const mot = { id: String(corps.id ?? ""), de: typeof corps.de === "string" ? corps.de : null, texte: corps.texte.trim().slice(0, 140) };
+      if (!mot.texte) return repondre({ erreur: "Le mot est vide" }, 400);
+      return repondre({ envoyes: await annoncerMot(corps.foyerId, mot, data.user.id, cles) });
+    }
     return repondre({ erreur: "Demande inconnue" }, 400);
   } catch (e) {
     console.error(e);

@@ -55,6 +55,8 @@ export interface ServeurRappels {
   desinscrireRappels(endpoint: string): Promise<void>;
   /** Envoie tout de suite le rappel du jour à ce téléphone. */
   essaiRappel(endpoint: string): Promise<void>;
+  /** Prévient tout de suite l'autre téléphone d'un mot du couple (les mots programmés partent avec le passage de l'heure). */
+  notifierMot(mot: { foyerId: Id; id: Id; de: Id | null; texte: string }): Promise<void>;
 }
 
 /** Une demande à Jarvis : la phrase, l'état du foyer préparé par le téléphone, les derniers échanges. */

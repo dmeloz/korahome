@@ -27,11 +27,12 @@ import {
   type EtatRappels,
 } from "../rappels";
 
-const CHOIX: { cle: "taches" | "mitsu" | "stock" | "jardin"; titre: string; detail: string }[] = [
+const CHOIX: { cle: "taches" | "mitsu" | "stock" | "jardin" | "mots"; titre: string; detail: string }[] = [
   { cle: "taches", titre: "Mes tâches", detail: "Celles que tu as prises et les tâches libres, du jour et en retard." },
   { cle: "mitsu", titre: "Mitsu", detail: "Commande à passer, provisions qui s'épuisent, soins à venir." },
   { cle: "stock", titre: "Frigo et placards", detail: "Ce qui arrive à sa date dans les trois jours." },
   { cle: "jardin", titre: "Jardin", detail: "Le gel annoncé pour la nuit et les zones à arroser." },
+  { cle: "mots", titre: "Mots du couple", detail: "Quand l'autre t'écrit un petit mot, tout de suite ou à l'heure prévue." },
 ];
 
 export function Notifications(props: {
