@@ -18,6 +18,10 @@ function depotEspion() {
       supprimerProduit: noter("supprimer-produit"),
       enregistrerAnimal: noter("animal"),
       enregistrerZone: noter("zone"),
+      enregistrerSouvenir: noter("souvenir"),
+      supprimerSouvenir: noter("supprimer-souvenir"),
+      enregistrerRetour: noter("retour"),
+      supprimerRetour: noter("supprimer-retour"),
     },
   };
 }
@@ -43,6 +47,22 @@ describe("Jarvis et le Dépôt", () => {
     const { depot, appels } = depotEspion();
     await annulerModifications(depot, modifications);
     expect(appels).toEqual(["zone z1", "animal a1", "supprimer-produit p1", "tache t1", "supprimer-elements e1"]);
+  });
+
+  it("supprime ce que Jarvis retire, et Annuler le remet", async () => {
+    const suppressions: Modification[] = [
+      { collection: "taches", avant: doc("t2"), apres: doc("t2"), supprime: true },
+      { collection: "stock", avant: doc("p2"), apres: doc("p2"), supprime: true },
+      { collection: "memoire", avant: doc("m1"), apres: doc("m1"), supprime: true },
+      { collection: "memoire", avant: null, apres: doc("m2") },
+      { collection: "retours", avant: null, apres: doc("r1") },
+    ];
+    const { depot, appels } = depotEspion();
+    await enregistrerModifications(depot, suppressions);
+    expect(appels).toEqual(["supprimer-tache t2", "supprimer-produit p2", "supprimer-souvenir m1", "souvenir m2", "retour r1"]);
+    appels.length = 0;
+    await annulerModifications(depot, suppressions);
+    expect(appels).toEqual(["supprimer-retour r1", "supprimer-souvenir m2", "souvenir m1", "produit p2", "tache t2"]);
   });
 });
 

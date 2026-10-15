@@ -1043,6 +1043,11 @@ h1 {
 .bulle.annulee p { color: var(--discret); text-decoration: line-through; }
 .bulle .lien { font-size: 15px; padding: 6px 0 0; }
 .bulle-note { display: block; font-size: 13px; color: var(--discret); margin-top: 4px; }
+.bulle-choix { display: flex; gap: 8px; margin-top: 10px; }
+.bulle-choix button { flex: 1; min-height: 40px; border-radius: 12px; font-size: 15px; margin: 0; padding: 8px 12px; }
+.bulle-choix .secondaire { background: transparent; color: var(--texte); border: 1px solid var(--trait); }
+.memoire .ligne { text-align: left; width: 100%; color: var(--texte); }
+.memoire-edition { margin: 0; padding: 8px 12px; }
 .bulle.attente { display: flex; gap: 5px; padding: 14px 16px; }
 .bulle.attente span { width: 7px; height: 7px; border-radius: 50%; background: var(--discret); animation: attente 1s infinite ease-in-out; }
 .bulle.attente span:nth-child(2) { animation-delay: 0.15s; }

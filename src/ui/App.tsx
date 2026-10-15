@@ -10,6 +10,7 @@ import { aujourdhuiLocal, choisirMembreCourant, lireMembreCourant } from "./cont
 import { Accueil } from "./ecrans/Accueil";
 import { Bienvenue } from "./ecrans/Bienvenue";
 import { Conseil } from "./ecrans/Conseil";
+import { MemoireJarvis } from "./ecrans/MemoireJarvis";
 import { Jarvis } from "./ecrans/Jarvis";
 import { DetailListe } from "./ecrans/DetailListe";
 import { Notifications } from "./ecrans/Notifications";
@@ -40,14 +41,15 @@ type Page =
   | { nom: "telephone" }
   | { nom: "retours" }
   | { nom: "jarvis" }
-  | { nom: "conseil" };
+  | { nom: "conseil" }
+  | { nom: "memoire" };
 
 // L'écran affiché, lu par le journal des retours de test à chaque geste.
 let ecranCourant = "Accueil";
 export const ecranAffiche = () => ecranCourant;
 
 export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJour: MiseAJour; partage: ServicesPartage | null }) {
-  const { pret, foyer, listes, elements, taches, retours, animaux, produits, catalogue, zones } = useDonnees(depot);
+  const { pret, foyer, listes, elements, taches, retours, animaux, produits, catalogue, zones, souvenirs } = useDonnees(depot);
   // Une météo trop ancienne (téléphone resté hors ligne) ne déclenche plus d'alerte.
   const meteoLue = useMeteo(zones.length > 0);
   const meteo = meteoFraiche(meteoLue, new Date().toISOString()) ? meteoLue : null;
@@ -104,6 +106,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     if (p.nom === "telephone") return "Ce téléphone";
     if (p.nom === "jarvis") return "Jarvis";
     if (p.nom === "conseil") return "Conseil";
+    if (p.nom === "memoire") return "Mémoire de Jarvis";
     if (p.nom === "module") return MODULES[p.id]?.libelle ?? "Retour";
     return listes.find((l) => l.id === p.id)?.nom ?? "Liste";
   }
@@ -143,7 +146,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       />
     );
   }
-  const donnees: DonneesModule = { foyer, membreId: membre, listes, elements, taches, animaux, produits, catalogue, zones, meteo, aujourdhui: aujourdhuiLocal() };
+  const donnees: DonneesModule = { foyer, membreId: membre, listes, elements, taches, animaux, produits, catalogue, zones, meteo, aujourdhui: aujourdhuiLocal(), souvenirs, retours };
   const precedente = pile.length > 1 ? pile[pile.length - 2] : null;
 
   const ouvrir = (p: Page) =>
@@ -215,8 +218,11 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         foyerPartage={foyerPartage}
         ouvrirPartage={() => ouvrir({ nom: "partage" })}
         ouvrirConseil={() => ouvrir({ nom: "conseil" })}
+        ouvrirMemoire={() => ouvrir({ nom: "memoire" })}
       />
     );
+  } else if (page.nom === "memoire") {
+    ecran = <MemoireJarvis depot={depot} foyer={foyer} membreId={membre} souvenirs={souvenirs} retours={retours} />;
   } else if (page.nom === "retours") {
     ecran = <RetoursTest depot={depot} foyer={foyer} retours={retours} partageActif={partageActif} />;
   } else {

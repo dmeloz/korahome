@@ -1,5 +1,6 @@
 import type { ProduitHabituel } from "../domaine/catalogue";
 import type { Zone } from "../domaine/jardin";
+import type { Souvenir } from "../domaine/memoire";
 import type { Animal } from "../domaine/mitsu";
 import type { Produit } from "../domaine/stock";
 import type { RetourTest } from "../domaine/retours";
@@ -14,9 +15,10 @@ import type { Depot } from "./depot";
 // retrouver le stock déjà partagé par l'autre téléphone.
 // Version 8 : la Base des produits habituels ; relecture du serveur une fois, pour la même raison.
 // Version 9 : le jardin ; relecture du serveur une fois, pour la même raison.
+// Version 10 : la mémoire de Jarvis ; relecture du serveur une fois, pour la même raison.
 // La mise à jour crée seulement les magasins manquants.
-const VERSION = 9;
-const MAGASINS = ["foyer", "listes", "elements", "taches", "retours", "animaux", "stock", "catalogue", "jardin", "attente", "synchro"] as const;
+const VERSION = 10;
+const MAGASINS = ["foyer", "listes", "elements", "taches", "retours", "animaux", "stock", "catalogue", "jardin", "memoire", "attente", "synchro"] as const;
 type Magasin = (typeof MAGASINS)[number];
 const CLES: Partial<Record<Magasin, string>> = { attente: "cle" };
 
@@ -80,7 +82,7 @@ function ouvrir(nomBase: string, fabrique: IDBFactory): Promise<IDBDatabase> {
           }
         });
       }
-      if (evenement.oldVersion < 9 && avant.contains("synchro")) {
+      if (evenement.oldVersion < 10 && avant.contains("synchro")) {
         const synchro = req.transaction!.objectStore("synchro");
         puis(synchro.get("etat") as IDBRequest<{ curseur: string | null } | undefined>, (etat) => {
           if (etat) synchro.put({ ...etat, curseur: null });
@@ -199,6 +201,10 @@ export function creerDepotLocal(
     lireZones: () => tous<Zone>("jardin"),
     enregistrerZone: (zone) => poser("jardin", [zone]),
     supprimerZone: (id) => supprimer("jardin", [id]),
+
+    lireMemoire: () => tous<Souvenir>("memoire"),
+    enregistrerSouvenir: (souvenir) => poser("memoire", [souvenir]),
+    supprimerSouvenir: (id) => supprimer("memoire", [id]),
 
     lireRetours: () => tous<RetourTest>("retours"),
     enregistrerRetour: (retour) => poser("retours", [retour]),

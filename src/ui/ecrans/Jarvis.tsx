@@ -1,5 +1,16 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { appliquerActions, decrireFoyer, formaterChf, lireActions, TOURS_RETENUS, type Modification, type TourJarvis } from "../../domaine/jarvis";
+import {
+  aConfirmer,
+  appliquerActions,
+  decrireFoyer,
+  formaterChf,
+  lireActions,
+  questionPour,
+  TOURS_RETENUS,
+  type ActionJarvis,
+  type Modification,
+  type TourJarvis,
+} from "../../domaine/jarvis";
 import type { Depot } from "../../donnees/depot";
 import type { DemandeJarvis, ServeurJarvis } from "../../donnees/distant";
 import { contexteReel } from "../contexte";
@@ -16,13 +27,15 @@ interface Echange extends TourJarvis {
   erreur?: boolean;
   /** La photo envoyée, en aperçu. */
   photo?: string;
+  /** Une action qui attend le oui de la personne : supprimer, ou retenir ce que Jarvis a remarqué. */
+  confirmation?: { action: ActionJarvis; oui: string; reponse?: "oui" | "non" };
 }
 
 // La conversation reste le temps que l'app est ouverte, même en passant d'une page à l'autre.
 let conversation: Echange[] = [];
 let compteur = 0;
 
-const EXEMPLES = ["Ajoute du lait et des œufs", "La litière est faite", "Sarah sort les poubelles samedi", "Qu'est-ce qui périme bientôt ?"];
+const EXEMPLES = ["Ajoute du lait et des œufs", "La litière est faite", "Retiens que Sarah n'aime pas la coriandre", "Qu'est-ce qui périme bientôt ?"];
 
 export function Jarvis(props: {
   donnees: DonneesModule;
@@ -32,6 +45,7 @@ export function Jarvis(props: {
   foyerPartage: string | null;
   ouvrirPartage: () => void;
   ouvrirConseil: () => void;
+  ouvrirMemoire: () => void;
 }) {
   const { donnees, depot, serveur, foyerPartage } = props;
   const [echanges, setEchanges] = useState<Echange[]>(conversation);
@@ -42,6 +56,7 @@ export function Jarvis(props: {
   const bas = useRef<HTMLDivElement>(null);
   const choixPhoto = useRef<HTMLInputElement>(null);
   const voix = voixDisponible();
+  const avecVersion = { ...donnees, version: __VERSION__ };
 
   useEffect(() => {
     conversation = echanges;
@@ -69,22 +84,46 @@ export function Jarvis(props: {
         historique,
         image,
       });
-      const resultat = appliquerActions(lireActions(reponse.appels), donnees, donnees.membreId, donnees.aujourdhui, contexteReel);
+      const actions = lireActions(reponse.appels);
+      // Supprimer, ou retenir ce qu'il a remarqué seul : chaque fois, une question avant d'agir.
+      const enAttente = actions.filter(aConfirmer);
+      const resultat = appliquerActions(actions.filter((a) => !aConfirmer(a)), avecVersion, donnees.membreId, donnees.aujourdhui, contexteReel);
       await enregistrerModifications(depot, resultat.modifications);
       if (resultat.modifications.length) vibrer();
-      const dit = [reponse.texte, ...resultat.faits, ...resultat.echecs].filter(Boolean).join(" ") || "C'est fait.";
-      ajouter({ role: "jarvis", texte: dit, modifications: resultat.modifications.length ? resultat.modifications : undefined });
+      const dit = [reponse.texte, ...resultat.faits, ...resultat.echecs].filter(Boolean).join(" ") || (enAttente.length ? "" : "C'est fait.");
+      if (dit) ajouter({ role: "jarvis", texte: dit, modifications: resultat.modifications.length ? resultat.modifications : undefined });
+      for (const action of enAttente) {
+        const { question, oui } = questionPour(action);
+        ajouter({ role: "jarvis", texte: question, confirmation: { action, oui } });
+      }
       setAlerte(
         reponse.budget.alerte
           ? `Jarvis a utilisé ${formaterChf(reponse.budget.depenseChf)} sur ${formaterChf(reponse.budget.plafondChf)} ce mois-ci.`
           : null,
       );
-      if (parVoix) direAVoixHaute(dit);
+      if (parVoix) direAVoixHaute([dit, ...enAttente.map((a) => questionPour(a).question)].filter(Boolean).join(" "));
     } catch (e) {
       ajouter({ role: "jarvis", texte: e instanceof Error && e.message ? e.message : "Je n'ai pas pu répondre, réessaie.", erreur: true });
     } finally {
       setEnCours(false);
     }
+  }
+
+  async function repondre(echange: Echange, oui: boolean) {
+    if (!echange.confirmation || echange.confirmation.reponse) return;
+    const marquer = (e: Partial<Echange>) =>
+      setEchanges((avant) => avant.map((x) => (x.n === echange.n ? { ...x, ...e, confirmation: { ...echange.confirmation!, reponse: oui ? "oui" : "non" } } : x)));
+    if (!oui) {
+      marquer({});
+      return;
+    }
+    const resultat = appliquerActions([echange.confirmation.action], avecVersion, donnees.membreId, donnees.aujourdhui, contexteReel);
+    await enregistrerModifications(depot, resultat.modifications);
+    if (resultat.modifications.length) vibrer();
+    marquer({
+      texte: [...resultat.faits, ...resultat.echecs].join(" ") || echange.texte,
+      modifications: resultat.modifications.length ? resultat.modifications : undefined,
+    });
   }
 
   async function annuler(echange: Echange) {
@@ -137,15 +176,30 @@ export function Jarvis(props: {
 
   return (
     <main className="jarvis">
-      <h1>Jarvis</h1>
+      <header className="entete-coches">
+        <h1>Jarvis</h1>
+        <button className="lien" onClick={props.ouvrirMemoire}>Sa mémoire</button>
+      </header>
       {echanges.length === 0 ? (
         <div className="jarvis-accueil">
-          <p className="discret">Écris ou parle : Jarvis ajoute aux courses, crée ou coche les tâches, range le frigo, note les pesées et répond sur la maison. Photographie une lettre, un rendez-vous ou un ticket de caisse, colle le lien d'une recette : il s'en occupe. Tout se défait avec Annuler.</p>
+          <p className="discret">Écris ou parle : Jarvis ajoute aux courses, crée, décale ou coche les tâches, range ou retire du stock, note les pesées et répond sur la maison. Photographie une lettre, un rendez-vous ou un ticket de caisse, colle le lien d'une recette : il s'en occupe. Il retient ce que tu lui confies, et note pour Claude ce qu'il ne sait pas encore faire. Il demande avant de supprimer, et tout se défait avec Annuler.</p>
           <button className="carte jarvis-conseil" onClick={props.ouvrirConseil}>
             <Icone nom="calendrier" taille={24} />
             <span className="ligne-texte">
               <strong>Conseil de la semaine</strong>
               <span className="discret">Préparer la semaine ensemble</span>
+            </span>
+            <Icone nom="suivant" taille={18} />
+          </button>
+          <button className="carte jarvis-conseil" onClick={props.ouvrirMemoire}>
+            <Icone nom="jarvis" taille={24} />
+            <span className="ligne-texte">
+              <strong>Ce que Jarvis sait</strong>
+              <span className="discret">
+                {donnees.souvenirs.length === 0
+                  ? "Rien encore : dis-lui « retiens que… »"
+                  : `${donnees.souvenirs.length} ${donnees.souvenirs.length > 1 ? "choses retenues" : "chose retenue"} sur le foyer`}
+              </span>
             </span>
             <Icone nom="suivant" taille={18} />
           </button>
@@ -161,6 +215,13 @@ export function Jarvis(props: {
             <div key={e.n} className={`bulle ${e.role}${e.erreur ? " en-erreur" : ""}${e.annule ? " annulee" : ""}`}>
               {e.photo && <img className="jarvis-photo" src={e.photo} alt="Photo envoyée à Jarvis" />}
               <p>{e.texte}</p>
+              {e.confirmation && !e.confirmation.reponse && (
+                <div className="bulle-choix">
+                  <button className="bouton-principal" onClick={() => void repondre(e, true)}>{e.confirmation.oui}</button>
+                  <button className="secondaire" onClick={() => void repondre(e, false)}>Non</button>
+                </div>
+              )}
+              {e.confirmation?.reponse === "non" && <span className="bulle-note">Laissé tel quel</span>}
               {e.modifications && (
                 e.annule ? (
                   <span className="bulle-note">Annulé</span>

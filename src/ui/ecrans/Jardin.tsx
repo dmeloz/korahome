@@ -22,7 +22,7 @@ import {
   type TypeZone,
   type Zone,
 } from "../../domaine/jardin";
-import { appliquerActions, decrireFoyer, lireActions, type Modification } from "../../domaine/jarvis";
+import { aConfirmer, appliquerActions, decrireFoyer, lireActions, type Modification } from "../../domaine/jarvis";
 import { decrireTemps, formaterPluie, formaterTemperatures, meteoDu, type JourMeteo } from "../../domaine/meteo";
 import { EXPOSITIONS, NOMS_MOIS, type Espece, type Exposition } from "../../domaine/plantes";
 import { useAnnoncer } from "../annulation";
@@ -380,7 +380,8 @@ function Reconnaitre(p: PropsPage) {
         historique: [],
         image,
       });
-      const resultat = appliquerActions(lireActions(r.appels), p, p.membreId, p.aujourdhui, contexteReel);
+      // Ici, Jarvis reconnaît une plante : rien à supprimer ni à retenir sans question.
+      const resultat = appliquerActions(lireActions(r.appels).filter((a) => !aConfirmer(a)), p, p.membreId, p.aujourdhui, contexteReel);
       await enregistrerModifications(p.depot, resultat.modifications);
       if (resultat.modifications.length) vibrer();
       setReponse({ texte: [r.texte, ...resultat.faits, ...resultat.echecs].filter(Boolean).join(" ") || "C'est fait.", modifications: resultat.modifications });

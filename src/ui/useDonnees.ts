@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { ProduitHabituel } from "../domaine/catalogue";
 import type { Zone } from "../domaine/jardin";
+import type { Souvenir } from "../domaine/memoire";
 import type { Animal } from "../domaine/mitsu";
 import type { RetourTest } from "../domaine/retours";
 import type { Produit } from "../domaine/stock";
@@ -18,14 +19,15 @@ export interface Donnees {
   produits: Produit[];
   catalogue: ProduitHabituel[];
   zones: Zone[];
+  souvenirs: Souvenir[];
 }
 
 /** Charge toutes les données et les recharge à chaque changement du dépôt. */
 export function useDonnees(depot: Depot): Donnees {
-  const [donnees, setDonnees] = useState<Donnees>({ pret: false, foyer: null, listes: [], elements: [], taches: [], retours: [], animaux: [], produits: [], catalogue: [], zones: [] });
+  const [donnees, setDonnees] = useState<Donnees>({ pret: false, foyer: null, listes: [], elements: [], taches: [], retours: [], animaux: [], produits: [], catalogue: [], zones: [], souvenirs: [] });
 
   const charger = useCallback(async () => {
-    const [foyer, listes, elements, taches, retours, animaux, produits, catalogue, zones] = await Promise.all([
+    const [foyer, listes, elements, taches, retours, animaux, produits, catalogue, zones, souvenirs] = await Promise.all([
       depot.lireFoyer(),
       depot.lireListes(),
       depot.lireElements(),
@@ -35,11 +37,12 @@ export function useDonnees(depot: Depot): Donnees {
       depot.lireProduits(),
       depot.lireCatalogue(),
       depot.lireZones(),
+      depot.lireMemoire(),
     ]);
     listes.sort((a, b) => a.creeLe.localeCompare(b.creeLe));
     animaux.sort((a, b) => a.creeLe.localeCompare(b.creeLe));
     zones.sort((a, b) => a.creeLe.localeCompare(b.creeLe));
-    setDonnees({ pret: true, foyer, listes, elements, taches, retours, animaux, produits, catalogue, zones });
+    setDonnees({ pret: true, foyer, listes, elements, taches, retours, animaux, produits, catalogue, zones, souvenirs });
   }, [depot]);
 
   useEffect(() => {

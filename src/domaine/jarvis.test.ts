@@ -3,6 +3,7 @@ import { contexteTest } from "./contexteTest";
 import { creerFoyer } from "./foyer";
 import {
   annulation,
+  aConfirmer,
   appliquerActions,
   coutMicroChf,
   decrireAction,
@@ -11,6 +12,7 @@ import {
   formaterChf,
   lireActions,
   OUTILS_JARVIS,
+  questionPour,
   type ActionJarvis,
   type DonneesFoyer,
 } from "./jarvis";
@@ -18,6 +20,8 @@ import { extraireRecette, lienAutorise, lienDans, lirePage, messageDemande, text
 import { nouvelElement, nouvelleListe } from "./listes";
 import { ajouterPlante, nouvellePlante, nouvelleZone } from "./jardin";
 import { nouvelAnimal } from "./mitsu";
+import { nouveauSouvenir } from "./memoire";
+import { nouveauProduit } from "./stock";
 import { nouvelleTache } from "./taches";
 
 const AUJOURDHUI = "2026-10-12";
@@ -319,5 +323,98 @@ describe("Jarvis au jardin", () => {
     const { d, melo } = avecJardin(1);
     expect(decrireFoyer(d, melo, AUJOURDHUI)).toContain("- Pots du balcon (pot, plein soleil, dehors) : thym");
     expect(decrireFoyer(foyerDeTest().d, melo, AUJOURDHUI)).not.toContain("Jardin");
+  });
+});
+
+describe("Jarvis apprend, modifie et note ses souhaits", () => {
+  it("lit les nouveaux outils et ignore ce qui est incomplet", () => {
+    expect(
+      lireActions([
+        { nom: "retenir", entree: { fait: " Sarah n'aime pas la coriandre ", propose: false } },
+        { nom: "oublier", entree: { fait: "" } },
+        { nom: "modifier_tache", entree: { titre: "Litière", nouveau_titre: null, echeance: null } },
+        { nom: "modifier_tache", entree: { titre: "Litière", nouveau_titre: null, echeance: "2026-10-15" } },
+        { nom: "retirer_du_stock", entree: { produits: ["lait", ""] } },
+        { nom: "noter_souhait", entree: { demande: "Combien on a dépensé ce mois ?", manque: "Lire le budget" } },
+      ]),
+    ).toEqual([
+      { outil: "retenir", fait: "Sarah n'aime pas la coriandre", propose: false },
+      { outil: "modifier_tache", titre: "Litière", nouveauTitre: null, echeance: "2026-10-15" },
+      { outil: "retirer_du_stock", produits: ["lait"] },
+      { outil: "noter_souhait", demande: "Combien on a dépensé ce mois ?", manque: "Lire le budget" },
+    ]);
+    expect(OUTILS_JARVIS.map((o) => o.name)).toEqual(expect.arrayContaining(["retenir", "oublier", "supprimer_tache", "retirer_du_stock", "modifier_tache", "noter_souhait"]));
+  });
+
+  it("demande le oui de la personne avant de supprimer ou de retenir ce qu'il a remarqué seul", () => {
+    expect(aConfirmer({ outil: "retenir", fait: "x", propose: false })).toBe(false);
+    expect(aConfirmer({ outil: "retenir", fait: "On fait les courses le samedi", propose: true })).toBe(true);
+    expect(aConfirmer({ outil: "supprimer_tache", titre: "Litière" })).toBe(true);
+    expect(aConfirmer({ outil: "retirer_du_stock", produits: ["lait"] })).toBe(true);
+    expect(aConfirmer({ outil: "oublier", fait: "x" })).toBe(true);
+    expect(aConfirmer({ outil: "ajouter_courses", articles: ["lait"] })).toBe(false);
+    expect(questionPour({ outil: "retenir", fait: "On fait les courses le samedi", propose: true })).toEqual({
+      question: "J'ai remarqué : « On fait les courses le samedi ». Je le retiens ?",
+      oui: "Retenir",
+    });
+  });
+
+  it("retient un fait une seule fois, l'oublie, et en parle à chaque demande", () => {
+    const { d, melo } = foyerDeTest();
+    const r = appliquerActions([{ outil: "retenir", fait: "Sarah n'aime pas la coriandre", propose: false }], d, melo, AUJOURDHUI, ctx());
+    expect(r.faits).toEqual(["Retenu : sarah n'aime pas la coriandre."]);
+    const souvenir = r.modifications[0].apres;
+    expect(r.modifications[0]).toMatchObject({ collection: "memoire", avant: null, apres: { source: "demande", auteur: melo } });
+
+    const avecMemoire = { ...d, souvenirs: [souvenir as ReturnType<typeof nouveauSouvenir>] };
+    expect(decrireFoyer(avecMemoire, melo, AUJOURDHUI)).toContain("- Sarah n'aime pas la coriandre");
+    expect(appliquerActions([{ outil: "retenir", fait: "sarah n’aime pas la coriandre", propose: true }], avecMemoire, melo, AUJOURDHUI, ctx()).modifications).toHaveLength(0);
+
+    const oubli = appliquerActions([{ outil: "oublier", fait: "coriandre" }], avecMemoire, melo, AUJOURDHUI, ctx());
+    expect(oubli.modifications).toEqual([{ collection: "memoire", avant: souvenir, apres: souvenir, supprime: true }]);
+    // Annuler remet le souvenir oublié.
+    expect(annulation(oubli.modifications)).toEqual([{ collection: "memoire", id: souvenir.id, remettre: souvenir }]);
+    expect(appliquerActions([{ outil: "oublier", fait: "le chat dort" }], avecMemoire, melo, AUJOURDHUI, ctx()).echecs).toEqual(["Je n'avais pas retenu « le chat dort »."]);
+  });
+
+  it("décale, renomme et supprime une tâche", () => {
+    const { d, melo } = foyerDeTest();
+    const litiere = d.taches[0];
+    const m = appliquerActions([{ outil: "modifier_tache", titre: "litière", nouveauTitre: null, echeance: "2026-10-15" }], d, melo, AUJOURDHUI, ctx());
+    expect(m.modifications[0]).toMatchObject({ collection: "taches", avant: litiere, apres: { titre: "Litière", echeance: "2026-10-15" } });
+    const s = appliquerActions([{ outil: "supprimer_tache", titre: "litière" }], d, melo, AUJOURDHUI, ctx());
+    expect(s.faits).toEqual(["Tâche supprimée : litière."]);
+    expect(s.modifications).toEqual([{ collection: "taches", avant: litiere, apres: litiere, supprime: true }]);
+  });
+
+  it("retire du stock ce qui est fini", () => {
+    const { d, melo } = foyerDeTest();
+    const lait = nouveauProduit({ texte: "1 l lait", lieu: "frigo", peremption: null }, melo, ctx());
+    const r = appliquerActions([{ outil: "retirer_du_stock", produits: ["lait", "beurre"] }], { ...d, produits: [lait] }, melo, AUJOURDHUI, ctx());
+    expect(r.modifications).toEqual([{ collection: "stock", avant: lait, apres: lait, supprime: true }]);
+    expect(r.echecs).toEqual(["« beurre » n'est pas dans le stock."]);
+  });
+
+  it("note un souhait pour Claude dans les retours de test, sans doublon", () => {
+    const { d, melo } = foyerDeTest();
+    const action: ActionJarvis = { outil: "noter_souhait", demande: "Combien on a dépensé ce mois ?", manque: "Lire le budget" };
+    const r = appliquerActions([action], { ...d, version: "0.0.16" }, melo, AUJOURDHUI, ctx());
+    expect(r.faits).toEqual(["Souhait noté pour Claude."]);
+    const retour = r.modifications[0].apres;
+    expect(retour).toMatchObject({
+      texte: "Souhait pour Jarvis : Combien on a dépensé ce mois ? (il faudrait : Lire le budget)",
+      genre: "idee",
+      ecran: "Jarvis",
+      version: "0.0.16",
+      auteur: melo,
+    });
+    const encore = appliquerActions([action], { ...d, retours: [retour as never] }, melo, AUJOURDHUI, ctx());
+    expect(encore.modifications).toHaveLength(0);
+  });
+
+  it("donne à Jarvis les derniers soins faits et les habitudes d'achat", () => {
+    const { d, melo } = foyerDeTest();
+    const mitsu = { ...d.animaux[0], soins: [{ id: "s1", type: "vaccin" as const, libelle: "Vaccin typhus", date: "2026-09-01", fait: true }] };
+    expect(decrireFoyer({ ...d, animaux: [mitsu] }, melo, AUJOURDHUI)).toContain("Carnet de Mitsu, derniers soins faits : Vaccin typhus le 2026-09-01.");
   });
 });

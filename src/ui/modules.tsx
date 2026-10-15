@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import type { Souvenir } from "../domaine/memoire";
+import type { RetourTest } from "../domaine/retours";
 import { gestesDuJardin, type Zone } from "../domaine/jardin";
 import { compterAPrendre } from "../domaine/listes";
 import { decrireTemps, formaterTemperatures, meteoDu, type Meteo } from "../domaine/meteo";
@@ -38,6 +40,10 @@ export interface DonneesModule {
   /** La météo du jardin, récente ; null hors ligne ou sans jardin. */
   meteo: Meteo | null;
   aujourdhui: Jour;
+  /** La mémoire de Jarvis, qu'il relit à chaque demande. */
+  souvenirs: Souvenir[];
+  /** Les notes de test : les souhaits de Jarvis y vont, sans doublon. */
+  retours: RetourTest[];
 }
 
 export interface PropsPage extends DonneesModule {
