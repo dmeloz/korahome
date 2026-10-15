@@ -20,7 +20,7 @@ export const CATALOGUE: readonly DefinitionWidget[] = [
   { id: "mitsu", titre: "Mitsu", description: "Croquettes, litière, poids et vétérinaire.", disponible: true },
   { id: "stock", titre: "Frigo et placards", description: "Ce qu'il y a à la maison et ce qui arrive à sa date.", disponible: true },
   { id: "entretien", titre: "Entretien", description: "Détartrer, changer les filtres, tester le détecteur : rien ne s'oublie.", disponible: true },
-  { id: "jardin", titre: "Jardin", description: "Arrosage, météo et alerte gel.", disponible: false },
+  { id: "jardin", titre: "Jardin", description: "Arrosage selon la pluie, alerte gel, calendrier du mois et plantes reconnues en photo.", disponible: true },
 ];
 
 const PAR_ID = new Map(CATALOGUE.map((w) => [w.id, w]));

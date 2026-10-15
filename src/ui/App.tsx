@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { meteoFraiche } from "../domaine/meteo";
 import { rappelDuMatin } from "../domaine/rappels";
 import type { WidgetId } from "../domaine/tableauDeBord";
 import type { Foyer } from "../domaine/types";
@@ -19,6 +20,7 @@ import { Icone } from "./Icone";
 import type { MiseAJour } from "./miseAJour";
 import { BORD_RETOUR, directionGeste, finRetour } from "./gestes";
 import { noter } from "./journal";
+import { useMeteo } from "./meteo";
 import { MODULES, type DonneesModule } from "./modules";
 import { enregistrerPastilleVisible, lirePastilleVisible } from "./rapport";
 import { afficherPastilleIcone, lirePreferences, mettreAJourRappels } from "./rappels";
@@ -45,7 +47,10 @@ let ecranCourant = "Accueil";
 export const ecranAffiche = () => ecranCourant;
 
 export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJour: MiseAJour; partage: ServicesPartage | null }) {
-  const { pret, foyer, listes, elements, taches, retours, animaux, produits, catalogue } = useDonnees(depot);
+  const { pret, foyer, listes, elements, taches, retours, animaux, produits, catalogue, zones } = useDonnees(depot);
+  // Une météo trop ancienne (téléphone resté hors ligne) ne déclenche plus d'alerte.
+  const meteoLue = useMeteo(zones.length > 0);
+  const meteo = meteoFraiche(meteoLue, new Date().toISOString()) ? meteoLue : null;
   const [pile, setPile] = useState<Page[]>([{ nom: "accueil" }]);
   const [membreId, setMembreId] = useState<string | null>(lireMembreCourant);
   const nouvelleVersion = useSyncExternalStore(miseAJour.abonner, miseAJour.prete);
@@ -72,9 +77,9 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   const aujourdhui = aujourdhuiLocal();
   useEffect(() => {
     if (!pret) return;
-    const rappel = rappelDuMatin({ foyer, membreId: membreRappels, taches, animaux, produits, aujourdhui, preferences: lirePreferences() });
+    const rappel = rappelDuMatin({ foyer, membreId: membreRappels, taches, animaux, produits, zones, meteo, aujourdhui, preferences: lirePreferences() });
     afficherPastilleIcone(rappel?.nombre ?? 0);
-  }, [pret, foyer, membreRappels, taches, animaux, produits, aujourdhui]);
+  }, [pret, foyer, membreRappels, taches, animaux, produits, zones, meteo, aujourdhui]);
 
   const page = pile[pile.length - 1];
   // Le glissement du doigt anime déjà la page : sans transition dans ce cas-là.
@@ -138,7 +143,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       />
     );
   }
-  const donnees: DonneesModule = { foyer, membreId: membre, listes, elements, taches, animaux, produits, catalogue, aujourdhui: aujourdhuiLocal() };
+  const donnees: DonneesModule = { foyer, membreId: membre, listes, elements, taches, animaux, produits, catalogue, zones, meteo, aujourdhui: aujourdhuiLocal() };
   const precedente = pile.length > 1 ? pile[pile.length - 2] : null;
 
   const ouvrir = (p: Page) =>
@@ -161,7 +166,8 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       />
     );
   } else if (page.nom === "module") {
-    ecran = MODULES[page.id]?.page({ ...donnees, depot, ouvrirListe });
+    const jarvis = partage && foyerPartage ? { serveur: partage.jarvis, foyerId: foyerPartage } : null;
+    ecran = MODULES[page.id]?.page({ ...donnees, depot, ouvrirListe, jarvis });
   } else if (page.nom === "liste") {
     const liste = listes.find((l) => l.id === page.id);
     ecran = liste ? (
@@ -182,6 +188,8 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         taches={taches}
         animaux={animaux}
         produits={produits}
+        zones={zones}
+        meteo={meteo}
         aujourdhui={donnees.aujourdhui}
       />
     );

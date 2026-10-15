@@ -17,6 +17,7 @@ function depotEspion() {
       enregistrerProduit: noter("produit"),
       supprimerProduit: noter("supprimer-produit"),
       enregistrerAnimal: noter("animal"),
+      enregistrerZone: noter("zone"),
     },
   };
 }
@@ -29,18 +30,19 @@ describe("Jarvis et le Dépôt", () => {
     { collection: "taches", avant: doc("t1"), apres: doc("t1") },
     { collection: "stock", avant: null, apres: doc("p1") },
     { collection: "animaux", avant: doc("a1"), apres: doc("a1") },
+    { collection: "jardin", avant: doc("z1"), apres: doc("z1") },
   ];
 
   it("enregistre chaque document modifié", async () => {
     const { depot, appels } = depotEspion();
     await enregistrerModifications(depot, modifications);
-    expect(appels).toEqual(["element e1", "tache t1", "produit p1", "animal a1"]);
+    expect(appels).toEqual(["element e1", "tache t1", "produit p1", "animal a1", "zone z1"]);
   });
 
   it("annule à l'envers : ce qui a été créé disparaît, le reste revient", async () => {
     const { depot, appels } = depotEspion();
     await annulerModifications(depot, modifications);
-    expect(appels).toEqual(["animal a1", "supprimer-produit p1", "tache t1", "supprimer-elements e1"]);
+    expect(appels).toEqual(["zone z1", "animal a1", "supprimer-produit p1", "tache t1", "supprimer-elements e1"]);
   });
 });
 

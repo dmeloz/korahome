@@ -1,6 +1,7 @@
 import type { Animal } from "../domaine/mitsu";
 import type { RetourTest } from "../domaine/retours";
 import type { ProduitHabituel } from "../domaine/catalogue";
+import type { Zone } from "../domaine/jardin";
 import type { Produit } from "../domaine/stock";
 import type { Element, Foyer, Id, Liste, Tache } from "../domaine/types";
 
@@ -39,6 +40,11 @@ export interface Depot {
   lireCatalogue(): Promise<ProduitHabituel[]>;
   enregistrerHabituel(habituel: ProduitHabituel): Promise<void>;
   supprimerHabituel(id: Id): Promise<void>;
+
+  /** Le jardin : un document par zone (un bac, un pot, une jardinière), avec ses plantes. */
+  lireZones(): Promise<Zone[]>;
+  enregistrerZone(zone: Zone): Promise<void>;
+  supprimerZone(id: Id): Promise<void>;
 
   /** Les notes de test écrites depuis le coin « Dev ». */
   lireRetours(): Promise<RetourTest[]>;

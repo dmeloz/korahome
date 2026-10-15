@@ -18,6 +18,7 @@ Fiche projet et plan (sur le Mac de la propriétaire) : `~/Atelier-Claude/Cervea
 - `supabase/schema.sql` : tables, règles de sécurité et fonctions du serveur partagé. Mise en route : `docs/activer-le-partage.md`. Adresse et clé publique dans `.env.local` sur le Mac (ignoré par Git).
 - `supabase/functions/rappels/` : rappels du matin à 8 h (Web Push), règles dans `src/domaine/rappels.ts`. Voir `docs/notifications.md`.
 - `supabase/functions/jarvis/` : Jarvis, l'assistant (Claude, clé dans les secrets Supabase, plafond 5 CHF par mois). Règles et outils dans `src/domaine/jarvis.ts`, actions appliquées par le téléphone via le `Depot`. Voir `docs/jarvis.md`.
+- Jardin : zones, plantes et calendrier dans `src/domaine/jardin.ts` et `plantes.ts`, météo Open-Meteo (`meteo.ts`, sans clé). Voir `docs/jardin.md`.
 - `serveur/` : code qui tourne sur le Mac qui sert l'app (réception des rapports de test, branchée dans `vite.config.ts`).
 - `src/ui/` : écrans React. Ils lisent par `useDonnees` et écrivent par le `Depot`, jamais directement dans IndexedDB.
 
