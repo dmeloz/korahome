@@ -1277,7 +1277,11 @@ html[data-sens="arriere"]::view-transition-new(root) { animation-name: page-revi
   width: 100%;
   margin: -8px 0 16px;
   padding: 10px 0;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  touch-action: pan-x pan-y;
   border-radius: 14px;
   background: var(--verre);
   box-shadow: var(--reflet);
@@ -1301,13 +1305,11 @@ html[data-sens="arriere"]::view-transition-new(root) { animation-name: page-revi
 }
 .bandeau-couple.vide svg { color: var(--accent); }
 .bandeau-fil {
-  display: inline-flex;
+  display: flex;
+  align-items: center;
   width: max-content;
-  animation: bandeau-defile linear infinite;
-  will-change: transform;
 }
-.bandeau-couple:active .bandeau-fil { animation-play-state: paused; }
-.bandeau-copie { display: inline-flex; gap: 28px; padding-right: 28px; }
+.bandeau-copie { display: inline-flex; align-items: center; gap: 28px; padding-right: 28px; }
 .bandeau-element {
   display: inline-flex;
   align-items: center;
@@ -1316,19 +1318,25 @@ html[data-sens="arriere"]::view-transition-new(root) { animation-name: page-revi
   font-size: 15px;
   color: var(--discret);
 }
-.bandeau-element.genre-mot { color: var(--texte); font-weight: 500; }
-.bandeau-element.genre-mot svg { color: var(--accent); opacity: 0.55; transition: opacity 0.2s, transform 0.2s; }
+.bandeau-couple::-webkit-scrollbar { display: none; }
+.bandeau-element.genre-mot {
+  color: var(--texte);
+  font-weight: 500;
+  padding: 1px 11px 1px 9px;
+  border-radius: 999px;
+  background: var(--accent-doux);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.bandeau-auteur { color: var(--accent); font-weight: 650; }
+.bandeau-element.genre-mot + .bandeau-element::before,
+.bandeau-element + .bandeau-element.genre-mot::before { content: none; }
+.bandeau-element.genre-mot svg { color: var(--accent); opacity: 0.7; transition: opacity 0.2s, transform 0.2s; }
 .bandeau-element.genre-mot.aime svg { opacity: 1; fill: currentColor; transform: scale(1.12); }
 .bandeau-element.genre-clin { color: var(--accent); font-style: italic; }
 .bandeau-element.genre-compte { color: var(--texte); }
 .bandeau-element + .bandeau-element::before { content: "·"; margin-right: 22px; color: var(--trait); }
-@keyframes bandeau-defile {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
 @media (prefers-reduced-motion: reduce) {
-  .bandeau-couple { overflow-x: auto; -webkit-mask-image: none; mask-image: none; padding-inline: 14px; }
-  .bandeau-fil { animation: none; }
+  .bandeau-couple { -webkit-mask-image: none; mask-image: none; padding-inline: 14px; }
   .bandeau-copie + .bandeau-copie { display: none; }
 }
 
