@@ -24,7 +24,7 @@ create table if not exists public.membres_foyer (
 
 create table if not exists public.documents (
   foyer_id text not null references public.foyers (id) on delete cascade,
-  collection text not null check (collection in ('foyer', 'listes', 'elements', 'taches', 'animaux', 'stock', 'catalogue', 'jardin', 'memoire', 'couple', 'menus', 'retours')),
+  collection text not null check (collection in ('foyer', 'listes', 'elements', 'taches', 'animaux', 'stock', 'catalogue', 'jardin', 'memoire', 'couple', 'menus', 'agenda', 'retours')),
   id text not null,
   -- Le document complet ; null quand il a été supprimé.
   donnees jsonb,
@@ -38,10 +38,11 @@ create table if not exists public.documents (
 -- Les notes de test se partagent depuis Kora 0.0.7, le stock (frigo, congélateur, placard)
 -- depuis Kora 0.0.9, la Base des produits habituels depuis Kora 0.0.10, le jardin depuis
 -- Kora 0.0.15, la mémoire de Jarvis et le bandeau du couple depuis Kora 0.0.16, les menus du Chef
--- de la semaine depuis Kora 0.0.17 : une base plus ancienne reçoit la nouvelle liste.
+-- de la semaine depuis Kora 0.0.17, l'agenda commun depuis Kora 0.0.18 : une base plus ancienne
+-- reçoit la nouvelle liste.
 alter table public.documents drop constraint if exists documents_collection_check;
 alter table public.documents add constraint documents_collection_check
-  check (collection in ('foyer', 'listes', 'elements', 'taches', 'animaux', 'stock', 'catalogue', 'jardin', 'memoire', 'couple', 'menus', 'retours'));
+  check (collection in ('foyer', 'listes', 'elements', 'taches', 'animaux', 'stock', 'catalogue', 'jardin', 'memoire', 'couple', 'menus', 'agenda', 'retours'));
 
 create index if not exists documents_nouveautes on public.documents (foyer_id, maj_serveur);
 
@@ -341,3 +342,131 @@ end $$;
 
 revoke all on function public.jarvis_compter(text, text, bigint) from public, anon, authenticated;
 grant execute on function public.jarvis_compter(text, text, bigint) to service_role;
+
+-- ===== L'agenda commun, relié à iCloud (Kora 0.0.18) =====
+-- Chacun peut relier son compte iCloud avec un mot de passe d'app Apple. Le mot de passe va
+-- dans le coffre du serveur (Vault) ; les téléphones ne le revoient jamais. La fonction
+-- « agenda » (supabase/functions/agenda) tient dans chaque iCloud un calendrier « Kora ».
+-- Mise en route : docs/agenda.md.
+
+create table if not exists prive.comptes_icloud (
+  foyer_id text not null references public.foyers (id) on delete cascade,
+  membre_id text not null,
+  apple_id text not null,
+  -- Le mot de passe d'app, dans vault.secrets.
+  secret_id uuid not null,
+  -- Le dossier des calendriers du compte, et le calendrier « Kora » que Kora y a créé.
+  maison text not null,
+  calendrier_kora text not null,
+  -- Les calendriers que la personne ne veut pas voir dans Kora (les autres sont lus).
+  ignores text[] not null default '{}',
+  -- Ce que Kora a écrit dans le calendrier « Kora » : [{evenementId, href, etag, empreinte}].
+  liens jsonb not null default '[]',
+  en_cours_depuis timestamptz,
+  relie_le timestamptz not null default now(),
+  primary key (foyer_id, membre_id)
+);
+revoke all on prive.comptes_icloud from public, anon, authenticated;
+
+-- Relie (ou relie à nouveau) un compte. Fonction serveur seulement.
+create or replace function public.icloud_enregistrer(
+  p_foyer_id text, p_membre_id text, p_apple_id text, p_mot_de_passe text, p_maison text, p_calendrier_kora text
+)
+returns void
+language plpgsql security definer set search_path = '' as $$
+declare
+  secret uuid;
+begin
+  select secret_id into secret from prive.comptes_icloud where foyer_id = p_foyer_id and membre_id = p_membre_id;
+  if secret is null then
+    secret := vault.create_secret(p_mot_de_passe, 'icloud-' || p_foyer_id || '-' || p_membre_id || '-' || gen_random_uuid(), 'Mot de passe d''app iCloud (Kora)');
+  else
+    perform vault.update_secret(secret, p_mot_de_passe);
+  end if;
+  insert into prive.comptes_icloud (foyer_id, membre_id, apple_id, secret_id, maison, calendrier_kora)
+  values (p_foyer_id, p_membre_id, p_apple_id, secret, p_maison, p_calendrier_kora)
+  on conflict (foyer_id, membre_id) do update set
+    apple_id = excluded.apple_id, maison = excluded.maison, calendrier_kora = excluded.calendrier_kora,
+    liens = case when prive.comptes_icloud.calendrier_kora = excluded.calendrier_kora then prive.comptes_icloud.liens else '[]'::jsonb end,
+    relie_le = now();
+end $$;
+
+-- Les comptes reliés (d'un foyer, ou de tous), avec leur mot de passe. Fonction serveur seulement.
+create or replace function public.icloud_comptes(p_foyer_id text default null)
+returns table (foyer_id text, membre_id text, apple_id text, mot_de_passe text, maison text, calendrier_kora text, ignores text[], liens jsonb)
+language sql security definer set search_path = '' as $$
+  select c.foyer_id, c.membre_id, c.apple_id, s.decrypted_secret, c.maison, c.calendrier_kora, c.ignores, c.liens
+  from prive.comptes_icloud c join vault.decrypted_secrets s on s.id = c.secret_id
+  where p_foyer_id is null or c.foyer_id = p_foyer_id;
+$$;
+
+-- Après une synchro (ou un nouveau choix de calendriers). Un argument null garde la valeur.
+create or replace function public.icloud_maj(p_foyer_id text, p_membre_id text, p_liens jsonb default null, p_ignores text[] default null, p_calendrier_kora text default null)
+returns void
+language sql security definer set search_path = '' as $$
+  update prive.comptes_icloud set
+    liens = coalesce(p_liens, liens),
+    ignores = coalesce(p_ignores, ignores),
+    calendrier_kora = coalesce(p_calendrier_kora, calendrier_kora)
+  where foyer_id = p_foyer_id and membre_id = p_membre_id;
+$$;
+
+-- Une seule synchro à la fois par compte (le téléphone et le passage régulier peuvent se croiser).
+create or replace function public.icloud_verrou(p_foyer_id text, p_membre_id text, p_prendre boolean)
+returns boolean
+language plpgsql security definer set search_path = '' as $$
+begin
+  if not p_prendre then
+    update prive.comptes_icloud set en_cours_depuis = null where foyer_id = p_foyer_id and membre_id = p_membre_id;
+    return true;
+  end if;
+  update prive.comptes_icloud set en_cours_depuis = now()
+  where foyer_id = p_foyer_id and membre_id = p_membre_id
+    and (en_cours_depuis is null or en_cours_depuis < now() - interval '3 minutes');
+  return found;
+end $$;
+
+-- Délier : le mot de passe quitte le coffre.
+create or replace function public.icloud_retirer(p_foyer_id text, p_membre_id text)
+returns void
+language plpgsql security definer set search_path = '' as $$
+declare
+  secret uuid;
+begin
+  delete from prive.comptes_icloud where foyer_id = p_foyer_id and membre_id = p_membre_id returning secret_id into secret;
+  if secret is not null then
+    delete from vault.secrets where id = secret;
+  end if;
+end $$;
+
+revoke all on function public.icloud_enregistrer(text, text, text, text, text, text) from public, anon, authenticated;
+revoke all on function public.icloud_comptes(text) from public, anon, authenticated;
+revoke all on function public.icloud_maj(text, text, jsonb, text[], text) from public, anon, authenticated;
+revoke all on function public.icloud_verrou(text, text, boolean) from public, anon, authenticated;
+revoke all on function public.icloud_retirer(text, text) from public, anon, authenticated;
+grant execute on function public.icloud_enregistrer(text, text, text, text, text, text) to service_role;
+grant execute on function public.icloud_comptes(text) to service_role;
+grant execute on function public.icloud_maj(text, text, jsonb, text[], text) to service_role;
+grant execute on function public.icloud_verrou(text, text, boolean) to service_role;
+grant execute on function public.icloud_retirer(text, text) to service_role;
+
+-- La synchro passe aussi toute seule, chaque quart d'heure. À lancer une fois :
+--   select prive.programmer_agenda('https://<projet>.supabase.co');
+create or replace function prive.programmer_agenda(p_adresse text)
+returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  perform cron.schedule(
+    'agenda-icloud',
+    '*/15 * * * *',
+    format(
+      $cmd$select net.http_post(url := %L, body := '{"mode": "passage"}'::jsonb,
+        headers := jsonb_build_object('Content-Type', 'application/json',
+          'x-cle-cron', (select cle_cron from prive.reglages_push)),
+        timeout_milliseconds := 120000)$cmd$,
+      p_adresse || '/functions/v1/agenda'
+    )
+  );
+end $$;
+
+revoke all on function prive.programmer_agenda(text) from public, anon, authenticated;

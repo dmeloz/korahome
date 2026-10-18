@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { evenementsDe, ligneWidget, resumeAgenda, type DocAgenda } from "../domaine/agenda";
 import type { DocCouple } from "../domaine/bandeau";
 import { menuDeLaSemaine, prochainPassage, reglageChef, type DocChef } from "../domaine/chef";
 import type { Souvenir } from "../domaine/memoire";
@@ -13,8 +14,9 @@ import { decrirePeremption, resumeStock, type Produit } from "../domaine/stock";
 import { compterDues, decrireEcheance, organiserTaches } from "../domaine/taches";
 import type { Element, Foyer, Jour, Liste, Tache } from "../domaine/types";
 import type { Depot } from "../donnees/depot";
-import type { ServeurJarvis } from "../donnees/distant";
+import type { ServeurAgenda, ServeurJarvis } from "../donnees/distant";
 import { organiserEntretien } from "../domaine/entretien";
+import { Agenda } from "./ecrans/Agenda";
 import { DetailListe } from "./ecrans/DetailListe";
 import { Chef } from "./ecrans/Chef";
 import { Entretien } from "./ecrans/Entretien";
@@ -51,6 +53,8 @@ export interface DonneesModule {
   couple: DocCouple[];
   /** Les menus du Chef de la semaine et son réglage. */
   menus: DocChef[];
+  /** L'agenda commun et l'état des comptes iCloud reliés. */
+  agenda: DocAgenda[];
 }
 
 export interface PropsPage extends DonneesModule {
@@ -59,6 +63,8 @@ export interface PropsPage extends DonneesModule {
   ouvrirListe: (id: string) => void;
   /** Jarvis, quand le foyer est partagé (il passe par son serveur). */
   jarvis: { serveur: ServeurJarvis; foyerId: string } | null;
+  /** La synchro de l'agenda avec iCloud, quand le foyer est partagé. */
+  agendaDistant: { serveur: ServeurAgenda; foyerId: string } | null;
 }
 
 /** Ce qu'un widget montre sur le tableau de bord. */
@@ -154,6 +160,27 @@ export const MODULES: Partial<Record<WidgetId, ModuleUI>> = {
       };
     },
     page: (p) => <Listes depot={p.depot} listes={p.listes} elements={p.elements} ouvrirListe={p.ouvrirListe} />,
+  },
+
+  agenda: {
+    id: "agenda",
+    picto: "calendrier",
+    libelle: "Agenda",
+    widget: (d) => {
+      const { aujourdhui, semaine } = resumeAgenda(evenementsDe(d.agenda), d.animaux, d.aujourdhui);
+      const prochain = semaine[0];
+      return {
+        chiffre: aujourdhui.length,
+        legende: aujourdhui.length
+          ? "aujourd'hui"
+          : prochain
+            ? `Rien aujourd'hui, ${pluriel(semaine.length, "événement")} cette semaine`
+            : "Rien de prévu cette semaine",
+        lignes: [...aujourdhui, ...semaine].slice(0, 3).map((o) => ligneWidget(o, d.aujourdhui)),
+        urgent: false,
+      };
+    },
+    page: (p) => <Agenda {...p} />,
   },
 
   mitsu: {

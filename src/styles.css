@@ -1400,3 +1400,56 @@ html[data-sens="arriere"]::view-transition-new(root) { animation-name: page-revi
 .chef-interrupteur { padding: 6px 0; min-height: 44px; color: var(--texte); font-size: 17px; }
 .chef-note { margin: 12px 0 0; font-size: 14px; line-height: 1.45; }
 .etiquette-chef { margin-left: 6px; font-family: var(--police-fixe); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+
+/* L'agenda commun */
+.agenda .puces { margin: 10px 0 4px; }
+.agenda-calendrier { padding: 8px 10px 12px; margin-top: 12px; }
+.agenda-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.agenda-nav .lien:disabled { color: var(--discret); }
+.agenda-grille { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
+.agenda-initiale { text-align: center; font-family: var(--police-fixe); font-size: 11px; letter-spacing: 0.08em; color: var(--discret); padding: 2px 0 4px; }
+.agenda-jour {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-height: 52px;
+  padding: 7px 0 6px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  font-variant-numeric: tabular-nums;
+}
+.agenda-grille.mois .agenda-jour { min-height: 44px; padding: 5px 0 4px; }
+.agenda-numero { font-size: 17px; line-height: 1; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; }
+.agenda-jour.aujourdhui .agenda-numero { color: var(--accent); font-weight: 700; }
+.agenda-jour.choisi .agenda-numero { background: var(--accent); color: var(--sur-accent); font-weight: 600; }
+.agenda-jour.hors { opacity: 0.35; }
+.agenda-points { display: flex; gap: 3px; height: 5px; }
+.agenda-points span { width: 5px; height: 5px; border-radius: 50%; }
+@media (prefers-reduced-motion: no-preference) { .agenda-numero { transition: background 0.15s ease, color 0.15s ease; } }
+.agenda-liste .agenda-ligne { width: 100%; border: 0; background: none; text-align: left; gap: 12px; padding: 10px 16px; align-items: stretch; }
+.agenda-heure { flex: none; width: 50px; display: flex; flex-direction: column; justify-content: center; font-variant-numeric: tabular-nums; font-size: 13px; color: var(--discret); }
+.agenda-heure strong { font-size: 16px; font-weight: 600; color: var(--texte); }
+.agenda-barre { flex: none; width: 3px; border-radius: 2px; }
+.agenda-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; justify-content: center; }
+.agenda-texte .ligne-texte { overflow: hidden; text-overflow: ellipsis; }
+.agenda-vide { margin: 8px 0 0; }
+.agenda-dans { font-size: 13px; }
+.agenda-pastille { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; flex: none; }
+.agenda-detail { gap: 10px; }
+.agenda-detail p { margin: 0; }
+.agenda-detail-quand { font-size: 19px; font-weight: 600; }
+.agenda-note { white-space: pre-wrap; }
+.agenda-formulaire { gap: 12px; }
+.agenda-dates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.agenda-dates label { min-width: 0; }
+.agenda-dates input { width: 100%; min-width: 0; }
+.agenda-icloud { display: grid; gap: 10px; }
+.agenda-icloud > p { margin: 0; line-height: 1.45; }
+.agenda-icloud > .lien { justify-self: start; padding: 4px 0; }
+.agenda-comptes { list-style: none; margin: 0; padding: 0; }
+.agenda-comptes .ligne { padding: 8px 0; gap: 0; }
+.agenda-comptes .agenda-texte { margin-right: 10px; }
+.agenda-etapes { margin: 0; padding-left: 20px; display: grid; gap: 6px; line-height: 1.4; }
+.agenda-etapes a { color: var(--accent); }

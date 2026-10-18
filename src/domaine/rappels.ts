@@ -1,3 +1,4 @@
+import { decrireCourt, evenementsDuMatin, type Evenement } from "./agenda";
 import { gestesDuJardin, type Zone } from "./jardin";
 import { meteoFraiche, type Meteo } from "./meteo";
 import { choseAFaire, type Animal } from "./mitsu";
@@ -17,6 +18,8 @@ import type { Foyer, Id, Jour, Tache } from "./types";
 export { adresseMeteo, lireMeteo } from "./meteo";
 /** Et il annonce les mots du couple, tout de suite ou à l'heure prévue. */
 export { fenetreMotsProgrammes, notificationMot } from "./bandeau";
+/** Et il lit l'agenda du jour. */
+export { evenementsDe } from "./agenda";
 
 /** Ce que chaque personne choisit de recevoir, sur son téléphone. */
 export interface PreferencesRappels {
@@ -28,6 +31,8 @@ export interface PreferencesRappels {
   jardin: boolean;
   /** Les mots du couple : une notification quand l'autre en écrit un. */
   mots: boolean;
+  /** Ce qui est à l'agenda ce jour-là, pour nous deux ou pour soi. */
+  agenda: boolean;
   /** L'heure du rappel, heure pleine, à Zurich. */
   heure: number;
   /** Les jours où le rappel arrive : 0 dimanche, 1 lundi… 6 samedi. */
@@ -41,7 +46,7 @@ export const HEURE_MIN = 5;
 export const HEURE_MAX = 22;
 
 export const TOUS_LES_JOURS = [1, 2, 3, 4, 5, 6, 0];
-export const PREFERENCES_DE_DEPART: PreferencesRappels = { taches: true, mitsu: true, stock: true, jardin: true, mots: true, heure: HEURE_DU_RAPPEL, jours: TOUS_LES_JOURS };
+export const PREFERENCES_DE_DEPART: PreferencesRappels = { taches: true, mitsu: true, stock: true, jardin: true, mots: true, agenda: true, heure: HEURE_DU_RAPPEL, jours: TOUS_LES_JOURS };
 export const FUSEAU_DU_FOYER = "Europe/Zurich";
 
 export function heureValide(heure: unknown): heure is number {
@@ -137,6 +142,8 @@ export function rappelDuMatin(entree: {
   membreId: Id | null;
   taches: Tache[];
   animaux: Animal[];
+  /** L'agenda commun ; absent, rien n'est dit de l'agenda. */
+  evenements?: readonly Evenement[];
   /** Le stock du foyer ; absent, rien n'est dit du frigo. */
   produits?: readonly Produit[];
   /** Le jardin et sa météo ; une météo de plus de 12 heures n'est pas prise en compte. */
@@ -150,6 +157,12 @@ export function rappelDuMatin(entree: {
   const { preferences, aujourdhui } = entree;
   const lignes: string[] = [];
   let nombre = 0;
+
+  if (preferences.agenda && entree.evenements) {
+    const occ = evenementsDuMatin(entree.evenements, entree.membreId, aujourdhui);
+    if (occ.length) lignes.push(`Agenda : ${enumerer(occ.map((o) => decrireCourt(o, aujourdhui)))}`);
+    nombre += occ.length;
+  }
 
   if (preferences.taches) {
     const t = tachesDuMatin(entree.taches, entree.membreId, aujourdhui);

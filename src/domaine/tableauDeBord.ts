@@ -16,7 +16,7 @@ export const CATALOGUE: readonly DefinitionWidget[] = [
   { id: "taches", titre: "Tâches de la maison", description: "Ce qui est à faire aujourd'hui et ce qui est en retard.", disponible: true },
   { id: "courses", titre: "Courses", description: "Ce qu'il reste à acheter.", disponible: true },
   { id: "listes", titre: "Autres listes", description: "Cadeaux, bricolage et toutes vos autres listes.", disponible: true },
-  { id: "agenda", titre: "Agenda", description: "Les rendez-vous du jour et de la semaine.", disponible: false },
+  { id: "agenda", titre: "Agenda commun", description: "Rendez-vous, anniversaires, vacances et sorties, à deux, relié au calendrier de l'iPhone.", disponible: true },
   { id: "mitsu", titre: "Mitsu", description: "Croquettes, litière, poids et vétérinaire.", disponible: true },
   { id: "stock", titre: "Frigo et placards", description: "Ce qu'il y a à la maison et ce qui arrive à sa date.", disponible: true },
   { id: "entretien", titre: "Entretien", description: "Détartrer, changer les filtres, tester le détecteur : rien ne s'oublie.", disponible: true },
