@@ -23,7 +23,7 @@ Fiche projet et plan (sur le Mac de la propriétaire) : `~/Atelier-Claude/Cervea
 - Bandeau du couple (mots, humeurs, comptes à rebours, clin d'œil de Jarvis, infos) : `src/domaine/bandeau.ts`, page « Nos mots ». Voir `docs/bandeau-couple.md`.
 - Kora apprend de votre usage (bilan du dimanche, accueil vivant, « comme d'habitude », mot du jour) : `src/domaine/apprentissage.ts`, page « Ce que Kora sait de nous ». Ce qui est personnel reste dans le `localStorage` du téléphone. Voir `docs/apprentissage.md`.
 - Jardin : zones, plantes et calendrier dans `src/domaine/jardin.ts` et `plantes.ts`, météo Open-Meteo (`meteo.ts`, sans clé). Voir `docs/jardin.md`.
-- `serveur/` : code qui tourne sur le Mac qui sert l'app (réception des rapports de test, branchée dans `vite.config.ts`).
+- `serveur/fonctionsServeur.test.ts` : vérifie que les fonctions serveur (`supabase/functions/*/domaine.js`) sont à jour avec leurs règles.
 - `src/ui/` : écrans React. Ils lisent par `useDonnees` et écrivent par le `Depot`, jamais directement dans IndexedDB.
 
 ## Conventions

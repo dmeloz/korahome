@@ -39,9 +39,3 @@ Le journal discret des 14 derniers jours (400 événements au plus) reste sur ch
 ouvertures de l'app, écrans visités, boutons touchés (leur libellé) et erreurs. Le texte tapé dans
 les champs n'y figure jamais. Seuls les six gestes qui précèdent une note partent avec elle ; le
 journal entier ne part qu'avec **Partager** ou **Copier**.
-
-## Sur le Mac (ancien chemin)
-
-`npm run serveur` et `npm run dev` savent encore recevoir un rapport sur `/__kora/retours` et l'écrire
-dans `retours-de-test/` (ignoré par Git), mais l'app ne l'envoie plus : elle est en ligne et les notes
-passent par le serveur du foyer.

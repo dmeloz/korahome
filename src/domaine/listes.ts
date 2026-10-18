@@ -47,10 +47,6 @@ export function basculerCoche(element: Element, ctx: Contexte): Element {
     : { ...element, coche: true, cocheLe: ctx.maintenant() };
 }
 
-export function changerRayon(element: Element, rayon: Rayon): Element {
-  return { ...element, rayon };
-}
-
 /** Un élément déjà présent et non coché, au même nom, est un doublon. */
 export function trouverDoublon(elements: Element[], saisie: string): Element | undefined {
   const { texte } = analyserSaisie(saisie);

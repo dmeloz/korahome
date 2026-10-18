@@ -41,19 +41,11 @@ import { decrirePeremption, LIEUX, nouveauProduit, type Lieu, type Produit } fro
 import { decaler, decrireEcheance, decrireRecurrence, ecartJours, estTerminee, marquerFaite, nouvelleTache } from "./taches";
 import type { Contexte, Element, Foyer, Id, Jour, Liste, Recurrence, Tache } from "./types";
 export {
-  CONSIGNES_CONSEIL,
-  CONSIGNES_JARVIS,
   coutMicroChf,
   etatBudget,
   formaterChf,
-  messageDemande,
-  MODELE_CONSEIL,
-  MODELE_JARVIS,
-  moisDe,
   OUTILS_JARVIS,
-  PLAFOND_CHF,
   TOURS_RETENUS,
-  type Consommation,
   type EtatBudget,
   type TourJarvis,
 } from "./jarvisModele";

@@ -9,7 +9,7 @@ export type ResultatVerification = "a_jour" | "en_cours" | "indisponible";
 export const MESSAGES_VERIFICATION: Record<ResultatVerification, string> = {
   a_jour: "Kora est à jour.",
   en_cours: "Une nouvelle version arrive : le bandeau « Mettre à jour » va s'afficher.",
-  indisponible: "Impossible de vérifier pour l'instant (réseau ou Mac éteint).",
+  indisponible: "Impossible de vérifier pour l'instant (pas de réseau).",
 };
 
 /** Ce que l'app utilise de l'inscription du service worker. */
