@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { Feuille } from "../Feuille";
 import type { Foyer } from "../../domaine/types";
 import { decrireJours, formaterHeure } from "../../domaine/rappels";
 import { lirePreferences } from "../rappels";
@@ -167,11 +168,9 @@ export function Telephone(props: { foyer: Foyer; membreId: string | null; choisi
         </>
       )}
 
-      {confirmer && moi && (
-        <div className="voile" onClick={() => setConfirmer(false)}>
-          <div className="feuille feuille-alerte" role="alertdialog" aria-labelledby="titre-changer" onClick={(e) => e.stopPropagation()}>
-            <div className="poignee" aria-hidden />
-            <h2 id="titre-changer">Changer de personne ?</h2>
+      {moi && (
+        <Feuille ouverte={confirmer} onFermer={() => setConfirmer(false)} alerte titre="Changer de personne ?">
+            <h2>Changer de personne ?</h2>
             <p className="discret">
               Ce téléphone ne sera plus à {moi.prenom} : ses tâches et ses rappels passeront à la personne choisie.
             </p>
@@ -187,8 +186,7 @@ export function Telephone(props: { foyer: Foyer; membreId: string | null; choisi
               </button>
               <button className="lien" onClick={() => setConfirmer(false)}>Annuler</button>
             </div>
-          </div>
-        </div>
+        </Feuille>
       )}
     </main>
   );

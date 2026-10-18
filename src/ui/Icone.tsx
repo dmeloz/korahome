@@ -29,6 +29,8 @@ const TRACES = {
   photo: "M4 8a1 1 0 0 1 1-1h3l1.5-2h5L16 7h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z",
   cadenas: "M7.5 11V8a4.5 4.5 0 0 1 9 0v3M6 11h12v9H6zM12 15v2",
   codeBarres: "M3 7V4h3M18 4h3v3M21 17v3h-3M6 20H3v-3M7 8v8M10 8v8M13 8v8M15.5 8v8M17.5 8v8",
+  ticket: "M6 3h12v18l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5L6 21zM9 8h6M9 12h6M9 16h4",
+  coeur: "M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z",
 } as const;
 
 export type NomIcone = keyof typeof TRACES;

@@ -8,15 +8,33 @@ changé quelque chose a son bouton **Annuler**. Quand on lui a parlé, il répon
 Ce qu'il sait faire (Kora 0.1.0) : ajouter et cocher des courses, créer une tâche (unique ou qui
 revient, pour quelqu'un ou libre), marquer une tâche faite, ranger des produits au frigo, au
 congélateur ou au placard, noter une pesée de Mitsu (même à une date passée), tenir son journal (litière, soucis) et son carnet de santé (y compris relu sur une photo du carnet), et répondre sur l'état du foyer.
-Il confie aussi une tâche à quelqu'un. Il ne supprime rien et ne dépense rien. Siri viendra avec
+Il confie aussi une tâche à quelqu'un. Il ne dépense rien, et demande toujours avant de supprimer. Siri viendra avec
 l'app native.
 
+- **Mémoire** (Kora 0.0.16) : « retiens que Sarah n'aime pas la coriandre » ; Jarvis relit sa
+  mémoire à chaque demande (les 60 faits les plus récents, quelques centimes par mois au plus).
+  Quand il remarque une habitude, il demande « Je le retiens ? » avant de la garder. La page
+  **Ce que Jarvis sait** (lien « Sa mémoire » en haut de Jarvis) permet de relire, corriger d'un
+  toucher et effacer d'un glissement. Collection partagée `memoire` (`src/domaine/memoire.ts`).
+- **Plus d'actions** (Kora 0.0.16) : décaler ou renommer une tâche, la supprimer, retirer du stock ce
+  qui est fini, oublier un fait. Tout ce qui supprime pose d'abord la question, avec ses boutons, et
+  se défait ensuite avec Annuler. « Rappelle-moi jeudi… » crée une tâche à cette date, signalée par
+  le rappel du matin. Il connaît aussi les derniers soins de Mitsu et les habitudes d'achat.
+- **Souhaits pour Claude** (Kora 0.0.16) : ce que Jarvis ne sait pas encore faire, il le note
+  (« Je ne sais pas encore le faire, je l'ai noté pour Claude »). Le souhait devient une note de
+  test « Idée » sur l'écran « Jarvis », qui part avec les autres sur le serveur ; Claude les lit au
+  début d'une session de corrections (`docs/retours-de-test.md`) et en fait une pull request que
+  Melo valide. Jarvis ne touche jamais au code lui-même.
 - **Photo** : le bouton appareil photo envoie une lettre, une facture ou une carte de rendez-vous ;
   Jarvis crée une tâche à la date de chaque rendez-vous ou échéance. La photo est réduite à
   1600 pixels en JPEG sur le téléphone avant de partir, et n'est gardée nulle part.
 - **Ticket de caisse** : la même photo range les achats au stock, avec leur quantité ; sans date
   écrite, la durée habituelle du foyer (ou celle que Kora connaît) donne la date de péremption, et
-  les courses correspondantes se cochent. La part budget viendra avec le module Budget.
+  les courses correspondantes se cochent. La part budget viendra avec le module Budget. Dans Frigo
+  et placards, le bouton ticket à côté du scanner fait la même chose avec une relecture d'abord :
+  on décoche une ligne, on change son lieu d'un toucher, puis « Tout ranger » (avec Annuler).
+- **Clin d'œil du jour** : une phrase chaleureuse par jour pour le bandeau de l'accueil (voir
+  `docs/bandeau-couple.md`).
 - **Recette** : coller le lien d'une recette (Betty Bossi, Fooby, Marmiton…). Le serveur ouvre la page
   (https public seulement, 8 secondes, 1,5 Mo au plus), lit les ingrédients dans ses données
   structurées ou, à défaut, son texte, et Jarvis n'ajoute aux courses que ce qui manque.

@@ -1,4 +1,5 @@
 import { useRef, useState, type FormEvent, type ReactNode } from "react";
+import { Feuille } from "../Feuille";
 import { ErreurValidation } from "../../domaine/foyer";
 import {
   ABRIS,
@@ -22,7 +23,7 @@ import {
   type TypeZone,
   type Zone,
 } from "../../domaine/jardin";
-import { appliquerActions, decrireFoyer, lireActions, type Modification } from "../../domaine/jarvis";
+import { aConfirmer, appliquerActions, decrireFoyer, lireActions, type Modification } from "../../domaine/jarvis";
 import { decrireTemps, formaterPluie, formaterTemperatures, meteoDu, type JourMeteo } from "../../domaine/meteo";
 import { EXPOSITIONS, NOMS_MOIS, type Espece, type Exposition } from "../../domaine/plantes";
 import { useAnnoncer } from "../annulation";
@@ -160,9 +161,9 @@ export function Jardin(p: PropsPage) {
         </Section>
       )}
 
-      <Section titre="Zones" action={<button className="lien" onClick={() => (ouvert ? setOuvert(false) : ouvrirFormulaire())}>{ouvert ? "Fermer" : "Ajouter"}</button>}>
-        {ouvert && (
-          <form onSubmit={creerZone} className="carte formulaire jardin-formulaire">
+      <Section titre="Zones" action={<button className="lien" onClick={() => ouvrirFormulaire()}>Ajouter</button>}>
+        <Feuille ouverte={ouvert} onFermer={() => setOuvert(false)} titre="Nouvelle zone" fermer="Annuler">
+          <form onSubmit={creerZone} className="formulaire jardin-formulaire">
             <label>
               Son nom
               <input value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Pots du balcon, grand bac…" autoComplete="off" autoFocus />
@@ -178,8 +179,8 @@ export function Jardin(p: PropsPage) {
             </div>
             <button type="submit" className="bouton-principal" disabled={!nom.trim()}>Ajouter la zone</button>
           </form>
-        )}
-        {zones.length === 0 && !ouvert && (
+        </Feuille>
+        {zones.length === 0 && (
           <div className="carte jardin-vide">
             <p className="discret">Une zone, c'est un pot, une jardinière ou un bac, avec le soleil qu'il reçoit. Kora dit quand arroser selon la pluie tombée, prévient du gel et propose quoi semer chaque mois.</p>
             <button className="bouton-principal" onClick={() => { setType("pot"); setExposition("soleil"); ouvrirFormulaire("Herbes aromatiques"); }}>
@@ -282,6 +283,8 @@ function CarteZone(
   const [detail, setDetail] = useState<string | null>(null);
   const annoncer = useAnnoncer();
   const etat = etatArrosage(zone, aujourdhui, meteo);
+  const planteOuverte = zone.plantes.find((pl) => pl.id === detail);
+  const especeOuverte = planteOuverte ? especeDe(planteOuverte) : undefined;
   const malPlacees = plantesMalPlacees(zone);
 
   function planter(e: FormEvent) {
@@ -303,7 +306,7 @@ function CarteZone(
             {TYPES_ZONE[zone.type]} · {EXPOSITIONS[zone.exposition].nom} · {ABRIS[zone.abri].nom}
           </span>
         </div>
-        <button className="lien" onClick={() => setModifier(!modifier)}>{modifier ? "Fermer" : "Modifier"}</button>
+        <button className="lien" onClick={() => setModifier(true)}>Modifier</button>
       </div>
 
       {etat && (
@@ -326,11 +329,10 @@ function CarteZone(
             return (
               <li key={pl.id}>
                 <Glissable className="jardin-plante" libelle="Retirer" onSupprimer={() => retirer(pl.id, pl.nom)}>
-                  <button type="button" className="jardin-plante-nom" onClick={() => setDetail(detail === pl.id ? null : pl.id)} aria-expanded={detail === pl.id}>
+                  <button type="button" className="jardin-plante-nom" onClick={() => setDetail(pl.id)} aria-haspopup="dialog">
                     <strong>{pl.nom}</strong>
                     <span className="tache-details">{x ? decrireEspece(x) : "Kora ne la connaît pas encore : arrosage tous les 3 jours en été"}</span>
                   </button>
-                  {detail === pl.id && x && <p className="discret jardin-plante-conseil">{x.conseil}</p>}
                 </Glissable>
               </li>
             );
@@ -343,7 +345,29 @@ function CarteZone(
         <button type="submit" disabled={!plante.trim()} aria-label="Ajouter la plante">+</button>
       </form>
 
-      {modifier && (
+      <Feuille ouverte={detail !== null} onFermer={() => setDetail(null)} titre={planteOuverte?.nom}>
+        {planteOuverte && (
+          <>
+            <p className="discret">
+              {especeOuverte ? decrireEspece(especeOuverte) : "Kora ne connaît pas encore cette plante : elle compte un arrosage tous les 3 jours en été."}
+            </p>
+            {especeOuverte && <p className="jardin-plante-conseil">{especeOuverte.conseil}</p>}
+            <p className="discret">Dans {zone.nom.toLowerCase()} depuis le {planteOuverte.depuis.split("-").reverse().join(".")}.</p>
+            <button
+              type="button"
+              className="lien danger"
+              onClick={() => {
+                setDetail(null);
+                retirer(planteOuverte.id, planteOuverte.nom);
+              }}
+            >
+              Retirer cette plante
+            </button>
+          </>
+        )}
+      </Feuille>
+
+      <Feuille ouverte={modifier} onFermer={() => setModifier(false)} titre={zone.nom}>
         <div className="formulaire jardin-modifier">
           <label>
             Nom
@@ -352,9 +376,18 @@ function CarteZone(
           <Puces libelle="Contenant" valeur={zone.type} choix={TYPES_ZONE} changer={(type) => props.enregistrer({ ...zone, type })} />
           <Puces libelle="Soleil" valeur={zone.exposition} choix={NOMS_EXPOSITION} changer={(exposition) => props.enregistrer({ ...zone, exposition })} />
           <Puces libelle="Abri" valeur={zone.abri} choix={NOMS_ABRI} changer={(abri) => props.enregistrer({ ...zone, abri })} />
-          <button type="button" className="lien danger" onClick={props.supprimer}>Retirer cette zone</button>
+          <button
+            type="button"
+            className="lien danger"
+            onClick={() => {
+              setModifier(false);
+              props.supprimer();
+            }}
+          >
+            Retirer cette zone
+          </button>
         </div>
-      )}
+      </Feuille>
     </div>
   );
 }
@@ -380,7 +413,8 @@ function Reconnaitre(p: PropsPage) {
         historique: [],
         image,
       });
-      const resultat = appliquerActions(lireActions(r.appels), p, p.membreId, p.aujourdhui, contexteReel);
+      // Ici, Jarvis reconnaît une plante : rien à supprimer ni à retenir sans question.
+      const resultat = appliquerActions(lireActions(r.appels).filter((a) => !aConfirmer(a)), p, p.membreId, p.aujourdhui, contexteReel);
       await enregistrerModifications(p.depot, resultat.modifications);
       if (resultat.modifications.length) vibrer();
       setReponse({ texte: [r.texte, ...resultat.faits, ...resultat.echecs].filter(Boolean).join(" ") || "C'est fait.", modifications: resultat.modifications });

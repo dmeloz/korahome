@@ -1,4 +1,5 @@
 import { IDBFactory } from "fake-indexeddb";
+import { nouveauSouvenir } from "../domaine/memoire";
 import { describe, expect, it, vi } from "vitest";
 import { contexteTest } from "../domaine/contexteTest";
 import { creerFoyer, listesInitiales } from "../domaine/foyer";
@@ -177,6 +178,16 @@ describe("dépôt local", () => {
     expect((await depot.lireEnAttente()).map((c) => c.collection)).toEqual(["jardin"]);
     await depot.supprimerZone(zone.id);
     expect(await depot.lireZones()).toEqual([]);
+  });
+
+  it("conserve la mémoire de Jarvis et la partage", async () => {
+    const depot = depotNeuf();
+    const souvenir = nouveauSouvenir("Sarah n'aime pas la coriandre", "demande", null, contexteTest());
+    await depot.enregistrerSouvenir(souvenir);
+    expect(await depot.lireMemoire()).toEqual([souvenir]);
+    expect((await depot.lireEnAttente()).map((c) => c.collection)).toEqual(["memoire"]);
+    await depot.supprimerSouvenir(souvenir.id);
+    expect(await depot.lireMemoire()).toEqual([]);
   });
 
   it("conserve le suivi de Mitsu", async () => {

@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { Feuille } from "../Feuille";
 import { ErreurValidation } from "../../domaine/foyer";
 import {
   RECURRENCES,
@@ -101,7 +102,6 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
       terminee ? `faite${membre(t.faitePar) ? ` par ${membre(t.faitePar)!.prenom}` : ""}` : decrireEcheance(t.echeance, aujourdhui),
       resp ? `${resp.id === moi ? "toi" : resp.prenom}` : plusieurs ? "libre" : null,
     ].filter(Boolean);
-    const estOuverte = ouverte === t.id;
 
     return (
       <li key={t.id}>
@@ -117,10 +117,10 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
           <button
             className="tache-texte"
             onClick={() => {
-              setOuverte(estOuverte ? null : t.id);
+              setOuverte(t.id);
               setASupprimer(null);
             }}
-            aria-expanded={estOuverte}
+            aria-haspopup="dialog"
           >
             <span className="ligne-texte">{t.titre}</span>
             <span className={`tache-details${enRetard ? " retard" : ""}`}>{details.join(" · ")}</span>
@@ -132,38 +132,49 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
           )}
         </div>
         </Glissable>
-        {estOuverte && (
-          <div className="tache-actions">
-            {moi && t.responsable !== moi && (
-              <button className="lien" onClick={() => props.depot.enregistrerTache(prendre(t, moi))}>
-                Je m'en occupe
-              </button>
-            )}
-            {t.responsable !== null && (
-              <button className="lien" onClick={() => props.depot.enregistrerTache(liberer(t))}>
-                Rendre libre
-              </button>
-            )}
-            {aSupprimer === t.id ? (
-              <button className="lien danger" onClick={() => supprimer(t)}>
-                Confirmer la suppression
-              </button>
-            ) : (
-              <button className="lien danger" onClick={() => setASupprimer(t.id)}>
-                Supprimer
-              </button>
-            )}
-          </div>
-        )}
       </li>
     );
   }
 
   const vide = props.taches.length === 0;
 
+  const t = props.taches.find((x) => x.id === ouverte);
   return (
     <main>
       <h1>Tâches</h1>
+
+      <Feuille ouverte={!!t} onFermer={() => setOuverte(null)} titre={t?.titre}>
+        {t && (
+          <div className="formulaire tache-feuille">
+            <p className="discret">{decrireRecurrence(t.recurrence)}</p>
+            {!estTerminee(t) && (
+              <label>
+                {t.recurrence ? "Prochaine fois le" : "Pour le"}
+                <input type="date" value={t.echeance} min="2000-01-01" onChange={(e) => e.target.value && props.depot.enregistrerTache({ ...t, echeance: e.target.value })} />
+              </label>
+            )}
+            {moi && t.responsable !== moi && (
+              <button type="button" className="bouton-principal" onClick={() => props.depot.enregistrerTache(prendre(t, moi))}>
+                Je m'en occupe
+              </button>
+            )}
+            {t.responsable !== null && (
+              <button type="button" className="lien" onClick={() => props.depot.enregistrerTache(liberer(t))}>
+                Rendre libre
+              </button>
+            )}
+            {aSupprimer === t.id ? (
+              <button type="button" className="lien danger" onClick={() => { setOuverte(null); void supprimer(t); }}>
+                Confirmer la suppression
+              </button>
+            ) : (
+              <button type="button" className="lien danger" onClick={() => setASupprimer(t.id)}>
+                Supprimer
+              </button>
+            )}
+          </div>
+        )}
+      </Feuille>
 
       <form onSubmit={ajouter} className="ajout-tache">
         <div className="ajout">

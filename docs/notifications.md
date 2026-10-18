@@ -19,6 +19,14 @@ rappel (tâches, Mitsu, frigo et placards), avec un aperçu de la notification. 
 de l'abonnement (`jours`, 0 = dimanche) : pas de changement de table. Le rappel suit la personne
 choisie dans Réglages > Ce téléphone.
 
+## Les mots du couple
+
+Un mot écrit dans « Nos mots » (voir `docs/bandeau-couple.md`) arrive aussi en notification sur
+l'autre iPhone : tout de suite (le téléphone appelle la fonction `rappels` en mode `mot`, qui vérifie
+que la personne est membre du foyer), ou à l'heure prévue pour un mot programmé (le passage de
+chaque heure annonce les mots devenus visibles depuis l'heure précédente, `fenetreMotsProgrammes`).
+Chacun peut les couper dans Réglages > Notifications > « Mots du couple » (`preferences.mots`).
+
 ## Comment ça marche
 
 - `src/domaine/rappels.ts` : quoi rappeler et quand (testé). C'est la règle que reprendra l'app native.

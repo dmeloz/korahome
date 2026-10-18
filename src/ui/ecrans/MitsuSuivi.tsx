@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { Feuille } from "../Feuille";
 import {
   ecarterProposition,
   ficheDeGarde,
@@ -238,21 +239,18 @@ export function Fiches({ animal, aujourdhui, informer }: { animal: Animal; aujou
   return (
     <div className="carte mitsu-fiches">
       <div className="puces" role="group" aria-label="Fiche à préparer">
-        <button type="button" className={`puce${ouverte === "veto" ? " active" : ""}`} aria-pressed={ouverte === "veto"} onClick={() => setOuverte(ouverte === "veto" ? null : "veto")}>
+        <button type="button" className={`puce${ouverte === "veto" ? " active" : ""}`} aria-pressed={ouverte === "veto"} onClick={() => setOuverte("veto")}>
           Pour le vétérinaire
         </button>
-        <button type="button" className={`puce${ouverte === "garde" ? " active" : ""}`} aria-pressed={ouverte === "garde"} onClick={() => setOuverte(ouverte === "garde" ? null : "garde")}>
+        <button type="button" className={`puce${ouverte === "garde" ? " active" : ""}`} aria-pressed={ouverte === "garde"} onClick={() => setOuverte("garde")}>
           Pour la garde
         </button>
       </div>
-      {ouverte ? (
-        <>
-          <pre className="mitsu-fiche-texte">{texte}</pre>
-          <button className="bouton-principal" onClick={partager}>Partager</button>
-        </>
-      ) : (
-        <p className="discret">Un résumé prêt à montrer à la visite, ou à envoyer à qui la garde pendant les vacances.</p>
-      )}
+      <p className="discret">Un résumé prêt à montrer à la visite, ou à envoyer à qui la garde pendant les vacances.</p>
+      <Feuille ouverte={ouverte !== null} onFermer={() => setOuverte(null)} titre={titre}>
+        <pre className="mitsu-fiche-texte">{texte}</pre>
+        <button className="bouton-principal" onClick={partager}>Partager</button>
+      </Feuille>
     </div>
   );
 }

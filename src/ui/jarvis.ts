@@ -1,6 +1,8 @@
 import { annulation, type Modification } from "../domaine/jarvis";
 import type { Zone } from "../domaine/jardin";
+import type { Souvenir } from "../domaine/memoire";
 import type { Animal } from "../domaine/mitsu";
+import type { RetourTest } from "../domaine/retours";
 import type { Produit } from "../domaine/stock";
 import type { Element, Tache } from "../domaine/types";
 import type { Depot } from "../donnees/depot";
@@ -18,24 +20,32 @@ type Ecritures = Pick<
   | "supprimerProduit"
   | "enregistrerAnimal"
   | "enregistrerZone"
+  | "enregistrerSouvenir"
+  | "supprimerSouvenir"
+  | "enregistrerRetour"
+  | "supprimerRetour"
 >;
 
 export async function enregistrerModifications(depot: Ecritures, modifications: readonly Modification[]): Promise<void> {
   for (const m of modifications) {
     if (m.collection === "elements") await depot.enregistrerElement(m.apres);
-    else if (m.collection === "taches") await depot.enregistrerTache(m.apres);
-    else if (m.collection === "stock") await depot.enregistrerProduit(m.apres);
+    else if (m.collection === "taches") await (m.supprime ? depot.supprimerTache(m.apres.id) : depot.enregistrerTache(m.apres));
+    else if (m.collection === "stock") await (m.supprime ? depot.supprimerProduit(m.apres.id) : depot.enregistrerProduit(m.apres));
+    else if (m.collection === "memoire") await (m.supprime ? depot.supprimerSouvenir(m.apres.id) : depot.enregistrerSouvenir(m.apres));
+    else if (m.collection === "retours") await depot.enregistrerRetour(m.apres);
     else if (m.collection === "jardin") await depot.enregistrerZone(m.apres);
     else await depot.enregistrerAnimal(m.apres);
   }
 }
 
-/** Remet chaque document comme avant Jarvis ; ce qu'il avait créé disparaît. */
+/** Remet chaque document comme avant Jarvis ; ce qu'il avait créé disparaît, ce qu'il avait supprimé revient. */
 export async function annulerModifications(depot: Ecritures, modifications: readonly Modification[]): Promise<void> {
   for (const { collection, id, remettre } of annulation(modifications)) {
     if (collection === "elements") await (remettre ? depot.enregistrerElement(remettre as Element) : depot.supprimerElements([id]));
     else if (collection === "taches") await (remettre ? depot.enregistrerTache(remettre as Tache) : depot.supprimerTache(id));
     else if (collection === "stock") await (remettre ? depot.enregistrerProduit(remettre as Produit) : depot.supprimerProduit(id));
+    else if (collection === "memoire") await (remettre ? depot.enregistrerSouvenir(remettre as Souvenir) : depot.supprimerSouvenir(id));
+    else if (collection === "retours") await (remettre ? depot.enregistrerRetour(remettre as RetourTest) : depot.supprimerRetour(id));
     else if (collection === "jardin") {
       // Jarvis ne crée pas de zone : il y a toujours une version d'avant.
       if (remettre) await depot.enregistrerZone(remettre as Zone);

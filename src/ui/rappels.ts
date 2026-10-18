@@ -47,6 +47,7 @@ export function lirePreferences(): PreferencesRappels {
       mitsu: typeof brut?.mitsu === "boolean" ? brut.mitsu : PREFERENCES_DE_DEPART.mitsu,
       stock: typeof brut?.stock === "boolean" ? brut.stock : PREFERENCES_DE_DEPART.stock,
       jardin: typeof brut?.jardin === "boolean" ? brut.jardin : PREFERENCES_DE_DEPART.jardin,
+      mots: typeof brut?.mots === "boolean" ? brut.mots : PREFERENCES_DE_DEPART.mots,
       heure: heureValide(brut?.heure) ? brut.heure : PREFERENCES_DE_DEPART.heure,
       jours: nettoyerJours(brut?.jours),
     };

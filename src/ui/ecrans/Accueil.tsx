@@ -1,3 +1,6 @@
+import { BandeauCouple } from "../BandeauCouple";
+import type { Depot } from "../../donnees/depot";
+import type { ServeurJarvis } from "../../donnees/distant";
 import { useRef, useState, type PointerEvent, type ReactNode } from "react";
 import {
   ajouterWidget,
@@ -35,6 +38,9 @@ export function Accueil(props: {
   ouvrirModule: (id: WidgetId) => void;
   ouvrirReglages: () => void;
   ouvrirJarvis: () => void;
+  ouvrirMots: () => void;
+  depot: Depot;
+  jarvis: { serveur: ServeurJarvis; foyerId: string } | null;
   /** Une nouvelle version attend : pastille rouge sur les Réglages. */
   nouvelleVersion: boolean;
 }) {
@@ -139,6 +145,8 @@ export function Accueil(props: {
           </div>
         )}
       </header>
+
+      {!edition && <BandeauCouple donnees={props.donnees} depot={props.depot} jarvis={props.jarvis} ouvrir={props.ouvrirMots} />}
 
       {affiches.length === 0 && !edition && (
         <div className="carte vide-tableau">

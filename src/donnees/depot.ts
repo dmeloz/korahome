@@ -1,4 +1,6 @@
 import type { Animal } from "../domaine/mitsu";
+import type { DocCouple } from "../domaine/bandeau";
+import type { Souvenir } from "../domaine/memoire";
 import type { RetourTest } from "../domaine/retours";
 import type { ProduitHabituel } from "../domaine/catalogue";
 import type { Zone } from "../domaine/jardin";
@@ -45,6 +47,16 @@ export interface Depot {
   lireZones(): Promise<Zone[]>;
   enregistrerZone(zone: Zone): Promise<void>;
   supprimerZone(id: Id): Promise<void>;
+
+  /** La mémoire de Jarvis : un document par fait retenu sur le foyer. */
+  lireMemoire(): Promise<Souvenir[]>;
+  enregistrerSouvenir(souvenir: Souvenir): Promise<void>;
+  supprimerSouvenir(id: Id): Promise<void>;
+
+  /** Le bandeau du couple : mots, humeurs, comptes à rebours, clin d'œil de Jarvis. */
+  lireCouple(): Promise<DocCouple[]>;
+  enregistrerCouple(doc: DocCouple): Promise<void>;
+  supprimerCouple(id: Id): Promise<void>;
 
   /** Les notes de test écrites depuis le coin « Dev ». */
   lireRetours(): Promise<RetourTest[]>;

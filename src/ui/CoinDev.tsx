@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Feuille } from "./Feuille";
 import { ErreurValidation } from "../domaine/foyer";
 import { GENRES, nouveauRetour, type GenreRetour } from "../domaine/retours";
 import type { Depot } from "../donnees/depot";
@@ -64,10 +65,8 @@ export function CoinDev(props: {
         </button>
       )}
       {confirmation && <div className="toast" role="status">{confirmation}</div>}
-      {ouverte && (
-        <div className="voile" onClick={() => setOuverte(false)}>
-          <form className="feuille" onSubmit={enregistrer} onClick={(e) => e.stopPropagation()} data-journal="non">
-            <div className="poignee" aria-hidden />
+      <Feuille ouverte={ouverte} onFermer={() => setOuverte(false)}>
+          <form className="feuille-formulaire" onSubmit={enregistrer} data-journal="non">
             <p className="surtitre feuille-surtitre">
               Retour de test · Kora {__VERSION__} · {ecranNote.current}
             </p>
@@ -110,8 +109,7 @@ export function CoinDev(props: {
               </button>
             </div>
           </form>
-        </div>
-      )}
+      </Feuille>
     </>
   );
 }

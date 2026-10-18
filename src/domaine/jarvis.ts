@@ -6,7 +6,10 @@
 // - comment ses actions modifient les données (appliquerActions), sur le téléphone, qui
 //   les enregistre dans le Dépôt et peut tout annuler ;
 // - le plafond de dépense du foyer (5 CHF par mois).
-// Jarvis ne supprime rien : il ajoute, coche et met à jour. Tout se rattrape avec Annuler.
+// Ce qui supprime (une tâche, un produit, un souvenir) ou ce qu'il propose de retenir attend
+// le oui de la personne (aConfirmer). Tout se rattrape avec Annuler.
+// Il a aussi une mémoire du foyer (memoire.ts) et note ce qu'il ne sait pas encore faire
+// comme souhait pour Claude (une note « Idée » des retours de test).
 
 import { proposer, type ProduitHabituel } from "./catalogue";
 import { ajouterPlante, arroser, decrireJardin, nouvellePlante, type Zone } from "./jardin";
@@ -22,13 +25,17 @@ import {
   poidsActuel,
   rationDuJour,
   soinsAVenir,
+  soinsFaits,
   TYPES_EVENEMENT,
   TYPES_SOIN,
   type Animal,
   type TypeEvenement,
   type TypeSoin,
 } from "./mitsu";
+import { suggestions } from "./habitudes";
+import { decrireMemoire, nouveauSouvenir, souvenirSemblable, trouverSouvenir, type Souvenir } from "./memoire";
 import { normaliser } from "./rayons";
+import { nouveauRetour, type RetourTest } from "./retours";
 import { decrirePeremption, LIEUX, nouveauProduit, type Lieu, type Produit } from "./stock";
 import { decaler, decrireEcheance, decrireRecurrence, ecartJours, estTerminee, marquerFaite, nouvelleTache } from "./taches";
 import type { Contexte, Element, Foyer, Id, Jour, Liste, Recurrence, Tache } from "./types";
@@ -64,6 +71,12 @@ export interface DonneesFoyer {
   /** Le jardin et sa météo. */
   zones?: Zone[];
   meteo?: Meteo | null;
+  /** Ce que Jarvis sait du foyer d'une fois à l'autre. */
+  souvenirs?: Souvenir[];
+  /** Les notes de test : les souhaits de Jarvis y vont, sans doublon. */
+  retours?: RetourTest[];
+  /** La version de l'app, marquée sur les souhaits. */
+  version?: string;
 }
 
 const listeCourses = (d: DonneesFoyer) => d.listes.find((l) => l.type === "courses") ?? null;
@@ -82,6 +95,7 @@ export function decrireFoyer(d: DonneesFoyer, membreId: Id | null, aujourdhui: J
   lignes.push(`Aujourd'hui : ${nomDuJour(aujourdhui)} ${aujourdhui}.`);
   lignes.push(`Foyer « ${d.foyer.nom} » : ${d.foyer.membres.map((m) => m.prenom).join(", ")}.`);
   lignes.push(moi ? `La personne qui parle : ${moi}.` : "La personne qui parle n'est pas connue.");
+  lignes.push(...decrireMemoire(d.souvenirs ?? []));
 
   const liste = listeCourses(d);
   const aPrendre = liste ? d.elements.filter((e) => e.listeId === liste.id && !e.coche) : [];
@@ -92,6 +106,8 @@ export function decrireFoyer(d: DonneesFoyer, membreId: Id | null, aujourdhui: J
         ? "Liste de courses : vide."
         : `Liste de courses : ${aPrendre.map((e) => (e.quantite ? `${e.texte} (${e.quantite})` : e.texte)).join(", ")}.`,
   );
+  const habitudes = liste ? suggestions(liste, d.elements, aujourdhui, 8) : [];
+  if (habitudes.length) lignes.push(`Bientôt à racheter, d'après les habitudes : ${habitudes.map((h) => `${h.texte} (${h.rythme})`).join(", ")}.`);
 
   const taches = d.taches
     .filter((t) => !estTerminee(t) && ecartJours(aujourdhui, t.echeance) <= 14)
@@ -122,6 +138,8 @@ export function decrireFoyer(d: DonneesFoyer, membreId: Id | null, aujourdhui: J
     );
     const soins = soinsAVenir(a).slice(0, 4);
     if (soins.length) lignes.push(`Carnet de ${a.nom}, prévu : ${soins.map((x) => `${x.libelle} le ${x.date}`).join(", ")}.`);
+    const faits = soinsFaits(a).slice(0, 5);
+    if (faits.length) lignes.push(`Carnet de ${a.nom}, derniers soins faits : ${faits.map((x) => `${x.libelle} le ${x.date}`).join(", ")}.`);
     const journal = journalRecent(a).slice(0, 5);
     if (journal.length) lignes.push(`Journal de ${a.nom} : ${journal.map((e) => `${TYPES_EVENEMENT[e.quoi].toLowerCase()}${e.note ? ` (${e.note})` : ""} le ${e.jour}`).join(", ")}.`);
   }
@@ -142,7 +160,39 @@ export type ActionJarvis =
   | { outil: "noter_journal"; animal: string; quoi: TypeEvenement; note: string; jour: Jour | null }
   | { outil: "noter_soin"; animal: string; type: TypeSoin; libelle: string; date: Jour; fait: boolean }
   | { outil: "ajouter_plante"; plantes: string[]; zone: string | null }
-  | { outil: "arrosage_fait"; zone: string | null };
+  | { outil: "arrosage_fait"; zone: string | null }
+  | { outil: "modifier_tache"; titre: string; nouveauTitre: string | null; echeance: Jour | null }
+  | { outil: "supprimer_tache"; titre: string }
+  | { outil: "retirer_du_stock"; produits: string[] }
+  | { outil: "retenir"; fait: string; propose: boolean }
+  | { outil: "oublier"; fait: string }
+  | { outil: "noter_souhait"; demande: string; manque: string };
+
+/** Ce qui attend le oui de la personne avant de se faire : supprimer, ou retenir ce que Jarvis a remarqué seul. */
+export function aConfirmer(action: ActionJarvis): boolean {
+  return (
+    action.outil === "supprimer_tache" ||
+    action.outil === "retirer_du_stock" ||
+    action.outil === "oublier" ||
+    (action.outil === "retenir" && action.propose)
+  );
+}
+
+/** La question posée avant une action à confirmer, et le libellé de son bouton « oui ». */
+export function questionPour(action: ActionJarvis): { question: string; oui: string } {
+  switch (action.outil) {
+    case "supprimer_tache":
+      return { question: `Supprimer la tâche « ${action.titre} » ?`, oui: "Supprimer" };
+    case "retirer_du_stock":
+      return { question: `Retirer du stock : ${enumerer(action.produits)} ?`, oui: "Retirer" };
+    case "oublier":
+      return { question: `Oublier « ${action.fait} » ?`, oui: "Oublier" };
+    case "retenir":
+      return { question: `J'ai remarqué : « ${action.fait} ». Je le retiens ?`, oui: "Retenir" };
+    default:
+      return { question: decrireAction(action), oui: "Oui" };
+  }
+}
 
 const estTexte = (v: unknown): v is string => typeof v === "string" && v.trim().length > 0;
 const textes = (v: unknown): string[] => (Array.isArray(v) ? v.filter(estTexte) : []);
@@ -196,18 +246,38 @@ export function lireActions(appels: readonly { nom: string; entree: unknown }[])
       if (plantes.length) actions.push({ outil: nom, plantes, zone: estTexte(e.zone) ? e.zone : null });
     } else if (nom === "arrosage_fait") {
       actions.push({ outil: nom, zone: estTexte(e.zone) ? e.zone : null });
+    } else if (nom === "modifier_tache") {
+      const nouveauTitre = estTexte(e.nouveau_titre) ? e.nouveau_titre : null;
+      const echeance = jourOuNul(e.echeance);
+      if (estTexte(e.titre) && (nouveauTitre || echeance)) actions.push({ outil: nom, titre: e.titre, nouveauTitre, echeance });
+    } else if (nom === "supprimer_tache") {
+      if (estTexte(e.titre)) actions.push({ outil: nom, titre: e.titre });
+    } else if (nom === "retirer_du_stock") {
+      const produits = textes(e.produits);
+      if (produits.length) actions.push({ outil: nom, produits });
+    } else if (nom === "retenir") {
+      if (estTexte(e.fait)) actions.push({ outil: nom, fait: e.fait.trim(), propose: e.propose !== false });
+    } else if (nom === "oublier") {
+      if (estTexte(e.fait)) actions.push({ outil: nom, fait: e.fait.trim() });
+    } else if (nom === "noter_souhait") {
+      if (estTexte(e.demande)) actions.push({ outil: nom, demande: e.demande.trim(), manque: estTexte(e.manque) ? e.manque.trim() : "" });
     }
   }
   return actions;
 }
 
-/** Un document modifié par Jarvis, avec sa version d'avant pour pouvoir annuler (null : il vient d'être créé). */
+/**
+ * Un document modifié par Jarvis, avec sa version d'avant pour pouvoir annuler (null : il vient
+ * d'être créé). `supprime` : le document part ; Annuler le remet tel qu'il était (avant).
+ */
 export type Modification =
   | { collection: "elements"; avant: Element | null; apres: Element }
-  | { collection: "taches"; avant: Tache | null; apres: Tache }
-  | { collection: "stock"; avant: Produit | null; apres: Produit }
+  | { collection: "taches"; avant: Tache | null; apres: Tache; supprime?: true }
+  | { collection: "stock"; avant: Produit | null; apres: Produit; supprime?: true }
   | { collection: "animaux"; avant: Animal; apres: Animal }
-  | { collection: "jardin"; avant: Zone; apres: Zone };
+  | { collection: "jardin"; avant: Zone; apres: Zone }
+  | { collection: "memoire"; avant: Souvenir | null; apres: Souvenir; supprime?: true }
+  | { collection: "retours"; avant: null; apres: RetourTest };
 
 export interface ResultatActions {
   modifications: Modification[];
@@ -248,6 +318,8 @@ export function appliquerActions(
   let taches = [...donnees.taches];
   let animaux = [...donnees.animaux];
   let zones = [...(donnees.zones ?? [])];
+  let produits = [...donnees.produits];
+  let souvenirs = [...(donnees.souvenirs ?? [])];
   const liste = listeCourses(donnees);
 
   /** Une zone modifiée : la version d'avant reste celle de sa première modification. */
@@ -419,6 +491,79 @@ export function appliquerActions(
           else if (!action.zone) echecs.push("Il n'y a encore rien à arroser au jardin.");
           break;
         }
+        case "modifier_tache": {
+          const tache = trouverParNom(taches.filter((t) => !estTerminee(t)), action.titre, (t) => t.titre);
+          if (!tache) {
+            echecs.push(`Je ne trouve pas la tâche « ${action.titre} ».`);
+            break;
+          }
+          const modifiee: Tache = { ...tache, titre: action.nouveauTitre?.trim() || tache.titre, echeance: action.echeance ?? tache.echeance };
+          taches = taches.map((t) => (t.id === modifiee.id ? modifiee : t));
+          modifications.push({ collection: "taches", avant: tache, apres: modifiee });
+          faits.push(`Tâche modifiée : ${modifiee.titre.toLowerCase()}, ${decrireEcheance(modifiee.echeance, aujourdhui)}.`);
+          break;
+        }
+        case "supprimer_tache": {
+          const tache = trouverParNom(taches, action.titre, (t) => t.titre);
+          if (!tache) {
+            echecs.push(`Je ne trouve pas la tâche « ${action.titre} ».`);
+            break;
+          }
+          taches = taches.filter((t) => t.id !== tache.id);
+          modifications.push({ collection: "taches", avant: tache, apres: tache, supprime: true });
+          faits.push(`Tâche supprimée : ${tache.titre.toLowerCase()}.`);
+          break;
+        }
+        case "retirer_du_stock": {
+          const retires: string[] = [];
+          for (const nom of action.produits) {
+            const produit = trouverParNom(produits, nom, (p) => p.nom);
+            if (!produit) {
+              echecs.push(`« ${nom} » n'est pas dans le stock.`);
+              continue;
+            }
+            produits = produits.filter((p) => p.id !== produit.id);
+            modifications.push({ collection: "stock", avant: produit, apres: produit, supprime: true });
+            retires.push(produit.nom.toLowerCase());
+          }
+          if (retires.length) faits.push(`Retiré du stock : ${enumerer(retires)}.`);
+          break;
+        }
+        case "retenir": {
+          const deja = souvenirSemblable(souvenirs, action.fait);
+          if (deja) {
+            faits.push(`Je le savais déjà : ${deja.texte.charAt(0).toLowerCase()}${deja.texte.slice(1)}.`);
+            break;
+          }
+          const souvenir = nouveauSouvenir(action.fait, action.propose ? "remarque" : "demande", membreId, ctx);
+          souvenirs.push(souvenir);
+          modifications.push({ collection: "memoire", avant: null, apres: souvenir });
+          faits.push(`Retenu : ${souvenir.texte.charAt(0).toLowerCase()}${souvenir.texte.slice(1)}.`);
+          break;
+        }
+        case "oublier": {
+          const souvenir = trouverSouvenir(souvenirs, action.fait);
+          if (!souvenir) {
+            echecs.push(`Je n'avais pas retenu « ${action.fait} ».`);
+            break;
+          }
+          souvenirs = souvenirs.filter((s) => s.id !== souvenir.id);
+          modifications.push({ collection: "memoire", avant: souvenir, apres: souvenir, supprime: true });
+          faits.push(`Oublié : ${souvenir.texte.charAt(0).toLowerCase()}${souvenir.texte.slice(1)}.`);
+          break;
+        }
+        case "noter_souhait": {
+          const texte = `Souhait pour Jarvis : ${action.demande}${action.manque ? ` (il faudrait : ${action.manque})` : ""}`;
+          const deja = (donnees.retours ?? []).some((r) => !r.regleLe && normaliser(r.texte) === normaliser(texte));
+          if (deja) {
+            faits.push("Ce souhait était déjà noté pour Claude.");
+            break;
+          }
+          const retour = nouveauRetour({ texte, genre: "idee", ecran: "Jarvis", version: donnees.version ?? "", auteur: membreId }, ctx);
+          modifications.push({ collection: "retours", avant: null, apres: retour });
+          faits.push("Souhait noté pour Claude.");
+          break;
+        }
       }
     } catch (e) {
       echecs.push(e instanceof Error ? e.message : "Cette action n'a pas pu se faire.");
@@ -452,6 +597,18 @@ export function decrireAction(action: ActionJarvis): string {
       return `Planter : ${enumerer(action.plantes)}${action.zone ? ` (${action.zone})` : ""}`;
     case "arrosage_fait":
       return action.zone ? `Arrosé : ${action.zone}` : "Arrosé : tout le jardin";
+    case "modifier_tache":
+      return `Modifier : ${action.titre}${action.nouveauTitre ? ` → ${action.nouveauTitre}` : ""}${action.echeance ? `, le ${action.echeance}` : ""}`;
+    case "supprimer_tache":
+      return `Supprimer la tâche : ${action.titre}`;
+    case "retirer_du_stock":
+      return `Retirer du stock : ${enumerer(action.produits)}`;
+    case "retenir":
+      return `Retenir : ${action.fait}`;
+    case "oublier":
+      return `Oublier : ${action.fait}`;
+    case "noter_souhait":
+      return `Souhait pour Claude : ${action.demande}`;
   }
 }
 

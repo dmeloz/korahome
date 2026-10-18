@@ -1,16 +1,19 @@
+import { useState } from "react";
 import { entretiensAProposer, nouvelEntretien, organiserEntretien } from "../../domaine/entretien";
-import { decrireRecurrence, marquerFaite } from "../../domaine/taches";
+import { decrireEcheance, decrireRecurrence, marquerFaite } from "../../domaine/taches";
 import type { Jour, Tache } from "../../domaine/types";
 import type { Depot } from "../../donnees/depot";
 import { useAnnoncer } from "../annulation";
 import { contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
+import { Feuille } from "../Feuille";
 import { vibrer } from "../haptique";
 
 /** L'entretien de la maison : ce qui revient tous les quelques mois, du plus pressé au plus lointain. */
 export function Entretien(props: { depot: Depot; membreId: string | null; taches: Tache[]; aujourdhui: Jour }) {
   const { depot, aujourdhui } = props;
   const annoncer = useAnnoncer();
+  const [ouverte, setOuverte] = useState<string | null>(null);
   const lignes = organiserEntretien(props.taches, aujourdhui);
   const propositions = entretiensAProposer(props.taches);
 
@@ -26,9 +29,27 @@ export function Entretien(props: { depot: Depot; membreId: string | null; taches
     annoncer(`« ${t.titre} » retiré.`, () => depot.enregistrerTache(t));
   }
 
+  const t = props.taches.find((x) => x.id === ouverte);
   return (
     <main>
       <h1>Entretien</h1>
+      <Feuille ouverte={!!t} onFermer={() => setOuverte(null)} titre={t?.titre}>
+        {t && (
+          <div className="formulaire tache-feuille">
+            <p className="discret">{decrireRecurrence(t.recurrence)} · {decrireEcheance(t.echeance, aujourdhui)}</p>
+            <button type="button" className="bouton-principal" onClick={() => { setOuverte(null); void faire(t); }}>
+              Fait aujourd'hui
+            </button>
+            <label>
+              Prochaine fois le
+              <input type="date" value={t.echeance} min="2000-01-01" onChange={(e) => e.target.value && depot.enregistrerTache({ ...t, echeance: e.target.value })} />
+            </label>
+            <button type="button" className="lien danger" onClick={() => { setOuverte(null); void retirer(t); }}>
+              Retirer
+            </button>
+          </div>
+        )}
+      </Feuille>
       <p className="discret">Les gestes qui reviennent tous les quelques mois. Kora les rappelle la semaine où ils sont dus.</p>
 
       {lignes.length > 0 && (
@@ -38,12 +59,12 @@ export function Entretien(props: { depot: Depot; membreId: string | null; taches
               <Glissable onSupprimer={() => void retirer(tache)} libelle="Retirer">
                 <div className="ligne tache">
                   <button className="case" onClick={() => void faire(tache)} aria-label={`Marquer « ${tache.titre} » comme fait`} />
-                  <span className="tache-texte">
+                  <button className="tache-texte" onClick={() => setOuverte(tache.id)} aria-haspopup="dialog">
                     <span className="ligne-texte">{tache.titre}</span>
                     <span className={`tache-details${du ? " retard" : ""}`}>
                       {decrireRecurrence(tache.recurrence)} · {quand}
                     </span>
-                  </span>
+                  </button>
                 </div>
               </Glissable>
             </li>

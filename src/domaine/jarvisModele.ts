@@ -247,6 +247,84 @@ export const OUTILS_JARVIS = [
       properties: { zone: ouNul("Le nom de la zone arrosée ; null si tout le jardin a été arrosé.") },
     },
   },
+  {
+    name: "modifier_tache",
+    description: "Change le nom ou la date d'une tâche existante (« décale l'aspirateur à jeudi »).",
+    strict: true,
+    input_schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["titre", "nouveau_titre", "echeance"],
+      properties: {
+        titre: texte("Le nom de la tâche tel qu'il figure dans la liste des tâches."),
+        nouveau_titre: ouNul("Le nouveau nom ; null pour le garder."),
+        echeance: ouNul("La nouvelle date, AAAA-MM-JJ ; null pour la garder."),
+      },
+    },
+  },
+  {
+    name: "supprimer_tache",
+    description: "Supprime une tâche qui n'a plus lieu d'être. L'app demande confirmation avant.",
+    strict: true,
+    input_schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["titre"],
+      properties: { titre: texte("Le nom de la tâche tel qu'il figure dans la liste des tâches.") },
+    },
+  },
+  {
+    name: "retirer_du_stock",
+    description: "Retire du stock des produits finis, mangés ou jetés. L'app demande confirmation avant.",
+    strict: true,
+    input_schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["produits"],
+      properties: { produits: { type: "array", items: texte("Le nom du produit tel qu'il figure dans le stock.") } },
+    },
+  },
+  {
+    name: "retenir",
+    description:
+      "Retient durablement un fait sur le foyer : un goût, une habitude, une règle de la maison. propose: false quand on te demande de le retenir ; true quand tu l'as remarqué toi-même (l'app demande alors si elle doit le retenir).",
+    strict: true,
+    input_schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["fait", "propose"],
+      properties: {
+        fait: texte("Le fait en une phrase courte et autonome, à la troisième personne : « Sarah n'aime pas la coriandre »."),
+        propose: { type: "boolean", description: "true si personne ne t'a demandé de le retenir." },
+      },
+    },
+  },
+  {
+    name: "oublier",
+    description: "Efface un fait de ta mémoire, quand on te dit qu'il est faux ou plus à jour. L'app demande confirmation avant.",
+    strict: true,
+    input_schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["fait"],
+      properties: { fait: texte("Le fait tel qu'il figure dans ta mémoire.") },
+    },
+  },
+  {
+    name: "noter_souhait",
+    description:
+      "Quand on te demande une chose que tu ne sais pas faire (aucun outil ne convient, ou l'app n'a pas cette fonction), note-la comme souhait d'amélioration pour Claude, qui fait évoluer l'app.",
+    strict: true,
+    input_schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["demande", "manque"],
+      properties: {
+        demande: texte("Ce que la personne voulait, avec ses mots."),
+        manque: texte("Ce qu'il faudrait que tu saches faire, en une phrase."),
+      },
+    },
+  },
 ] as const;
 
 export const CONSIGNES_JARVIS = `Tu es Jarvis, l'assistant d'un foyer en Suisse romande, dans l'app KoraHome sur iPhone.
@@ -254,8 +332,11 @@ On te parle souvent à la voix : la demande peut être approximative ou mal tran
 Réponds toujours en français, en tutoyant, en une ou deux phrases courtes, sans liste ni mise en forme.
 Pour agir, utilise les outils. Quand tu utilises un outil, n'écris rien d'autre : l'app confirme elle-même ce qui a été fait.
 Tu peux faire plusieurs actions d'un coup. Les dates sont au format AAAA-MM-JJ ; « demain », « samedi » se comptent depuis la date du jour donnée.
-Tu ne supprimes jamais rien et tu ne dépenses jamais d'argent : si on te le demande, explique que ça se fait dans l'app.
-Si la demande n'est pas claire ou ne correspond à aucun outil, pose une seule question courte.
+Tu ne dépenses jamais d'argent. Tu peux supprimer une tâche, retirer un produit du stock ou oublier un fait : l'app demande toujours confirmation avant, n'ajoute rien à ce sujet.
+« Rappelle-moi jeudi d'appeler le véto » : crée une tâche unique à cette date pour la personne qui parle ; le rappel du matin la signale.
+Si la demande n'est pas claire, pose une seule question courte.
+Si on te demande une chose qu'aucun outil ne permet et que l'état du foyer ne te laisse pas répondre, utilise noter_souhait, et écris : « Je ne sais pas encore le faire, je l'ai noté pour Claude. »
+Ta mémoire est dans l'état du foyer : sers-t'en pour chaque demande (goûts, habitudes, règles de la maison). Quand on te dit « retiens que… » ou « n'oublie pas que… », utilise retenir (propose: false). Quand tu remarques une préférence ou une habitude durable qui n'est pas encore dans ta mémoire, propose-la avec retenir (propose: true), au plus une par réponse, jamais une information passagère ni de santé ou d'argent. Quand on te dit qu'un fait de ta mémoire est faux, utilise oublier, et retenir pour le fait juste.
 Pour une question sur le foyer, réponds à partir de l'état du foyer fourni ; s'il ne contient pas la réponse, dis-le.
 Avec une photo (lettre, facture, carte de rendez-vous, flyer) : relève les rendez-vous, échéances et paiements, et crée pour chacun une tâche unique à sa date, avec l'heure et le lieu dans le titre s'ils sont indiqués.
 Avec un ticket de caisse : range au stock (ajouter_au_stock) les produits alimentaires achetés, avec leur quantité dans le nom (« 1 l lait », « 500 g beurre ») et le lieu où on les range d'habitude ; laisse la date de péremption vide si elle n'est pas écrite, l'app la devine. Coche aussi les courses correspondantes (cocher_courses).

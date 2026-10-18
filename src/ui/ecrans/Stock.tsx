@@ -1,4 +1,8 @@
 import { lazy, Suspense, useState, type FormEvent } from "react";
+import type { ServeurJarvis } from "../../donnees/distant";
+import type { DonneesModule } from "../modules";
+import { TicketDeCaisse } from "../TicketDeCaisse";
+import { Feuille } from "../Feuille";
 import {
   apprendre,
   decrireDuree,
@@ -71,6 +75,9 @@ export function Stock(props: {
   listes: Liste[];
   elements: Element[];
   aujourdhui: Jour;
+  /** Pour lire un ticket de caisse entier avec Jarvis, quand le foyer est partagé. */
+  jarvis?: { serveur: ServeurJarvis; foyerId: string } | null;
+  donnees?: DonneesModule;
 }) {
   const { aujourdhui, depot, catalogue } = props;
   const [vue, setVue] = useState<Vue>("stock");
@@ -85,6 +92,7 @@ export function Stock(props: {
   const [scanner, setScanner] = useState(false);
   const [recherche, setRecherche] = useState(false);
   const [ouvert, setOuvert] = useState<string | null>(null);
+  const produitOuvert = props.produits.find((p) => p.id === ouvert);
   const [message, setMessage] = useState<string | null>(null);
   const annoncer = useAnnoncer();
   const courses = props.listes.find((l) => l.type === "courses");
@@ -204,12 +212,11 @@ export function Stock(props: {
     const { nombre: n, unite: u } = quantiteDe(p);
     const details = [montrerLieu ? LIEUX[p.lieu] : null, date].filter(Boolean);
     const reste = fraicheur(p, aujourdhui);
-    const estOuvert = ouvert === p.id;
     return (
       <li key={p.id}>
         <Glissable onSupprimer={() => void supprimer(p)} libelle="Retirer">
           <div className="ligne produit">
-            <button className="produit-corps" onClick={() => setOuvert(estOuvert ? null : p.id)} aria-expanded={estOuvert}>
+            <button className="produit-corps" onClick={() => setOuvert(p.id)} aria-haspopup="dialog">
               {p.image ? (
                 <img className="vignette" src={p.image} alt="" loading="lazy" />
               ) : (
@@ -240,20 +247,6 @@ export function Stock(props: {
             </span>
           </div>
         </Glissable>
-        {estOuvert && (
-          <div className="tache-actions produit-actions">
-            {courses && <button className="lien" onClick={() => void aRacheter(p)}>Fini, à racheter</button>}
-            {ORDRE_LIEUX.filter((l) => l !== p.lieu).map((l) => (
-              <button key={l} className="lien" onClick={() => void depot.enregistrerProduit(deplacer(p, l))}>
-                Vers {LIEUX[l].toLowerCase()}
-              </button>
-            ))}
-            <label className="lien date-produit">
-              Date
-              <input type="date" value={p.peremption ?? ""} onChange={(e) => void depot.enregistrerProduit(avecQuantite({ ...p, peremption: e.target.value || null }))} />
-            </label>
-          </div>
-        )}
       </li>
     );
   }
@@ -272,6 +265,7 @@ export function Stock(props: {
         <button type="button" className="bouton-scan" onClick={() => setScanner(true)} aria-label="Scanner un code-barres" disabled={recherche}>
           <Icone nom="codeBarres" taille={22} />
         </button>
+        {props.donnees && <TicketDeCaisse jarvis={props.jarvis ?? null} donnees={props.donnees} depot={depot} catalogue={catalogue} />}
         <button type="submit" disabled={!compris?.nom} aria-label="Ajouter">+</button>
       </div>
       {recherche && <p className="discret composer-aide">Lecture de la fiche du produit…</p>}
@@ -456,6 +450,40 @@ export function Stock(props: {
           <Scanner trouve={(code) => void codeLu(code)} fermer={() => setScanner(false)} />
         </Suspense>
       )}
+      <Feuille ouverte={!!produitOuvert} onFermer={() => setOuvert(null)} titre={produitOuvert?.nom}>
+        {produitOuvert && (
+          <div className="formulaire produit-feuille">
+            <p className="discret">
+              {[LIEUX[produitOuvert.lieu], decrirePeremption(produitOuvert, aujourdhui)].filter(Boolean).join(" · ")}
+            </p>
+            <div className="puces" role="group" aria-label="Où le ranger">
+              {ORDRE_LIEUX.map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  className={`puce${l === produitOuvert.lieu ? " active" : ""}`}
+                  aria-pressed={l === produitOuvert.lieu}
+                  onClick={() => void depot.enregistrerProduit(deplacer(produitOuvert, l))}
+                >
+                  {LIEUX[l]}
+                </button>
+              ))}
+            </div>
+            <label>
+              À consommer avant le
+              <input type="date" value={produitOuvert.peremption ?? ""} onChange={(e) => void depot.enregistrerProduit(avecQuantite({ ...produitOuvert, peremption: e.target.value || null }))} />
+            </label>
+            {courses && (
+              <button type="button" className="bouton-principal" onClick={() => { const pr = produitOuvert; setOuvert(null); void aRacheter(pr); }}>
+                Fini, à racheter
+              </button>
+            )}
+            <button type="button" className="lien danger" onClick={() => { const pr = produitOuvert; setOuvert(null); void supprimer(pr); }}>
+              Retirer du stock
+            </button>
+          </div>
+        )}
+      </Feuille>
     </main>
   );
 }
@@ -496,7 +524,7 @@ function Base(props: { depot: Depot; catalogue: ProduitHabituel[]; remettre: (h:
                   annoncer(`« ${h.nom} » retiré de la Base.`, () => props.depot.enregistrerHabituel(h));
                 }}
               >
-                <button className="ligne produit" onClick={() => setOuvert(estOuvert ? null : h.id)} aria-expanded={estOuvert}>
+                <button className="ligne produit" onClick={() => setOuvert(h.id)} aria-haspopup="dialog">
                   {h.image ? <img className="vignette" src={h.image} alt="" loading="lazy" /> : <span className="vignette sans-photo" aria-hidden>{h.nom.charAt(0)}</span>}
                   <span className="ligne-texte produit-texte">
                     <span className="produit-nom">{h.nom}</span>
@@ -505,7 +533,7 @@ function Base(props: { depot: Depot; catalogue: ProduitHabituel[]; remettre: (h:
                   <span className="compteur" title="Fois ajouté">{h.fois}×</span>
                 </button>
               </Glissable>
-              {estOuvert && (
+              <Feuille ouverte={estOuvert} onFermer={() => setOuvert(null)} titre={h.nom}>
                 <div className="reglage-habituel">
                   <div className="puces">
                     {ORDRE_LIEUX.map((l) => (
@@ -526,9 +554,9 @@ function Base(props: { depot: Depot; catalogue: ProduitHabituel[]; remettre: (h:
                       </button>
                     ))}
                   </div>
-                  <button className="lien" onClick={() => void props.remettre(h)}>Remettre au stock</button>
+                  <button className="bouton-principal" onClick={() => { setOuvert(null); void props.remettre(h); }}>Remettre au stock</button>
                 </div>
-              )}
+              </Feuille>
             </li>
           );
         })}

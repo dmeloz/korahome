@@ -902,6 +902,28 @@ function resumeStock(produits, aujourdhui) {
 	};
 }
 //#endregion
+//#region src/domaine/bandeau.ts
+/**
+* Les mots programmés que le passage de l'heure doit annoncer : ceux devenus visibles depuis
+* le passage précédent. Fenêtre calée sur l'heure pleine, pour qu'un passage en retard de
+* quelques secondes n'en oublie ni n'en double aucun.
+*/
+function fenetreMotsProgrammes(maintenant) {
+	const heure = Math.floor(maintenant.getTime() / 36e5) * 36e5;
+	return {
+		apres: (/* @__PURE__ */ new Date(heure - 36e5)).toISOString(),
+		jusqua: new Date(heure).toISOString()
+	};
+}
+/** Le titre de la notification d'un mot. */
+function notificationMot(foyer, m) {
+	const prenom = foyer.membres.find((x) => x.id === m.de)?.prenom;
+	return {
+		titre: prenom ? `Un mot de ${prenom}` : "Un petit mot",
+		corps: m.texte
+	};
+}
+//#endregion
 //#region src/domaine/rappels.ts
 /** L'heure proposée au départ, décidée avec le foyer ; chacun peut la changer. */
 const HEURE_DU_RAPPEL = 8;
@@ -922,6 +944,7 @@ const PREFERENCES_DE_DEPART = {
 	mitsu: true,
 	stock: true,
 	jardin: true,
+	mots: true,
 	heure: 8,
 	jours: TOUS_LES_JOURS
 };
@@ -1104,4 +1127,4 @@ function rappelDu(instant, heure, dernierEnvoi, fuseau = FUSEAU_DU_FOYER, jours 
 	return dernierEnvoi === local.jour ? null : local.jour;
 }
 //#endregion
-export { FUSEAU_DU_FOYER, HEURE_DU_RAPPEL, HEURE_MAX, HEURE_MIN, JOURS_SEMAINE, PREFERENCES_DE_DEPART, RACCOURCIS_JOURS, TOUS_LES_JOURS, adresseMeteo, basculerJour, decalerHeure, decrireJours, formaterHeure, heureValide, jourDeLaSemaine, jourEtHeure, lireMeteo, nettoyerJours, rappelDu, rappelDuMatin, tachesDuMatin };
+export { FUSEAU_DU_FOYER, HEURE_DU_RAPPEL, HEURE_MAX, HEURE_MIN, JOURS_SEMAINE, PREFERENCES_DE_DEPART, RACCOURCIS_JOURS, TOUS_LES_JOURS, adresseMeteo, basculerJour, decalerHeure, decrireJours, fenetreMotsProgrammes, formaterHeure, heureValide, jourDeLaSemaine, jourEtHeure, lireMeteo, nettoyerJours, notificationMot, rappelDu, rappelDuMatin, tachesDuMatin };
