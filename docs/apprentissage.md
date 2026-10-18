@@ -1,6 +1,6 @@
 # Kora apprend de votre usage
 
-Depuis Kora 0.0.19. Tout se calcule sur le téléphone, sans IA et donc sans coût : les règles sont dans `src/domaine/apprentissage.ts` (et `habitudes.ts`, `catalogue.ts`, `mitsu.ts`, `chef.ts` pour ce qui touche chaque module), le lien avec le téléphone dans `src/ui/apprendre.ts` et `src/ui/usage.ts`.
+Depuis Kora 0.0.20. Tout se calcule sur le téléphone, sans IA et donc sans coût : les règles sont dans `src/domaine/apprentissage.ts` (et `habitudes.ts`, `catalogue.ts`, `mitsu.ts`, `chef.ts` pour ce qui touche chaque module), le lien avec le téléphone dans `src/ui/apprendre.ts` et `src/ui/usage.ts`.
 
 ## Ce que Kora observe
 - **Le foyer** (données partagées) : les achats cochés sur la liste de courses (rythme, quantité, jour des courses), les fois où une tâche est faite (`historique` : qui, quand, avec quel retard), les produits du stock finis ou jetés périmés (`finis`, `jetes` dans la Base), les paquets de Mitsu finis (`consommations`).

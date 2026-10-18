@@ -2,6 +2,528 @@
 //#region src/domaine/foyer.ts
 var ErreurValidation = class extends Error {};
 //#endregion
+//#region src/domaine/taches.ts
+const RE_JOUR = /^\d{4}-\d{2}-\d{2}$/;
+function versDate(jour) {
+	if (!RE_JOUR.test(jour)) throw new ErreurValidation(`Date invalide : « ${jour} ».`);
+	const [a, m, j] = jour.split("-").map(Number);
+	return new Date(Date.UTC(a, m - 1, j));
+}
+function versJour(d) {
+	return d.toISOString().slice(0, 10);
+}
+/** Ajoute des jours, des semaines ou des mois à une date du jour. */
+function decaler(jour, recurrence) {
+	const d = versDate(jour);
+	if (recurrence.unite === "jour") d.setUTCDate(d.getUTCDate() + recurrence.tous);
+	else if (recurrence.unite === "semaine") d.setUTCDate(d.getUTCDate() + 7 * recurrence.tous);
+	else {
+		const jourDuMois = d.getUTCDate();
+		d.setUTCDate(1);
+		d.setUTCMonth(d.getUTCMonth() + recurrence.tous);
+		const dernier = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+		d.setUTCDate(Math.min(jourDuMois, dernier));
+	}
+	return versJour(d);
+}
+/** Nombre de jours entre deux dates (positif si « b » est après « a »). */
+function ecartJours(a, b) {
+	return Math.round((versDate(b).getTime() - versDate(a).getTime()) / 864e5);
+}
+/** Une tâche unique faite est terminée ; une tâche qui revient ne l'est jamais. */
+function estTerminee(tache) {
+	return !tache.recurrence && tache.faiteLe !== null;
+}
+//#endregion
+//#region src/domaine/mitsu.ts
+const TYPES_SOIN = {
+	vaccin: "Vaccin",
+	vermifuge: "Vermifuge",
+	antiparasitaire: "Antipuces et tiques",
+	sterilisation: "Stérilisation",
+	visite: "Visite chez le vétérinaire",
+	filtre: "Changer le filtre de la fontaine",
+	autre: "Autre soin"
+};
+const plusJours$1 = (jour, n) => decaler(jour, {
+	unite: "jour",
+	tous: n
+});
+const plusMois = (jour, n) => decaler(jour, {
+	unite: "mois",
+	tous: n
+});
+/** Âge en mois révolus (le 14 du mois suivant la naissance du 14 = 1 mois). */
+function ageEnMois(naissance, aujourdhui) {
+	let mois = 0;
+	while (mois < 600 && plusMois(naissance, mois + 1) <= aujourdhui) mois++;
+	return mois;
+}
+/** Vers 12 mois, on passe des croquettes chaton aux croquettes adulte. */
+function passageAdulte(naissance) {
+	return plusMois(naissance, 12);
+}
+function derniereVersion(liste) {
+	return liste.reduce((d, x) => !d || x.jour >= d.jour ? x : d, null);
+}
+function poidsActuel(animal) {
+	return derniereVersion(animal.pesees);
+}
+/**
+* Multiplicateur du besoin au repos selon l'âge : un chaton en pleine croissance
+* a besoin de bien plus d'énergie qu'un adulte, et un adulte stérilisé un peu moins.
+*/
+function facteurCroissance(ageMois, sterilise) {
+	if (ageMois < 4) return 2.5;
+	if (ageMois < 6) return 2;
+	if (ageMois < 12) return 1.6;
+	return sterilise ? 1.2 : 1.4;
+}
+/** Énergie moyenne d'une friandise pour chat, en kcal par gramme. */
+const KCAL_PAR_GRAMME_FRIANDISE = 3.5;
+/**
+* Ration de croquettes du jour. La ration du paquet, quand elle est notée, fait foi.
+* Sinon : besoin au repos 70 × poids(kg)^0,75 kcal, multiplié selon l'âge, divisé
+* par l'énergie des croquettes. C'est une estimation, à arrondir à 5 g.
+* Les friandises du jour, quand elles sont notées, sont retirées des croquettes.
+*/
+function rationDuJour(animal, aujourdhui) {
+	const k = animal.reglages.kcalParGramme;
+	const friandises = animal.reglages.friandisesParJour ?? 0;
+	const max = (kcal) => Math.max(1, Math.round(kcal * .1 / KCAL_PAR_GRAMME_FRIANDISE));
+	if (animal.reglages.rationDuPaquet) {
+		const g = animal.reglages.rationDuPaquet;
+		const kcal = Math.round(g * k);
+		return {
+			grammes: Math.max(0, Math.round(g - friandises * KCAL_PAR_GRAMME_FRIANDISE / k)),
+			kcal,
+			source: "paquet",
+			friandisesMax: max(kcal)
+		};
+	}
+	const poids = poidsActuel(animal);
+	if (!poids) return null;
+	const kcal = 70 * Math.pow(poids.grammes / 1e3, .75) * facteurCroissance(ageEnMois(animal.naissance, aujourdhui), animal.sterilise);
+	const croquettes = Math.max(0, kcal - friandises * KCAL_PAR_GRAMME_FRIANDISE);
+	return {
+		grammes: Math.round(croquettes / k / 5) * 5,
+		kcal: Math.round(kcal),
+		source: "estimee",
+		friandisesMax: max(kcal)
+	};
+}
+/** Les pesées de la plus récente à la plus ancienne. */
+function historiquePesees(animal) {
+	return [...animal.pesees].sort((a, b) => b.jour.localeCompare(a.jour));
+}
+/** Prochaine pesée, au rythme choisi après la dernière. */
+function prochainePesee(animal, aujourdhui) {
+	const derniere = poidsActuel(animal);
+	if (!derniere) return aujourdhui;
+	return plusJours$1(derniere.jour, animal.reglages.peseeTousLes);
+}
+/** L'article de la commande régulière qui réapprovisionne cette provision. */
+function articleDe(provision, animal) {
+	return animal.commande?.articles.find((a) => a.type === provision.type && a.nom === provision.nom);
+}
+/** Durée d'un cycle de commande, en jours. */
+function joursDuCycle(commande) {
+	return ecartJours(commande.prochaine, plusMois(commande.prochaine, commande.tousLesMois));
+}
+/** Ce qu'elle consomme vraiment par jour de ce produit (ou de ce type), d'après les derniers paquets finis. */
+function consommationApprise(animal, provision) {
+	const toutes = (animal.consommations ?? []).filter((c) => c.type === provision.type);
+	const memes = toutes.filter((c) => c.nom === provision.nom);
+	const lues = (memes.length ? memes : toutes).slice(-3);
+	if (!lues.length) return null;
+	return Math.round(lues.reduce((s, c) => s + c.parJour, 0) / lues.length * 10) / 10;
+}
+/**
+* Consommation par jour, dans l'ordre : celle notée sur la provision, la ration du jour
+* pour les croquettes (quand on connaît son poids ou la ration du paquet), sinon ce que la
+* commande régulière laisse supposer (6 kg tous les 3 mois ≈ 65 g par jour).
+*/
+function consommationParJour(provision, animal, aujourdhui) {
+	if (provision.parJour) return provision.parJour;
+	if (provision.type === "filtres") return 1 / 30;
+	const apprise = consommationApprise(animal, provision);
+	if (apprise) return apprise;
+	if (provision.type === "croquettes") {
+		const ration = rationDuJour(animal, aujourdhui);
+		if (ration) return ration.grammes;
+	}
+	const article = articleDe(provision, animal);
+	if (article && animal.commande) return Math.round(article.quantite / joursDuCycle(animal.commande));
+	return null;
+}
+/** Combien il reste, quand ce sera fini, et quand commander pour ne jamais manquer. */
+function prevoir(provision, animal, aujourdhui) {
+	const parJour = consommationParJour(provision, animal, aujourdhui);
+	if (!parJour) return null;
+	const ecoules = Math.max(0, ecartJours(provision.achete, aujourdhui));
+	const restant = Math.max(0, provision.quantite - ecoules * parJour);
+	const joursRestants = Math.floor(restant / parJour + 1e-9);
+	const fin = plusJours$1(aujourdhui, joursRestants);
+	const commanderLe = plusJours$1(fin, -animal.reglages.delaiCommande);
+	const etat = joursRestants === 0 ? "epuise" : commanderLe <= aujourdhui ? "commander" : "ok";
+	return {
+		restant: provision.type === "filtres" ? Math.floor(restant + 1e-9) : Math.round(restant),
+		joursRestants,
+		fin,
+		commanderLe,
+		etat
+	};
+}
+/** Les provisions de la commande qui seront vides avant que la prochaine arrive. */
+function videsAvantLivraison(animal, aujourdhui) {
+	const commande = animal.commande;
+	if (!commande) return [];
+	const arrivee = plusJours$1(commande.prochaine, 3);
+	return animal.provisions.flatMap((p) => {
+		if (!articleDe(p, animal)) return [];
+		const prev = prevoir(p, animal, aujourdhui);
+		return prev && prev.fin < arrivee ? [{
+			provision: p,
+			fin: prev.fin
+		}] : [];
+	});
+}
+/**
+* Ce qui ne revient pas à chaque commande (les filtres : 6 pour 6 mois) mais sera vide
+* avant la commande d'après : à ajouter à la prochaine.
+*/
+function aAjouterALaCommande(animal, aujourdhui) {
+	const commande = animal.commande;
+	if (!commande) return [];
+	const suivante = plusJours$1(plusMois(commande.prochaine, commande.tousLesMois), 3);
+	return animal.provisions.flatMap((p) => {
+		if (articleDe(p, animal)) return [];
+		const prev = prevoir(p, animal, aujourdhui);
+		return prev && prev.fin < suivante ? [{
+			provision: p,
+			fin: prev.fin
+		}] : [];
+	});
+}
+/** Les soins à venir, du plus proche au plus lointain. */
+function soinsAVenir(animal) {
+	return animal.soins.filter((s) => !s.fait).sort((a, b) => a.date.localeCompare(b.date));
+}
+/** Poids médian d'une chatte, mois par mois jusqu'à 1 an (en grammes). Les mâles pèsent environ 20 % de plus. */
+const POIDS_FEMELLE = [
+	100,
+	500,
+	900,
+	1400,
+	1900,
+	2300,
+	2700,
+	3e3,
+	3200,
+	3400,
+	3500,
+	3600,
+	3700
+];
+/**
+* Le poids habituel d'un chat de cet âge, avec une marge large (± 25 %) : les chats varient
+* beaucoup, c'est un repère pour repérer une courbe qui décroche, pas une norme. Après 1 an,
+* le repère reste celui de 12 mois.
+*/
+function poidsRepere(naissance, jour, sexe = "femelle") {
+	const mois = Math.max(0, ecartJours(naissance, jour) / 30.44);
+	const i = Math.min(Math.floor(mois), POIDS_FEMELLE.length - 1);
+	const suivant = POIDS_FEMELLE[Math.min(i + 1, POIDS_FEMELLE.length - 1)];
+	const femelle = POIDS_FEMELLE[i] + (suivant - POIDS_FEMELLE[i]) * Math.min(1, mois - i);
+	const median = Math.round(femelle * (sexe === "male" ? 1.2 : 1));
+	return {
+		min: Math.round(median * .75),
+		median,
+		max: Math.round(median * 1.25)
+	};
+}
+/** Ce que disent ses dernières pesées : une perte de poids, ou un poids loin du repère de son âge. */
+function alertePoids(animal) {
+	const [derniere, precedente] = historiquePesees(animal);
+	if (!derniere) return null;
+	if (precedente) {
+		const perte = precedente.grammes - derniere.grammes;
+		const chaton = ageEnMois(animal.naissance, derniere.jour) < 12;
+		if (perte > 0 && (chaton ? perte >= 50 : perte >= precedente.grammes * .05)) return {
+			texte: `${animal.nom} a perdu ${perte} g depuis le ${precedente.jour.slice(8, 10)}/${precedente.jour.slice(5, 7)} : à signaler au vétérinaire`,
+			urgent: true
+		};
+	}
+	const repere = poidsRepere(animal.naissance, derniere.jour, animal.sexe);
+	if (derniere.grammes < repere.min) return {
+		texte: "Poids sous le repère de son âge : à montrer au vétérinaire",
+		urgent: false
+	};
+	if (derniere.grammes > repere.max) return {
+		texte: "Poids au-dessus du repère de son âge : à montrer au vétérinaire",
+		urgent: false
+	};
+	return null;
+}
+const TYPES_EVENEMENT = {
+	litiere: "Litière changée",
+	vomi: "A vomi",
+	pas_mange: "N'a pas mangé",
+	selles: "Selles molles",
+	boite: "Boite",
+	cachee: "Se cache, abattue",
+	autre: "Autre"
+};
+/**
+* Un souci qui revient appelle le vétérinaire : ne pas manger deux jours sur trois (un chat qui
+* ne mange plus se met vite en danger), vomir ou avoir les selles molles trois fois en une
+* semaine, boiter ou se cacher deux fois en une semaine.
+*/
+function alertesJournal(animal, aujourdhui) {
+	const journal = animal.journal ?? [];
+	const depuis = (jours, quoi) => journal.filter((e) => e.quoi === quoi && e.jour <= aujourdhui && ecartJours(e.jour, aujourdhui) < jours);
+	const alertes = [];
+	const pasMange = new Set(depuis(3, "pas_mange").map((e) => e.jour)).size;
+	if (pasMange >= 2) alertes.push(`${animal.nom} n'a pas mangé ${pasMange} jours : appeler le vétérinaire`);
+	for (const [quoi, seuil] of [
+		["vomi", 3],
+		["selles", 3],
+		["boite", 2],
+		["cachee", 2]
+	]) {
+		const n = depuis(7, quoi).length;
+		if (n >= seuil) alertes.push(`${TYPES_EVENEMENT[quoi]} ${n} fois en 7 jours : appeler le vétérinaire`);
+	}
+	return alertes;
+}
+/** Tout ce qui demande un geste, du plus pressé au moins pressé. */
+function choseAFaire(animal, aujourdhui) {
+	const urgentes = [];
+	const bientot = [];
+	const commande = animal.commande;
+	if (commande) {
+		const ecart = ecartJours(aujourdhui, commande.prochaine);
+		if (ecart <= 3) {
+			const quand = ecart < 0 ? "en retard" : ecart === 0 ? "aujourd'hui" : ecart === 1 ? "demain" : `dans ${ecart} jours`;
+			urgentes.push({
+				texte: `Commande ${commande.fournisseur} ${quand}`,
+				urgent: true
+			});
+			for (const { provision } of aAjouterALaCommande(animal, aujourdhui)) urgentes.push({
+				texte: `Ajouter ${provision.nom} à la commande`,
+				urgent: true
+			});
+		}
+		for (const { provision, fin } of videsAvantLivraison(animal, aujourdhui)) {
+			if (ecart <= 3) continue;
+			urgentes.push({
+				texte: `${provision.nom} : vide vers le ${fin.slice(8, 10)}/${fin.slice(5, 7)}, avant la commande`,
+				urgent: true
+			});
+		}
+	}
+	for (const p of animal.provisions) {
+		if (articleDe(p, animal)) continue;
+		const prev = prevoir(p, animal, aujourdhui);
+		if (!prev || prev.etat === "ok") continue;
+		if (commande && prev.fin >= plusJours$1(commande.prochaine, 3)) continue;
+		urgentes.push({
+			texte: prev.etat === "epuise" ? `${p.nom} : c'est fini` : `Commander ${p.nom} : ${prev.joursRestants} j de stock`,
+			urgent: true
+		});
+	}
+	for (const s of soinsAVenir(animal)) {
+		const ecart = ecartJours(aujourdhui, s.date);
+		if (ecart > 7) continue;
+		const quand = ecart < 0 ? "en retard" : ecart === 0 ? "aujourd'hui" : ecart === 1 ? "demain" : `dans ${ecart} jours`;
+		urgentes.push({
+			texte: `${s.libelle} ${quand}`,
+			urgent: true
+		});
+	}
+	for (const texte of alertesJournal(animal, aujourdhui)) urgentes.unshift({
+		texte,
+		urgent: true
+	});
+	const poids = alertePoids(animal);
+	if (poids) (poids.urgent ? urgentes : bientot).push(poids);
+	if (prochainePesee(animal, aujourdhui) <= aujourdhui) bientot.push({
+		texte: animal.pesees.length ? "La peser" : "La peser une première fois",
+		urgent: false
+	});
+	const avant = ecartJours(aujourdhui, passageAdulte(animal.naissance));
+	if (avant >= 0 && avant <= 30) bientot.push({
+		texte: `Passer aux croquettes adulte ${avant === 0 ? "aujourd'hui" : `dans ${avant} jours`}`,
+		urgent: false
+	});
+	return [...urgentes, ...bientot];
+}
+//#endregion
+//#region src/domaine/agenda.ts
+const estEvenement = (d) => "titre" in d && "jour" in d;
+const evenementsDe = (docs) => docs.filter(estEvenement);
+const annee = (j) => Number(j.slice(0, 4));
+/** La même date une autre année ; le 29 février devient le 28 les années ordinaires. */
+function memeDateEn(jour, an) {
+	const [, m, d] = jour.split("-").map(Number);
+	const dernier = new Date(Date.UTC(an, m, 0)).getUTCDate();
+	return `${String(an).padStart(4, "0")}-${String(m).padStart(2, "0")}-${String(Math.min(d, dernier)).padStart(2, "0")}`;
+}
+/** Les débuts de chaque fois que l'événement a lieu et qui touchent la période [du, au]. */
+function debutsDans(e, du, au) {
+	const duree = e.fin ? ecartJours(e.jour, e.fin) : 0;
+	const pas = Math.max(1, Math.floor(e.intervalle ?? 1));
+	const limite = e.repetition !== "aucune" && e.jusquau && e.jusquau < au ? e.jusquau : au;
+	if (limite < e.jour) return [];
+	const sauf = new Set(e.sauf ?? []);
+	const touche = (debut) => debut >= e.jour && debut <= limite && !sauf.has(debut) && decaler(debut, {
+		unite: "jour",
+		tous: duree
+	}) >= du;
+	const debuts = [];
+	if (e.repetition === "aucune") {
+		if (touche(e.jour)) debuts.push(e.jour);
+	} else if (e.repetition === "jour") {
+		const depuis = Math.max(0, Math.floor((ecartJours(e.jour, du) - duree) / pas));
+		for (let k = depuis;; k++) {
+			const d = decaler(e.jour, {
+				unite: "jour",
+				tous: pas * k
+			});
+			if (d > limite) break;
+			if (touche(d)) debuts.push(d);
+		}
+	} else if (e.repetition === "semaine") {
+		const lundi = lundiDe(e.jour);
+		const jours = (e.joursSemaine?.length ? e.joursSemaine : [jourSemaine(e.jour)]).map((j) => (j + 6) % 7).sort();
+		const depuis = Math.max(0, Math.floor((ecartJours(lundi, du) - duree) / (7 * pas)) - 1);
+		for (let k = depuis;; k++) {
+			const semaine = decaler(lundi, {
+				unite: "jour",
+				tous: 7 * pas * k
+			});
+			if (semaine > limite) break;
+			for (const j of jours) {
+				const d = decaler(semaine, {
+					unite: "jour",
+					tous: j
+				});
+				if (touche(d)) debuts.push(d);
+			}
+		}
+	} else if (e.repetition === "mois") {
+		const mois = (j) => annee(j) * 12 + Number(j.slice(5, 7));
+		const depuis = Math.max(0, Math.floor((mois(du) - mois(e.jour) - 1 - Math.ceil(duree / 28)) / pas));
+		for (let k = depuis;; k++) {
+			const d = decaler(e.jour, {
+				unite: "mois",
+				tous: pas * k
+			});
+			if (d > limite) break;
+			if (touche(d)) debuts.push(d);
+		}
+	} else for (let an = Math.max(annee(e.jour), annee(du) - 1); an <= annee(limite); an++) {
+		if ((an - annee(e.jour)) % pas !== 0) continue;
+		const d = memeDateEn(e.jour, an);
+		if (touche(d)) debuts.push(d);
+	}
+	return debuts;
+}
+/** Les rappels prévus au carnet des animaux (vaccin, vermifuge, visite), comme des rendez-vous. */
+function evenementsDesAnimaux(animaux) {
+	return animaux.flatMap((a) => a.soins.filter((s) => !s.fait).map((s) => ({
+		id: `soin-${a.id}-${s.id}`,
+		titre: `${a.nom} · ${s.libelle || TYPES_SOIN[s.type]}`,
+		jour: s.date,
+		fin: null,
+		heure: null,
+		heureFin: null,
+		pour: null,
+		categorie: "rdv",
+		repetition: "aucune",
+		lieu: null,
+		note: "Prévu au carnet de santé.",
+		creePar: null,
+		creeLe: s.date,
+		source: `Carnet de ${a.nom}`
+	})));
+}
+/**
+* Tout ce qui a lieu entre deux dates (comprises), dans l'ordre : par jour, la journée
+* entière d'abord, puis par heure.
+*/
+function occurrences(evenements, du, au, animaux = []) {
+	const resultat = [];
+	for (const e of [...evenements, ...evenementsDesAnimaux(animaux)]) {
+		const duree = e.fin ? ecartJours(e.jour, e.fin) : 0;
+		for (const debut of debutsDans(e, du, au)) {
+			const annees = e.categorie === "anniversaire" && e.repetition === "annee" && annee(e.jour) < annee(e.creeLe) ? annee(debut) - annee(e.jour) : null;
+			resultat.push({
+				cle: `${e.id}/${debut}`,
+				evenement: e,
+				debut,
+				fin: decaler(debut, {
+					unite: "jour",
+					tous: duree
+				}),
+				annees: annees && annees > 0 ? annees : null,
+				lectureSeule: !!e.source
+			});
+		}
+	}
+	return resultat.sort((a, b) => a.debut.localeCompare(b.debut) || (a.evenement.heure ?? "").localeCompare(b.evenement.heure ?? "") || a.evenement.titre.localeCompare(b.evenement.titre, "fr"));
+}
+/** Ce qui se passe un jour donné, y compris ce qui a commencé avant (des vacances). */
+function duJour(occ, jour) {
+	return occ.filter((o) => o.debut <= jour && o.fin >= jour).sort((a, b) => {
+		const enCours = (o) => o.evenement.heure && o.debut === jour ? o.evenement.heure : "";
+		return enCours(a).localeCompare(enCours(b)) || a.evenement.titre.localeCompare(b.evenement.titre, "fr");
+	});
+}
+function filtrer(occ, filtre) {
+	if (filtre === "tout") return [...occ];
+	if (filtre === "nous") return occ.filter((o) => o.evenement.pour === null);
+	return occ.filter((o) => o.evenement.pour === null || o.evenement.pour === filtre);
+}
+/** Le titre affiché : « Anniversaire de Sarah · 32 ans ». */
+function titreDe(o) {
+	return o.annees ? `${o.evenement.titre} · ${o.annees} ans` : o.evenement.titre;
+}
+const MOIS_COURTS = [
+	"janv.",
+	"févr.",
+	"mars",
+	"avr.",
+	"mai",
+	"juin",
+	"juil.",
+	"août",
+	"sept.",
+	"oct.",
+	"nov.",
+	"déc."
+];
+const jourSemaine = (j) => (/* @__PURE__ */ new Date(`${j}T12:00:00Z`)).getUTCDay();
+const dateCourte = (j) => `${Number(j.slice(8, 10))} ${MOIS_COURTS[Number(j.slice(5, 7)) - 1]}`;
+/** Le lundi de la semaine d'un jour. */
+function lundiDe(jour) {
+	return decaler(jour, {
+		unite: "jour",
+		tous: -((jourSemaine(jour) + 6) % 7)
+	});
+}
+/** Ce qui concerne une personne aujourd'hui : le commun et le sien. */
+function evenementsDuMatin(evenements, membreId, aujourdhui) {
+	const occ = duJour(occurrences(evenements, aujourdhui, aujourdhui), aujourdhui);
+	return membreId === null ? occ : filtrer(occ, membreId);
+}
+/** « Dentiste à 14:30 », « Vacances (jusqu'au 27 déc.) ». */
+function decrireCourt(o, jour) {
+	const e = o.evenement;
+	if (o.fin > jour && o.debut < jour) return `${titreDe(o)} (jusqu'au ${dateCourte(o.fin)})`;
+	return e.heure && o.debut === jour ? `${titreDe(o)} à ${e.heure}` : titreDe(o);
+}
+//#endregion
 //#region src/domaine/meteo.ts
 /** Le jardin du foyer, à Renens (VD). */
 const LIEU_DU_JARDIN = {
@@ -425,41 +947,8 @@ function espece(cle) {
 	return cle ? PAR_CLE.get(cle) ?? null : null;
 }
 //#endregion
-//#region src/domaine/taches.ts
-const RE_JOUR = /^\d{4}-\d{2}-\d{2}$/;
-function versDate(jour) {
-	if (!RE_JOUR.test(jour)) throw new ErreurValidation(`Date invalide : « ${jour} ».`);
-	const [a, m, j] = jour.split("-").map(Number);
-	return new Date(Date.UTC(a, m - 1, j));
-}
-function versJour(d) {
-	return d.toISOString().slice(0, 10);
-}
-/** Ajoute des jours, des semaines ou des mois à une date du jour. */
-function decaler(jour, recurrence) {
-	const d = versDate(jour);
-	if (recurrence.unite === "jour") d.setUTCDate(d.getUTCDate() + recurrence.tous);
-	else if (recurrence.unite === "semaine") d.setUTCDate(d.getUTCDate() + 7 * recurrence.tous);
-	else {
-		const jourDuMois = d.getUTCDate();
-		d.setUTCDate(1);
-		d.setUTCMonth(d.getUTCMonth() + recurrence.tous);
-		const dernier = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
-		d.setUTCDate(Math.min(jourDuMois, dernier));
-	}
-	return versJour(d);
-}
-/** Nombre de jours entre deux dates (positif si « b » est après « a »). */
-function ecartJours(a, b) {
-	return Math.round((versDate(b).getTime() - versDate(a).getTime()) / 864e5);
-}
-/** Une tâche unique faite est terminée ; une tâche qui revient ne l'est jamais. */
-function estTerminee(tache) {
-	return !tache.recurrence && tache.faiteLe !== null;
-}
-//#endregion
 //#region src/domaine/jardin.ts
-const plusJours$1 = (jour, n) => decaler(jour, {
+const plusJours = (jour, n) => decaler(jour, {
 	unite: "jour",
 	tous: n
 });
@@ -510,8 +999,8 @@ function etatArrosage(zone, aujourdhui, meteo) {
 	const derniereAverse = pluies.filter((j) => j.jour < aujourdhui).map((j) => j.jour).sort().pop() ?? null;
 	const parLaPluie = !!derniereAverse && (!zone.arroseeLe || derniereAverse > zone.arroseeLe);
 	const dernier = parLaPluie ? derniereAverse : zone.arroseeLe;
-	const prochain = dernier ? plusJours$1(dernier, intervalle) : aujourdhui;
-	const pluiePrevue = pluies.find((j) => j.jour === aujourdhui || j.jour === plusJours$1(aujourdhui, 1)) ?? null;
+	const prochain = dernier ? plusJours(dernier, intervalle) : aujourdhui;
+	const pluiePrevue = pluies.find((j) => j.jour === aujourdhui || j.jour === plusJours(aujourdhui, 1)) ?? null;
 	return {
 		intervalle,
 		dernier,
@@ -526,7 +1015,7 @@ function etatArrosage(zone, aujourdhui, meteo) {
 * jour tombe au petit matin : celle de demain, c'est la nuit qui vient.
 */
 function alerteGel(zones, meteo, aujourdhui) {
-	const froid = (meteo?.jours ?? []).filter((j) => j.jour > aujourdhui && j.jour <= plusJours$1(aujourdhui, 2) && j.min <= 2).sort((a, b) => a.jour.localeCompare(b.jour))[0];
+	const froid = (meteo?.jours ?? []).filter((j) => j.jour > aujourdhui && j.jour <= plusJours(aujourdhui, 2) && j.min <= 2).sort((a, b) => a.jour.localeCompare(b.jour))[0];
 	if (!froid) return null;
 	const plantes = /* @__PURE__ */ new Set();
 	for (const z of zones) {
@@ -549,7 +1038,7 @@ function gestesDuJardin(zones, meteo, aujourdhui) {
 	const gestes = [];
 	const gel = alerteGel(zones, meteo, aujourdhui);
 	if (gel) {
-		const quand = gel.jour === plusJours$1(aujourdhui, 1) ? "cette nuit" : "demain dans la nuit";
+		const quand = gel.jour === plusJours(aujourdhui, 1) ? "cette nuit" : "demain dans la nuit";
 		gestes.push({
 			texte: `Gel ${quand} (${Math.round(gel.min)}°) : rentre ou couvre ${enumerer$1(gel.plantes.slice(0, 4))}`,
 			urgent: true
@@ -566,321 +1055,6 @@ function gestesDuJardin(zones, meteo, aujourdhui) {
 		urgent: false
 	});
 	return gestes;
-}
-//#endregion
-//#region src/domaine/mitsu.ts
-const plusJours = (jour, n) => decaler(jour, {
-	unite: "jour",
-	tous: n
-});
-const plusMois = (jour, n) => decaler(jour, {
-	unite: "mois",
-	tous: n
-});
-/** Âge en mois révolus (le 14 du mois suivant la naissance du 14 = 1 mois). */
-function ageEnMois(naissance, aujourdhui) {
-	let mois = 0;
-	while (mois < 600 && plusMois(naissance, mois + 1) <= aujourdhui) mois++;
-	return mois;
-}
-/** Vers 12 mois, on passe des croquettes chaton aux croquettes adulte. */
-function passageAdulte(naissance) {
-	return plusMois(naissance, 12);
-}
-function derniereVersion(liste) {
-	return liste.reduce((d, x) => !d || x.jour >= d.jour ? x : d, null);
-}
-function poidsActuel(animal) {
-	return derniereVersion(animal.pesees);
-}
-/**
-* Multiplicateur du besoin au repos selon l'âge : un chaton en pleine croissance
-* a besoin de bien plus d'énergie qu'un adulte, et un adulte stérilisé un peu moins.
-*/
-function facteurCroissance(ageMois, sterilise) {
-	if (ageMois < 4) return 2.5;
-	if (ageMois < 6) return 2;
-	if (ageMois < 12) return 1.6;
-	return sterilise ? 1.2 : 1.4;
-}
-/** Énergie moyenne d'une friandise pour chat, en kcal par gramme. */
-const KCAL_PAR_GRAMME_FRIANDISE = 3.5;
-/**
-* Ration de croquettes du jour. La ration du paquet, quand elle est notée, fait foi.
-* Sinon : besoin au repos 70 × poids(kg)^0,75 kcal, multiplié selon l'âge, divisé
-* par l'énergie des croquettes. C'est une estimation, à arrondir à 5 g.
-* Les friandises du jour, quand elles sont notées, sont retirées des croquettes.
-*/
-function rationDuJour(animal, aujourdhui) {
-	const k = animal.reglages.kcalParGramme;
-	const friandises = animal.reglages.friandisesParJour ?? 0;
-	const max = (kcal) => Math.max(1, Math.round(kcal * .1 / KCAL_PAR_GRAMME_FRIANDISE));
-	if (animal.reglages.rationDuPaquet) {
-		const g = animal.reglages.rationDuPaquet;
-		const kcal = Math.round(g * k);
-		return {
-			grammes: Math.max(0, Math.round(g - friandises * KCAL_PAR_GRAMME_FRIANDISE / k)),
-			kcal,
-			source: "paquet",
-			friandisesMax: max(kcal)
-		};
-	}
-	const poids = poidsActuel(animal);
-	if (!poids) return null;
-	const kcal = 70 * Math.pow(poids.grammes / 1e3, .75) * facteurCroissance(ageEnMois(animal.naissance, aujourdhui), animal.sterilise);
-	const croquettes = Math.max(0, kcal - friandises * KCAL_PAR_GRAMME_FRIANDISE);
-	return {
-		grammes: Math.round(croquettes / k / 5) * 5,
-		kcal: Math.round(kcal),
-		source: "estimee",
-		friandisesMax: max(kcal)
-	};
-}
-/** Les pesées de la plus récente à la plus ancienne. */
-function historiquePesees(animal) {
-	return [...animal.pesees].sort((a, b) => b.jour.localeCompare(a.jour));
-}
-/** Prochaine pesée, au rythme choisi après la dernière. */
-function prochainePesee(animal, aujourdhui) {
-	const derniere = poidsActuel(animal);
-	if (!derniere) return aujourdhui;
-	return plusJours(derniere.jour, animal.reglages.peseeTousLes);
-}
-/** L'article de la commande régulière qui réapprovisionne cette provision. */
-function articleDe(provision, animal) {
-	return animal.commande?.articles.find((a) => a.type === provision.type && a.nom === provision.nom);
-}
-/** Durée d'un cycle de commande, en jours. */
-function joursDuCycle(commande) {
-	return ecartJours(commande.prochaine, plusMois(commande.prochaine, commande.tousLesMois));
-}
-/** Ce qu'elle consomme vraiment par jour de ce produit (ou de ce type), d'après les derniers paquets finis. */
-function consommationApprise(animal, provision) {
-	const toutes = (animal.consommations ?? []).filter((c) => c.type === provision.type);
-	const memes = toutes.filter((c) => c.nom === provision.nom);
-	const lues = (memes.length ? memes : toutes).slice(-3);
-	if (!lues.length) return null;
-	return Math.round(lues.reduce((s, c) => s + c.parJour, 0) / lues.length * 10) / 10;
-}
-/**
-* Consommation par jour, dans l'ordre : celle notée sur la provision, la ration du jour
-* pour les croquettes (quand on connaît son poids ou la ration du paquet), sinon ce que la
-* commande régulière laisse supposer (6 kg tous les 3 mois ≈ 65 g par jour).
-*/
-function consommationParJour(provision, animal, aujourdhui) {
-	if (provision.parJour) return provision.parJour;
-	if (provision.type === "filtres") return 1 / 30;
-	const apprise = consommationApprise(animal, provision);
-	if (apprise) return apprise;
-	if (provision.type === "croquettes") {
-		const ration = rationDuJour(animal, aujourdhui);
-		if (ration) return ration.grammes;
-	}
-	const article = articleDe(provision, animal);
-	if (article && animal.commande) return Math.round(article.quantite / joursDuCycle(animal.commande));
-	return null;
-}
-/** Combien il reste, quand ce sera fini, et quand commander pour ne jamais manquer. */
-function prevoir(provision, animal, aujourdhui) {
-	const parJour = consommationParJour(provision, animal, aujourdhui);
-	if (!parJour) return null;
-	const ecoules = Math.max(0, ecartJours(provision.achete, aujourdhui));
-	const restant = Math.max(0, provision.quantite - ecoules * parJour);
-	const joursRestants = Math.floor(restant / parJour + 1e-9);
-	const fin = plusJours(aujourdhui, joursRestants);
-	const commanderLe = plusJours(fin, -animal.reglages.delaiCommande);
-	const etat = joursRestants === 0 ? "epuise" : commanderLe <= aujourdhui ? "commander" : "ok";
-	return {
-		restant: provision.type === "filtres" ? Math.floor(restant + 1e-9) : Math.round(restant),
-		joursRestants,
-		fin,
-		commanderLe,
-		etat
-	};
-}
-/** Les provisions de la commande qui seront vides avant que la prochaine arrive. */
-function videsAvantLivraison(animal, aujourdhui) {
-	const commande = animal.commande;
-	if (!commande) return [];
-	const arrivee = plusJours(commande.prochaine, 3);
-	return animal.provisions.flatMap((p) => {
-		if (!articleDe(p, animal)) return [];
-		const prev = prevoir(p, animal, aujourdhui);
-		return prev && prev.fin < arrivee ? [{
-			provision: p,
-			fin: prev.fin
-		}] : [];
-	});
-}
-/**
-* Ce qui ne revient pas à chaque commande (les filtres : 6 pour 6 mois) mais sera vide
-* avant la commande d'après : à ajouter à la prochaine.
-*/
-function aAjouterALaCommande(animal, aujourdhui) {
-	const commande = animal.commande;
-	if (!commande) return [];
-	const suivante = plusJours(plusMois(commande.prochaine, commande.tousLesMois), 3);
-	return animal.provisions.flatMap((p) => {
-		if (articleDe(p, animal)) return [];
-		const prev = prevoir(p, animal, aujourdhui);
-		return prev && prev.fin < suivante ? [{
-			provision: p,
-			fin: prev.fin
-		}] : [];
-	});
-}
-/** Les soins à venir, du plus proche au plus lointain. */
-function soinsAVenir(animal) {
-	return animal.soins.filter((s) => !s.fait).sort((a, b) => a.date.localeCompare(b.date));
-}
-/** Poids médian d'une chatte, mois par mois jusqu'à 1 an (en grammes). Les mâles pèsent environ 20 % de plus. */
-const POIDS_FEMELLE = [
-	100,
-	500,
-	900,
-	1400,
-	1900,
-	2300,
-	2700,
-	3e3,
-	3200,
-	3400,
-	3500,
-	3600,
-	3700
-];
-/**
-* Le poids habituel d'un chat de cet âge, avec une marge large (± 25 %) : les chats varient
-* beaucoup, c'est un repère pour repérer une courbe qui décroche, pas une norme. Après 1 an,
-* le repère reste celui de 12 mois.
-*/
-function poidsRepere(naissance, jour, sexe = "femelle") {
-	const mois = Math.max(0, ecartJours(naissance, jour) / 30.44);
-	const i = Math.min(Math.floor(mois), POIDS_FEMELLE.length - 1);
-	const suivant = POIDS_FEMELLE[Math.min(i + 1, POIDS_FEMELLE.length - 1)];
-	const femelle = POIDS_FEMELLE[i] + (suivant - POIDS_FEMELLE[i]) * Math.min(1, mois - i);
-	const median = Math.round(femelle * (sexe === "male" ? 1.2 : 1));
-	return {
-		min: Math.round(median * .75),
-		median,
-		max: Math.round(median * 1.25)
-	};
-}
-/** Ce que disent ses dernières pesées : une perte de poids, ou un poids loin du repère de son âge. */
-function alertePoids(animal) {
-	const [derniere, precedente] = historiquePesees(animal);
-	if (!derniere) return null;
-	if (precedente) {
-		const perte = precedente.grammes - derniere.grammes;
-		const chaton = ageEnMois(animal.naissance, derniere.jour) < 12;
-		if (perte > 0 && (chaton ? perte >= 50 : perte >= precedente.grammes * .05)) return {
-			texte: `${animal.nom} a perdu ${perte} g depuis le ${precedente.jour.slice(8, 10)}/${precedente.jour.slice(5, 7)} : à signaler au vétérinaire`,
-			urgent: true
-		};
-	}
-	const repere = poidsRepere(animal.naissance, derniere.jour, animal.sexe);
-	if (derniere.grammes < repere.min) return {
-		texte: "Poids sous le repère de son âge : à montrer au vétérinaire",
-		urgent: false
-	};
-	if (derniere.grammes > repere.max) return {
-		texte: "Poids au-dessus du repère de son âge : à montrer au vétérinaire",
-		urgent: false
-	};
-	return null;
-}
-const TYPES_EVENEMENT = {
-	litiere: "Litière changée",
-	vomi: "A vomi",
-	pas_mange: "N'a pas mangé",
-	selles: "Selles molles",
-	boite: "Boite",
-	cachee: "Se cache, abattue",
-	autre: "Autre"
-};
-/**
-* Un souci qui revient appelle le vétérinaire : ne pas manger deux jours sur trois (un chat qui
-* ne mange plus se met vite en danger), vomir ou avoir les selles molles trois fois en une
-* semaine, boiter ou se cacher deux fois en une semaine.
-*/
-function alertesJournal(animal, aujourdhui) {
-	const journal = animal.journal ?? [];
-	const depuis = (jours, quoi) => journal.filter((e) => e.quoi === quoi && e.jour <= aujourdhui && ecartJours(e.jour, aujourdhui) < jours);
-	const alertes = [];
-	const pasMange = new Set(depuis(3, "pas_mange").map((e) => e.jour)).size;
-	if (pasMange >= 2) alertes.push(`${animal.nom} n'a pas mangé ${pasMange} jours : appeler le vétérinaire`);
-	for (const [quoi, seuil] of [
-		["vomi", 3],
-		["selles", 3],
-		["boite", 2],
-		["cachee", 2]
-	]) {
-		const n = depuis(7, quoi).length;
-		if (n >= seuil) alertes.push(`${TYPES_EVENEMENT[quoi]} ${n} fois en 7 jours : appeler le vétérinaire`);
-	}
-	return alertes;
-}
-/** Tout ce qui demande un geste, du plus pressé au moins pressé. */
-function choseAFaire(animal, aujourdhui) {
-	const urgentes = [];
-	const bientot = [];
-	const commande = animal.commande;
-	if (commande) {
-		const ecart = ecartJours(aujourdhui, commande.prochaine);
-		if (ecart <= 3) {
-			const quand = ecart < 0 ? "en retard" : ecart === 0 ? "aujourd'hui" : ecart === 1 ? "demain" : `dans ${ecart} jours`;
-			urgentes.push({
-				texte: `Commande ${commande.fournisseur} ${quand}`,
-				urgent: true
-			});
-			for (const { provision } of aAjouterALaCommande(animal, aujourdhui)) urgentes.push({
-				texte: `Ajouter ${provision.nom} à la commande`,
-				urgent: true
-			});
-		}
-		for (const { provision, fin } of videsAvantLivraison(animal, aujourdhui)) {
-			if (ecart <= 3) continue;
-			urgentes.push({
-				texte: `${provision.nom} : vide vers le ${fin.slice(8, 10)}/${fin.slice(5, 7)}, avant la commande`,
-				urgent: true
-			});
-		}
-	}
-	for (const p of animal.provisions) {
-		if (articleDe(p, animal)) continue;
-		const prev = prevoir(p, animal, aujourdhui);
-		if (!prev || prev.etat === "ok") continue;
-		if (commande && prev.fin >= plusJours(commande.prochaine, 3)) continue;
-		urgentes.push({
-			texte: prev.etat === "epuise" ? `${p.nom} : c'est fini` : `Commander ${p.nom} : ${prev.joursRestants} j de stock`,
-			urgent: true
-		});
-	}
-	for (const s of soinsAVenir(animal)) {
-		const ecart = ecartJours(aujourdhui, s.date);
-		if (ecart > 7) continue;
-		const quand = ecart < 0 ? "en retard" : ecart === 0 ? "aujourd'hui" : ecart === 1 ? "demain" : `dans ${ecart} jours`;
-		urgentes.push({
-			texte: `${s.libelle} ${quand}`,
-			urgent: true
-		});
-	}
-	for (const texte of alertesJournal(animal, aujourdhui)) urgentes.unshift({
-		texte,
-		urgent: true
-	});
-	const poids = alertePoids(animal);
-	if (poids) (poids.urgent ? urgentes : bientot).push(poids);
-	if (prochainePesee(animal, aujourdhui) <= aujourdhui) bientot.push({
-		texte: animal.pesees.length ? "La peser" : "La peser une première fois",
-		urgent: false
-	});
-	const avant = ecartJours(aujourdhui, passageAdulte(animal.naissance));
-	if (avant >= 0 && avant <= 30) bientot.push({
-		texte: `Passer aux croquettes adulte ${avant === 0 ? "aujourd'hui" : `dans ${avant} jours`}`,
-		urgent: false
-	});
-	return [...urgentes, ...bientot];
 }
 //#endregion
 //#region src/domaine/listes.ts
@@ -955,6 +1129,7 @@ const PREFERENCES_DE_DEPART = {
 	stock: true,
 	jardin: true,
 	mots: true,
+	agenda: true,
 	heure: 8,
 	jours: TOUS_LES_JOURS
 };
@@ -1079,6 +1254,11 @@ function rappelDuMatin(entree) {
 	const { preferences, aujourdhui } = entree;
 	const lignes = [];
 	let nombre = 0;
+	if (preferences.agenda && entree.evenements) {
+		const occ = evenementsDuMatin(entree.evenements, entree.membreId, aujourdhui);
+		if (occ.length) lignes.push(`Agenda : ${enumerer(occ.map((o) => decrireCourt(o, aujourdhui)))}`);
+		nombre += occ.length;
+	}
 	if (preferences.taches) {
 		const t = tachesDuMatin(entree.taches, entree.membreId, aujourdhui);
 		if (t.aujourdhui.length) lignes.push(`Aujourd'hui : ${enumerer(t.aujourdhui.map((x) => x.titre))}`);
@@ -1137,4 +1317,4 @@ function rappelDu(instant, heure, dernierEnvoi, fuseau = FUSEAU_DU_FOYER, jours 
 	return dernierEnvoi === local.jour ? null : local.jour;
 }
 //#endregion
-export { FUSEAU_DU_FOYER, HEURE_DU_RAPPEL, HEURE_MAX, HEURE_MIN, JOURS_SEMAINE, PREFERENCES_DE_DEPART, RACCOURCIS_JOURS, TOUS_LES_JOURS, adresseMeteo, basculerJour, decalerHeure, decrireJours, fenetreMotsProgrammes, formaterHeure, heureValide, jourDeLaSemaine, jourEtHeure, lireMeteo, nettoyerJours, notificationMot, rappelDu, rappelDuMatin, tachesDuMatin };
+export { FUSEAU_DU_FOYER, HEURE_DU_RAPPEL, HEURE_MAX, HEURE_MIN, JOURS_SEMAINE, PREFERENCES_DE_DEPART, RACCOURCIS_JOURS, TOUS_LES_JOURS, adresseMeteo, basculerJour, decalerHeure, decrireJours, evenementsDe, fenetreMotsProgrammes, formaterHeure, heureValide, jourDeLaSemaine, jourEtHeure, lireMeteo, nettoyerJours, notificationMot, rappelDu, rappelDuMatin, tachesDuMatin };

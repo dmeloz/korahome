@@ -2,10 +2,10 @@ import { fileURLToPath } from "node:url";
 import { rolldown } from "rolldown";
 
 /** Les fonctions serveur et les règles qu'elles embarquent : supabase/functions/<nom>/domaine.js. */
-export const FONCTIONS = ["rappels", "jarvis", "chef"];
+export const FONCTIONS = ["rappels", "jarvis", "chef", "agenda"];
 
 /** Le fichier de règles de chaque fonction. */
-const SOURCES = { rappels: "rappels", jarvis: "jarvisModele", chef: "chef" };
+const SOURCES = { rappels: "rappels", jarvis: "jarvisModele", chef: "chef", agenda: "icloud" };
 
 /** Le code des règles de la fonction <nom>, réuni en un module sans dépendance. */
 export async function construireDomaine(nom = "rappels") {

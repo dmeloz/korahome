@@ -418,3 +418,41 @@ describe("Jarvis apprend, modifie et note ses souhaits", () => {
     expect(decrireFoyer({ ...d, animaux: [mitsu] }, melo, AUJOURDHUI)).toContain("Carnet de Mitsu, derniers soins faits : Vaccin typhus le 2026-09-01.");
   });
 });
+
+describe("Jarvis et l'agenda", () => {
+  it("met un rendez-vous dans l'agenda, pour la bonne personne, sans doublon, et en parle ensuite", () => {
+    const { d, sarah } = foyerDeTest();
+    const actions = lireActions([
+      {
+        nom: "ajouter_evenement",
+        entree: { titre: "Dentiste", jour: "2026-10-15", fin: null, heure: "14:30", heure_fin: "25:00", pour: "sarah", categorie: "rdv", repetition: "aucune", lieu: "Renens" },
+      },
+      { nom: "ajouter_evenement", entree: { titre: "Sans date", jour: "jeudi" } },
+    ]);
+    expect(actions).toHaveLength(1);
+    expect(actions[0]).toMatchObject({ heure: "14:30", heureFin: null });
+    const r = appliquerActions(actions, d, null, AUJOURDHUI, ctx());
+    expect(r.faits).toEqual(["Dans l'agenda : dentiste, jeudi 15 oct. à 14:30, pour Sarah."]);
+    const evenement = r.modifications[0].apres as { pour: string; lieu: string };
+    expect(evenement).toMatchObject({ pour: sarah, lieu: "Renens" });
+
+    const avecAgenda = { ...d, agenda: [r.modifications[0].apres as never] };
+    expect(appliquerActions(actions, avecAgenda, null, AUJOURDHUI, ctx()).faits[0]).toMatch(/^Déjà dans l'agenda/);
+    expect(decrireFoyer(avecAgenda, null, AUJOURDHUI)).toContain("- Dentiste : 2026-10-15 à 14:30, Sarah, Renens");
+  });
+
+  it("demande le oui avant de retirer un événement, et ne touche pas à ce qui vient d'iCloud", () => {
+    const { d } = foyerDeTest();
+    const ajout = appliquerActions(lireActions([{ nom: "ajouter_evenement", entree: { titre: "Ciné", jour: "2026-10-16", categorie: "sortie" } }]), d, null, AUJOURDHUI, ctx());
+    const cine = ajout.modifications[0].apres as never as { id: string };
+    const icloud = { ...(cine as object), id: "icloud-x", titre: "Réunion", source: "iCloud de Melo" };
+    const avecAgenda = { ...d, agenda: [cine as never, icloud as never] };
+    const [retirer] = lireActions([{ nom: "supprimer_evenement", entree: { titre: "ciné", jour: null } }]);
+    expect(aConfirmer(retirer)).toBe(true);
+    expect(questionPour(retirer).question).toBe("Retirer « ciné » de l'agenda ?");
+    const r = appliquerActions([retirer], avecAgenda, null, AUJOURDHUI, ctx());
+    expect(r.modifications).toEqual([{ collection: "agenda", avant: cine, apres: cine, supprime: true }]);
+    const [reunion] = lireActions([{ nom: "supprimer_evenement", entree: { titre: "Réunion", jour: null } }]);
+    expect(appliquerActions([reunion], avecAgenda, null, AUJOURDHUI, ctx()).echecs).toEqual(["Je ne trouve pas « Réunion » dans l'agenda."]);
+  });
+});

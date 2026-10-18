@@ -9,7 +9,7 @@ Fiche projet et plan (sur le Mac de la propriétaire) : `~/Atelier-Claude/Cervea
 - `npm test` : tests (Vitest).
 - `npm run typecheck` puis `npm run build` : vérification des types et build de production dans `dist/`.
 - En ligne : https://korahome-cassa.netlify.app, publiée sur Netlify par l'action GitHub `Publier` à chaque fusion dans `main` (voir `docs/en-ligne.md`).
-- `npm run fonction` : régénère les fonctions serveur (rappels, Jarvis) après une modification de leurs règles (voir `docs/notifications.md`, `docs/jarvis.md`).
+- `npm run fonction` : régénère les fonctions serveur (rappels, Jarvis, Chef, agenda) après une modification de leurs règles (voir `docs/notifications.md`, `docs/jarvis.md`).
 - `npm run serveur` : sert l'app en https sur le wifi depuis le Mac (certificat local dans `.certificats/`, voir `docs/installer-sur-iphone.md`).
 
 ## Architecture
@@ -19,6 +19,7 @@ Fiche projet et plan (sur le Mac de la propriétaire) : `~/Atelier-Claude/Cervea
 - `supabase/functions/rappels/` : rappels du matin à 8 h (Web Push), règles dans `src/domaine/rappels.ts`. Voir `docs/notifications.md`.
 - `supabase/functions/jarvis/` : Jarvis, l'assistant (Claude, clé dans les secrets Supabase, plafond 5 CHF par mois). Règles et outils dans `src/domaine/jarvis.ts`, mémoire du foyer dans `memoire.ts`, actions appliquées par le téléphone via le `Depot` (celles qui suppriment attendent un oui). Ce qu'il ne sait pas faire devient un souhait dans les retours de test. Voir `docs/jarvis.md`.
 - `supabase/functions/chef/` : le Chef de la semaine (menus du soir depuis le stock, ajouts aux courses marqués « Chef », jour et heure réglables, lancement d'un toucher). Règles dans `src/domaine/chef.ts`, page « Menus de la semaine ». Voir `docs/chef.md`.
+- Agenda commun : `src/domaine/agenda.ts`, page « Agenda ». Synchro avec l'iCloud de chacun (calendrier « Kora », mot de passe d'app dans Supabase Vault) par `supabase/functions/agenda/`, règles dans `src/domaine/icloud.ts`. Voir `docs/agenda.md`.
 - Bandeau du couple (mots, humeurs, comptes à rebours, clin d'œil de Jarvis, infos) : `src/domaine/bandeau.ts`, page « Nos mots ». Voir `docs/bandeau-couple.md`.
 - Kora apprend de votre usage (bilan du dimanche, accueil vivant, « comme d'habitude », mot du jour) : `src/domaine/apprentissage.ts`, page « Ce que Kora sait de nous ». Ce qui est personnel reste dans le `localStorage` du téléphone. Voir `docs/apprentissage.md`.
 - Jardin : zones, plantes et calendrier dans `src/domaine/jardin.ts` et `plantes.ts`, météo Open-Meteo (`meteo.ts`, sans clé). Voir `docs/jardin.md`.

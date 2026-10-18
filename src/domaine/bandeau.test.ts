@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  abreger,
   fenetreMotsProgrammes,
   basculerCoeur,
   decrireCompte,
@@ -86,8 +87,8 @@ describe("le bandeau", () => {
     ];
     const textes = elementsBandeau({ docs, foyer: f, moi: melo, maintenant: MAINTENANT, aujourdhui: AUJOURDHUI, infos: [{ cle: "x", genre: "info", texte: "Info" }] }).map((e) => e.texte);
     expect(textes).toEqual([
-      "Sarah : Pense au pain",
-      "Humeur du jour : Toi 😊 · Sarah 😴",
+      "Pense au pain",
+      "Toi 😊 · Sarah 😴",
       "Anniversaire de Sarah dans 5 jours",
       "Un vendredi parfait pour une raclette.",
       "Info",
@@ -113,7 +114,26 @@ describe("le bandeau", () => {
     }).map((i) => i.texte);
     expect(infos[0]).toMatch(/^Renens : .+, 6° à 15°$/);
     expect(infos[1]).toMatch(/^Véto 14 h, /);
-    expect(infos[2]).toBe("À finir bientôt : yaourts");
+    expect(infos[2]).toBe("À finir : yaourts");
+  });
+});
+
+describe("abreger", () => {
+  it("laisse un texte court tel quel", () => {
+    expect(abreger("Pense au pain")).toBe("Pense au pain");
+  });
+
+  it("coupe un texte long au dernier mot entier", () => {
+    const long = "Ce soir on se fait une raclette chez nous, j'achète le fromage en rentrant du travail";
+    const court = abreger(long);
+    expect(court.length).toBeLessThanOrEqual(60);
+    expect(court).toBe("Ce soir on se fait une raclette chez nous, j'achète le…");
+  });
+
+  it("met l'auteur d'un mot à part", () => {
+    const { f, melo, sarah, ctx } = foyer();
+    const [el] = elementsBandeau({ docs: [nouveauMot("Pense au pain", sarah, ctx)], foyer: f, moi: melo, maintenant: MAINTENANT, aujourdhui: AUJOURDHUI });
+    expect(el).toMatchObject({ genre: "mot", auteur: "Sarah", texte: "Pense au pain" });
   });
 });
 

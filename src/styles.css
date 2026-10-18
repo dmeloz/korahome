@@ -1277,7 +1277,11 @@ html[data-sens="arriere"]::view-transition-new(root) { animation-name: page-revi
   width: 100%;
   margin: -8px 0 16px;
   padding: 10px 0;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  touch-action: pan-x pan-y;
   border-radius: 14px;
   background: var(--verre);
   box-shadow: var(--reflet);
@@ -1301,13 +1305,11 @@ html[data-sens="arriere"]::view-transition-new(root) { animation-name: page-revi
 }
 .bandeau-couple.vide svg { color: var(--accent); }
 .bandeau-fil {
-  display: inline-flex;
+  display: flex;
+  align-items: center;
   width: max-content;
-  animation: bandeau-defile linear infinite;
-  will-change: transform;
 }
-.bandeau-couple:active .bandeau-fil { animation-play-state: paused; }
-.bandeau-copie { display: inline-flex; gap: 28px; padding-right: 28px; }
+.bandeau-copie { display: inline-flex; align-items: center; gap: 28px; padding-right: 28px; }
 .bandeau-element {
   display: inline-flex;
   align-items: center;
@@ -1316,19 +1318,25 @@ html[data-sens="arriere"]::view-transition-new(root) { animation-name: page-revi
   font-size: 15px;
   color: var(--discret);
 }
-.bandeau-element.genre-mot { color: var(--texte); font-weight: 500; }
-.bandeau-element.genre-mot svg { color: var(--accent); opacity: 0.55; transition: opacity 0.2s, transform 0.2s; }
+.bandeau-couple::-webkit-scrollbar { display: none; }
+.bandeau-element.genre-mot {
+  color: var(--texte);
+  font-weight: 500;
+  padding: 1px 11px 1px 9px;
+  border-radius: 999px;
+  background: var(--accent-doux);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.bandeau-auteur { color: var(--accent); font-weight: 650; }
+.bandeau-element.genre-mot + .bandeau-element::before,
+.bandeau-element + .bandeau-element.genre-mot::before { content: none; }
+.bandeau-element.genre-mot svg { color: var(--accent); opacity: 0.7; transition: opacity 0.2s, transform 0.2s; }
 .bandeau-element.genre-mot.aime svg { opacity: 1; fill: currentColor; transform: scale(1.12); }
 .bandeau-element.genre-clin { color: var(--accent); font-style: italic; }
 .bandeau-element.genre-compte { color: var(--texte); }
 .bandeau-element + .bandeau-element::before { content: "·"; margin-right: 22px; color: var(--trait); }
-@keyframes bandeau-defile {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
 @media (prefers-reduced-motion: reduce) {
-  .bandeau-couple { overflow-x: auto; -webkit-mask-image: none; mask-image: none; padding-inline: 14px; }
-  .bandeau-fil { animation: none; }
+  .bandeau-couple { -webkit-mask-image: none; mask-image: none; padding-inline: 14px; }
   .bandeau-copie + .bandeau-copie { display: none; }
 }
 
@@ -1460,3 +1468,55 @@ html[data-sens="arriere"]::view-transition-new(root) { animation-name: page-revi
 .chef-avis-bouton.actif { color: var(--texte); border-color: var(--discret); }
 .chef-avis-bouton.actif.aime { color: var(--accent); border-color: var(--accent); background: var(--accent-doux); }
 .chef-avis-bouton.aime svg { fill: currentColor; }
+/* L'agenda commun */
+.agenda .puces { margin: 10px 0 4px; }
+.agenda-calendrier { padding: 8px 10px 12px; margin-top: 12px; }
+.agenda-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.agenda-nav .lien:disabled { color: var(--discret); }
+.agenda-grille { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
+.agenda-initiale { text-align: center; font-family: var(--police-fixe); font-size: 11px; letter-spacing: 0.08em; color: var(--discret); padding: 2px 0 4px; }
+.agenda-jour {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-height: 52px;
+  padding: 7px 0 6px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  font-variant-numeric: tabular-nums;
+}
+.agenda-grille.mois .agenda-jour { min-height: 44px; padding: 5px 0 4px; }
+.agenda-numero { font-size: 17px; line-height: 1; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; }
+.agenda-jour.aujourdhui .agenda-numero { color: var(--accent); font-weight: 700; }
+.agenda-jour.choisi .agenda-numero { background: var(--accent); color: var(--sur-accent); font-weight: 600; }
+.agenda-jour.hors { opacity: 0.35; }
+.agenda-points { display: flex; gap: 3px; height: 5px; }
+.agenda-points span { width: 5px; height: 5px; border-radius: 50%; }
+@media (prefers-reduced-motion: no-preference) { .agenda-numero { transition: background 0.15s ease, color 0.15s ease; } }
+.agenda-liste .agenda-ligne { width: 100%; border: 0; background: none; text-align: left; gap: 12px; padding: 10px 16px; align-items: stretch; }
+.agenda-heure { flex: none; width: 50px; display: flex; flex-direction: column; justify-content: center; font-variant-numeric: tabular-nums; font-size: 13px; color: var(--discret); }
+.agenda-heure strong { font-size: 16px; font-weight: 600; color: var(--texte); }
+.agenda-barre { flex: none; width: 3px; border-radius: 2px; }
+.agenda-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; justify-content: center; }
+.agenda-texte .ligne-texte { overflow: hidden; text-overflow: ellipsis; }
+.agenda-vide { margin: 8px 0 0; }
+.agenda-dans { font-size: 13px; }
+.agenda-pastille { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; flex: none; }
+.agenda-detail { gap: 10px; }
+.agenda-detail p { margin: 0; }
+.agenda-detail-quand { font-size: 19px; font-weight: 600; }
+.agenda-note { white-space: pre-wrap; }
+.agenda-formulaire { gap: 12px; }
+.agenda-dates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.agenda-dates label { min-width: 0; }
+.agenda-dates input { width: 100%; min-width: 0; }
+.agenda-icloud { display: grid; gap: 10px; }
+.agenda-icloud > p { margin: 0; line-height: 1.45; }
+.agenda-icloud > .lien { justify-self: start; padding: 4px 0; }
+.agenda-comptes { list-style: none; margin: 0; padding: 0; }
+.agenda-comptes .ligne { padding: 8px 0; gap: 0; }
+.agenda-comptes .agenda-texte { margin-right: 10px; }
+.agenda-etapes { margin: 0; padding-left: 20px; display: grid; gap: 6px; line-height: 1.4; }
+.agenda-etapes a { color: var(--accent); }
