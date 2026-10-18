@@ -42,8 +42,8 @@ export function configurationSupabase(): { url: string; cle: string } | null {
   return url && cle ? { url, cle } : null;
 }
 
-/** Une fonction serveur (rappels, jarvis, chef) ; ses messages d'erreur sont déjà en français. */
-async function appelerFonction(sb: SupabaseClient, nom: "rappels" | "jarvis" | "chef", corps: object): Promise<Record<string, unknown>> {
+/** Une fonction serveur (rappels, jarvis, chef, agenda) ; ses messages d'erreur sont déjà en français. */
+async function appelerFonction(sb: SupabaseClient, nom: "rappels" | "jarvis" | "chef" | "agenda", corps: object): Promise<Record<string, unknown>> {
   const { data, error } = await sb.functions.invoke(nom, { body: corps });
   if (error) {
     const detail = await (error as { context?: Response }).context?.json?.().catch(() => null);
@@ -142,7 +142,7 @@ export function creerServicesSupabase(url: string, cle: string): ServicesDistant
         p_foyer_id: i.foyerId,
         p_membre_id: i.membreId,
         p_cles: i.cles,
-        p_preferences: { taches: i.preferences.taches, mitsu: i.preferences.mitsu, stock: i.preferences.stock, jardin: i.preferences.jardin, mots: i.preferences.mots, jours: i.preferences.jours },
+        p_preferences: { taches: i.preferences.taches, mitsu: i.preferences.mitsu, stock: i.preferences.stock, jardin: i.preferences.jardin, mots: i.preferences.mots, agenda: i.preferences.agenda, jours: i.preferences.jours },
         p_heure: i.preferences.heure,
       });
       echec(error);
@@ -180,6 +180,22 @@ export function creerServicesSupabase(url: string, cle: string): ServicesDistant
 
     async lancerChef(foyerId) {
       return (await appelerFonction(await supabase(), "chef", { mode: "maintenant", foyerId })) as unknown as Awaited<ReturnType<ServicesDistants["lancerChef"]>>;
+    },
+
+    async relierIcloud(demande) {
+      await appelerFonction(await supabase(), "agenda", { mode: "relier", ...demande });
+    },
+
+    async choisirCalendriers(demande) {
+      await appelerFonction(await supabase(), "agenda", { mode: "choisir", ...demande });
+    },
+
+    async synchroniserAgenda(foyerId) {
+      await appelerFonction(await supabase(), "agenda", { mode: "synchroniser", foyerId });
+    },
+
+    async delierIcloud(demande) {
+      await appelerFonction(await supabase(), "agenda", { mode: "delier", ...demande });
     },
 
     async envoyer(foyerId, changements) {

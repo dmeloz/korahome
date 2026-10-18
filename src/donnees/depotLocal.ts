@@ -1,6 +1,7 @@
 import type { ProduitHabituel } from "../domaine/catalogue";
 import type { Zone } from "../domaine/jardin";
 import type { DocCouple } from "../domaine/bandeau";
+import type { DocAgenda } from "../domaine/agenda";
 import type { DocChef } from "../domaine/chef";
 import type { Souvenir } from "../domaine/memoire";
 import type { Animal } from "../domaine/mitsu";
@@ -19,9 +20,10 @@ import type { Depot } from "./depot";
 // Version 9 : le jardin ; relecture du serveur une fois, pour la même raison.
 // Version 10 : la mémoire de Jarvis et le bandeau du couple ; relecture du serveur une fois, pour la même raison.
 // Version 11 : les menus du Chef de la semaine ; relecture du serveur une fois, pour la même raison.
+// Version 12 : l'agenda commun ; relecture du serveur une fois, pour la même raison.
 // La mise à jour crée seulement les magasins manquants.
-const VERSION = 11;
-const MAGASINS = ["foyer", "listes", "elements", "taches", "retours", "animaux", "stock", "catalogue", "jardin", "memoire", "couple", "menus", "attente", "synchro"] as const;
+const VERSION = 12;
+const MAGASINS = ["foyer", "listes", "elements", "taches", "retours", "animaux", "stock", "catalogue", "jardin", "memoire", "couple", "menus", "agenda", "attente", "synchro"] as const;
 type Magasin = (typeof MAGASINS)[number];
 const CLES: Partial<Record<Magasin, string>> = { attente: "cle" };
 
@@ -85,7 +87,7 @@ function ouvrir(nomBase: string, fabrique: IDBFactory): Promise<IDBDatabase> {
           }
         });
       }
-      if (evenement.oldVersion < 11 && avant.contains("synchro")) {
+      if (evenement.oldVersion < 12 && avant.contains("synchro")) {
         const synchro = req.transaction!.objectStore("synchro");
         puis(synchro.get("etat") as IDBRequest<{ curseur: string | null } | undefined>, (etat) => {
           if (etat) synchro.put({ ...etat, curseur: null });
@@ -215,6 +217,10 @@ export function creerDepotLocal(
 
     lireMenus: () => tous<DocChef>("menus"),
     enregistrerMenu: (doc) => poser("menus", [doc]),
+
+    lireAgenda: () => tous<DocAgenda>("agenda"),
+    enregistrerAgenda: (doc) => poser("agenda", [doc]),
+    supprimerAgenda: (id) => supprimer("agenda", [id]),
 
     lireRetours: () => tous<RetourTest>("retours"),
     enregistrerRetour: (retour) => poser("retours", [retour]),

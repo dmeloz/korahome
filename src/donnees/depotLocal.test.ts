@@ -1,3 +1,4 @@
+import { preparerEvenement } from "../domaine/agenda";
 import { IDBFactory } from "fake-indexeddb";
 import { nouveauSouvenir } from "../domaine/memoire";
 import { reglerChef } from "../domaine/chef";
@@ -197,6 +198,16 @@ describe("dépôt local", () => {
     await depot.enregistrerMenu(reglage);
     expect(await depot.lireMenus()).toEqual([reglage]);
     expect((await depot.lireEnAttente()).map((c) => c.collection)).toEqual(["menus"]);
+  });
+
+  it("garde l'agenda commun et le partage", async () => {
+    const depot = depotNeuf();
+    const e = preparerEvenement({ titre: "Dentiste", jour: "2026-10-22", heure: "14:30" }, null, contexteTest());
+    await depot.enregistrerAgenda(e);
+    expect(await depot.lireAgenda()).toEqual([e]);
+    expect((await depot.lireEnAttente()).map((c) => c.collection)).toEqual(["agenda"]);
+    await depot.supprimerAgenda(e.id);
+    expect(await depot.lireAgenda()).toEqual([]);
   });
 
   it("conserve le suivi de Mitsu", async () => {

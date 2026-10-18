@@ -1,3 +1,4 @@
+import type { Evenement } from "../../domaine/agenda";
 import { useEffect, useState } from "react";
 import type { Zone } from "../../domaine/jardin";
 import type { Meteo } from "../../domaine/meteo";
@@ -27,7 +28,8 @@ import {
   type EtatRappels,
 } from "../rappels";
 
-const CHOIX: { cle: "taches" | "mitsu" | "stock" | "jardin" | "mots"; titre: string; detail: string }[] = [
+const CHOIX: { cle: "agenda" | "taches" | "mitsu" | "stock" | "jardin" | "mots"; titre: string; detail: string }[] = [
+  { cle: "agenda", titre: "Agenda", detail: "Les rendez-vous, anniversaires et sorties du jour, les tiens et ceux de nous deux." },
   { cle: "taches", titre: "Mes tâches", detail: "Celles que tu as prises et les tâches libres, du jour et en retard." },
   { cle: "mitsu", titre: "Mitsu", detail: "Commande à passer, provisions qui s'épuisent, soins à venir." },
   { cle: "stock", titre: "Frigo et placards", detail: "Ce qui arrive à sa date dans les trois jours." },
@@ -44,6 +46,7 @@ export function Notifications(props: {
   /** Pour l'aperçu du rappel. */
   foyer: Foyer;
   taches: Tache[];
+  evenements: Evenement[];
   animaux: Animal[];
   produits: Produit[];
   zones: Zone[];
@@ -139,7 +142,7 @@ export function Notifications(props: {
   );
 
   // Ce que dirait le rappel si on était au matin, présenté comme une notification de l'iPhone.
-  const rappel = rappelDuMatin({ foyer: props.foyer, membreId, taches: props.taches, animaux: props.animaux, produits: props.produits, zones: props.zones, meteo: props.meteo, aujourdhui: props.aujourdhui, preferences });
+  const rappel = rappelDuMatin({ foyer: props.foyer, membreId, evenements: props.evenements, taches: props.taches, animaux: props.animaux, produits: props.produits, zones: props.zones, meteo: props.meteo, aujourdhui: props.aujourdhui, preferences });
   const apercu = (
     <>
       <h2 className="rayon">Aperçu</h2>

@@ -28,7 +28,7 @@ const depot = creerDepotLocal();
 // Sans adresse de serveur (.env.local sur le Mac), l'app reste sur ce téléphone seulement.
 const config = configurationSupabase();
 const distant = config ? creerServicesSupabase(config.url, config.cle) : null;
-const partage = distant ? { compte: distant, synchro: creerSynchro(depot, distant), rappels: distant, jarvis: distant, tempsReel: distant } : null;
+const partage = distant ? { compte: distant, synchro: creerSynchro(depot, distant), rappels: distant, jarvis: distant, agenda: distant, tempsReel: distant } : null;
 
 createRoot(document.getElementById("racine")!).render(
   <StrictMode>

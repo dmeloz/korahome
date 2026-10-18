@@ -1,5 +1,6 @@
 import type { Animal } from "../domaine/mitsu";
 import type { DocCouple } from "../domaine/bandeau";
+import type { DocAgenda } from "../domaine/agenda";
 import type { DocChef } from "../domaine/chef";
 import type { Souvenir } from "../domaine/memoire";
 import type { RetourTest } from "../domaine/retours";
@@ -62,6 +63,11 @@ export interface Depot {
   /** Le Chef de la semaine : ses menus (écrits par le serveur) et son réglage. */
   lireMenus(): Promise<DocChef[]>;
   enregistrerMenu(doc: DocChef): Promise<void>;
+
+  /** L'agenda commun : un document par événement, et l'état de chaque compte iCloud relié. */
+  lireAgenda(): Promise<DocAgenda[]>;
+  enregistrerAgenda(doc: DocAgenda): Promise<void>;
+  supprimerAgenda(id: Id): Promise<void>;
 
   /** Les notes de test écrites depuis le coin « Dev ». */
   lireRetours(): Promise<RetourTest[]>;

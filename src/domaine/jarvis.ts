@@ -11,6 +11,7 @@
 // Il a aussi une mémoire du foyer (memoire.ts) et note ce qu'il ne sait pas encore faire
 // comme souhait pour Claude (une note « Idée » des retours de test).
 
+import { CATEGORIES, decrireAgenda, decrireJour, evenementsDe, preparerEvenement, REPETITIONS, type Categorie, type DocAgenda, type Evenement, type Repetition } from "./agenda";
 import { proposer, type ProduitHabituel } from "./catalogue";
 import { ajouterPlante, arroser, decrireJardin, nouvellePlante, type Zone } from "./jardin";
 import { analyserSaisie, nouvelElement, trouverDoublon } from "./listes";
@@ -77,6 +78,8 @@ export interface DonneesFoyer {
   retours?: RetourTest[];
   /** La version de l'app, marquée sur les souhaits. */
   version?: string;
+  /** L'agenda commun. */
+  agenda?: readonly DocAgenda[];
 }
 
 const listeCourses = (d: DonneesFoyer) => d.listes.find((l) => l.type === "courses") ?? null;
@@ -144,6 +147,7 @@ export function decrireFoyer(d: DonneesFoyer, membreId: Id | null, aujourdhui: J
     if (journal.length) lignes.push(`Journal de ${a.nom} : ${journal.map((e) => `${TYPES_EVENEMENT[e.quoi].toLowerCase()}${e.note ? ` (${e.note})` : ""} le ${e.jour}`).join(", ")}.`);
   }
   if (d.zones?.length) lignes.push(...decrireJardin(d.zones, d.meteo ?? null, aujourdhui));
+  if (d.agenda) lignes.push(...decrireAgenda(evenementsDe(d.agenda), d.foyer, aujourdhui));
   return lignes.join("\n");
 }
 
@@ -166,7 +170,20 @@ export type ActionJarvis =
   | { outil: "retirer_du_stock"; produits: string[] }
   | { outil: "retenir"; fait: string; propose: boolean }
   | { outil: "oublier"; fait: string }
-  | { outil: "noter_souhait"; demande: string; manque: string };
+  | { outil: "noter_souhait"; demande: string; manque: string }
+  | {
+      outil: "ajouter_evenement";
+      titre: string;
+      jour: Jour;
+      fin: Jour | null;
+      heure: string | null;
+      heureFin: string | null;
+      pour: string | null;
+      categorie: Categorie;
+      repetition: Repetition;
+      lieu: string | null;
+    }
+  | { outil: "supprimer_evenement"; titre: string; jour: Jour | null };
 
 /** Ce qui attend le oui de la personne avant de se faire : supprimer, ou retenir ce que Jarvis a remarqué seul. */
 export function aConfirmer(action: ActionJarvis): boolean {
@@ -174,6 +191,7 @@ export function aConfirmer(action: ActionJarvis): boolean {
     action.outil === "supprimer_tache" ||
     action.outil === "retirer_du_stock" ||
     action.outil === "oublier" ||
+    action.outil === "supprimer_evenement" ||
     (action.outil === "retenir" && action.propose)
   );
 }
@@ -187,6 +205,8 @@ export function questionPour(action: ActionJarvis): { question: string; oui: str
       return { question: `Retirer du stock : ${enumerer(action.produits)} ?`, oui: "Retirer" };
     case "oublier":
       return { question: `Oublier « ${action.fait} » ?`, oui: "Oublier" };
+    case "supprimer_evenement":
+      return { question: `Retirer « ${action.titre} » de l'agenda ?`, oui: "Retirer" };
     case "retenir":
       return { question: `J'ai remarqué : « ${action.fait} ». Je le retiens ?`, oui: "Retenir" };
     default:
@@ -198,6 +218,7 @@ const estTexte = (v: unknown): v is string => typeof v === "string" && v.trim().
 const textes = (v: unknown): string[] => (Array.isArray(v) ? v.filter(estTexte) : []);
 const RE_JOUR = /^\d{4}-\d{2}-\d{2}$/;
 const jourOuNul = (v: unknown): Jour | null => (typeof v === "string" && RE_JOUR.test(v) ? v : null);
+const heureOuNul = (v: unknown): string | null => (typeof v === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(v) ? v : null);
 
 /**
  * Relit les demandes d'outils renvoyées par le modèle ; ce qui est incomplet est ignoré.
@@ -259,6 +280,23 @@ export function lireActions(appels: readonly { nom: string; entree: unknown }[])
       if (estTexte(e.fait)) actions.push({ outil: nom, fait: e.fait.trim(), propose: e.propose !== false });
     } else if (nom === "oublier") {
       if (estTexte(e.fait)) actions.push({ outil: nom, fait: e.fait.trim() });
+    } else if (nom === "ajouter_evenement") {
+      const jour = jourOuNul(e.jour);
+      if (!estTexte(e.titre) || !jour) continue;
+      actions.push({
+        outil: nom,
+        titre: e.titre.trim(),
+        jour,
+        fin: jourOuNul(e.fin),
+        heure: heureOuNul(e.heure),
+        heureFin: heureOuNul(e.heure_fin),
+        pour: estTexte(e.pour) ? e.pour : null,
+        categorie: typeof e.categorie === "string" && e.categorie in CATEGORIES ? (e.categorie as Categorie) : "autre",
+        repetition: typeof e.repetition === "string" && e.repetition in REPETITIONS ? (e.repetition as Repetition) : "aucune",
+        lieu: estTexte(e.lieu) ? e.lieu : null,
+      });
+    } else if (nom === "supprimer_evenement") {
+      if (estTexte(e.titre)) actions.push({ outil: nom, titre: e.titre, jour: jourOuNul(e.jour) });
     } else if (nom === "noter_souhait") {
       if (estTexte(e.demande)) actions.push({ outil: nom, demande: e.demande.trim(), manque: estTexte(e.manque) ? e.manque.trim() : "" });
     }
@@ -277,7 +315,8 @@ export type Modification =
   | { collection: "animaux"; avant: Animal; apres: Animal }
   | { collection: "jardin"; avant: Zone; apres: Zone }
   | { collection: "memoire"; avant: Souvenir | null; apres: Souvenir; supprime?: true }
-  | { collection: "retours"; avant: null; apres: RetourTest };
+  | { collection: "retours"; avant: null; apres: RetourTest }
+  | { collection: "agenda"; avant: Evenement | null; apres: Evenement; supprime?: true };
 
 export interface ResultatActions {
   modifications: Modification[];
@@ -320,6 +359,7 @@ export function appliquerActions(
   let zones = [...(donnees.zones ?? [])];
   let produits = [...donnees.produits];
   let souvenirs = [...(donnees.souvenirs ?? [])];
+  let evenements = evenementsDe(donnees.agenda ?? []).filter((e) => !e.source);
   const liste = listeCourses(donnees);
 
   /** Une zone modifiée : la version d'avant reste celle de sa première modification. */
@@ -552,6 +592,33 @@ export function appliquerActions(
           faits.push(`Oublié : ${souvenir.texte.charAt(0).toLowerCase()}${souvenir.texte.slice(1)}.`);
           break;
         }
+        case "ajouter_evenement": {
+          const membre = action.pour ? trouverParNom(donnees.foyer.membres, action.pour, (m) => m.prenom) : undefined;
+          const doublon = evenements.find((x) => x.jour === action.jour && normaliser(x.titre) === normaliser(action.titre));
+          if (doublon) {
+            faits.push(`Déjà dans l'agenda : ${doublon.titre.toLowerCase()}, ${decrireJour(doublon.jour, aujourdhui).toLowerCase()}.`);
+            break;
+          }
+          const evenement = preparerEvenement({ ...action, pour: membre?.id ?? null }, membreId, ctx);
+          evenements.push(evenement);
+          modifications.push({ collection: "agenda", avant: null, apres: evenement });
+          const heure = evenement.heure ? ` à ${evenement.heure}` : "";
+          const qui = membre ? `, pour ${membre.prenom}` : "";
+          faits.push(`Dans l'agenda : ${evenement.titre.toLowerCase()}, ${decrireJour(evenement.jour, aujourdhui).toLowerCase()}${heure}${qui}.`);
+          break;
+        }
+        case "supprimer_evenement": {
+          const candidats = action.jour ? evenements.filter((x) => x.jour === action.jour) : evenements;
+          const evenement = trouverParNom(candidats, action.titre, (x) => x.titre);
+          if (!evenement) {
+            echecs.push(`Je ne trouve pas « ${action.titre} » dans l'agenda.`);
+            break;
+          }
+          evenements = evenements.filter((x) => x.id !== evenement.id);
+          modifications.push({ collection: "agenda", avant: evenement, apres: evenement, supprime: true });
+          faits.push(`Retiré de l'agenda : ${evenement.titre.toLowerCase()}.`);
+          break;
+        }
         case "noter_souhait": {
           const texte = `Souhait pour Jarvis : ${action.demande}${action.manque ? ` (il faudrait : ${action.manque})` : ""}`;
           const deja = (donnees.retours ?? []).some((r) => !r.regleLe && normaliser(r.texte) === normaliser(texte));
@@ -609,6 +676,10 @@ export function decrireAction(action: ActionJarvis): string {
       return `Oublier : ${action.fait}`;
     case "noter_souhait":
       return `Souhait pour Claude : ${action.demande}`;
+    case "ajouter_evenement":
+      return `Agenda : ${action.titre}, le ${action.jour}${action.heure ? ` à ${action.heure}` : ""}${action.pour ? `, pour ${action.pour}` : ""}`;
+    case "supprimer_evenement":
+      return `Retirer de l'agenda : ${action.titre}`;
   }
 }
 
