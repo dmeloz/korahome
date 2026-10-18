@@ -654,6 +654,14 @@ function articleDe(provision, animal) {
 function joursDuCycle(commande) {
 	return ecartJours(commande.prochaine, plusMois(commande.prochaine, commande.tousLesMois));
 }
+/** Ce qu'elle consomme vraiment par jour de ce produit (ou de ce type), d'après les derniers paquets finis. */
+function consommationApprise(animal, provision) {
+	const toutes = (animal.consommations ?? []).filter((c) => c.type === provision.type);
+	const memes = toutes.filter((c) => c.nom === provision.nom);
+	const lues = (memes.length ? memes : toutes).slice(-3);
+	if (!lues.length) return null;
+	return Math.round(lues.reduce((s, c) => s + c.parJour, 0) / lues.length * 10) / 10;
+}
 /**
 * Consommation par jour, dans l'ordre : celle notée sur la provision, la ration du jour
 * pour les croquettes (quand on connaît son poids ou la ration du paquet), sinon ce que la
@@ -662,6 +670,8 @@ function joursDuCycle(commande) {
 function consommationParJour(provision, animal, aujourdhui) {
 	if (provision.parJour) return provision.parJour;
 	if (provision.type === "filtres") return 1 / 30;
+	const apprise = consommationApprise(animal, provision);
+	if (apprise) return apprise;
 	if (provision.type === "croquettes") {
 		const ration = rationDuJour(animal, aujourdhui);
 		if (ration) return ration.grammes;

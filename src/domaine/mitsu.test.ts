@@ -4,6 +4,8 @@ import { ErreurValidation } from "./foyer";
 import {
   aAjouterALaCommande,
   ageEnMois,
+  consommationApprise,
+  paquetFini,
   formaterQuantite,
   prochaineOccurrence,
   conseilCommande,
@@ -281,5 +283,19 @@ describe("filtres de la fontaine", () => {
     let a = ajouterSoin(mitsu(ctx), nouveauSoin("filtre", "2026-11-02", "", ctx));
     a = marquerSoinFait(a, a.soins[0].id, "2026-11-02", ctx);
     expect(soinsAVenir(a)).toMatchObject([{ libelle: "Changer le filtre de la fontaine", date: "2026-12-02" }]);
+  });
+});
+
+describe("ce que Mitsu mange vraiment", () => {
+  it("apprend de chaque paquet fini et s'en sert pour prévoir", () => {
+    const ctx = contexteTest();
+    const p = nouvelleProvision({ type: "croquettes", nom: "Pro Plan", quantite: 1500, achete: "2026-09-01", parJour: null }, ctx);
+    const mitsu = ajouterProvision(nouvelAnimal("Mitsu", "2026-03-01", null, ctx), p);
+    const { animal, observee } = paquetFini(mitsu, p.id, "2026-09-26");
+    expect(observee).toMatchObject({ parJour: 60, jour: "2026-09-26" });
+    expect(animal.provisions).toEqual([]);
+    expect(consommationApprise(animal, { type: "croquettes", nom: "Autre marque" })).toBe(60);
+    // Un paquet fini en deux jours ne dit rien.
+    expect(paquetFini(mitsu, p.id, "2026-09-03").observee).toBeNull();
   });
 });

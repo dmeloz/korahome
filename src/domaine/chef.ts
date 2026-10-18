@@ -9,6 +9,7 @@
 
 import { coutMicroChf, MODELE_CONSEIL, type Consommation } from "./jarvisModele";
 import { analyserSaisie } from "./listes";
+import { nouveauSouvenir, souvenirsRetenus, type Souvenir } from "./memoire";
 import { prevoir, type Animal } from "./mitsu";
 import { heureValide, jourEtHeure, JOURS_SEMAINE } from "./rappels";
 import { detecterRayon, normaliser } from "./rayons";
@@ -171,11 +172,12 @@ Utilise d'abord les produits à finir vite, puis le reste du frigo, du congélat
 Ensuite, liste les ingrédients qui manquent pour ces repas : un article par ligne, nom court au singulier ou tel qu'on l'écrit sur une liste (« Poireaux », « Crème entière »), quantité courte (« 500 g », « 2 », « 1 l ») ou vide.
 Ne remets pas ce qui est déjà dans le stock ou déjà sur la liste de courses. Les épices, le sel, le poivre et l'huile sont supposés à la maison sauf s'ils sont vraiment absents.
 Ne mets jamais de croquettes, de litière ni rien pour le chat : cela se commande ailleurs.
+Tiens compte de ce que le foyer aime et n'aime pas (sa mémoire) : refais volontiers un plat apprécié de temps en temps, ne repropose jamais un plat à éviter.
 Le champ « mot » est une phrase chaleureuse et courte en français, sans emoji, qui dit ce que la semaine permet de finir.
 Réponds en français, avec le tutoiement.`;
 
 /** Le message du dimanche : le stock, ce qui presse, la liste de courses actuelle. */
-export function messageChef(d: { produits: readonly Produit[]; enCourses: readonly Element[]; aujourdhui: Jour }): string {
+export function messageChef(d: { produits: readonly Produit[]; enCourses: readonly Element[]; aujourdhui: Jour; souvenirs?: readonly Souvenir[] }): string {
   const aFinir = produitsAFinir(d.produits, d.aujourdhui);
   const urgents = new Set(aFinir.map((p) => p.id));
   const decrire = (p: Produit) => [p.nom, p.quantite, p.peremption && decrirePeremption(p, d.aujourdhui)].filter(Boolean).join(" · ");
@@ -187,6 +189,8 @@ export function messageChef(d: { produits: readonly Produit[]; enCourses: readon
   }
   if (!d.produits.length) lignes.push("Le stock est vide : propose des repas simples avec des ingrédients courants.", "");
   lignes.push("Déjà sur la liste de courses :", ...(d.enCourses.length ? d.enCourses.map((e) => `- ${e.texte}${e.quantite ? ` · ${e.quantite}` : ""}`) : ["- rien"]));
+  const memoire = souvenirsRetenus(d.souvenirs ?? []).sort((a, b) => a.creeLe.localeCompare(b.creeLe)).slice(-SOUVENIRS_DU_CHEF);
+  if (memoire.length) lignes.push("", "Ce que le foyer aime, n'aime pas ou a l'habitude de faire :", ...memoire.map((s) => `- ${s.texte}`));
   return lignes.join("\n");
 }
 
@@ -345,4 +349,27 @@ export function notificationChef(menu: MenuSemaine): { titre: string; corps: str
 
 export function coutChef(u: Consommation): number {
   return coutMicroChf(u, MODELE_CHEF);
+}
+
+/** Ce que le Chef relit de la mémoire du foyer : les goûts, les plats aimés et refusés. */
+export const SOUVENIRS_DU_CHEF = 40;
+
+export type AvisPlat = "aime" | "non";
+
+const clePlat = (titre: string) => normaliser(titre).replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
+export const cleAvis = (titre: string, avis: AvisPlat) => `chef:${avis}:${clePlat(titre)}`;
+
+/** L'avis donné sur un plat, retenu dans la mémoire du foyer : le Chef le relit chaque semaine. */
+export function avisSurPlat(titre: string, avis: AvisPlat, auteur: Id | null, ctx: Contexte): Souvenir {
+  const texte = avis === "aime" ? `Plat apprécié, à refaire de temps en temps : ${titre}` : `Plat à ne plus proposer : ${titre}`;
+  return { ...nouveauSouvenir(texte, "bilan", auteur, ctx), cle: cleAvis(titre, avis) };
+}
+
+/** L'avis déjà donné sur ce plat, et le souvenir qui le porte. */
+export function avisDuPlat(souvenirs: readonly Souvenir[], titre: string): { avis: AvisPlat; souvenir: Souvenir } | null {
+  for (const avis of ["aime", "non"] as const) {
+    const souvenir = souvenirs.find((s) => !s.refuse && s.cle === cleAvis(titre, avis));
+    if (souvenir) return { avis, souvenir };
+  }
+  return null;
 }

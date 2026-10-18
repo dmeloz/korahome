@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   alertesMitsu,
+  avisDuPlat,
+  avisSurPlat,
   articlesARemplacer,
   AJOUTS_MAX,
   estLHeureDuChef,
@@ -203,5 +205,19 @@ describe("les menus de la semaine", () => {
     const { m, ajouts } = menu();
     expect(retirerAjout(m, ajouts[0].id).ajouts.map((a) => a.texte)).toEqual(["Crème"]);
     expect(etatDesAjouts(m, [ajouts[1]]).map((x) => x.element?.texte ?? null)).toEqual([null, "Crème"]);
+  });
+});
+
+describe("les goûts du foyer", () => {
+  it("retient l'avis sur un plat et le relit dans le message du dimanche", () => {
+    const ctx = contexteTest();
+    const aime = avisSurPlat("Gratin de courge", "aime", "melo", ctx);
+    const non = avisSurPlat("Curry de lentilles", "non", "sarah", ctx);
+    expect(aime).toMatchObject({ source: "bilan", cle: "chef:aime:gratin de courge", texte: "Plat apprécié, à refaire de temps en temps : Gratin de courge" });
+    expect(avisDuPlat([aime, non], "Curry de lentilles")?.avis).toBe("non");
+    expect(avisDuPlat([{ ...aime, refuse: true }], "Gratin de courge")).toBeNull();
+    const message = messageChef({ produits: [], enCourses: [], aujourdhui: "2026-10-18", souvenirs: [aime, non, { ...aime, id: "x", texte: "Refusé", refuse: true }] });
+    expect(message).toContain("Ce que le foyer aime, n'aime pas ou a l'habitude de faire :\n- Plat apprécié, à refaire de temps en temps : Gratin de courge\n- Plat à ne plus proposer : Curry de lentilles");
+    expect(message).not.toContain("Refusé");
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { apprendre, decrireDuree, habituelsARemettre, produitDepuisHabituel, proposer, suggerer, type ProduitHabituel } from "./catalogue";
+import { apprendre, decrireDuree, habituelsARemettre, noterFin, produitDepuisHabituel, proposer, souventJete, suggerer, type ProduitHabituel } from "./catalogue";
 import { cleProduit, connaissanceDe } from "./connaissances";
 import { contexteTest } from "./contexteTest";
 import { creerProduit } from "./stock";
@@ -70,5 +70,16 @@ describe("la Base apprend à chaque ajout", () => {
     expect([decrireDuree(3), decrireDuree(7), decrireDuree(14), decrireDuree(30), decrireDuree(92), decrireDuree(365), decrireDuree(null)]).toEqual([
       "3 jours", "1 semaine", "2 semaines", "1 mois", "3 mois", "1 an", null,
     ]);
+  });
+});
+
+describe("ce qui finit périmé", () => {
+  it("compte les produits finis et jetés, et les garde quand le produit revient", () => {
+    const p = creerProduit({ nom: "Crème", nombre: 1, unite: "piece", lieu: "frigo", peremption: "2026-10-20" }, null, ctx);
+    const h = noterFin(noterFin(apprendre([], p, "2026-10-10", ctx), true), true);
+    expect(souventJete(h)).toBe(true);
+    const encore = apprendre([h], p, "2026-10-12", ctx);
+    expect(encore).toMatchObject({ jetes: 2, fois: 2 });
+    expect(souventJete(noterFin(noterFin(noterFin(encore, false), false), false))).toBe(false);
   });
 });

@@ -22,6 +22,9 @@ export interface ProduitHabituel {
   /** Combien de fois il a été ajouté au stock : les plus fréquents passent devant. */
   fois: number;
   dernierAjout: Jour;
+  /** Combien de fois il a quitté le stock fini, ou jeté parce que sa date était passée. */
+  finis?: number;
+  jetes?: number;
 }
 
 /** Ce que Kora propose pour un nom : ses habitudes d'abord, sinon ce qu'il sait déjà. */
@@ -72,6 +75,8 @@ export function apprendre(catalogue: readonly ProduitHabituel[], p: Produit, auj
     image: p.image ?? avant?.image ?? null,
     fois: (avant?.fois ?? 0) + 1,
     dernierAjout: aujourdhui,
+    ...(avant?.finis ? { finis: avant.finis } : {}),
+    ...(avant?.jetes ? { jetes: avant.jetes } : {}),
   };
 }
 
@@ -136,3 +141,20 @@ export const DUREES: { libelle: string; jours: number | null }[] = [
   { libelle: "6 mois", jours: 180 },
   { libelle: "1 an", jours: 365 },
 ];
+
+/** Un produit quitte le stock : fini à temps, ou jeté parce que sa date était passée. */
+export function noterFin(h: ProduitHabituel, jete: boolean): ProduitHabituel {
+  return jete ? { ...h, jetes: (h.jetes ?? 0) + 1 } : { ...h, finis: (h.finis ?? 0) + 1 };
+}
+
+/** Il finit périmé au moins deux fois, et au moins une fois sur deux : mieux vaut en prendre moins. */
+export function souventJete(h: ProduitHabituel): boolean {
+  const jetes = h.jetes ?? 0;
+  return jetes >= 2 && jetes / (jetes + (h.finis ?? 0)) >= 0.5;
+}
+
+/** « 3 fois sur 4 » */
+export function decrireGaspillage(h: ProduitHabituel): string {
+  const jetes = h.jetes ?? 0;
+  return `${jetes} fois sur ${jetes + (h.finis ?? 0)}`;
+}
