@@ -17,13 +17,6 @@ export const EXPOSITIONS: Record<Exposition, { nom: string; detail: string }> = 
 
 export type CategoriePlante = "aromatique" | "legume" | "fruit" | "fleur";
 
-export const CATEGORIES_PLANTES: Record<CategoriePlante, string> = {
-  aromatique: "Aromatiques",
-  legume: "Légumes",
-  fruit: "Petits fruits",
-  fleur: "Fleurs utiles",
-};
-
 export interface Espece {
   cle: string;
   nom: string;

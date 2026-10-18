@@ -565,7 +565,6 @@ html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
 .rapport { display: grid; gap: 8px; }
 .rapport .bouton-principal { width: 100%; }
 .rapport p { margin: 0; }
-.rapport-chiffres strong { font-family: var(--police-titre); font-size: 28px; letter-spacing: -0.02em; }
 .rapport-actions { display: flex; gap: 24px; justify-content: center; }
 
 .retour-test { display: flex; align-items: flex-start; gap: 12px; padding: 12px 16px; }
@@ -770,7 +769,6 @@ html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
   flex: none;
 }
 .avec-alerte .alerte { position: absolute; top: -3px; right: -3px; }
-.version-dispo { display: flex; align-items: center; gap: 8px; margin: 4px 0 10px; }
 .bienvenue .partage-choix { text-align: left; margin-top: 24px; }
 .bienvenue-safari { text-align: left; margin-top: 20px; border-color: var(--accent); }
 .bienvenue-safari p { margin: 0 0 6px; line-height: 1.4; }
@@ -873,7 +871,6 @@ html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
 }
 .produit-texte { display: flex; flex-direction: column; gap: 3px; }
 .produit-nom { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.produit-actions { flex-wrap: wrap; padding-left: 64px; }
 
 /* Vignette : la photo de la fiche, sinon l'initiale sur un fond qui dit l'état. */
 .vignette {
@@ -1042,8 +1039,6 @@ html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
 @media (prefers-reduced-motion: no-preference) {
   ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.18s; }
 }
-.date-produit { display: inline-flex; align-items: center; gap: 6px; position: relative; }
-.date-produit input { position: absolute; inset: 0; opacity: 0; }
 .indice { font-size: 13px; text-align: center; margin-top: 16px; }
 .segments button { white-space: nowrap; }
 /* Le bandeau « Annuler » passe devant la pastille « Dev ». */
