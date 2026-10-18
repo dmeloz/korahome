@@ -1,4 +1,4 @@
-// Le bandeau du couple, sous « Bonjour, Melo » : il défile de droite à gauche avec les mots
+// Le bandeau du couple, sous « Bonjour, Melo » : il défile de droite à gauche (et au doigt) avec les mots
 // que l'un écrit à l'autre, l'humeur du jour de chacun, les comptes à rebours, le clin d'œil
 // du jour de Jarvis et quelques infos utiles (météo, rendez-vous, frigo, Mitsu).
 // Tout se partage entre les deux iPhone dans la collection « couple ».
@@ -146,9 +146,25 @@ export type GenreBandeau = "mot" | "humeur" | "compte" | "clin" | "info";
 export interface ElementBandeau {
   cle: string;
   genre: GenreBandeau;
+  /** Ce qui défile, abrégé pour se lire d'un coup d'œil. */
   texte: string;
-  /** Pour un mot : de quoi envoyer un cœur. */
+  /** Pour un mot : le prénom de celui ou celle qui l'a écrit, mis en évidence à part. */
+  auteur?: string;
+  /** Pour un mot : de quoi envoyer un cœur (et son texte entier, lu dans « Nos mots »). */
   mot?: Mot;
+}
+
+/** Un élément du bandeau se lit en passant : au-delà, il est coupé au dernier mot entier. */
+export const LONGUEUR_BANDEAU = 60;
+
+/** « Ce soir on se fait une raclette chez…» : coupe au dernier mot entier qui tient, avec des points de suspension. */
+export function abreger(texte: string, max = LONGUEUR_BANDEAU): string {
+  const propre = texte.trim().replace(/\s+/g, " ");
+  if (propre.length <= max) return propre;
+  const coupe = propre.slice(0, max - 1);
+  const espace = coupe.lastIndexOf(" ");
+  const debut = espace > max * 0.5 ? coupe.slice(0, espace) : coupe;
+  return `${debut.replace(/[\s,;:.!?…-]+$/, "")}…`;
 }
 
 /** Les infos utiles qui passent entre deux mots : la météo, le prochain rendez-vous, le frigo, l'animal. */
@@ -169,8 +185,8 @@ export function infosUtiles(d: {
   if (rdv) infos.push({ cle: `rdv-${rdv.id}`, genre: "info", texte: `${rdv.titre}, ${decrireEcheance(rdv.echeance, d.aujourdhui)}` });
   const { aConsommer } = resumeStock(d.produits, d.aujourdhui);
   if (aConsommer.length) {
-    const noms = aConsommer.slice(0, 3).map((p) => p.nom.toLowerCase());
-    infos.push({ cle: "frigo", genre: "info", texte: `À finir bientôt : ${noms.join(", ")}${aConsommer.length > 3 ? "…" : ""}` });
+    const noms = aConsommer.slice(0, 2).map((p) => p.nom.toLowerCase());
+    infos.push({ cle: "frigo", genre: "info", texte: `À finir : ${noms.join(", ")}${aConsommer.length > 2 ? "…" : ""}` });
   }
   for (const a of d.animaux) {
     const aFaire = choseAFaire(a, d.aujourdhui)[0];
@@ -197,23 +213,23 @@ export function elementsBandeau(d: {
   const recus = nosMots(d.docs, d.moi, d.maintenant)
     .filter((m) => m.de !== d.moi && estVisible(m, d.maintenant) && m.visibleDes >= limite)
     .slice(0, 3);
-  for (const m of recus) elements.push({ cle: m.id, genre: "mot", texte: `${prenom(m.de)} : ${m.texte}`, mot: m });
+  for (const m of recus) elements.push({ cle: m.id, genre: "mot", auteur: prenom(m.de), texte: abreger(m.texte), mot: m });
 
   const humeurs = d.foyer.membres
     .map((m) => ({ m, h: humeurDu(d.docs, m.id, d.aujourdhui) }))
     .filter((x) => x.h)
     .map(({ m, h }) => `${m.id === d.moi ? "Toi" : m.prenom} ${h!.emoji}`);
-  if (humeurs.length) elements.push({ cle: "humeurs", genre: "humeur", texte: `Humeur du jour : ${humeurs.join(" · ")}` });
+  if (humeurs.length) elements.push({ cle: "humeurs", genre: "humeur", texte: humeurs.join(" · ") });
 
   for (const c of comptesAVenir(d.docs, d.aujourdhui).filter((c) => ecartJours(d.aujourdhui, c.jour) <= JOURS_COMPTE)) {
     const texte = decrireCompte(c, d.aujourdhui);
-    if (texte) elements.push({ cle: c.id, genre: "compte", texte });
+    if (texte) elements.push({ cle: c.id, genre: "compte", texte: abreger(texte) });
   }
 
   const clin = clinDuJour(d.docs, d.aujourdhui);
-  if (clin) elements.push({ cle: clin.id, genre: "clin", texte: clin.texte });
+  if (clin) elements.push({ cle: clin.id, genre: "clin", texte: abreger(clin.texte) });
 
-  elements.push(...(d.infos ?? []));
+  elements.push(...(d.infos ?? []).map((i) => ({ ...i, texte: abreger(i.texte) })));
   return elements;
 }
 

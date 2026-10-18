@@ -1,6 +1,9 @@
 # Le bandeau du couple et « Nos mots »
 
 Sous « Bonjour, Melo », un bandeau défile doucement de droite à gauche, comme un fil d'infos.
+Il se fait aussi glisser au doigt pour relire un passage, et repart seul quelques secondes après.
+Chaque élément est abrégé à 60 caractères au dernier mot entier (`abreger`) ; le texte entier
+se lit dans « Nos mots ». Les mots de l'autre ressortent dans une pastille dorée avec son prénom.
 Toucher un mot de l'autre lui renvoie un cœur ; toucher ailleurs ouvre la page « Nos mots ».
 
 Ce qui défile, dans l'ordre (`elementsBandeau`, `src/domaine/bandeau.ts`) :
@@ -21,5 +24,5 @@ Un mot à soi ou un compte à rebours se retire d'un glissement, avec Annuler.
 
 Tout se partage dans la collection `couple` de la table `documents` (types `mot`, `humeur`, `compte`,
 `clin`). Les notifications des mots sont décrites dans `docs/notifications.md`. Si l'animation gêne
-(Réglages de l'iPhone > Accessibilité > Réduire les animations), le bandeau ne défile plus et se
+(Réglages de l'iPhone > Accessibilité > Réduire les animations), le bandeau n'avance plus seul et se
 parcourt au doigt.
