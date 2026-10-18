@@ -62,18 +62,18 @@ async function compter(foyerId: string, microChf: number): Promise<number> {
   return Number(await echec(serveur.rpc("jarvis_compter", { p_foyer_id: foyerId, p_mois: mois, p_micro_chf: microChf })));
 }
 
-/** Ce que le Chef lit : la liste de courses, le stock, Mitsu et ses propres menus. */
+/** Ce que le Chef lit : la liste de courses, le stock, Mitsu, ses propres menus et la mémoire du foyer (les goûts). */
 async function donneesDuFoyer(foyerId: string) {
   const lignes = (await echec(
     serveur
       .from("documents")
       .select("collection, donnees")
       .eq("foyer_id", foyerId)
-      .in("collection", ["listes", "elements", "stock", "animaux", "menus"])
+      .in("collection", ["listes", "elements", "stock", "animaux", "menus", "memoire"])
       .not("donnees", "is", null),
   )) as { collection: string; donnees: any }[];
   const de = (c: string) => lignes.filter((l) => l.collection === c).map((l) => l.donnees);
-  return { listes: de("listes"), elements: de("elements"), produits: de("stock"), animaux: de("animaux"), menus: de("menus") };
+  return { listes: de("listes"), elements: de("elements"), produits: de("stock"), animaux: de("animaux"), menus: de("menus"), souvenirs: de("memoire") };
 }
 
 /** Le contexte des règles, côté serveur. */
@@ -120,7 +120,7 @@ async function cuisiner(foyerId: string, lance: "auto" | "maintenant") {
     max_tokens: 4000,
     system: CONSIGNES_CHEF,
     output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA_CHEF } },
-    messages: [{ role: "user", content: messageChef({ produits: d.produits, enCourses, aujourdhui }) }],
+    messages: [{ role: "user", content: messageChef({ produits: d.produits, enCourses, aujourdhui, souvenirs: d.souvenirs }) }],
   });
   const budget = etatBudget(await compter(foyerId, coutChef(reponse.usage)));
   if (reponse.stop_reason === "refusal") throw new Error("Le Chef n'a pas pu préparer les menus cette fois.");

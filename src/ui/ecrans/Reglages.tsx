@@ -36,6 +36,7 @@ export function Reglages(props: {
   ouvrirRetours: () => void;
   ouvrirPartage: () => void;
   ouvrirNotifications: () => void;
+  ouvrirAppris: () => void;
   partage: "indisponible" | "inactif" | "actif";
   pastilleVisible: boolean;
   changerPastille: (visible: boolean) => void;
@@ -74,6 +75,7 @@ export function Reglages(props: {
           valeur={`${formaterHeure(rappels.heure)} · ${decrireJours(rappels.jours)}`}
           onClick={props.ouvrirNotifications}
         />
+        <Ligne picto="appris" titre="Ce que Kora sait de nous" onClick={props.ouvrirAppris} />
       </ul>
 
       <ul className="carte groupe">

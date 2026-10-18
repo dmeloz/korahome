@@ -15,6 +15,8 @@ export interface Foyer {
   nom: string;
   membres: Membre[];
   creeLe: string;
+  /** Qui a dit oui pour voir l'équilibre des tâches : il ne s'affiche qu'une fois que tous ont accepté. */
+  equilibre?: Id[];
 }
 
 export interface Liste {
@@ -34,6 +36,8 @@ export interface Achat {
   rayon: Rayon;
   /** Les derniers jours d'achat, du plus ancien au plus récent. */
   jours: Jour[];
+  /** La quantité prise la dernière fois (« 2 l ») : proposée au prochain ajout. */
+  quantite?: string;
 }
 
 export interface Element {
@@ -92,6 +96,15 @@ export interface Tache {
   creeLe: string;
   /** « entretien » : un geste d'entretien de la maison, qui revient tous les quelques mois. */
   categorie?: "entretien";
+  /** Les dernières fois où elle a été faite : par qui, et avec combien de jours de retard. */
+  historique?: FoisFaite[];
+}
+
+export interface FoisFaite {
+  le: Jour;
+  par: Id | null;
+  /** Jours après l'échéance (0 : à l'heure ou en avance). */
+  retard: number;
 }
 
 /** Horloge et générateur d'identifiants injectés, pour des tests déterministes. */

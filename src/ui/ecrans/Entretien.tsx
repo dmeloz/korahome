@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { entretiensAProposer, nouvelEntretien, organiserEntretien } from "../../domaine/entretien";
 import { decrireEcheance, decrireRecurrence, marquerFaite } from "../../domaine/taches";
+import { noterUsage } from "../usage";
 import type { Jour, Tache } from "../../domaine/types";
 import type { Depot } from "../../donnees/depot";
 import { useAnnoncer } from "../annulation";
@@ -20,6 +21,7 @@ export function Entretien(props: { depot: Depot; membreId: string | null; taches
   async function faire(t: Tache) {
     vibrer();
     const apres = marquerFaite(t, props.membreId, aujourdhui, contexteReel);
+    noterUsage("tache", t.id);
     await depot.enregistrerTache(apres);
     annoncer(`« ${t.titre} » fait.`, () => depot.enregistrerTache(t));
   }

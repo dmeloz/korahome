@@ -136,7 +136,7 @@ export const MODULES: Partial<Record<WidgetId, ModuleUI>> = {
     page: (p) => {
       const courses = listeCourses(p);
       return courses ? (
-        <DetailListe depot={p.depot} foyer={p.foyer} membreId={p.membreId} liste={courses} elements={p.elements} />
+        <DetailListe depot={p.depot} foyer={p.foyer} membreId={p.membreId} liste={courses} elements={p.elements} catalogue={p.catalogue} />
       ) : (
         <main><p className="vide">La liste de courses n'existe plus.</p></main>
       );

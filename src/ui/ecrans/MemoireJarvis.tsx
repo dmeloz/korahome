@@ -45,6 +45,7 @@ export function MemoireJarvis(props: { depot: Depot; foyer: Foyer; membreId: str
   const origine = (s: Souvenir) => {
     const qui = prenom(s.auteur);
     if (s.source === "remarque") return qui ? `Remarqué par Jarvis, validé par ${qui}` : "Remarqué par Jarvis";
+    if (s.source === "bilan") return qui ? `Appris par Kora, gardé par ${qui}` : "Appris par Kora";
     return qui ? `Confié par ${qui}` : "Confié à Jarvis";
   };
 

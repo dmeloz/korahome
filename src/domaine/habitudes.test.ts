@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { contexteTest } from "./contexteTest";
-import { noterAchat, oublierAchat, suggestions } from "./habitudes";
+import { devinerArticles, noterAchat, oublierAchat, panierHabituel, quantiteHabituelle, suggestions } from "./habitudes";
 import { nouvelElement, nouvelleListe } from "./listes";
 
 function preparer() {
@@ -43,5 +43,32 @@ describe("les courses qui se devinent", () => {
     for (let d = 1; d <= 12; d++) l = noterAchat(l, lait, `2026-09-${String(d).padStart(2, "0")}`);
     expect(l.achats![0].jours).toHaveLength(8);
     expect(l.achats![0].jours[0]).toBe("2026-09-05");
+  });
+});
+
+describe("la saisie qui devine et les courses comme d'habitude", () => {
+  it("retient la quantité habituelle et devine les articles déjà achetés", () => {
+    const { ctx, liste, lait, lessive } = preparer();
+    const deuxLitres = { ...lait, quantite: "2 l" };
+    let l = noterAchat(liste, deuxLitres, "2026-10-01");
+    l = noterAchat(l, lait, "2026-10-08");
+    expect(quantiteHabituelle(l, "lait")).toBe("2 l");
+    l = noterAchat(l, lessive, "2026-10-08");
+    expect(devinerArticles(l, [], "la").map((a) => a.texte)).toEqual(["Lait"]);
+    expect(devinerArticles(l, [nouvelElement(l, "Lait", null, ctx)], "la")).toEqual([]);
+    expect(devinerArticles(l, [], "l")).toEqual([]);
+  });
+
+  it("trouve le jour des courses et ce qui y est pris presque à chaque fois", () => {
+    const { ctx, liste, lait, lessive } = preparer();
+    const pain = nouvelElement(liste, "Pain", null, ctx);
+    let l = liste;
+    for (const j of ["2026-09-26", "2026-10-03", "2026-10-10"]) l = noterAchat(noterAchat(l, lait, j), pain, j);
+    l = noterAchat(l, lessive, "2026-10-03");
+    const p = panierHabituel(l, [pain]);
+    expect(p).toMatchObject({ jour: 6, nomDuJour: "samedi" });
+    expect(p?.habituels.map((a) => a.texte)).toEqual(["Lait", "Pain"]);
+    expect(p?.articles.map((a) => a.texte)).toEqual(["Lait"]);
+    expect(panierHabituel(liste, [])).toBeNull();
   });
 });

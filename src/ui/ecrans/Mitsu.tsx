@@ -11,6 +11,7 @@ import {
   definirCommande,
   formaterQuantite,
   passerCommande,
+  paquetFini,
   type ArticleCommande,
   TYPES_SOIN,
   ajouterPesee,
@@ -237,6 +238,20 @@ function Suivi(props: Props & { animal: Animal }) {
     const deja = props.elements.some((e) => e.listeId === courses.id && !e.coche && e.texte === texte);
     if (!deja) await depot.enregistrerElement({ ...nouvelElement(courses, texte, props.membreId, contexteReel), rayon: "Animaux" });
     setMessage(deja ? "Déjà dans la liste de courses." : `« ${texte} » ajouté aux courses.`);
+  }
+
+  /** Le paquet est fini : Kora apprend ce qu'elle en a vraiment mangé par jour, et le dit quand c'est loin de ce qu'il prévoyait. */
+  function paquetTermine(p: Provision) {
+    const { animal: apres, observee, prevue } = paquetFini(animal, p.id, aujourdhui);
+    const ecart = observee && prevue ? (observee.parJour - prevue) / prevue : 0;
+    const unite = p.type === "litiere" ? "ml" : "g";
+    void enregistrer(apres, () => {
+      if (observee && Math.abs(ecart) >= 0.1) {
+        setMessage(`${animal.nom} en a pris ${observee.parJour} ${unite} par jour, ${ecart > 0 ? "plus" : "moins"} que les ${Math.round(prevue!)} ${unite} prévus. Kora s'en sert désormais pour prévoir la suite.`);
+      } else if (observee) {
+        setMessage(`Noté : ${observee.parJour} ${unite} par jour, comme prévu.`);
+      }
+    });
   }
 
   function enregistrerRation(e: FormEvent) {
@@ -481,7 +496,7 @@ function Suivi(props: Props & { animal: Animal }) {
                     {alerte && courses && (
                       <button className="lien" onClick={() => versCourses(p)}>Ajouter aux courses</button>
                     )}
-                    <button className="lien" onClick={() => enregistrer(retirerProvision(animal, p.id))}>Paquet fini</button>
+                    <button className="lien" onClick={() => paquetTermine(p)}>Paquet fini</button>
                   </div>
                   </Glissable>
                 </li>

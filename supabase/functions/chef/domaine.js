@@ -273,6 +273,23 @@ function majuscule(s) {
 	return s.charAt(0).toUpperCase() + s.slice(1);
 }
 //#endregion
+//#region src/domaine/memoire.ts
+/** Ce qui compte vraiment dans la mémoire : tout sauf les apprentissages refusés. */
+function souvenirsRetenus(souvenirs) {
+	return souvenirs.filter((s) => !s.refuse);
+}
+function nouveauSouvenir(texte, source, auteur, ctx) {
+	const propre = texte.trim().replace(/\s+/g, " ").slice(0, 200);
+	if (!propre) throw new ErreurValidation("Il n'y a rien à retenir.");
+	return {
+		id: ctx.nouvelId(),
+		texte: propre.charAt(0).toUpperCase() + propre.slice(1),
+		source,
+		auteur,
+		creeLe: ctx.maintenant()
+	};
+}
+//#endregion
 //#region src/domaine/taches.ts
 const RE_JOUR = /^\d{4}-\d{2}-\d{2}$/;
 function versDate(jour) {
@@ -374,6 +391,14 @@ function articleDe(provision, animal) {
 function joursDuCycle(commande) {
 	return ecartJours(commande.prochaine, plusMois(commande.prochaine, commande.tousLesMois));
 }
+/** Ce qu'elle consomme vraiment par jour de ce produit (ou de ce type), d'après les derniers paquets finis. */
+function consommationApprise(animal, provision) {
+	const toutes = (animal.consommations ?? []).filter((c) => c.type === provision.type);
+	const memes = toutes.filter((c) => c.nom === provision.nom);
+	const lues = (memes.length ? memes : toutes).slice(-3);
+	if (!lues.length) return null;
+	return Math.round(lues.reduce((s, c) => s + c.parJour, 0) / lues.length * 10) / 10;
+}
 /**
 * Consommation par jour, dans l'ordre : celle notée sur la provision, la ration du jour
 * pour les croquettes (quand on connaît son poids ou la ration du paquet), sinon ce que la
@@ -382,6 +407,8 @@ function joursDuCycle(commande) {
 function consommationParJour(provision, animal, aujourdhui) {
 	if (provision.parJour) return provision.parJour;
 	if (provision.type === "filtres") return 1 / 30;
+	const apprise = consommationApprise(animal, provision);
+	if (apprise) return apprise;
 	if (provision.type === "croquettes") {
 		const ration = rationDuJour(animal, aujourdhui);
 		if (ration) return ration.grammes;
@@ -974,6 +1001,7 @@ Utilise d'abord les produits à finir vite, puis le reste du frigo, du congélat
 Ensuite, liste les ingrédients qui manquent pour ces repas : un article par ligne, nom court au singulier ou tel qu'on l'écrit sur une liste (« Poireaux », « Crème entière »), quantité courte (« 500 g », « 2 », « 1 l ») ou vide.
 Ne remets pas ce qui est déjà dans le stock ou déjà sur la liste de courses. Les épices, le sel, le poivre et l'huile sont supposés à la maison sauf s'ils sont vraiment absents.
 Ne mets jamais de croquettes, de litière ni rien pour le chat : cela se commande ailleurs.
+Tiens compte de ce que le foyer aime et n'aime pas (sa mémoire) : refais volontiers un plat apprécié de temps en temps, ne repropose jamais un plat à éviter.
 Le champ « mot » est une phrase chaleureuse et courte en français, sans emoji, qui dit ce que la semaine permet de finir.
 Réponds en français, avec le tutoiement.`;
 /** Le message du dimanche : le stock, ce qui presse, la liste de courses actuelle. */
@@ -993,6 +1021,8 @@ function messageChef(d) {
 	}
 	if (!d.produits.length) lignes.push("Le stock est vide : propose des repas simples avec des ingrédients courants.", "");
 	lignes.push("Déjà sur la liste de courses :", ...d.enCourses.length ? d.enCourses.map((e) => `- ${e.texte}${e.quantite ? ` · ${e.quantite}` : ""}`) : ["- rien"]);
+	const memoire = souvenirsRetenus(d.souvenirs ?? []).sort((a, b) => a.creeLe.localeCompare(b.creeLe)).slice(-40);
+	if (memoire.length) lignes.push("", "Ce que le foyer aime, n'aime pas ou a l'habitude de faire :", ...memoire.map((s) => `- ${s.texte}`));
 	return lignes.join("\n");
 }
 /** La forme exacte de la réponse du Chef (sorties structurées de l'API). */
@@ -1158,5 +1188,27 @@ function notificationChef(menu) {
 function coutChef(u) {
 	return coutMicroChf(u, MODELE_CHEF);
 }
+/** Ce que le Chef relit de la mémoire du foyer : les goûts, les plats aimés et refusés. */
+const SOUVENIRS_DU_CHEF = 40;
+const clePlat = (titre) => normaliser(titre).replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
+const cleAvis = (titre, avis) => `chef:${avis}:${clePlat(titre)}`;
+/** L'avis donné sur un plat, retenu dans la mémoire du foyer : le Chef le relit chaque semaine. */
+function avisSurPlat(titre, avis, auteur, ctx) {
+	return {
+		...nouveauSouvenir(avis === "aime" ? `Plat apprécié, à refaire de temps en temps : ${titre}` : `Plat à ne plus proposer : ${titre}`, "bilan", auteur, ctx),
+		cle: cleAvis(titre, avis)
+	};
+}
+/** L'avis déjà donné sur ce plat, et le souvenir qui le porte. */
+function avisDuPlat(souvenirs, titre) {
+	for (const avis of ["aime", "non"]) {
+		const souvenir = souvenirs.find((s) => !s.refuse && s.cle === cleAvis(titre, avis));
+		if (souvenir) return {
+			avis,
+			souvenir
+		};
+	}
+	return null;
+}
 //#endregion
-export { AJOUTS_MAX, CONSIGNES_CHEF, HEURE_DU_CHEF, JOURS_ALERTE_MITSU, JOURS_A_FINIR, JOUR_DU_CHEF, MODELE_CHEF, NOMBRE_REPAS, REGLAGE_DE_DEPART, SCHEMA_CHEF, alertesMitsu, articlesARemplacer, coutChef, estLHeureDuChef, etatBudget, etatDesAjouts, idMenu, jourEtHeure, lireProposition, menuDeLaSemaine, messageChef, moisDe, nomDuJour, notificationChef, nouveauMenu, preparerAjouts, prochainPassage, produitsAFinir, reglageChef, reglerChef, retirerAjout };
+export { AJOUTS_MAX, CONSIGNES_CHEF, HEURE_DU_CHEF, JOURS_ALERTE_MITSU, JOURS_A_FINIR, JOUR_DU_CHEF, MODELE_CHEF, NOMBRE_REPAS, REGLAGE_DE_DEPART, SCHEMA_CHEF, SOUVENIRS_DU_CHEF, alertesMitsu, articlesARemplacer, avisDuPlat, avisSurPlat, cleAvis, coutChef, estLHeureDuChef, etatBudget, etatDesAjouts, idMenu, jourEtHeure, lireProposition, menuDeLaSemaine, messageChef, moisDe, nomDuJour, notificationChef, nouveauMenu, preparerAjouts, prochainPassage, produitsAFinir, reglageChef, reglerChef, retirerAjout };

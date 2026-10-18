@@ -21,6 +21,7 @@ Fiche projet et plan (sur le Mac de la propriétaire) : `~/Atelier-Claude/Cervea
 - `supabase/functions/chef/` : le Chef de la semaine (menus du soir depuis le stock, ajouts aux courses marqués « Chef », jour et heure réglables, lancement d'un toucher). Règles dans `src/domaine/chef.ts`, page « Menus de la semaine ». Voir `docs/chef.md`.
 - Agenda commun : `src/domaine/agenda.ts`, page « Agenda ». Synchro avec l'iCloud de chacun (calendrier « Kora », mot de passe d'app dans Supabase Vault) par `supabase/functions/agenda/`, règles dans `src/domaine/icloud.ts`. Voir `docs/agenda.md`.
 - Bandeau du couple (mots, humeurs, comptes à rebours, clin d'œil de Jarvis, infos) : `src/domaine/bandeau.ts`, page « Nos mots ». Voir `docs/bandeau-couple.md`.
+- Kora apprend de votre usage (bilan du dimanche, accueil vivant, « comme d'habitude », mot du jour) : `src/domaine/apprentissage.ts`, page « Ce que Kora sait de nous ». Ce qui est personnel reste dans le `localStorage` du téléphone. Voir `docs/apprentissage.md`.
 - Jardin : zones, plantes et calendrier dans `src/domaine/jardin.ts` et `plantes.ts`, météo Open-Meteo (`meteo.ts`, sans clé). Voir `docs/jardin.md`.
 - `serveur/` : code qui tourne sur le Mac qui sert l'app (réception des rapports de test, branchée dans `vite.config.ts`).
 - `src/ui/` : écrans React. Ils lisent par `useDonnees` et écrivent par le `Depot`, jamais directement dans IndexedDB.

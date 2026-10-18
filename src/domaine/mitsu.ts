@@ -109,7 +109,17 @@ export interface Animal {
   infos?: InfosAnimal;
   /** Les propositions du carnet que le foyer a écartées. */
   carnetEcarte?: string[];
+  /** Ce qu'elle a vraiment consommé, appris à chaque paquet fini. */
+  consommations?: ConsommationObservee[];
   creeLe: string;
+}
+
+/** Un paquet fini : ce qu'il contenait, divisé par les jours qu'il a duré. */
+export interface ConsommationObservee {
+  type: TypeProvision;
+  nom: string;
+  parJour: number;
+  jour: Jour;
 }
 
 export type Sexe = "femelle" | "male";
@@ -326,6 +336,65 @@ function joursDuCycle(commande: CommandeReguliere): number {
   return ecartJours(commande.prochaine, plusMois(commande.prochaine, commande.tousLesMois));
 }
 
+/** Les derniers paquets finis comptent : assez pour lisser, assez récents pour suivre sa croissance. */
+const CONSOMMATIONS_GARDEES = 6;
+const CONSOMMATIONS_LUES = 3;
+/** Un paquet fini en moins de 3 jours ne dit rien de son rythme (ouvert puis jeté, erreur). */
+const JOURS_MIN_PAQUET = 3;
+
+/** Ce qu'elle consomme vraiment par jour de ce produit (ou de ce type), d'après les derniers paquets finis. */
+export function consommationApprise(animal: Animal, provision: Pick<Provision, "type" | "nom">): number | null {
+  const toutes = (animal.consommations ?? []).filter((c) => c.type === provision.type);
+  const memes = toutes.filter((c) => c.nom === provision.nom);
+  const lues = (memes.length ? memes : toutes).slice(-CONSOMMATIONS_LUES);
+  if (!lues.length) return null;
+  return Math.round((lues.reduce((s, c) => s + c.parJour, 0) / lues.length) * 10) / 10;
+}
+
+/**
+ * Le paquet est fini : il quitte les provisions, et Kora retient ce qu'elle en a mangé par
+ * jour. Rend aussi l'écart avec ce que Kora prévoyait, pour le dire (« elle mange plus que prévu »).
+ */
+export function paquetFini(animal: Animal, provisionId: Id, aujourdhui: Jour): { animal: Animal; observee: ConsommationObservee | null; prevue: number | null } {
+  const p = animal.provisions.find((x) => x.id === provisionId);
+  const sans = retirerProvision(animal, provisionId);
+  if (!p || p.type === "filtres") return { animal: sans, observee: null, prevue: null };
+  const jours = ecartJours(p.achete, aujourdhui);
+  if (jours < JOURS_MIN_PAQUET || p.quantite <= 0) return { animal: sans, observee: null, prevue: null };
+  const prevue = consommationParJour(p, animal, aujourdhui);
+  const observee: ConsommationObservee = { type: p.type, nom: p.nom, parJour: Math.round((p.quantite / jours) * 10) / 10, jour: aujourdhui };
+  const consommations = [...(animal.consommations ?? []), observee].slice(-CONSOMMATIONS_GARDEES);
+  return { animal: { ...sans, consommations }, observee, prevue };
+}
+
+/** Au-delà d'une semaine d'écart, la commande régulière mérite d'être recalée. */
+const ECART_COMMANDE_JOURS = 7;
+
+/**
+ * La date de commande qui suit son vrai rythme : quand une provision de la commande
+ * régulière, comptée avec ce qu'elle mange vraiment, demande de commander plus tôt (ou bien
+ * plus tard) que prévu. Seulement quand Kora a déjà appris de vrais paquets finis.
+ */
+export function commandeRecalee(animal: Animal, aujourdhui: Jour): { jour: Jour; provision: Provision } | null {
+  const commande = animal.commande;
+  if (!commande || !animal.consommations?.length) return null;
+  let plusTot: { jour: Jour; provision: Provision } | null = null;
+  for (const p of animal.provisions) {
+    if (!articleDe(p, animal) || !consommationApprise(animal, p)) continue;
+    const prevision = prevoir(p, animal, aujourdhui);
+    if (!prevision) continue;
+    const jour = prevision.commanderLe < aujourdhui ? aujourdhui : prevision.commanderLe;
+    if (!plusTot || jour < plusTot.jour) plusTot = { jour, provision: p };
+  }
+  if (!plusTot || Math.abs(ecartJours(commande.prochaine, plusTot.jour)) < ECART_COMMANDE_JOURS) return null;
+  return plusTot;
+}
+
+/** Déplace la prochaine commande régulière. */
+export function recalerCommande(animal: Animal, jour: Jour): Animal {
+  return animal.commande ? { ...animal, commande: { ...animal.commande, prochaine: jour } } : animal;
+}
+
 /**
  * Consommation par jour, dans l'ordre : celle notée sur la provision, la ration du jour
  * pour les croquettes (quand on connaît son poids ou la ration du paquet), sinon ce que la
@@ -334,6 +403,8 @@ function joursDuCycle(commande: CommandeReguliere): number {
 export function consommationParJour(provision: Provision, animal: Animal, aujourdhui: Jour): number | null {
   if (provision.parJour) return provision.parJour;
   if (provision.type === "filtres") return 1 / JOURS_PAR_FILTRE;
+  const apprise = consommationApprise(animal, provision);
+  if (apprise) return apprise;
   if (provision.type === "croquettes") {
     const ration = rationDuJour(animal, aujourdhui);
     if (ration) return ration.grammes;

@@ -80,13 +80,18 @@ export function nouvelleTache(
   };
 }
 
+/** Assez de fois pour voir un rythme et qui fait quoi, sans alourdir la tâche. */
+export const HISTORIQUE_GARDE = 12;
+
 /**
  * Marque la tâche comme faite. Une tâche qui revient repart depuis le jour où
  * elle a été faite (faite en retard mardi, chaque semaine → mardi suivant) ;
  * une tâche unique reste faite.
  */
 export function marquerFaite(tache: Tache, par: Id | null, aujourdhui: Jour, ctx: Contexte): Tache {
-  const faite = { ...tache, faiteLe: ctx.maintenant(), faitePar: par };
+  const fois = { le: aujourdhui, par, retard: Math.max(0, ecartJours(tache.echeance, aujourdhui)) };
+  const historique = [...(tache.historique ?? []), fois].slice(-HISTORIQUE_GARDE);
+  const faite = { ...tache, faiteLe: ctx.maintenant(), faitePar: par, historique };
   if (!tache.recurrence) return faite;
   const depart = ecartJours(tache.echeance, aujourdhui) < 0 ? tache.echeance : aujourdhui;
   return { ...faite, echeance: decaler(depart, tache.recurrence) };
