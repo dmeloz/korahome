@@ -1,0 +1,348 @@
+// Le Chef de la semaine : une fois par semaine (le dimanche à 17 h, ou le jour et l'heure
+// choisis dans l'app), ou quand on le lance d'un toucher, il lit le frigo et les placards, propose
+// cinq repas du soir de saison qui finissent d'abord ce qui arrive à sa date, et ajoute à la
+// liste de courses ce qui manque, marqué « proposé par le chef ».
+//
+// Il ne fait qu'ajouter : jamais il ne touche au stock, aux tâches ni à Mitsu. Les croquettes
+// et la litière se commandent sur zooplus : il le signale, sans les mettre sur la liste.
+// La fonction serveur supabase/functions/chef embarque ce fichier (`npm run fonction`).
+
+import { coutMicroChf, MODELE_CONSEIL, type Consommation } from "./jarvisModele";
+import { analyserSaisie } from "./listes";
+import { prevoir, type Animal } from "./mitsu";
+import { heureValide, jourEtHeure, JOURS_SEMAINE } from "./rappels";
+import { detecterRayon, normaliser } from "./rayons";
+import { decrirePeremption, LIEUX, ORDRE_LIEUX, type Produit } from "./stock";
+import { ecartJours } from "./taches";
+import { RAYONS, type Contexte, type Element, type Id, type Jour, type Liste, type Rayon } from "./types";
+
+// Ce dont la fonction serveur a aussi besoin : le compteur de Jarvis et l'heure de Zurich.
+export { etatBudget, moisDe } from "./jarvisModele";
+export { jourEtHeure } from "./rappels";
+
+/** Le Chef prend le modèle du conseil : une fois par semaine, il peut réfléchir un peu. */
+export const MODELE_CHEF = MODELE_CONSEIL;
+/** Les produits qui arrivent à leur date dans 5 jours ou moins passent en premier. */
+export const JOURS_A_FINIR = 5;
+/** Sous 10 jours de croquettes ou de litière, le Chef prévient. */
+export const JOURS_ALERTE_MITSU = 10;
+export const NOMBRE_REPAS = 5;
+/** Au-delà, la liste deviendrait illisible : le reste est ignoré. */
+export const AJOUTS_MAX = 30;
+/** Il passe par défaut le dimanche à 17 h, heure de Zurich. */
+export const JOUR_DU_CHEF = 0;
+export const HEURE_DU_CHEF = 17;
+
+export interface RepasChef {
+  titre: string;
+  /** Une ou deux phrases : ce qu'on prépare et comment. */
+  description: string;
+  /** Les produits du frigo ou des placards qu'il utilise. */
+  avecLeStock: string[];
+}
+
+/** Un article que le Chef a mis sur la liste de courses. */
+export interface AjoutChef {
+  elementId: Id;
+  texte: string;
+  quantite: string | null;
+  rayon: Rayon;
+}
+
+/** Les menus d'une semaine, un document par jour où le Chef est passé : « menu-AAAA-MM-JJ ». */
+export interface MenuSemaine {
+  id: Id;
+  type: "menu";
+  /** Le jour où le Chef a préparé la semaine ; elle court sur les 7 jours suivants. */
+  semaine: Jour;
+  /** Une phrase d'accueil du Chef. */
+  mot: string;
+  repas: RepasChef[];
+  ajouts: AjoutChef[];
+  /** Les produits à finir vite, avec leur date : « Yaourts · demain ». */
+  aFinir: string[];
+  alertesMitsu: string[];
+  /** « auto » : le passage de la semaine ; « maintenant » : lancé depuis l'app. */
+  lance: "auto" | "maintenant";
+  creeLe: string;
+}
+
+/** Le passage automatique, pour un foyer qui l'a activé : le jour (0 = dimanche) et l'heure, à Zurich. */
+export interface ReglageChef {
+  id: "reglage";
+  type: "reglage";
+  actif: boolean;
+  jour: number;
+  heure: number;
+  modifieLe: string;
+}
+
+export type DocChef = MenuSemaine | ReglageChef;
+
+export const idMenu = (jour: Jour): Id => `menu-${jour}`;
+
+const jourSemaine = (jour: Jour) => new Date(`${jour}T12:00:00Z`).getUTCDay();
+
+export const REGLAGE_DE_DEPART: Omit<ReglageChef, "modifieLe"> = { id: "reglage", type: "reglage", actif: false, jour: JOUR_DU_CHEF, heure: HEURE_DU_CHEF };
+
+/** Le réglage du foyer, ou celui de départ (désactivé, dimanche 17 h) ; un jour ou une heure invalide revient au défaut. */
+export function reglageChef(docs: readonly DocChef[]): Omit<ReglageChef, "modifieLe"> {
+  const r = docs.find((d): d is ReglageChef => d.type === "reglage");
+  if (!r) return REGLAGE_DE_DEPART;
+  return {
+    ...REGLAGE_DE_DEPART,
+    actif: r.actif === true,
+    jour: Number.isInteger(r.jour) && r.jour >= 0 && r.jour <= 6 ? r.jour : JOUR_DU_CHEF,
+    heure: heureValide(r.heure) ? r.heure : HEURE_DU_CHEF,
+  };
+}
+
+export function reglerChef(changement: Partial<Pick<ReglageChef, "actif" | "jour" | "heure">>, docs: readonly DocChef[], ctx: Contexte): ReglageChef {
+  return { ...reglageChef(docs), ...changement, modifieLe: ctx.maintenant() };
+}
+
+/** Vrai à l'heure où le Chef passe pour ce foyer, à Zurich. */
+export function estLHeureDuChef(instant: Date, reglage: Pick<ReglageChef, "actif" | "jour" | "heure">): boolean {
+  if (!reglage.actif) return false;
+  const { jour, heure } = jourEtHeure(instant);
+  return jourSemaine(jour) === reglage.jour && heure === reglage.heure;
+}
+
+/** Les menus en cours : le plus récent préparé dans les 7 derniers jours. */
+export function menuDeLaSemaine(docs: readonly DocChef[], aujourdhui: Jour): MenuSemaine | null {
+  const menus = docs
+    .filter((d): d is MenuSemaine => d.type === "menu")
+    .filter((m) => {
+      const ecart = ecartJours(m.semaine, aujourdhui);
+      return ecart >= 0 && ecart < 7;
+    })
+    .sort((a, b) => b.semaine.localeCompare(a.semaine));
+  return menus[0] ?? null;
+}
+
+/** Le nom du jour : « dimanche ». */
+export const nomDuJour = (numero: number) => JOURS_SEMAINE.find((j) => j.numero === numero)?.nom ?? "dimanche";
+
+/** Le prochain passage automatique : « ce soir à 17 h », « dimanche à 17 h » ; null s'il est désactivé. */
+export function prochainPassage(reglage: Pick<ReglageChef, "actif" | "jour" | "heure">, instant: Date): string | null {
+  if (!reglage.actif) return null;
+  const { jour, heure } = jourEtHeure(instant);
+  if (jourSemaine(jour) === reglage.jour && heure <= reglage.heure) return `aujourd'hui à ${reglage.heure} h`;
+  return `${nomDuJour(reglage.jour)} à ${reglage.heure} h`;
+}
+
+/** Ce qui arrive à sa date dans les 5 jours, du plus pressé au moins pressé ; les produits déjà périmés n'y sont pas. */
+export function produitsAFinir(produits: readonly Produit[], aujourdhui: Jour): Produit[] {
+  return produits
+    .filter((p) => {
+      if (!p.peremption) return false;
+      const ecart = ecartJours(aujourdhui, p.peremption);
+      return ecart >= 0 && ecart <= JOURS_A_FINIR;
+    })
+    .sort((a, b) => a.peremption!.localeCompare(b.peremption!) || a.nom.localeCompare(b.nom, "fr"));
+}
+
+const PROVISIONS_SURVEILLEES = { croquettes: "croquettes", litiere: "litière" } as const;
+
+/** Les croquettes ou la litière qui s'épuisent dans les 10 jours : à commander sur zooplus. */
+export function alertesMitsu(animaux: readonly Animal[], aujourdhui: Jour): string[] {
+  const alertes: string[] = [];
+  for (const animal of animaux) {
+    for (const provision of animal.provisions ?? []) {
+      if (provision.type !== "croquettes" && provision.type !== "litiere") continue;
+      const p = prevoir(provision, animal, aujourdhui);
+      if (!p || p.joursRestants > JOURS_ALERTE_MITSU) continue;
+      const quoi = PROVISIONS_SURVEILLEES[provision.type];
+      alertes.push(
+        p.joursRestants === 0
+          ? `Plus de ${quoi} pour ${animal.nom} : commande vite sur zooplus.`
+          : `${animal.nom} n'a plus que ${p.joursRestants} jour${p.joursRestants > 1 ? "s" : ""} de ${quoi} : pense à commander sur zooplus.`,
+      );
+    }
+  }
+  return alertes;
+}
+
+const MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+
+export const CONSIGNES_CHEF = `Tu es le Chef de la semaine de KoraHome, l'app d'un couple qui vit à Renens, dans le canton de Vaud.
+Chaque dimanche, tu proposes ${NOMBRE_REPAS} repas du soir pour la semaine, simples (45 minutes au plus), de saison en Suisse romande, pour deux personnes.
+Utilise d'abord les produits à finir vite, puis le reste du frigo, du congélateur et des placards. Varie les plats, évite deux fois la même base.
+Ensuite, liste les ingrédients qui manquent pour ces repas : un article par ligne, nom court au singulier ou tel qu'on l'écrit sur une liste (« Poireaux », « Crème entière »), quantité courte (« 500 g », « 2 », « 1 l ») ou vide.
+Ne remets pas ce qui est déjà dans le stock ou déjà sur la liste de courses. Les épices, le sel, le poivre et l'huile sont supposés à la maison sauf s'ils sont vraiment absents.
+Ne mets jamais de croquettes, de litière ni rien pour le chat : cela se commande ailleurs.
+Le champ « mot » est une phrase chaleureuse et courte en français, sans emoji, qui dit ce que la semaine permet de finir.
+Réponds en français, avec le tutoiement.`;
+
+/** Le message du dimanche : le stock, ce qui presse, la liste de courses actuelle. */
+export function messageChef(d: { produits: readonly Produit[]; enCourses: readonly Element[]; aujourdhui: Jour }): string {
+  const aFinir = produitsAFinir(d.produits, d.aujourdhui);
+  const urgents = new Set(aFinir.map((p) => p.id));
+  const decrire = (p: Produit) => [p.nom, p.quantite, p.peremption && decrirePeremption(p, d.aujourdhui)].filter(Boolean).join(" · ");
+  const lignes = [`Nous sommes le ${Number(d.aujourdhui.slice(8, 10))} ${MOIS[Number(d.aujourdhui.slice(5, 7)) - 1]} ${d.aujourdhui.slice(0, 4)}.`, ""];
+  lignes.push("À finir vite :", ...(aFinir.length ? aFinir.map((p) => `- ${decrire(p)}`) : ["- rien de pressé"]), "");
+  for (const lieu of ORDRE_LIEUX) {
+    const ici = d.produits.filter((p) => p.lieu === lieu && !urgents.has(p.id));
+    if (ici.length) lignes.push(`${LIEUX[lieu]} :`, ...ici.map((p) => `- ${decrire(p)}`), "");
+  }
+  if (!d.produits.length) lignes.push("Le stock est vide : propose des repas simples avec des ingrédients courants.", "");
+  lignes.push("Déjà sur la liste de courses :", ...(d.enCourses.length ? d.enCourses.map((e) => `- ${e.texte}${e.quantite ? ` · ${e.quantite}` : ""}`) : ["- rien"]));
+  return lignes.join("\n");
+}
+
+/** La forme exacte de la réponse du Chef (sorties structurées de l'API). */
+export const SCHEMA_CHEF = {
+  type: "object",
+  additionalProperties: false,
+  required: ["mot", "repas", "aAcheter"],
+  properties: {
+    mot: { type: "string" },
+    repas: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["titre", "description", "avecLeStock"],
+        properties: {
+          titre: { type: "string" },
+          description: { type: "string" },
+          avecLeStock: { type: "array", items: { type: "string" } },
+        },
+      },
+    },
+    aAcheter: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["texte", "quantite", "rayon"],
+        properties: {
+          texte: { type: "string" },
+          quantite: { type: "string" },
+          rayon: { type: "string", enum: [...RAYONS] },
+        },
+      },
+    },
+  },
+} as const;
+
+export interface PropositionChef {
+  mot: string;
+  repas: RepasChef[];
+  aAcheter: { texte: string; quantite: string | null; rayon: Rayon | null }[];
+}
+
+const chaine = (v: unknown, max: number) => (typeof v === "string" ? v.trim().replace(/\s+/g, " ").slice(0, max) : "");
+
+/** Relit la réponse du modèle sans lui faire confiance : champs vides écartés, longueurs bornées. */
+export function lireProposition(brut: unknown): PropositionChef | null {
+  if (!brut || typeof brut !== "object") return null;
+  const o = brut as Record<string, unknown>;
+  const repas = (Array.isArray(o.repas) ? o.repas : [])
+    .map((r: Record<string, unknown>) => ({
+      titre: chaine(r?.titre, 80),
+      description: chaine(r?.description, 300),
+      avecLeStock: (Array.isArray(r?.avecLeStock) ? r.avecLeStock : []).map((s: unknown) => chaine(s, 60)).filter(Boolean).slice(0, 8),
+    }))
+    .filter((r) => r.titre)
+    .slice(0, NOMBRE_REPAS);
+  if (!repas.length) return null;
+  const aAcheter = (Array.isArray(o.aAcheter) ? o.aAcheter : [])
+    .map((a: Record<string, unknown>) => {
+      const rayon = chaine(a?.rayon, 40);
+      return {
+        texte: chaine(a?.texte, 60),
+        quantite: chaine(a?.quantite, 20) || null,
+        rayon: (RAYONS as readonly string[]).includes(rayon) ? (rayon as Rayon) : null,
+      };
+    })
+    .filter((a) => a.texte);
+  return { mot: chaine(o.mot, 200), repas, aAcheter };
+}
+
+/** Ce qui se commande sur zooplus n'a rien à faire sur la liste du magasin. */
+const POUR_LE_CHAT = /\b(croquettes?|litieres?|patees?|friandises? pour chat|zooplus)\b/;
+
+/**
+ * Les articles à ajouter à la liste de courses : sans doublon avec ce qui y est déjà (non coché)
+ * ni entre eux, sans rien pour le chat, 30 au plus. Chacun porte la marque du Chef.
+ */
+export function preparerAjouts(
+  aAcheter: PropositionChef["aAcheter"],
+  liste: Liste,
+  elements: readonly Element[],
+  ctx: Contexte,
+): Element[] {
+  const deja = new Set(elements.filter((e) => e.listeId === liste.id && !e.coche).map((e) => normaliser(e.texte)));
+  const ajouts: Element[] = [];
+  for (const a of aAcheter) {
+    const { texte, quantite } = analyserSaisie(a.texte);
+    const cle = normaliser(texte);
+    if (!cle || deja.has(cle) || POUR_LE_CHAT.test(cle) || a.rayon === "Animaux") continue;
+    deja.add(cle);
+    ajouts.push({
+      id: ctx.nouvelId(),
+      listeId: liste.id,
+      texte,
+      quantite: a.quantite ?? quantite,
+      rayon: a.rayon ?? detecterRayon(texte),
+      coche: false,
+      ajoutePar: null,
+      source: "chef",
+      creeLe: ctx.maintenant(),
+      cocheLe: null,
+    });
+    if (ajouts.length >= AJOUTS_MAX) break;
+  }
+  return ajouts;
+}
+
+/**
+ * Relancer le Chef la même semaine remplace ses propres articles : ceux qu'il avait ajoutés
+ * et que personne n'a encore cochés. Le reste de la liste n'est jamais touché.
+ */
+export function articlesARemplacer(ancien: MenuSemaine | null, elements: readonly Element[]): Id[] {
+  if (!ancien) return [];
+  const siens = new Set(ancien.ajouts.map((a) => a.elementId));
+  return elements.filter((e) => siens.has(e.id) && !e.coche && e.source === "chef").map((e) => e.id);
+}
+
+export function nouveauMenu(
+  d: { proposition: PropositionChef; ajouts: readonly Element[]; produits: readonly Produit[]; animaux: readonly Animal[]; aujourdhui: Jour; lance: MenuSemaine["lance"] },
+  ctx: Contexte,
+): MenuSemaine {
+  return {
+    id: idMenu(d.aujourdhui),
+    type: "menu",
+    semaine: d.aujourdhui,
+    mot: d.proposition.mot,
+    repas: d.proposition.repas,
+    ajouts: d.ajouts.map((e) => ({ elementId: e.id, texte: e.texte, quantite: e.quantite, rayon: e.rayon })),
+    aFinir: produitsAFinir(d.produits, d.aujourdhui).map((p) => `${p.nom} · ${decrirePeremption(p, d.aujourdhui)}`),
+    alertesMitsu: alertesMitsu(d.animaux, d.aujourdhui),
+    lance: d.lance,
+    creeLe: ctx.maintenant(),
+  };
+}
+
+/** Le menu sans un article, quand on le retire de la liste depuis la page du Chef. */
+export function retirerAjout(menu: MenuSemaine, elementId: Id): MenuSemaine {
+  return { ...menu, ajouts: menu.ajouts.filter((a) => a.elementId !== elementId) };
+}
+
+/** Les articles du Chef encore sur la liste, et lesquels sont déjà achetés. */
+export function etatDesAjouts(menu: MenuSemaine, elements: readonly Element[]): { ajout: AjoutChef; element: Element | null }[] {
+  const parId = new Map(elements.map((e) => [e.id, e]));
+  return menu.ajouts.map((ajout) => ({ ajout, element: parId.get(ajout.elementId) ?? null }));
+}
+
+/** Le texte de la notification quand les menus sont prêts. */
+export function notificationChef(menu: MenuSemaine): { titre: string; corps: string } {
+  const n = menu.ajouts.length;
+  const courses = n ? `${n} article${n > 1 ? "s" : ""} ajouté${n > 1 ? "s" : ""} aux courses.` : "Rien à ajouter aux courses.";
+  return { titre: "Les menus de la semaine sont prêts", corps: [menu.repas.map((r) => r.titre).slice(0, 3).join(", "), courses].filter(Boolean).join(" · ") };
+}
+
+export function coutChef(u: Consommation): number {
+  return coutMicroChf(u, MODELE_CHEF);
+}

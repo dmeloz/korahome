@@ -44,6 +44,8 @@ export interface Element {
   rayon: Rayon;
   coche: boolean;
   ajoutePar: Id | null;
+  /** « chef » : ajouté par le Chef de la semaine pour ses menus. */
+  source?: "chef";
   creeLe: string;
   cocheLe: string | null;
 }

@@ -24,7 +24,7 @@ create table if not exists public.membres_foyer (
 
 create table if not exists public.documents (
   foyer_id text not null references public.foyers (id) on delete cascade,
-  collection text not null check (collection in ('foyer', 'listes', 'elements', 'taches', 'animaux', 'stock', 'catalogue', 'jardin', 'memoire', 'couple', 'retours')),
+  collection text not null check (collection in ('foyer', 'listes', 'elements', 'taches', 'animaux', 'stock', 'catalogue', 'jardin', 'memoire', 'couple', 'menus', 'retours')),
   id text not null,
   -- Le document complet ; null quand il a été supprimé.
   donnees jsonb,
@@ -37,10 +37,11 @@ create table if not exists public.documents (
 
 -- Les notes de test se partagent depuis Kora 0.0.7, le stock (frigo, congélateur, placard)
 -- depuis Kora 0.0.9, la Base des produits habituels depuis Kora 0.0.10, le jardin depuis
--- Kora 0.0.15, la mémoire de Jarvis et le bandeau du couple depuis Kora 0.0.16 : une base plus ancienne reçoit la nouvelle liste.
+-- Kora 0.0.15, la mémoire de Jarvis et le bandeau du couple depuis Kora 0.0.16, les menus du Chef
+-- de la semaine depuis Kora 0.0.17 : une base plus ancienne reçoit la nouvelle liste.
 alter table public.documents drop constraint if exists documents_collection_check;
 alter table public.documents add constraint documents_collection_check
-  check (collection in ('foyer', 'listes', 'elements', 'taches', 'animaux', 'stock', 'catalogue', 'jardin', 'memoire', 'couple', 'retours'));
+  check (collection in ('foyer', 'listes', 'elements', 'taches', 'animaux', 'stock', 'catalogue', 'jardin', 'memoire', 'couple', 'menus', 'retours'));
 
 create index if not exists documents_nouveautes on public.documents (foyer_id, maj_serveur);
 
@@ -276,6 +277,28 @@ begin
     )
   );
 end $$;
+
+-- Le Chef de la semaine (Kora 0.0.17) passe aussi chaque heure : la fonction « chef » prépare les
+-- menus des foyers dont c'est le jour et l'heure (réglés dans l'app). À lancer une fois :
+--   select prive.programmer_chef('https://<projet>.supabase.co');
+create or replace function prive.programmer_chef(p_adresse text)
+returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  perform cron.schedule(
+    'chef-de-la-semaine',
+    '2 * * * *',
+    format(
+      $cmd$select net.http_post(url := %L, body := '{"mode": "heure"}'::jsonb,
+        headers := jsonb_build_object('Content-Type', 'application/json',
+          'x-cle-cron', (select cle_cron from prive.reglages_push)),
+        timeout_milliseconds := 120000)$cmd$,
+      p_adresse || '/functions/v1/chef'
+    )
+  );
+end $$;
+
+revoke all on function prive.programmer_chef(text) from public, anon, authenticated;
 
 revoke all on function public.enregistrer_abonnement(text, text, text, jsonb, jsonb, integer) from public, anon;
 revoke all on function public.retirer_abonnement(text) from public, anon;

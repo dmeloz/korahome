@@ -1,5 +1,6 @@
 import { IDBFactory } from "fake-indexeddb";
 import { nouveauSouvenir } from "../domaine/memoire";
+import { reglerChef } from "../domaine/chef";
 import { describe, expect, it, vi } from "vitest";
 import { contexteTest } from "../domaine/contexteTest";
 import { creerFoyer, listesInitiales } from "../domaine/foyer";
@@ -188,6 +189,14 @@ describe("dépôt local", () => {
     expect((await depot.lireEnAttente()).map((c) => c.collection)).toEqual(["memoire"]);
     await depot.supprimerSouvenir(souvenir.id);
     expect(await depot.lireMemoire()).toEqual([]);
+  });
+
+  it("garde le réglage du Chef et le partage", async () => {
+    const depot = depotNeuf();
+    const reglage = reglerChef({ actif: true, jour: 6, heure: 10 }, [], contexteTest());
+    await depot.enregistrerMenu(reglage);
+    expect(await depot.lireMenus()).toEqual([reglage]);
+    expect((await depot.lireEnAttente()).map((c) => c.collection)).toEqual(["menus"]);
   });
 
   it("conserve le suivi de Mitsu", async () => {

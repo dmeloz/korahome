@@ -1381,3 +1381,22 @@ html[data-sens="arriere"]::view-transition-new(root) { animation-name: page-revi
 }
 .coeur-mot.rempli { color: var(--accent); }
 .coeur-mot.aime svg { fill: currentColor; }
+
+/* Le Chef de la semaine */
+.chef-entete { display: grid; gap: 10px; }
+.chef-entete .surtitre { margin: 0; }
+.chef-entete .bouton-principal { width: 100%; margin: 4px 0 0; }
+.chef-mot { margin: 0; font-size: 19px; line-height: 1.35; text-wrap: pretty; }
+.chef-alerte { border-color: var(--urgent); }
+.chef-alerte p { margin: 0; color: var(--urgent); }
+.chef-alerte p + p { margin-top: 6px; }
+.chef-repas { list-style: none; padding: 0; margin: 0; }
+.chef-repas .carte { display: grid; gap: 4px; }
+.chef-repas .surtitre { margin: 0; color: var(--accent); }
+.chef-repas .discret { margin: 0; line-height: 1.4; }
+.chef-plat { margin: 0; font-size: 18px; font-weight: 600; text-wrap: balance; }
+.chef-stock { margin: 2px 0 0; font-size: 14px; color: var(--discret); }
+.chef .ligne.coche .ligne-texte { color: var(--coche); text-decoration: line-through; }
+.chef-interrupteur { padding: 6px 0; min-height: 44px; color: var(--texte); font-size: 17px; }
+.chef-note { margin: 12px 0 0; font-size: 14px; line-height: 1.45; }
+.etiquette-chef { margin-left: 6px; font-family: var(--police-fixe); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }

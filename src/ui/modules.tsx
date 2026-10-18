@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { DocCouple } from "../domaine/bandeau";
+import { menuDeLaSemaine, prochainPassage, reglageChef, type DocChef } from "../domaine/chef";
 import type { Souvenir } from "../domaine/memoire";
 import type { RetourTest } from "../domaine/retours";
 import { gestesDuJardin, type Zone } from "../domaine/jardin";
@@ -15,6 +16,7 @@ import type { Depot } from "../donnees/depot";
 import type { ServeurJarvis } from "../donnees/distant";
 import { organiserEntretien } from "../domaine/entretien";
 import { DetailListe } from "./ecrans/DetailListe";
+import { Chef } from "./ecrans/Chef";
 import { Entretien } from "./ecrans/Entretien";
 import { Jardin } from "./ecrans/Jardin";
 import { Listes } from "./ecrans/Listes";
@@ -47,6 +49,8 @@ export interface DonneesModule {
   retours: RetourTest[];
   /** Le bandeau du couple. */
   couple: DocCouple[];
+  /** Les menus du Chef de la semaine et son réglage. */
+  menus: DocChef[];
 }
 
 export interface PropsPage extends DonneesModule {
@@ -236,6 +240,24 @@ export const MODULES: Partial<Record<WidgetId, ModuleUI>> = {
     },
     page: (p) => <Jardin {...p} />,
   },
+
+  chef: {
+    id: "chef",
+    picto: "toque",
+    libelle: "Menus",
+    widget: (d) => {
+      const menu = menuDeLaSemaine(d.menus, d.aujourdhui);
+      const passage = prochainPassage(reglageChef(d.menus), new Date());
+      if (!menu) return { chiffre: 0, legende: passage ? `Prochains menus ${passage}` : "Lance le Chef pour la semaine", lignes: [], urgent: false };
+      return {
+        chiffre: menu.repas.length,
+        legende: "repas cette semaine",
+        lignes: [...menu.alertesMitsu.slice(0, 1), ...menu.repas.map((r) => r.titre)].slice(0, 3),
+        urgent: false,
+      };
+    },
+    page: (p) => <Chef {...p} />,
+  },
 };
 
 /** Le pictogramme d'une section, y compris celles qui arrivent bientôt. */
@@ -248,4 +270,5 @@ export const PICTOS: Record<WidgetId, NomIcone> = {
   stock: "frigo",
   entretien: "outil",
   jardin: "feuille",
+  chef: "toque",
 };
