@@ -1,3 +1,4 @@
+import { evenementsDe } from "../domaine/agenda";
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { meteoFraiche } from "../domaine/meteo";
 import { rappelDuMatin } from "../domaine/rappels";
@@ -54,7 +55,7 @@ let ecranCourant = "Accueil";
 export const ecranAffiche = () => ecranCourant;
 
 export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJour: MiseAJour; partage: ServicesPartage | null }) {
-  const { pret, foyer, listes, elements, taches, retours, animaux, produits, catalogue, zones, souvenirs, couple, menus } = useDonnees(depot);
+  const { pret, foyer, listes, elements, taches, retours, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda } = useDonnees(depot);
   // La météo sert au jardin et au bandeau de l'accueil. Trop ancienne (téléphone resté
   // hors ligne), elle ne déclenche plus d'alerte.
   const meteoLue = useMeteo(true);
@@ -154,7 +155,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       />
     );
   }
-  const donnees: DonneesModule = { foyer, membreId: membre, listes, elements, taches, animaux, produits, catalogue, zones, meteo, aujourdhui: aujourdhuiLocal(), souvenirs, retours, couple, menus };
+  const donnees: DonneesModule = { foyer, membreId: membre, listes, elements, taches, animaux, produits, catalogue, zones, meteo, aujourdhui: aujourdhuiLocal(), souvenirs, retours, couple, menus, agenda };
 
   const ouvrir = (p: Page) =>
     avecTransition("avant", () => {
@@ -166,6 +167,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
 
   const leFoyer: Foyer = foyer;
   const jarvisPartage = partage && foyerPartage ? { serveur: partage.jarvis, foyerId: foyerPartage } : null;
+  const agendaPartage = partage && foyerPartage ? { serveur: partage.agenda, foyerId: foyerPartage } : null;
   function ecranDe(page: Page) {
   let ecran;
   if (page.nom === "accueil") {
@@ -182,7 +184,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       />
     );
   } else if (page.nom === "module") {
-    ecran = MODULES[page.id]?.page({ ...donnees, depot, ouvrirListe, jarvis: jarvisPartage });
+    ecran = MODULES[page.id]?.page({ ...donnees, depot, ouvrirListe, jarvis: jarvisPartage, agendaDistant: agendaPartage });
   } else if (page.nom === "liste") {
     const liste = listes.find((l) => l.id === page.id);
     ecran = liste ? (
@@ -201,6 +203,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         ouvrirPartage={() => ouvrir({ nom: "partage" })}
         foyer={leFoyer}
         taches={taches}
+        evenements={evenementsDe(agenda)}
         animaux={animaux}
         produits={produits}
         zones={zones}

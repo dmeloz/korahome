@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { preparerEvenement } from "./agenda";
 import { contexteTest } from "./contexteTest";
 import { creerFoyer } from "./foyer";
 import { ajouterPlante, nouvellePlante, nouvelleZone } from "./jardin";
@@ -52,6 +53,18 @@ describe("le rappel du matin", () => {
     const entree = { foyer, membreId: melo.id, taches: faites, animaux: [], produits: [yaourts, riz], aujourdhui: AUJOURDHUI };
     expect(rappelDuMatin({ ...entree, preferences: PREFERENCES_DE_DEPART })).toEqual({ titre: "Bonjour Melo", corps: "À consommer : Yaourts", nombre: 1 });
     expect(rappelDuMatin({ ...entree, preferences: { ...PREFERENCES_DE_DEPART, stock: false } })).toBeNull();
+  });
+
+  it("commence par l'agenda du jour : le commun et le sien, sauf si on ne le veut pas", () => {
+    const c = contexteTest();
+    const evenements = [
+      preparerEvenement({ titre: "Dentiste", jour: AUJOURDHUI, heure: "14:30", pour: melo.id }, null, c),
+      preparerEvenement({ titre: "Gynéco", jour: AUJOURDHUI, heure: "09:00", pour: sarah.id }, null, c),
+      preparerEvenement({ titre: "Vacances", jour: "2026-10-10", fin: "2026-10-14" }, null, c),
+    ];
+    const entree = { foyer, membreId: melo.id, taches: [], animaux: [], evenements, aujourdhui: AUJOURDHUI };
+    expect(rappelDuMatin({ ...entree, preferences: PREFERENCES_DE_DEPART })).toEqual({ titre: "Bonjour Melo", corps: "Agenda : Vacances (jusqu'au 14 oct.), Dentiste à 14:30", nombre: 2 });
+    expect(rappelDuMatin({ ...entree, preferences: { ...PREFERENCES_DE_DEPART, agenda: false } })).toBeNull();
   });
 
   it("n'envoie rien quand il n'y a rien à faire", () => {

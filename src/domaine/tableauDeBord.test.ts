@@ -19,8 +19,8 @@ describe("tableau de bord", () => {
     expect(DISPOSITION_DE_DEPART).toEqual(["taches", "courses", "listes"]);
   });
 
-  it("relit une disposition enregistrée sans garder l'inconnu, les doublons ni ce qui n'est pas prêt", () => {
-    expect(nettoyerDisposition(["courses", "meteo", "courses", "agenda", "taches"])).toEqual(["courses", "taches"]);
+  it("relit une disposition enregistrée sans garder l'inconnu ni les doublons", () => {
+    expect(nettoyerDisposition(["courses", "meteo", "courses", "agenda", "taches"])).toEqual(["courses", "agenda", "taches"]);
     expect(nettoyerDisposition("n'importe quoi")).toEqual(DISPOSITION_DE_DEPART);
     expect(nettoyerDisposition([])).toEqual([]);
   });
@@ -32,8 +32,8 @@ describe("tableau de bord", () => {
     expect(ajouterWidget(sansCourses, "taches")).toBe(sansCourses);
   });
 
-  it("refuse une section qui n'existe pas encore", () => {
-    expect(ajouterWidget(["taches"], "agenda")).toEqual(["taches"]);
+  it("ajoute l'agenda commun, désormais prêt", () => {
+    expect(ajouterWidget(["taches"], "agenda")).toEqual(["taches", "agenda"]);
   });
 
   it("monte et descend un widget, sans sortir du tableau", () => {
@@ -44,8 +44,8 @@ describe("tableau de bord", () => {
 
   it("sépare ce qu'on peut ajouter de ce qui arrive bientôt", () => {
     const { prets, bientot } = widgetsAAjouter(["taches"]);
-    expect(prets.map((w) => w.id)).toEqual(["courses", "listes", "mitsu", "stock", "entretien", "jardin", "chef"]);
-    expect(bientot.map((w) => w.id)).toEqual(["agenda"]);
+    expect(prets.map((w) => w.id)).toEqual(["courses", "listes", "agenda", "mitsu", "stock", "entretien", "jardin", "chef"]);
+    expect(bientot).toEqual([]);
   });
 
   it("fait remonter l'urgent en gardant l'ordre choisi pour le reste", () => {

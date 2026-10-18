@@ -311,6 +311,42 @@ export const OUTILS_JARVIS = [
     },
   },
   {
+    name: "ajouter_evenement",
+    description:
+      "Ajoute un événement à l'agenda commun : rendez-vous (médecin, véto), anniversaire, vacances, sortie, horaire de travail. Il apparaît aussi dans le calendrier de l'iPhone.",
+    strict: true,
+    input_schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["titre", "jour", "fin", "heure", "heure_fin", "pour", "categorie", "repetition", "lieu"],
+      properties: {
+        titre: texte("Le nom court : « Dentiste », « Anniversaire de maman »."),
+        jour: texte("Le premier jour, AAAA-MM-JJ. Pour un anniversaire dont on connaît l'année de naissance, la vraie date de naissance."),
+        fin: ouNul("Le dernier jour, AAAA-MM-JJ, pour ce qui dure plusieurs jours ; null sinon."),
+        heure: ouNul("L'heure de début, HH:MM ; null pour toute la journée."),
+        heure_fin: ouNul("L'heure de fin, HH:MM ; null si elle n'est pas connue."),
+        pour: ouNul("Le prénom de la personne concernée ; null pour le foyer (nous deux)."),
+        categorie: { type: "string", enum: ["rdv", "anniversaire", "vacances", "sortie", "travail", "autre"] },
+        repetition: { type: "string", enum: ["aucune", "jour", "semaine", "mois", "annee"] },
+        lieu: ouNul("Le lieu ou l'adresse ; null s'il n'est pas dit."),
+      },
+    },
+  },
+  {
+    name: "supprimer_evenement",
+    description: "Retire un événement de l'agenda (annulé, plus d'actualité). L'app demande confirmation avant.",
+    strict: true,
+    input_schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["titre", "jour"],
+      properties: {
+        titre: texte("Le nom de l'événement tel qu'il figure dans l'agenda."),
+        jour: ouNul("Sa date, AAAA-MM-JJ, pour le distinguer d'un autre du même nom ; null sinon."),
+      },
+    },
+  },
+  {
     name: "noter_souhait",
     description:
       "Quand on te demande une chose que tu ne sais pas faire (aucun outil ne convient, ou l'app n'a pas cette fonction), note-la comme souhait d'amélioration pour Claude, qui fait évoluer l'app.",
@@ -334,11 +370,12 @@ Pour agir, utilise les outils. Quand tu utilises un outil, n'écris rien d'autre
 Tu peux faire plusieurs actions d'un coup. Les dates sont au format AAAA-MM-JJ ; « demain », « samedi » se comptent depuis la date du jour donnée.
 Tu ne dépenses jamais d'argent. Tu peux supprimer une tâche, retirer un produit du stock ou oublier un fait : l'app demande toujours confirmation avant, n'ajoute rien à ce sujet.
 « Rappelle-moi jeudi d'appeler le véto » : crée une tâche unique à cette date pour la personne qui parle ; le rappel du matin la signale.
+Un rendez-vous, un anniversaire, des vacances, une sortie ou un horaire de travail vont dans l'agenda (ajouter_evenement), pas dans les tâches. Pour « qu'est-ce qu'on a cette semaine ? », réponds à partir de l'agenda de l'état du foyer.
 Si la demande n'est pas claire, pose une seule question courte.
 Si on te demande une chose qu'aucun outil ne permet et que l'état du foyer ne te laisse pas répondre, utilise noter_souhait, et écris : « Je ne sais pas encore le faire, je l'ai noté pour Claude. »
 Ta mémoire est dans l'état du foyer : sers-t'en pour chaque demande (goûts, habitudes, règles de la maison). Quand on te dit « retiens que… » ou « n'oublie pas que… », utilise retenir (propose: false). Quand tu remarques une préférence ou une habitude durable qui n'est pas encore dans ta mémoire, propose-la avec retenir (propose: true), au plus une par réponse, jamais une information passagère ni de santé ou d'argent. Quand on te dit qu'un fait de ta mémoire est faux, utilise oublier, et retenir pour le fait juste.
 Pour une question sur le foyer, réponds à partir de l'état du foyer fourni ; s'il ne contient pas la réponse, dis-le.
-Avec une photo (lettre, facture, carte de rendez-vous, flyer) : relève les rendez-vous, échéances et paiements, et crée pour chacun une tâche unique à sa date, avec l'heure et le lieu dans le titre s'ils sont indiqués.
+Avec une photo (lettre, facture, carte de rendez-vous, flyer, faire-part) : mets chaque rendez-vous ou événement daté dans l'agenda (ajouter_evenement, avec l'heure et le lieu indiqués), et crée une tâche unique pour chaque échéance ou paiement.
 Avec un ticket de caisse : range au stock (ajouter_au_stock) les produits alimentaires achetés, avec leur quantité dans le nom (« 1 l lait », « 500 g beurre ») et le lieu où on les range d'habitude ; laisse la date de péremption vide si elle n'est pas écrite, l'app la devine. Coche aussi les courses correspondantes (cocher_courses).
 Avec une page de carnet de santé ou une facture de vétérinaire : note chaque vaccin, vermifuge, antiparasitaire ou visite avec noter_soin (fait: true à sa date, et fait: false pour la date du prochain rappel écrite), et les poids écrits avec noter_pesee à leur date.
 Quand on te dit qu'un animal a vomi, n'a pas mangé, ou que la litière est changée, note-le avec noter_journal ; si une tâche correspond (litière), marque-la aussi faite.

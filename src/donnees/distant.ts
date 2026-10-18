@@ -86,10 +86,20 @@ export interface ServeurJarvis {
   lancerChef(foyerId: Id): Promise<{ menu: MenuSemaine; budget: EtatBudget; sansListe: boolean }>;
 }
 
+/** L'agenda relié à iCloud passe par le serveur du foyer (supabase/functions/agenda), qui garde les mots de passe d'app. */
+export interface ServeurAgenda {
+  /** Relie le compte iCloud de cette personne ; le serveur crée le calendrier « Kora » et synchronise. */
+  relierIcloud(demande: { foyerId: Id; membreId: Id; appleId: string; motDePasse: string }): Promise<void>;
+  /** Les calendriers iCloud que cette personne ne veut pas voir dans Kora. */
+  choisirCalendriers(demande: { foyerId: Id; membreId: Id; ignores: string[] }): Promise<void>;
+  synchroniserAgenda(foyerId: Id): Promise<void>;
+  delierIcloud(demande: { foyerId: Id; membreId: Id }): Promise<void>;
+}
+
 /** Le serveur prévient dès qu'un document du foyer change : l'autre iPhone le voit à l'instant. */
 export interface TempsReel {
   /** Appelle `rappel` à chaque changement sur le serveur ; renvoie de quoi arrêter d'écouter. */
   ecouterFoyer(foyerId: Id, rappel: () => void): () => void;
 }
 
-export type ServicesDistants = Distant & Compte & ServeurRappels & ServeurJarvis & TempsReel;
+export type ServicesDistants = Distant & Compte & ServeurRappels & ServeurJarvis & ServeurAgenda & TempsReel;
