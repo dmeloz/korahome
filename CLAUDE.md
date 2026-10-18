@@ -18,6 +18,7 @@ Fiche projet et plan (sur le Mac de la propriétaire) : `~/Atelier-Claude/Cervea
 - `supabase/schema.sql` : tables, règles de sécurité et fonctions du serveur partagé. Mise en route : `docs/activer-le-partage.md`. Adresse et clé publique dans `.env.local` sur le Mac (ignoré par Git).
 - `supabase/functions/rappels/` : rappels du matin à 8 h (Web Push), règles dans `src/domaine/rappels.ts`. Voir `docs/notifications.md`.
 - `supabase/functions/jarvis/` : Jarvis, l'assistant (Claude, clé dans les secrets Supabase, plafond 5 CHF par mois). Règles et outils dans `src/domaine/jarvis.ts`, mémoire du foyer dans `memoire.ts`, actions appliquées par le téléphone via le `Depot` (celles qui suppriment attendent un oui). Ce qu'il ne sait pas faire devient un souhait dans les retours de test. Voir `docs/jarvis.md`.
+- `supabase/functions/chef/` : le Chef de la semaine (menus du soir depuis le stock, ajouts aux courses marqués « Chef », jour et heure réglables, lancement d'un toucher). Règles dans `src/domaine/chef.ts`, page « Menus de la semaine ». Voir `docs/chef.md`.
 - Bandeau du couple (mots, humeurs, comptes à rebours, clin d'œil de Jarvis, infos) : `src/domaine/bandeau.ts`, page « Nos mots ». Voir `docs/bandeau-couple.md`.
 - Jardin : zones, plantes et calendrier dans `src/domaine/jardin.ts` et `plantes.ts`, météo Open-Meteo (`meteo.ts`, sans clé). Voir `docs/jardin.md`.
 - `serveur/` : code qui tourne sur le Mac qui sert l'app (réception des rapports de test, branchée dans `vite.config.ts`).

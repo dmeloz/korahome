@@ -10,7 +10,7 @@ const MOTS_CLES: [Rayon, string[]][] = [
   ["Entretien", ["lessive", "liquide vaisselle", "eponge", "javel", "sac poubelle", "sacs poubelle", "essuie-tout", "adoucissant", "nettoyant", "pastille lave"]],
   ["Boissons", ["eau", "jus", "soda", "coca", "biere", "vin", "sirop", "the", "cafe", "tisane", "limonade"]],
   ["Boulangerie", ["pain", "baguette", "croissant", "brioche", "viennoiserie", "pain de mie"]],
-  ["Crèmerie", ["lait", "beurre", "yaourt", "yogourt", "fromage", "creme", "oeuf", "emmental", "mozzarella", "comte", "skyr"]],
+  ["Crèmerie", ["lait", "beurre", "yaourt", "yogourt", "fromage", "creme", "oeuf", "emmental", "gruyere", "mozzarella", "comte", "skyr"]],
   ["Boucherie et poisson", ["poulet", "boeuf", "steak", "jambon", "porc", "viande", "saucisse", "dinde", "poisson", "saumon", "thon frais", "crevette", "lardon", "veau", "agneau", "cabillaud"]],
   ["Fruits et légumes", ["pomme", "poire", "banane", "orange", "citron", "fraise", "raisin", "kiwi", "tomate", "salade", "laitue", "carotte", "oignon", "ail", "courgette", "aubergine", "poivron", "concombre", "avocat", "champignon", "brocoli", "epinard", "poireau", "patate", "pomme de terre", "fruit", "legume", "herbes", "persil", "basilic", "mangue", "ananas", "melon", "peche"]],
   ["Épicerie sucrée", ["sucre", "chocolat", "biscuit", "gateau", "confiture", "miel", "cereale", "nutella", "compote", "bonbon", "farine", "levure"]],

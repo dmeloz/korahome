@@ -1,3 +1,4 @@
+import type { MenuSemaine } from "../domaine/chef";
 import type { EtatBudget, TourJarvis } from "../domaine/jarvis";
 import type { PreferencesRappels } from "../domaine/rappels";
 import type { Changement } from "../domaine/synchro";
@@ -81,6 +82,8 @@ export interface ReponseJarvis {
 /** Jarvis passe par le serveur du foyer (supabase/functions/jarvis), qui garde la clé de l'API. */
 export interface ServeurJarvis {
   demanderJarvis(demande: DemandeJarvis): Promise<ReponseJarvis>;
+  /** Lance le Chef de la semaine tout de suite (supabase/functions/chef) : il écrit les menus et les courses. */
+  lancerChef(foyerId: Id): Promise<{ menu: MenuSemaine; budget: EtatBudget; sansListe: boolean }>;
 }
 
 /** Le serveur prévient dès qu'un document du foyer change : l'autre iPhone le voit à l'instant. */
