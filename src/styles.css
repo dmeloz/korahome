@@ -1520,3 +1520,39 @@ html[data-sens="arriere"]::view-transition-new(root) { animation-name: page-revi
 .agenda-comptes .agenda-texte { margin-right: 10px; }
 .agenda-etapes { margin: 0; padding-left: 20px; display: grid; gap: 6px; line-height: 1.4; }
 .agenda-etapes a { color: var(--accent); }
+/* La vue Jour, heure par heure */
+.agenda-nav-jour { margin-top: 12px; }
+.agenda-jour-vue .rayon { margin-top: 8px; }
+.agenda-journee { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 4px; }
+.agenda-heures { --marge-heures: 52px; height: min(62vh, 560px); overflow-y: auto; overscroll-behavior: contain; padding: 0; -webkit-overflow-scrolling: touch; }
+.agenda-heures-contenu { position: relative; }
+.agenda-creneau { position: absolute; left: 0; right: 0; border: 0; border-top: 1px solid var(--trait); background: none; padding: 0; text-align: left; }
+.agenda-creneau:first-child { border-top: 0; }
+.agenda-creneau:active { background: var(--accent-doux); }
+.agenda-creneau-heure { position: absolute; top: -8px; left: 8px; font-family: var(--police-fixe); font-size: 11px; color: var(--discret); font-variant-numeric: tabular-nums; background: var(--surface); padding-right: 4px; }
+.agenda-bloc {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
+  border: 0;
+  border-left: 3px solid var(--couleur);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--couleur) 22%, var(--surface));
+  color: var(--texte);
+  font: inherit;
+  text-align: left;
+  padding: 4px 8px;
+  margin-top: 1px;
+}
+.agenda-bloc.journee { position: static; width: 100%; padding: 8px 12px; flex-direction: row; align-items: baseline; justify-content: space-between; gap: 8px; }
+.agenda-bloc.court { flex-direction: row; align-items: center; gap: 6px; padding-top: 1px; padding-bottom: 1px; }
+.agenda-bloc.court .agenda-bloc-titre { flex: 0 1 auto; min-width: 0; }
+.agenda-bloc.court .agenda-bloc-heure { flex: 0 100 auto; min-width: 0; }
+.agenda-bloc-titre { font-size: 14px; font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agenda-bloc-heure { font-size: 12px; color: color-mix(in srgb, var(--texte) 70%, transparent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.agenda-maintenant { position: absolute; left: var(--marge-heures); right: 0; height: 0; border-top: 2px solid var(--urgent); pointer-events: none; z-index: 2; }
+.agenda-maintenant::before { content: ""; position: absolute; left: -5px; top: -6px; width: 10px; height: 10px; border-radius: 50%; background: var(--urgent); }
+.agenda-maintenant span { position: absolute; right: calc(100% + 8px); top: -8px; font-family: var(--police-fixe); font-size: 11px; font-weight: 700; color: var(--urgent); background: var(--surface); padding: 0 2px; }
+.agenda-astuce { margin: 8px 0 0; font-size: 14px; }

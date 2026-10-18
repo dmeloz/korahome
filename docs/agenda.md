@@ -3,7 +3,7 @@
 Le widget **Agenda commun** ouvre la page « Agenda » : rendez-vous (médecin, véto), anniversaires,
 vacances, sorties et horaires de travail, pour nous deux ou pour l'un de nous.
 
-- **Semaine**, **Mois** et **À venir** (60 jours). Les filtres **Tout**, **Nous deux**, **Melo**, **Sarah**
+- **Jour** (heure par heure comme Calendrier : toucher une heure libre y ajoute un événement), **Semaine**, **Mois** et **À venir** (60 jours). Les filtres **Tout**, **Nous deux**, **Melo**, **Sarah**
   (chaque personne voit le sien et le commun). Un point de couleur par personne, laiton pour nous deux.
 - **Ajouter** : on écrit comme on parle (« Dentiste jeudi 14h30 », « Vacances du 20 au 27 décembre »,
   « Travail tous les lundis de 8h à 17h pour Sarah », « Anniversaire de maman le 12 mars 1962 ») et les

@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   analyserPhrase,
   CATEGORIES,
@@ -6,6 +6,7 @@ import {
   decrireDans,
   decrireHoraire,
   decrireJour,
+  dispositionDuJour,
   duJour,
   evenementsDe,
   filtrer,
@@ -34,8 +35,8 @@ import { vibrer } from "../haptique";
 import { Icone } from "../Icone";
 import type { PropsPage } from "../modules";
 
-type Vue = "semaine" | "mois" | "avenir";
-const VUES: Record<Vue, string> = { semaine: "Semaine", mois: "Mois", avenir: "À venir" };
+type Vue = "jour" | "semaine" | "mois" | "avenir";
+const VUES: Record<Vue, string> = { jour: "Jour", semaine: "Semaine", mois: "Mois", avenir: "À venir" };
 const INITIALES = ["L", "M", "M", "J", "V", "S", "D"];
 const JOURS_A_VENIR = 60;
 const plus = (j: Jour, n: number) => decaler(j, { unite: "jour", tous: n });
@@ -76,12 +77,13 @@ export function Agenda(p: PropsPage) {
   const [filtre, setFiltre] = useState<Filtre>("tout");
   const [choisi, setChoisi] = useState<Jour>(aujourdhui);
   const [ouvert, setOuvert] = useState<Occurrence | null>(null);
-  const [edition, setEdition] = useState<{ avant: Evenement | null; jour: Jour } | null>(null);
+  const [edition, setEdition] = useState<{ avant: Evenement | null; jour: Jour; heure?: string } | null>(null);
 
   const lundi = lundiDe(choisi);
   const mois = choisi.slice(0, 7);
   const grille = useMemo(() => grilleDuMois(mois), [mois]);
-  const [du, au] = vue === "mois" ? [grille[0], grille[grille.length - 1]] : vue === "semaine" ? [lundi, plus(lundi, 6)] : [aujourdhui, plus(aujourdhui, JOURS_A_VENIR)];
+  const [du, au] =
+    vue === "jour" ? [choisi, choisi] : vue === "mois" ? [grille[0], grille[grille.length - 1]] : vue === "semaine" ? [lundi, plus(lundi, 6)] : [aujourdhui, plus(aujourdhui, JOURS_A_VENIR)];
   const occ = useMemo(
     () => filtrer(occurrences(evenements, vue === "avenir" ? du : choisi < du ? choisi : du, vue === "avenir" ? au : choisi > au ? choisi : au, p.animaux), filtre),
     [evenements, p.animaux, du, au, choisi, filtre, vue],
@@ -90,7 +92,7 @@ export function Agenda(p: PropsPage) {
   const deplacer = (sens: -1 | 1) => {
     vibrer();
     if (vue === "mois") setChoisi(`${decaler(`${mois}-01`, { unite: "mois", tous: sens }).slice(0, 7)}-01`);
-    else setChoisi(plus(choisi, 7 * sens));
+    else setChoisi(plus(choisi, (vue === "jour" ? 1 : 7) * sens));
   };
 
   async function retirer(e: Evenement) {
@@ -122,7 +124,19 @@ export function Agenda(p: PropsPage) {
       </div>
       <Puces libelle="Pour qui" valeur={filtre} choix={filtres} changer={setFiltre} />
 
-      {vue !== "avenir" && (
+      {vue === "jour" && (
+        <div className="agenda-nav agenda-nav-jour">
+          <button className="bouton-icone" onClick={() => deplacer(-1)} aria-label="Jour précédent">
+            <Icone nom="retour" />
+          </button>
+          <button className="lien" onClick={() => setChoisi(aujourdhui)} disabled={choisi === aujourdhui}>Aujourd'hui</button>
+          <button className="bouton-icone" onClick={() => deplacer(1)} aria-label="Jour suivant">
+            <Icone nom="suivant" />
+          </button>
+        </div>
+      )}
+
+      {(vue === "semaine" || vue === "mois") && (
         <section className="carte agenda-calendrier">
           <div className="agenda-nav">
             <button className="bouton-icone" onClick={() => deplacer(-1)} aria-label={vue === "mois" ? "Mois précédent" : "Semaine précédente"}>
@@ -162,6 +176,15 @@ export function Agenda(p: PropsPage) {
 
       {vue === "avenir" ? (
         <AVenir occ={occ} aujourdhui={aujourdhui} foyer={foyer} ouvrir={setOuvert} />
+      ) : vue === "jour" ? (
+        <VueJour
+          occ={occ}
+          jour={choisi}
+          aujourdhui={aujourdhui}
+          foyer={foyer}
+          ouvrir={setOuvert}
+          ajouter={(heure) => setEdition({ avant: null, jour: choisi, heure })}
+        />
       ) : (
         <section>
           <h2 className="rayon">{decrireJour(choisi, aujourdhui)}</h2>
@@ -215,6 +238,99 @@ export function Agenda(p: PropsPage) {
 
       <SectionIcloud foyer={foyer} membreId={p.membreId} comptes={comptes} distant={p.agendaDistant} />
     </main>
+  );
+}
+
+const HAUTEUR_HEURE = 52;
+const HEURES = Array.from({ length: 24 }, (_, h) => h);
+const deuxChiffres = (n: number) => String(n).padStart(2, "0");
+const maintenantEnMinutes = () => {
+  const d = new Date(contexteReel.maintenant());
+  return d.getHours() * 60 + d.getMinutes();
+};
+
+/** La journée heure par heure, comme dans Calendrier : toucher une heure libre y ajoute un événement. */
+function VueJour(props: { occ: Occurrence[]; jour: Jour; aujourdhui: Jour; foyer: Foyer; ouvrir: (o: Occurrence) => void; ajouter: (heure: string) => void }) {
+  const { journee, places } = useMemo(() => dispositionDuJour(props.occ, props.jour), [props.occ, props.jour]);
+  const defilement = useRef<HTMLDivElement>(null);
+  const estAujourdhui = props.jour === props.aujourdhui;
+  const [maintenant, setMaintenant] = useState(maintenantEnMinutes);
+
+  useEffect(() => {
+    if (!estAujourdhui) return;
+    const minuteur = setInterval(() => setMaintenant(maintenantEnMinutes()), 60_000);
+    return () => clearInterval(minuteur);
+  }, [estAujourdhui]);
+
+  // On arrive sur l'heure qui compte : maintenant, le premier rendez-vous, ou 8 h.
+  const premier = places[0]?.debut;
+  useEffect(() => {
+    const cible = estAujourdhui ? maintenantEnMinutes() - 60 : (premier ?? 8 * 60) - 30;
+    defilement.current?.scrollTo({ top: Math.max(0, (cible / 60) * HAUTEUR_HEURE) });
+  }, [props.jour, estAujourdhui, premier]);
+
+  return (
+    <section className="agenda-jour-vue">
+      <h2 className="rayon">{decrireJour(props.jour, props.aujourdhui)}</h2>
+      {journee.length > 0 && (
+        <ul className="agenda-journee" aria-label="Toute la journée">
+          {journee.map((o) => (
+            <li key={o.cle}>
+              <button className="agenda-bloc journee" style={{ ["--couleur" as string]: couleurDe(props.foyer, o.evenement.pour) }} onClick={() => props.ouvrir(o)} aria-haspopup="dialog">
+                <span className="agenda-bloc-titre">{titreDe(o)}</span>
+                {o.fin !== o.debut && <span className="agenda-bloc-heure">{decrireHoraire(o)}</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="carte agenda-heures" ref={defilement}>
+        <div className="agenda-heures-contenu" style={{ height: 24 * HAUTEUR_HEURE }}>
+          {HEURES.map((h) => (
+            <button
+              key={h}
+              className="agenda-creneau"
+              style={{ top: h * HAUTEUR_HEURE, height: HAUTEUR_HEURE }}
+              onClick={() => props.ajouter(`${deuxChiffres(h)}:00`)}
+              aria-label={`Ajouter à ${h} h`}
+            >
+              <span className="agenda-creneau-heure">{h === 0 ? "" : `${deuxChiffres(h)}:00`}</span>
+            </button>
+          ))}
+          {places.map((p) => {
+            const e = p.occurrence.evenement;
+            const hauteur = ((p.fin - p.debut) / 60) * HAUTEUR_HEURE;
+            return (
+              <button
+                key={p.occurrence.cle}
+                className={`agenda-bloc${hauteur < 40 ? " court" : ""}`}
+                style={{
+                  top: (p.debut / 60) * HAUTEUR_HEURE,
+                  height: hauteur - 2,
+                  left: `calc(var(--marge-heures) + (100% - var(--marge-heures)) * ${p.colonne / p.colonnes})`,
+                  width: `calc((100% - var(--marge-heures)) / ${p.colonnes} - 3px)`,
+                  ["--couleur" as string]: couleurDe(props.foyer, e.pour),
+                }}
+                onClick={() => props.ouvrir(p.occurrence)}
+                aria-haspopup="dialog"
+                aria-label={`${titreDe(p.occurrence)}, ${decrireHoraire(p.occurrence)}`}
+              >
+                <span className="agenda-bloc-titre">{titreDe(p.occurrence)}</span>
+                {!(hauteur < 40 && p.colonnes > 1) && (
+                  <span className="agenda-bloc-heure">{[e.heureFin ? `${e.heure} – ${e.heureFin}` : e.heure, e.lieu].filter(Boolean).join(" · ")}</span>
+                )}
+              </button>
+            );
+          })}
+          {estAujourdhui && (
+            <div className="agenda-maintenant" style={{ top: (maintenant / 60) * HAUTEUR_HEURE }} aria-hidden>
+              <span>{`${deuxChiffres(Math.floor(maintenant / 60))}:${deuxChiffres(maintenant % 60)}`}</span>
+            </div>
+          )}
+        </div>
+      </div>
+      {!places.length && !journee.length && <p className="discret agenda-astuce">Rien de prévu. Touche une heure pour y ajouter quelque chose.</p>}
+    </section>
   );
 }
 
@@ -300,12 +416,12 @@ interface Champs {
   note: string;
 }
 
-const champsDe = (e: Evenement | null, jour: Jour): Champs => ({
+const champsDe = (e: Evenement | null, jour: Jour, heure?: string): Champs => ({
   titre: e?.titre ?? "",
   jour: e?.jour ?? jour,
   fin: e?.fin ?? null,
   journee: e ? !e.heure : false,
-  heure: e?.heure ?? "09:00",
+  heure: e?.heure ?? heure ?? "09:00",
   heureFin: e?.heureFin ?? "",
   pour: e?.pour ?? null,
   categorie: e?.categorie ?? "autre",
@@ -316,7 +432,7 @@ const champsDe = (e: Evenement | null, jour: Jour): Champs => ({
 
 function Edition(props: {
   ouverte: boolean;
-  edition: { avant: Evenement | null; jour: Jour } | null;
+  edition: { avant: Evenement | null; jour: Jour; heure?: string } | null;
   fermer: () => void;
   foyer: Foyer;
   membreId: Id | null;
@@ -332,7 +448,7 @@ function Edition(props: {
     setDerniere(props.edition);
     if (props.edition) {
       setPhrase("");
-      setC(champsDe(props.edition.avant, props.edition.jour));
+      setC(champsDe(props.edition.avant, props.edition.jour, props.edition.heure));
       setPlusieursJours(!!props.edition.avant?.fin);
       setErreur(null);
     }
