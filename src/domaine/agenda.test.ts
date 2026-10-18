@@ -4,6 +4,7 @@ import {
   decrireAgenda,
   decrireHoraire,
   decrireJour,
+  dispositionDuJour,
   duJour,
   evenementsDuMatin,
   filtrer,
@@ -211,5 +212,47 @@ describe("ce que Jarvis sait de l'agenda", () => {
   it("les deux semaines qui viennent, avec qui", () => {
     const lignes = decrireAgenda([ev({ titre: "Dentiste", jour: "2026-10-22", heure: "14:30", pour: "sarah" })], foyer, AUJOURDHUI);
     expect(lignes).toEqual(["Agenda des deux semaines :", "- Dentiste : 2026-10-22 à 14:30, Sarah"]);
+  });
+});
+
+describe("la vue Jour", () => {
+  const J = "2026-10-22";
+  const disposer = (...e: Evenement[]) => dispositionDuJour(occurrences(e, J, J), J);
+
+  it("met en haut ce qui dure toute la journée ou a commencé avant", () => {
+    const vacances = ev({ titre: "Vacances", jour: "2026-10-20", fin: "2026-10-24", categorie: "vacances" });
+    const anniv = ev({ titre: "Anniversaire", jour: J });
+    const parti = ev({ titre: "Voyage", jour: "2026-10-21", fin: J, heure: "18:00" });
+    const d = disposer(vacances, anniv, parti);
+    expect(d.journee.map((o) => o.evenement.titre).sort()).toEqual(["Anniversaire", "Vacances", "Voyage"]);
+    expect(d.places).toEqual([]);
+  });
+
+  it("place chaque rendez-vous à son heure, une heure par défaut", () => {
+    const d = disposer(ev({ titre: "Dentiste", jour: J, heure: "14:30", heureFin: "15:15" }), ev({ titre: "Appel", jour: J, heure: "09:00" }));
+    expect(d.places.map((p) => [p.occurrence.evenement.titre, p.debut, p.fin, p.colonne, p.colonnes])).toEqual([
+      ["Appel", 540, 600, 0, 1],
+      ["Dentiste", 870, 915, 0, 1],
+    ]);
+  });
+
+  it("un départ sur plusieurs jours va jusqu'à minuit, un rendez-vous très court reste lisible", () => {
+    const d = disposer(ev({ titre: "Train de nuit", jour: J, fin: "2026-10-23", heure: "22:00" }), ev({ titre: "Pilule", jour: J, heure: "08:00", heureFin: "08:05" }));
+    expect(d.places.map((p) => [p.debut, p.fin])).toEqual([[480, 500], [1320, 1440]]);
+  });
+
+  it("partage la largeur entre ceux qui se chevauchent, et seulement eux", () => {
+    const d = disposer(
+      ev({ titre: "A", jour: J, heure: "09:00", heureFin: "11:00" }),
+      ev({ titre: "B", jour: J, heure: "09:30", heureFin: "10:00" }),
+      ev({ titre: "C", jour: J, heure: "10:00", heureFin: "10:30" }),
+      ev({ titre: "D", jour: J, heure: "14:00" }),
+    );
+    expect(d.places.map((p) => [p.occurrence.evenement.titre, p.colonne, p.colonnes])).toEqual([
+      ["A", 0, 2],
+      ["B", 1, 2],
+      ["C", 1, 2],
+      ["D", 0, 1],
+    ]);
   });
 });

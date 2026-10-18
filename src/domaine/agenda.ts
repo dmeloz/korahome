@@ -287,6 +287,63 @@ export function titreDe(o: Occurrence): string {
   return o.annees ? `${o.evenement.titre} · ${o.annees} ans` : o.evenement.titre;
 }
 
+// ----- La vue Jour, heure par heure -----
+
+/** Un événement placé sur la journée : de quelle minute à quelle minute, et dans quelle colonne. */
+export interface Place {
+  occurrence: Occurrence;
+  /** Minutes depuis minuit. */
+  debut: number;
+  fin: number;
+  colonne: number;
+  colonnes: number;
+}
+
+/** Sans heure de fin, un événement occupe une heure. */
+export const DUREE_PAR_DEFAUT = 60;
+/** Assez haut pour qu'un titre se lise, même pour un rendez-vous de cinq minutes. */
+const DUREE_MINIMALE = 20;
+
+const minutes = (h: string) => Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5));
+
+/**
+ * La journée comme dans Calendrier : en haut ce qui dure toute la journée (ou a commencé avant),
+ * puis chaque événement à son heure. Ceux qui se chevauchent se partagent la largeur.
+ */
+export function dispositionDuJour(occ: readonly Occurrence[], jour: Jour): { journee: Occurrence[]; places: Place[] } {
+  const ce = duJour(occ, jour);
+  const journee = ce.filter((o) => !o.evenement.heure || o.debut !== jour);
+  const places = ce
+    .filter((o) => o.evenement.heure && o.debut === jour)
+    .map((o) => {
+      const debut = minutes(o.evenement.heure!);
+      const finPrevue = o.fin !== o.debut ? 24 * 60 : o.evenement.heureFin ? minutes(o.evenement.heureFin) : debut + DUREE_PAR_DEFAUT;
+      const fin = Math.min(24 * 60, Math.max(finPrevue, debut + DUREE_MINIMALE));
+      return { occurrence: o, debut, fin, colonne: 0, colonnes: 1 };
+    })
+    .sort((a, b) => a.debut - b.debut || b.fin - a.fin);
+
+  // Les événements qui se touchent forment un groupe ; chacun prend la première colonne libre.
+  let groupe: Place[] = [];
+  let finGroupe = -1;
+  const fermer = () => {
+    const n = Math.max(0, ...groupe.map((p) => p.colonne + 1));
+    for (const p of groupe) p.colonnes = n;
+    groupe = [];
+  };
+  for (const p of places) {
+    if (p.debut >= finGroupe) fermer();
+    const prises = new Set(groupe.filter((q) => q.fin > p.debut).map((q) => q.colonne));
+    let c = 0;
+    while (prises.has(c)) c++;
+    p.colonne = c;
+    groupe.push(p);
+    finGroupe = Math.max(finGroupe, p.fin);
+  }
+  fermer();
+  return { journee, places };
+}
+
 // ----- Les mots des dates -----
 
 export const NOMS_MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
