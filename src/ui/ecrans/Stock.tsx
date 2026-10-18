@@ -7,8 +7,11 @@ import {
   apprendre,
   decrireDuree,
   DUREES,
+  decrireGaspillage,
   habituelsARemettre,
+  noterFin,
   ordonnerCatalogue,
+  souventJete,
   produitDepuisHabituel,
   proposer,
   suggerer,
@@ -178,10 +181,29 @@ export function Stock(props: {
     }
   }
 
+  /**
+   * Kora retient comment le produit a quitté le stock : jeté parce que sa date était passée,
+   * ou fini. Ce qui finit souvent périmé est signalé au bilan et sur la liste de courses.
+   * Rend de quoi l'oublier si on annule.
+   */
+  async function noterSortie(p: Produit, jete: boolean): Promise<() => Promise<void>> {
+    const h = trouverHabituel(catalogue, p.nom, p.code);
+    if (!h) return async () => {};
+    await depot.enregistrerHabituel(noterFin(h, jete));
+    return () => depot.enregistrerHabituel(h);
+  }
+
   async function supprimer(p: Produit) {
     await depot.supprimerProduit(p.id);
+    const jete = etatProduit(p, aujourdhui) === "perime";
+    const defaire = await noterSortie(p, jete);
     setOuvert(null);
-    annoncer(`« ${p.nom} » retiré.`, () => depot.enregistrerProduit(p));
+    const h = trouverHabituel(catalogue, p.nom, p.code);
+    const suite = jete && h && souventJete(noterFin(h, true)) ? ` Il finit souvent périmé (${decrireGaspillage(noterFin(h, true))}) : à acheter en plus petite quantité.` : "";
+    annoncer(`« ${p.nom} » retiré.${suite}`, async () => {
+      await defaire();
+      await depot.enregistrerProduit(p);
+    });
   }
 
   /** Fini : il quitte le stock et rejoint la liste de courses, sauf s'il y est déjà. */
@@ -192,9 +214,11 @@ export function Stock(props: {
     const element = deja ? null : nouvelElement(courses, p.nom, props.membreId, contexteReel);
     if (element) await depot.enregistrerElement(element);
     await depot.supprimerProduit(p.id);
+    const defaire = await noterSortie(p, false);
     setOuvert(null);
     annoncer(deja ? `« ${p.nom} » est fini, il est déjà sur la liste de courses.` : `« ${p.nom} » est fini, ajouté aux courses.`, async () => {
       if (element) await depot.supprimerElements([element.id]);
+      await defaire();
       await depot.enregistrerProduit(p);
     });
   }

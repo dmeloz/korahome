@@ -19,6 +19,8 @@ import type { Depot } from "../../donnees/depot";
 import { aujourdhuiLocal, contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
 import { vibrer } from "../haptique";
+import { equilibreDesTaches, equilibreVisible } from "../../domaine/apprentissage";
+import { noterUsage } from "../usage";
 
 const FILTRES: { id: Filtre; libelle: string }[] = [
   { id: "toutes", libelle: "Toutes" },
@@ -66,6 +68,7 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
     vibrer();
     const apres = marquerFaite(t, moi, aujourdhui, contexteReel);
     await props.depot.enregistrerTache(apres);
+    noterUsage("tache", t.id);
     const suite = apres.recurrence ? ` Prochaine fois ${decrireEcheance(apres.echeance, aujourdhui)}.` : "";
     setAnnulable({ texte: `« ${t.titre} » faite.${suite}`, avant: t });
   }
@@ -221,6 +224,8 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
         </div>
       )}
 
+      {!vide && equilibreVisible(props.foyer) && <CarteEquilibre foyer={props.foyer} taches={props.taches} aujourdhui={aujourdhui} />}
+
       {vide && (
         <div className="carte bientot">
           <p>Aucune tâche pour l'instant.</p>
@@ -259,5 +264,32 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
         </div>
       )}
     </main>
+  );
+}
+
+/** Qui a fait quoi ce mois-ci : une barre partagée et une phrase douce, jamais un classement. */
+function CarteEquilibre(props: { foyer: Foyer; taches: Tache[]; aujourdhui: string }) {
+  const { parMembre, phrase } = equilibreDesTaches(props.taches, props.foyer, props.aujourdhui);
+  const total = parMembre.reduce((s, m) => s + m.fois, 0);
+  return (
+    <section className="carte equilibre" aria-label="L'équilibre des tâches">
+      <p className="surtitre">Ce mois-ci</p>
+      {total > 0 && (
+        <div className="equilibre-barre" aria-hidden>
+          {parMembre.map((m) => (
+            <span key={m.membreId} style={{ flexGrow: m.fois, background: m.couleur }} />
+          ))}
+        </div>
+      )}
+      <p className="equilibre-noms">
+        {parMembre.map((m) => (
+          <span key={m.membreId}>
+            <span className="equilibre-point" style={{ background: m.couleur }} aria-hidden />
+            {m.prenom} · {m.fois}
+          </span>
+        ))}
+      </p>
+      <p className="discret">{phrase}</p>
+    </section>
   );
 }

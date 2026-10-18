@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { etatDesAjouts, menuDeLaSemaine, prochainPassage, reglageChef, reglerChef, retirerAjout, type MenuSemaine } from "../../domaine/chef";
+import { avisDuPlat, avisSurPlat, etatDesAjouts, menuDeLaSemaine, prochainPassage, reglageChef, reglerChef, retirerAjout, type AvisPlat, type MenuSemaine } from "../../domaine/chef";
+import { Icone } from "../Icone";
 import { formaterHeure, HEURE_MAX, HEURE_MIN, JOURS_SEMAINE } from "../../domaine/rappels";
 import { ecartJours } from "../../domaine/taches";
 import type { Element } from "../../domaine/types";
@@ -29,6 +30,20 @@ export function Chef(p: PropsPage) {
   const menu = menuDeLaSemaine(p.menus, p.aujourdhui);
   const reglage = reglageChef(p.menus);
   const passage = prochainPassage(reglage, new Date());
+
+  /** Un cœur ou une croix sur un plat : le Chef s'en souvient les semaines suivantes. Un second toucher retire l'avis. */
+  async function donnerAvis(titre: string, avis: AvisPlat) {
+    vibrer();
+    const avant = avisDuPlat(p.souvenirs, titre);
+    if (avant) await p.depot.supprimerSouvenir(avant.souvenir.id);
+    if (avant?.avis === avis) return;
+    const souvenir = avisSurPlat(titre, avis, p.membreId, contexteReel);
+    await p.depot.enregistrerSouvenir(souvenir);
+    annoncer(avis === "aime" ? "Le Chef le refera de temps en temps." : "Le Chef ne le proposera plus.", async () => {
+      await p.depot.supprimerSouvenir(souvenir.id);
+      if (avant) await p.depot.enregistrerSouvenir(avant.souvenir);
+    });
+  }
 
   async function lancer() {
     if (!p.jarvis) return;
@@ -106,6 +121,7 @@ export function Chef(p: PropsPage) {
               <p className="chef-plat">{r.titre}</p>
               <p className="discret">{r.description}</p>
               {r.avecLeStock.length > 0 && <p className="chef-stock">Avec {r.avecLeStock.join(", ").toLowerCase()}</p>}
+              <AvisChef avis={avisDuPlat(p.souvenirs, r.titre)?.avis ?? null} titre={r.titre} donner={(a) => void donnerAvis(r.titre, a)} />
             </li>
           ))}
         </ol>
@@ -182,5 +198,20 @@ export function Chef(p: PropsPage) {
         <p className="discret chef-note">Il ne fait qu'ajouter à la liste de courses, jamais il ne touche au stock. Les croquettes et la litière de Mitsu restent sur zooplus : il prévient seulement. Sa dépense compte dans le plafond de Jarvis.</p>
       </section>
     </main>
+  );
+}
+
+function AvisChef(props: { titre: string; avis: AvisPlat | null; donner: (a: AvisPlat) => void }) {
+  return (
+    <div className="chef-avis" role="group" aria-label={`Ton avis sur ${props.titre}`}>
+      <button className={`chef-avis-bouton${props.avis === "aime" ? " actif aime" : ""}`} aria-pressed={props.avis === "aime"} onClick={() => props.donner("aime")}>
+        <Icone nom="coeur" taille={15} />
+        {props.avis === "aime" ? "On aime" : "À refaire"}
+      </button>
+      <button className={`chef-avis-bouton${props.avis === "non" ? " actif" : ""}`} aria-pressed={props.avis === "non"} onClick={() => props.donner("non")}>
+        <Icone nom="fermer" taille={15} />
+        {props.avis === "non" ? "Plus jamais" : "Pas pour nous"}
+      </button>
+    </div>
   );
 }

@@ -1400,3 +1400,63 @@ html[data-sens="arriere"]::view-transition-new(root) { animation-name: page-revi
 .chef-interrupteur { padding: 6px 0; min-height: 44px; color: var(--texte); font-size: 17px; }
 .chef-note { margin: 12px 0 0; font-size: 14px; line-height: 1.45; }
 .etiquette-chef { margin-left: 6px; font-family: var(--police-fixe); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+
+/* ===== Kora apprend : bilan du dimanche, « Ce que Kora sait de nous », mot du jour ===== */
+.bouton-secondaire {
+  border: 1px solid var(--trait);
+  border-radius: 12px;
+  background: none;
+  color: var(--texte);
+  font: inherit;
+  font-weight: 600;
+  padding: 13px 18px;
+  margin-top: 4px;
+}
+.bilan-annonce, .comme-habitude, .appris-bilan {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--trait));
+  background: linear-gradient(135deg, var(--accent-doux), var(--verre) 70%);
+}
+.bilan-annonce { margin: -4px 0 16px; }
+.comme-habitude { margin: 4px 0 16px; }
+.comme-habitude .discret, .bilan-annonce .discret { font-size: 14px; }
+.bilan-cartes { list-style: none; padding: 0; margin: 20px 0 8px; display: grid; gap: 14px; }
+.bilan-carte { display: grid; gap: 10px; margin: 0; padding: 18px; }
+@media (prefers-reduced-motion: no-preference) {
+  .bilan-carte { animation: bilan-arrivee 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .bilan-carte.decidee { transition: opacity 0.3s ease; }
+}
+@keyframes bilan-arrivee { from { opacity: 0; transform: translateY(14px) scale(0.98); } }
+.bilan-carte.decidee { opacity: 0.6; }
+.bilan-portee { font-family: var(--police-fixe); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+.bilan-portee.perso { color: var(--discret); }
+.bilan-texte { margin: 0; font-size: 18px; line-height: 1.4; text-wrap: pretty; }
+.bilan-choix { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.bilan-choix > * { margin: 0; }
+.bilan-decision { margin: 0; display: flex; align-items: center; gap: 6px; color: var(--discret); font-size: 15px; }
+.bilan-vide { display: flex; gap: 12px; align-items: center; margin-top: 20px; }
+.bilan-vide p { margin: 0; }
+.bilan-lien, .appris-effacer { display: block; margin: 8px auto 0; font-size: 15px; }
+.appris-vide { margin: 0 0 12px; font-size: 14px; }
+.appris-interrupteur { gap: 12px; padding-block: 10px; min-height: 52px; color: var(--texte); font-size: 17px; text-align: left; }
+.appris-equilibre { display: grid; gap: 8px; }
+.appris-equilibre p { margin: 0; line-height: 1.4; }
+.gout { display: grid; place-items: center; width: 26px; height: 26px; flex: none; border-radius: 50%; background: var(--surface-haute); color: var(--discret); }
+.gout.aime { color: var(--accent); background: var(--accent-doux); }
+.gout.aime svg { fill: currentColor; }
+.remarque-jarvis { display: flex; align-items: center; gap: 4px; margin: -4px 0 16px; padding: 10px 6px 10px 14px; background: var(--verre); }
+.remarque-texte { flex: 1; display: flex; align-items: flex-start; gap: 10px; border: 0; background: none; color: var(--texte); font: inherit; font-size: 15px; line-height: 1.4; text-align: left; padding: 0; }
+.remarque-etoile { color: var(--accent); display: grid; padding-top: 1px; }
+.remarque-fermer { color: var(--discret); }
+.saisie-devinee { margin: -4px 0 10px; }
+.equilibre { display: grid; gap: 8px; margin-top: 4px; }
+.equilibre .surtitre, .equilibre p { margin: 0; }
+.equilibre-barre { display: flex; gap: 3px; height: 8px; border-radius: 999px; overflow: hidden; }
+.equilibre-barre span { min-width: 6px; opacity: 0.85; }
+.equilibre-noms { display: flex; gap: 16px; font-size: 15px; }
+.equilibre-noms > span { display: inline-flex; align-items: center; gap: 6px; }
+.equilibre-point { width: 8px; height: 8px; border-radius: 50%; }
+.chef-avis { display: flex; gap: 8px; margin-top: 6px; }
+.chef-avis-bouton { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--trait); border-radius: 999px; background: none; color: var(--discret); font: inherit; font-size: 14px; padding: 6px 12px; }
+.chef-avis-bouton.actif { color: var(--texte); border-color: var(--discret); }
+.chef-avis-bouton.actif.aime { color: var(--accent); border-color: var(--accent); background: var(--accent-doux); }
+.chef-avis-bouton.aime svg { fill: currentColor; }

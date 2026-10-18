@@ -1,7 +1,8 @@
 import { BandeauCouple } from "../BandeauCouple";
 import type { Depot } from "../../donnees/depot";
 import type { ServeurJarvis } from "../../donnees/distant";
-import { useRef, useState, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from "react";
+import { bilanAOuvrir, bilanDeLaSemaine, ordreVivant, remarqueDuJour } from "../../domaine/apprentissage";
 import {
   ajouterWidget,
   basculerTaille,
@@ -21,6 +22,8 @@ import { enregistrerDisposition, enregistrerTailles, lireDisposition, lireTaille
 import { Icone } from "../Icone";
 import { MODULES, PICTOS, type ApercuWidget, type DonneesModule } from "../modules";
 import { vibrer } from "../haptique";
+import { calculerApprentissages } from "../apprendre";
+import { fermerRemarque, lireAdaptations, lireDernierBilan, lireUsages, noterUsage, remarqueAMontrer, useApprentissageLocal } from "../usage";
 
 function salutation(heure: number): string {
   if (heure < 5) return "Bonne nuit";
@@ -39,12 +42,18 @@ export function Accueil(props: {
   ouvrirReglages: () => void;
   ouvrirJarvis: () => void;
   ouvrirMots: () => void;
+  ouvrirBilan: () => void;
   depot: Depot;
   jarvis: { serveur: ServeurJarvis; foyerId: string } | null;
   /** Une nouvelle version attend : pastille rouge sur les Réglages. */
   nouvelleVersion: boolean;
 }) {
   const [disposition, setDisposition] = useState<Disposition>(() => nettoyerDisposition(lireDisposition()));
+  // Un widget retiré depuis le bilan : l'accueil, resté ouvert dessous, relit sa disposition.
+  const versionLocale = useApprentissageLocal();
+  useEffect(() => {
+    if (versionLocale) setDisposition(nettoyerDisposition(lireDisposition()));
+  }, [versionLocale]);
   const [tailles, setTailles] = useState<Tailles>(() => nettoyerTailles(lireTailles()));
   const [edition, setEdition] = useState(false);
   const [glisse, setGlisse] = useState<WidgetId | null>(null);
@@ -109,7 +118,20 @@ export function Accueil(props: {
   }
 
   const urgents = new Set(disposition.filter((id) => apercus.get(id)?.urgent));
-  const affiches = edition ? disposition : ordreAffichage(disposition, urgents);
+  const adaptations = lireAdaptations();
+  const { aujourdhui } = props.donnees;
+  const heure = new Date().getHours();
+  const affiches = edition
+    ? disposition
+    : adaptations.accueilVivant
+      ? ordreVivant(ordreAffichage(disposition, urgents), urgents, lireUsages(), heure, aujourdhui)
+      : ordreAffichage(disposition, urgents);
+
+  // Le bilan du dimanche attend qu'on le regarde ; le mot du jour de Jarvis, une fois par jour au plus.
+  const aApprendre = bilanDeLaSemaine(calculerApprentissages(props.donnees)).length;
+  const bilanPret = bilanAOuvrir(aujourdhui, lireDernierBilan(), aApprendre);
+  const remarque = adaptations.remarques ? remarqueDuJour({ ...props.donnees, membreId }) : null;
+  const montrerRemarque = remarqueAMontrer(remarque?.cle ?? null, aujourdhui);
   const { prets, bientot } = widgetsAAjouter(disposition);
 
   const terminer = () => {
@@ -147,6 +169,29 @@ export function Accueil(props: {
       </header>
 
       {!edition && <BandeauCouple donnees={props.donnees} depot={props.depot} jarvis={props.jarvis} ouvrir={props.ouvrirMots} />}
+
+      {!edition && bilanPret && (
+        <button className="carte proposition bilan-annonce" onClick={props.ouvrirBilan}>
+          <span className="pictogramme"><Icone nom="appris" taille={20} /></span>
+          <span className="proposition-texte">
+            <strong>Le bilan de la semaine</strong>
+            <span className="discret">{aApprendre === 1 ? "Une chose apprise" : `${aApprendre} choses apprises`}, à garder ou non.</span>
+          </span>
+          <Icone nom="suivant" taille={18} />
+        </button>
+      )}
+
+      {!edition && remarque && montrerRemarque && (
+        <div className="carte remarque-jarvis" role="status">
+          <button className="remarque-texte" onClick={() => remarque.module && props.ouvrirModule(remarque.module)}>
+            <span className="remarque-etoile" aria-hidden><Icone nom="jarvis" taille={16} /></span>
+            <span>{remarque.texte}</span>
+          </button>
+          <button className="bouton-icone remarque-fermer" aria-label="Fermer le mot de Jarvis" onClick={() => fermerRemarque(remarque.cle, aujourdhui)}>
+            <Icone nom="fermer" taille={16} />
+          </button>
+        </div>
+      )}
 
       {affiches.length === 0 && !edition && (
         <div className="carte vide-tableau">
@@ -219,6 +264,7 @@ export function Accueil(props: {
                   ignorerClic.current = false;
                   return;
                 }
+                noterUsage("widget", id);
                 props.ouvrirModule(id);
               }}
             >

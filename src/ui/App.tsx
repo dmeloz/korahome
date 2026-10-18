@@ -10,6 +10,8 @@ import { aujourdhuiLocal, choisirMembreCourant, lireMembreCourant } from "./cont
 import { Accueil } from "./ecrans/Accueil";
 import { Bienvenue } from "./ecrans/Bienvenue";
 import { Conseil } from "./ecrans/Conseil";
+import { Bilan } from "./ecrans/Bilan";
+import { CeQueKoraSait } from "./ecrans/CeQueKoraSait";
 import { MemoireJarvis } from "./ecrans/MemoireJarvis";
 import { NosMots } from "./ecrans/NosMots";
 import { Jarvis } from "./ecrans/Jarvis";
@@ -25,7 +27,7 @@ import { noter } from "./journal";
 import { useMeteo } from "./meteo";
 import { MODULES, type DonneesModule } from "./modules";
 import { enregistrerPastilleVisible, lirePastilleVisible } from "./rapport";
-import { afficherPastilleIcone, lirePreferences, mettreAJourRappels } from "./rappels";
+import { afficherPastilleIcone, enregistrerPreferences, lirePreferences, mettreAJourRappels } from "./rappels";
 import { planifierSynchro, synchroEnDirect } from "./synchroAuto";
 import { avecTransition } from "./transitions";
 import { useDonnees } from "./useDonnees";
@@ -44,7 +46,9 @@ type Page =
   | { nom: "jarvis" }
   | { nom: "conseil" }
   | { nom: "memoire" }
-  | { nom: "mots" };
+  | { nom: "mots" }
+  | { nom: "bilan" }
+  | { nom: "appris" };
 
 /** Une page de la pile, avec l'endroit où elle était défilée quand on en est parti. */
 type Entree = Page & { defilement?: number };
@@ -115,6 +119,8 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     if (p.nom === "conseil") return "Conseil";
     if (p.nom === "memoire") return "Mémoire de Jarvis";
     if (p.nom === "mots") return "Nos mots";
+    if (p.nom === "bilan") return "Bilan";
+    if (p.nom === "appris") return "Ce que Kora sait";
     if (p.nom === "module") return MODULES[p.id]?.libelle ?? "Retour";
     return listes.find((l) => l.id === p.id)?.nom ?? "Liste";
   }
@@ -165,6 +171,12 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   const ouvertes = retours.filter((r) => !r.regleLe).length;
 
   const leFoyer: Foyer = foyer;
+  /** L'heure du rappel de ce téléphone, apprise au bilan : retenue ici et dite au serveur des rappels. */
+  const changerHeureRappel = async (heure: number) => {
+    const preferences = { ...lirePreferences(), heure };
+    enregistrerPreferences(preferences);
+    if (partage && foyerPartage) await mettreAJourRappels(partage.rappels, foyerPartage, membre, preferences).catch(() => {});
+  };
   const jarvisPartage = partage && foyerPartage ? { serveur: partage.jarvis, foyerId: foyerPartage } : null;
   function ecranDe(page: Page) {
   let ecran;
@@ -176,6 +188,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         ouvrirReglages={() => ouvrir({ nom: "reglages" })}
         ouvrirJarvis={() => ouvrir({ nom: "jarvis" })}
         ouvrirMots={() => ouvrir({ nom: "mots" })}
+        ouvrirBilan={() => ouvrir({ nom: "bilan" })}
         depot={depot}
         jarvis={jarvisPartage}
         nouvelleVersion={nouvelleVersion}
@@ -186,7 +199,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   } else if (page.nom === "liste") {
     const liste = listes.find((l) => l.id === page.id);
     ecran = liste ? (
-      <DetailListe depot={depot} foyer={leFoyer} membreId={membre} liste={liste} elements={elements} />
+      <DetailListe depot={depot} foyer={leFoyer} membreId={membre} liste={liste} elements={elements} catalogue={catalogue} />
     ) : (
       <main><p className="vide">Cette liste n'existe plus.</p></main>
     );
@@ -235,6 +248,10 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     );
   } else if (page.nom === "memoire") {
     ecran = <MemoireJarvis depot={depot} foyer={leFoyer} membreId={membre} souvenirs={souvenirs} retours={retours} />;
+  } else if (page.nom === "bilan") {
+    ecran = <Bilan depot={depot} donnees={donnees} changerHeureRappel={changerHeureRappel} ouvrirAppris={() => ouvrir({ nom: "appris" })} />;
+  } else if (page.nom === "appris") {
+    ecran = <CeQueKoraSait donnees={donnees} depot={depot} ouvrirBilan={() => ouvrir({ nom: "bilan" })} ouvrirMemoire={() => ouvrir({ nom: "memoire" })} />;
   } else if (page.nom === "mots") {
     const notifier =
       partage && foyerPartage ? (m: { id: string; de: string | null; texte: string }) => partage.rappels.notifierMot({ foyerId: foyerPartage, id: m.id, de: m.de, texte: m.texte }) : null;
@@ -254,6 +271,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         ouvrirRetours={() => ouvrir({ nom: "retours" })}
         ouvrirPartage={() => ouvrir({ nom: "partage" })}
         ouvrirNotifications={() => ouvrir({ nom: "notifications" })}
+        ouvrirAppris={() => ouvrir({ nom: "appris" })}
         partage={!partage ? "indisponible" : partageActif ? "actif" : "inactif"}
         pastilleVisible={pastille}
         changerPastille={(visible) => {
