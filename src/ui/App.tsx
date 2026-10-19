@@ -44,6 +44,7 @@ import { afficherPastilleIcone, enregistrerPreferences, lirePreferences, mettreA
 import { planifierSynchro, synchroEnDirect } from "./synchroAuto";
 import { avecTransition } from "./transitions";
 import { useDonnees } from "./useDonnees";
+import { demanderVisite } from "./visite";
 
 // Pas de barre d'onglets : tout part du tableau de bord, chaque widget ouvre la
 // page de son module, et chaque page a son retour vers la précédente.
@@ -321,6 +322,10 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         ouvrirAppris={() => ouvrir({ nom: "appris" })}
         ouvrirSauvegarde={() => ouvrir({ nom: "sauvegarde" })}
         ouvrirCalendrier={() => ouvrir({ nom: "calendrier" })}
+        revoirVisite={() => {
+          demanderVisite();
+          avecTransition("arriere", () => setPile((avant) => avant.slice(0, 1)));
+        }}
         calendrier={comptesIcloudDe(agenda).some((c) => c.membre === membre) ? "Relié" : "Pas relié"}
         calendrierEnErreur={icloudEnErreur(comptesIcloudDe(agenda), membre)}
         etatPartage={etatPartage}

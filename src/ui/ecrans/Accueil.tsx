@@ -1,7 +1,7 @@
 import { BandeauCouple } from "../BandeauCouple";
 import type { Depot } from "../../donnees/depot";
 import type { ServeurJarvis } from "../../donnees/distant";
-import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent, type ReactNode } from "react";
 import { bilanAOuvrir, bilanDeLaSemaine, ordreVivant, remarqueDuJour } from "../../domaine/apprentissage";
 import { carteDuJour, type ChoseDuJour } from "../../domaine/aujourdhui";
 import { facturesDuJour } from "../../domaine/budget";
@@ -41,7 +41,8 @@ import { Icone } from "../Icone";
 import { MODULES, PICTOS, type ApercuWidget, type DonneesModule } from "../modules";
 import { vibrer } from "../haptique";
 import { calculerApprentissages } from "../apprendre";
-import { CarteAujourdhui } from "../pieces";
+import { CarteAujourdhui, Visite } from "../pieces";
+import { abonnerVisite, finirVisite, visiteEnAttente } from "../visite";
 import { Recherche } from "../Recherche";
 import { lireDerniereSauvegarde } from "../sauvegarde";
 import { fermerRemarque, lireAdaptations, lireDernierBilan, lireUsages, noterUsage, remarqueAMontrer, useApprentissageLocal } from "../usage";
@@ -104,7 +105,20 @@ export function Accueil(props: {
   const date = new Date().toLocaleDateString("fr-CH", { weekday: "long", day: "numeric", month: "long" });
   const jourMeteo = meteoDu(props.donnees.meteo, aujourdhui);
   const temps = jourMeteo ? `${Math.round(jourMeteo.max)}°, ${decrireTemps(jourMeteo.code).toLowerCase()}` : null;
-  usePourChercher(props.auDessus && !edition && !recherche, () => setRecherche(true));
+  // La visite guidée attend que l'accueil soit posé, tout en haut et sur sa première page.
+  const visiteDemandee = useSyncExternalStore(abonnerVisite, visiteEnAttente);
+  const [visite, setVisite] = useState(false);
+  useEffect(() => {
+    if (!visiteDemandee || !props.auDessus || edition || recherche) return;
+    const id = setTimeout(() => {
+      window.scrollTo(0, 0);
+      defilant.current?.scrollTo({ left: 0 });
+      setVisite(true);
+    }, 700);
+    return () => clearTimeout(id);
+  }, [visiteDemandee, props.auDessus, edition, recherche]);
+  const autre = foyer.membres.find((m) => m.id !== membreId)?.prenom ?? null;
+  usePourChercher(props.auDessus && !edition && !recherche && !visite, () => setRecherche(true));
 
   const changer = (d: Disposition) => {
     setDisposition(d);
@@ -444,6 +458,16 @@ export function Accueil(props: {
           </button>
           <button className="lien modifier" onClick={() => setEdition(true)}>Modifier l'accueil</button>
         </footer>
+      )}
+
+      {visite && (
+        <Visite
+          autre={membreId ? autre : null}
+          fermer={() => {
+            setVisite(false);
+            finirVisite();
+          }}
+        />
       )}
 
       <Recherche ouverte={recherche} fermer={() => setRecherche(false)} donnees={props.donnees} aller={props.aller} />
