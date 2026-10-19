@@ -76,6 +76,8 @@ export interface ApercuWidget {
   lignes: string[];
   /** Un widget urgent remonte en haut du tableau de bord. */
   urgent: boolean;
+  /** Une jauge (le Budget : ce qui est dépensé sur ce qui est prévu), de 0 à 1. */
+  jauge?: number;
 }
 
 export interface ModuleUI {
@@ -298,4 +300,6 @@ export const PICTOS: Record<WidgetId, NomIcone> = {
   entretien: "outil",
   jardin: "feuille",
   chef: "toque",
+  budget: "portefeuille",
+  infos: "dossier",
 };

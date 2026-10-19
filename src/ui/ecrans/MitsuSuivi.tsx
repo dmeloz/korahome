@@ -94,7 +94,7 @@ export function Journal(props: Commun & { membres: Membre[]; membreId: string | 
       </div>
       {autre !== null && (
         <form onSubmit={noterAutre} className="ajout">
-          <input value={autre} onChange={(e) => setAutre(e.target.value)} placeholder="Ce qui s'est passé" aria-label="Ce qui s'est passé" autoFocus />
+          <input value={autre} onChange={(e) => setAutre(e.target.value)} placeholder="Ce qui s'est passé" aria-label="Ce qui s'est passé" />
           <button type="submit" disabled={!autre.trim()} aria-label="Noter">+</button>
         </form>
       )}
@@ -179,36 +179,58 @@ export function CourbePoids({ animal, aujourdhui }: { animal: Animal; aujourdhui
 export function CarnetPropose({ animal, aujourdhui, modifier }: Commun) {
   const propositions = propositionsCarnet(animal, aujourdhui);
   if (propositions.length === 0) return null;
+  // Ce dont la date est passée (les vaccins de chaton) se range replié : un geste les note tous faits.
+  const passees = propositions.filter((p) => p.date < aujourdhui);
+  const aVenir = propositions.filter((p) => p.date >= aujourdhui);
+  const ligne = (p: (typeof propositions)[number]) => {
+    const passe = p.date < aujourdhui;
+    return (
+      <li key={p.cle} className="mitsu-provision">
+        <div className="ligne-texte">
+          <strong>{p.libelle}</strong>
+          <span className="tache-details">{p.date === aujourdhui ? "à faire ou à cocher" : `${passe ? "normalement vers le" : "vers le"} ${dateCourte(p.date, aujourdhui)}`}</span>
+        </div>
+        <div className="tache-actions mitsu-actions">
+          <button className="lien" onClick={() => modifier(() => reprendreProposition(animal, p, true, aujourdhui, contexteReel), `« ${p.libelle} » noté comme fait.`)}>
+            {p.cle === "sterilisation" ? "Déjà fait" : "Fait"}
+          </button>
+          <button className="lien" onClick={() => modifier(() => reprendreProposition(animal, p, false, aujourdhui, contexteReel), `« ${p.libelle} » prévu.`)}>
+            Prévoir
+          </button>
+          <button className="lien discret" onClick={() => modifier(() => ecarterProposition(animal, p.cle), `« ${p.libelle} » écarté.`)}>
+            Pas pour {animal.sexe === "male" ? "lui" : "elle"}
+          </button>
+        </div>
+      </li>
+    );
+  };
+  const toutFait = () =>
+    modifier(
+      () => passees.reduce((a, p) => reprendreProposition(a, p, true, aujourdhui, contexteReel), animal),
+      `${passees.length} soin${passees.length > 1 ? "s" : ""} noté${passees.length > 1 ? "s" : ""} comme fait${passees.length > 1 ? "s" : ""}.`,
+    );
   return (
-    <div className="carte mitsu-carnet">
-      <p className="discret">
-        Le calendrier habituel d'un chaton. Coche ce que dit son carnet, ou photographie la page dans Jarvis : il recopie les dates.
-      </p>
-      <ul className="groupe">
-        {propositions.map((p) => {
-          const passe = p.date < aujourdhui;
-          return (
-            <li key={p.cle} className="mitsu-provision">
-              <div className="ligne-texte">
-                <strong>{p.libelle}</strong>
-                <span className="tache-details">{p.date === aujourdhui ? "à faire ou à cocher" : `${passe ? "normalement vers le" : "vers le"} ${dateCourte(p.date, aujourdhui)}`}</span>
-              </div>
-              <div className="tache-actions mitsu-actions">
-                <button className="lien" onClick={() => modifier(() => reprendreProposition(animal, p, true, aujourdhui, contexteReel), `« ${p.libelle} » noté comme fait.`)}>
-                  {p.cle === "sterilisation" ? "Déjà fait" : "Fait"}
-                </button>
-                <button className="lien" onClick={() => modifier(() => reprendreProposition(animal, p, false, aujourdhui, contexteReel), `« ${p.libelle} » prévu.`)}>
-                  Prévoir
-                </button>
-                <button className="lien discret" onClick={() => modifier(() => ecarterProposition(animal, p.cle), `« ${p.libelle} » écarté.`)}>
-                  Pas pour elle
-                </button>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
+    <>
+      {aVenir.length > 0 && (
+        <div className="carte mitsu-carnet">
+          <p className="discret">Le calendrier habituel. Coche ce que dit son carnet, ou photographie la page dans Jarvis : il recopie les dates.</p>
+          <ul className="groupe">{aVenir.map(ligne)}</ul>
+        </div>
+      )}
+      {passees.length > 0 && (
+        <details className="carte mitsu-classes">
+          <summary>
+            <span className="ligne-texte">Le calendrier de chaton, déjà passé</span>
+            <span className="discret">{passees.length}</span>
+          </summary>
+          <div className="mitsu-carnet">
+            <p className="discret">Ces soins avaient leur date avant aujourd'hui. S'ils sont dans son carnet, note-les tous d'un geste.</p>
+            <button className="bouton-secondaire" onClick={toutFait}>Tout est fait</button>
+            <ul className="groupe">{passees.map(ligne)}</ul>
+          </div>
+        </details>
+      )}
+    </>
   );
 }
 

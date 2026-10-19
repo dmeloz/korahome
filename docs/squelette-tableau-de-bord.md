@@ -34,3 +34,7 @@ C'est la structure de toutes les apps de la maison, à reprendre telle quelle po
 5. Dans ses listes, envelopper chaque ligne supprimable dans `<Glissable onSupprimer={…}>` et proposer « Annuler » avec `useAnnoncer()`.
 
 Un test vérifie que chaque widget disponible a son module.
+
+## Depuis Kora 0.0.23
+
+L'accueil a sa carte « Aujourd'hui », trois pages de widgets à glisser et une barre Jarvis en bas qui remplace tous les boutons « + ». Les pièces communes (page, onglets, barre, gestes, thème) et leur équivalent SwiftUI sont décrits dans `docs/pieces-natives.md`.

@@ -6,7 +6,9 @@ import {
   estVisible,
   HUMEURS,
   humeurDu,
+  LONGUEUR_BANDEAU,
   LONGUEUR_MOT,
+  nomHumeur,
   nosMots,
   noterHumeur,
   nouveauCompte,
@@ -19,7 +21,20 @@ import { useAnnoncer } from "../annulation";
 import { contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
 import { vibrer } from "../haptique";
-import { Icone } from "../Icone";
+import { Icone, type NomIcone } from "../Icone";
+import { Page } from "../pieces";
+
+/** Les humeurs en pictogrammes au trait, dans le style de l'app (pas d'emoji). */
+const PICTO_HUMEUR: Record<string, NomIcone> = {
+  "😊": "sourire",
+  "🥰": "coeur",
+  "😌": "vague",
+  "🎉": "soleil",
+  "😴": "lune",
+  "😤": "eclair",
+  "🤯": "pluie",
+  "🤒": "thermometre",
+};
 import type { DonneesModule } from "../modules";
 
 type Quand = "maintenant" | "soir" | "matin";
@@ -104,9 +119,12 @@ export function NosMots(props: {
   }
 
   return (
-    <main className="nos-mots">
-      <h1>Nos mots</h1>
-      <p className="discret">Ce que tu écris ici défile dans le bandeau de l'accueil{autre ? ` de ${autre.prenom}` : ""}. Touche un mot dans le bandeau pour renvoyer un cœur.</p>
+    <Page
+      titre="Nos mots"
+      sousTitre={`Ce que tu écris ici défile dans le bandeau de l'accueil${autre ? ` de ${autre.prenom}` : ""}.`}
+      aide={{ cle: "mots", texte: `Le bandeau en montre ${LONGUEUR_BANDEAU} caractères : le compteur te le dit. Touche un mot dans le bandeau pour renvoyer un cœur.` }}
+      className="nos-mots"
+    >
 
       <form className="carte mot-nouveau" onSubmit={(e) => void envoyer(e)}>
         <textarea
@@ -125,7 +143,9 @@ export function NosMots(props: {
             )}
             <button type="button" className={`puce petite${quand === "matin" ? " active" : ""}`} onClick={() => setQuand("matin")}>Demain 7 h</button>
           </div>
-          <span className="discret compteur">{LONGUEUR_MOT - texte.length}</span>
+          <span className={`discret compteur${texte.length > LONGUEUR_BANDEAU ? " depasse" : ""}`} aria-live="polite">
+            {texte.length > LONGUEUR_BANDEAU ? "Abrégé dans le bandeau" : `${LONGUEUR_BANDEAU - texte.length}`}
+          </span>
         </div>
         <button type="submit" className="bouton-principal" disabled={!texte.trim()}>
           {quand === "maintenant" ? "Envoyer" : "Programmer"}
@@ -138,13 +158,14 @@ export function NosMots(props: {
         <div className="humeurs-choix" role="radiogroup" aria-label="Mon humeur">
           {HUMEURS.map((h) => (
             <button key={h.emoji} className={`humeur-bouton${monHumeur?.emoji === h.emoji ? " active" : ""}`} onClick={() => void humeur(h.emoji)} aria-label={h.nom} aria-pressed={monHumeur?.emoji === h.emoji}>
-              {h.emoji}
+              <Icone nom={PICTO_HUMEUR[h.emoji] ?? "sourire"} taille={24} />
+              <span className="humeur-nom">{h.nom}</span>
             </button>
           ))}
         </div>
         {autre && (
           <p className="discret">
-            {sonHumeur ? `${autre.prenom} aujourd'hui : ${sonHumeur.emoji} ${HUMEURS.find((h) => h.emoji === sonHumeur.emoji)?.nom.toLowerCase() ?? ""}` : `${autre.prenom} n'a pas encore dit son humeur.`}
+            {sonHumeur ? `${autre.prenom} aujourd'hui : ${nomHumeur(sonHumeur.emoji).toLowerCase()}` : `${autre.prenom} n'a pas encore dit son humeur.`}
           </p>
         )}
       </div>
@@ -207,6 +228,6 @@ export function NosMots(props: {
           })}
         </ul>
       )}
-    </main>
+    </Page>
   );
 }

@@ -33,6 +33,7 @@ import { vibrer } from "../haptique";
 import { Icone } from "../Icone";
 import { annulerModifications, enregistrerModifications, photoPourJarvis } from "../jarvis";
 import type { PropsPage } from "../modules";
+import { Page } from "../pieces";
 
 const enumerer = (mots: string[]) =>
   mots.length <= 1 ? (mots[0] ?? "") : `${mots.slice(0, -1).join(", ")} et ${mots[mots.length - 1]}`;
@@ -139,9 +140,11 @@ export function Jardin(p: PropsPage) {
   };
 
   return (
-    <main>
-      <p className="surtitre">{jour ? `${meteo?.lieu} · ${decrireTemps(jour.code)} · ${formaterTemperatures(jour)}` : "Renens"}</p>
-      <h1>Jardin</h1>
+    <Page
+      titre="Jardin"
+      sousTitre={jour ? `${meteo?.lieu} · ${decrireTemps(jour.code)} · ${formaterTemperatures(jour)}` : "Renens"}
+      aide={{ cle: "jardin", texte: "Chaque zone a son soleil et ses plantes. Kora te dit quand arroser, semer ou rentrer les pots, d'après la météo de Renens et le calendrier vaudois." }}
+    >
 
       {meteo && <BandeMeteo jours={meteo.jours.filter((j) => j.jour >= aujourdhui).slice(0, 5)} aujourdhui={aujourdhui} />}
 
@@ -166,7 +169,7 @@ export function Jardin(p: PropsPage) {
           <form onSubmit={creerZone} className="formulaire jardin-formulaire">
             <label>
               Son nom
-              <input value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Pots du balcon, grand bac…" autoComplete="off" autoFocus />
+              <input value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Pots du balcon, grand bac…" autoComplete="off" />
             </label>
             <Puces libelle="Contenant" valeur={type} choix={TYPES_ZONE} changer={setType} />
             <div>
@@ -246,7 +249,7 @@ export function Jardin(p: PropsPage) {
           <button className="lien" onClick={() => setErreur(null)}>OK</button>
         </div>
       )}
-    </main>
+    </Page>
   );
 }
 

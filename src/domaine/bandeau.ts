@@ -59,16 +59,21 @@ const JOURS_MOT = 3;
 /** Un compte à rebours apparaît dans les trois derniers mois. */
 const JOURS_COMPTE = 90;
 
+// L'emoji reste l'identifiant enregistré (les humeurs déjà notées restent lisibles) ;
+// l'écran montre un pictogramme au trait et le nom, qui ne dit ni « il » ni « elle ».
 export const HUMEURS: { emoji: string; nom: string }[] = [
   { emoji: "😊", nom: "Bien" },
-  { emoji: "🥰", nom: "Amoureux" },
-  { emoji: "😌", nom: "Serein" },
+  { emoji: "🥰", nom: "Plein d'amour" },
+  { emoji: "😌", nom: "Zen" },
   { emoji: "🎉", nom: "En forme" },
-  { emoji: "😴", nom: "Fatigué" },
-  { emoji: "😤", nom: "Tendu" },
-  { emoji: "🤯", nom: "Débordé" },
+  { emoji: "😴", nom: "Fatigue" },
+  { emoji: "😤", nom: "Tension" },
+  { emoji: "🤯", nom: "Débordement" },
   { emoji: "🤒", nom: "Malade" },
 ];
+
+/** Le nom d'une humeur enregistrée. */
+export const nomHumeur = (emoji: string) => HUMEURS.find((h) => h.emoji === emoji)?.nom ?? emoji;
 
 const est = <T extends DocCouple["type"]>(type: T) => (d: DocCouple): d is Extract<DocCouple, { type: T }> => d.type === type;
 
@@ -218,7 +223,7 @@ export function elementsBandeau(d: {
   const humeurs = d.foyer.membres
     .map((m) => ({ m, h: humeurDu(d.docs, m.id, d.aujourdhui) }))
     .filter((x) => x.h)
-    .map(({ m, h }) => `${m.id === d.moi ? "Toi" : m.prenom} ${h!.emoji}`);
+    .map(({ m, h }) => `${m.id === d.moi ? "Toi" : m.prenom} : ${nomHumeur(h!.emoji).toLowerCase()}`);
   if (humeurs.length) elements.push({ cle: "humeurs", genre: "humeur", texte: humeurs.join(" · ") });
 
   for (const c of comptesAVenir(d.docs, d.aujourdhui).filter((c) => ecartJours(d.aujourdhui, c.jour) <= JOURS_COMPTE)) {

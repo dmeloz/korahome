@@ -15,6 +15,8 @@ export function CoinDev(props: {
   membreId: string | null;
   ouvertes: number;
   voirRetours: () => void;
+  /** À gauche de la barre Jarvis : la pastille ne couvre plus rien. */
+  dansLaBarre?: boolean;
 }) {
   const [ouverte, setOuverte] = useState(false);
   const [texte, setTexte] = useState("");
@@ -60,7 +62,7 @@ export function CoinDev(props: {
   return (
     <>
       {!ouverte && !confirmation && (
-        <button className="pastille-dev" onClick={ouvrir} aria-label="Dev : noter un retour de test" data-journal="non">
+        <button className={`pastille-dev${props.dansLaBarre ? " dans-la-barre" : ""}`} onClick={ouvrir} aria-label="Dev : noter un retour de test" data-journal="non">
           Dev{props.ouvertes > 0 && <span className="pastille-dev-compte">{props.ouvertes}</span>}
         </button>
       )}

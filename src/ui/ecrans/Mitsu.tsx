@@ -47,6 +47,10 @@ import { useAnnoncer } from "../annulation";
 import { aujourdhuiLocal, contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
 import { CarnetPropose, CourbePoids, Fiches, Infos, Journal } from "./MitsuSuivi";
+import { Onglets, Page, useGestionnaireBarre } from "../pieces";
+import { lirePesee } from "../../domaine/barre";
+
+type OngletMitsu = "jour" | "sante" | "provisions";
 
 const dateCourte = (jour: string) =>
   new Date(`${jour}T12:00:00`).toLocaleDateString("fr-CH", { day: "numeric", month: "long" });
@@ -100,9 +104,7 @@ function Premiere({ depot }: { depot: Depot }) {
   }
 
   return (
-    <main>
-      <h1>Mitsu</h1>
-      <p className="discret">Sa ration suit son âge et son poids, ses provisions annoncent le jour où commander, et son carnet de santé donne les rappels.</p>
+    <Page titre="Mitsu" sousTitre="Sa ration suit son âge et son poids, ses provisions annoncent le jour où commander, et son carnet de santé donne les rappels.">
       <form onSubmit={creer} className="carte formulaire">
         <label>
           Son nom
@@ -119,7 +121,7 @@ function Premiere({ depot }: { depot: Depot }) {
         {erreur && <p className="erreur" role="alert">{erreur}</p>}
         <button type="submit" className="bouton-principal">Créer sa fiche</button>
       </form>
-    </main>
+    </Page>
   );
 }
 
@@ -138,6 +140,7 @@ function Section(props: { titre: string; action?: ReactNode; children: ReactNode
 function Suivi(props: Props & { animal: Animal }) {
   const { animal, depot } = props;
   const aujourdhui = aujourdhuiLocal();
+  const [onglet, setOnglet] = useState<OngletMitsu>("jour");
   const [ouvert, setOuvert] = useState<"pesee" | "provision" | "soin" | "fiche" | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -282,13 +285,37 @@ function Suivi(props: Props & { animal: Animal }) {
     });
   }
 
+  // Dans la barre, un poids (« 2,45 kg ») devient une pesée du jour ; le reste va à Jarvis.
+  useGestionnaireBarre("module:mitsu", async (texte) => {
+    const grammes = lirePesee(texte);
+    if (grammes === null) return false;
+    modifier(() => ajouterPesee(animal, grammes, aujourdhui, props.membreId, contexteReel), `Pesée notée : ${formaterPoids(grammes)}.`);
+    return true;
+  });
+
   const precedente = pesee[1];
   const ecartPoids = pesee[0] && precedente ? pesee[0].grammes - precedente.grammes : null;
 
   return (
-    <main>
-      <p className="surtitre">{decrireAge(animal.naissance, aujourdhui)}{pesee[0] ? ` · ${formaterPoids(pesee[0].grammes)}` : ""}{animal.sterilise ? " · stérilisée" : ""}</p>
-      <h1>{animal.nom}</h1>
+    <Page
+      titre={animal.nom}
+      sousTitre={`${decrireAge(animal.naissance, aujourdhui)}${pesee[0] ? ` · ${formaterPoids(pesee[0].grammes)}` : ""}${animal.sterilise ? (animal.sexe === "male" ? " · castré" : " · stérilisée") : ""}`}
+      aide={{ cle: "mitsu", texte: "Trois onglets : la journée (repas, litière, poids), sa santé (vaccins, vermifuge, fiche) et ses provisions (commande zooplus, croquettes, litière). Écris son poids dans la barre du bas (« 2,45 kg ») pour noter une pesée ; le reste, demande-le à Jarvis." }}
+      className="mitsu"
+    >
+      <Onglets
+        libelle={`Suivi de ${animal.nom}`}
+        onglets={[
+          { id: "jour", libelle: "Aujourd'hui", compte: aFaire.length },
+          { id: "sante", libelle: "Santé", compte: soinsAVenir(animal).filter((x) => x.date <= aujourdhui).length },
+          { id: "provisions", libelle: "Provisions", compte: vides.length + aAjouter.length },
+        ]}
+        actif={onglet}
+        changer={setOnglet}
+      />
+
+      {onglet === "jour" && (
+      <>
 
       {aFaire.length > 0 && (
         <Section titre="À faire">
@@ -355,7 +382,7 @@ function Suivi(props: Props & { animal: Animal }) {
       >
         <Feuille ouverte={ouvert === "pesee"} onFermer={fermer} titre={`Peser ${animal.nom}`} fermer="Annuler">
           <form onSubmit={peser} className="ajout">
-            <input inputMode="decimal" value={poids} onChange={(e) => setPoids(e.target.value)} placeholder="Poids en kg, ex. 2,45" aria-label="Poids en kilos" autoFocus />
+            <input inputMode="decimal" value={poids} onChange={(e) => setPoids(e.target.value)} placeholder="Poids en kg, ex. 2,45" aria-label="Poids en kilos" />
             <label className="puce puce-date">
               {jourPesee === aujourdhui ? "Aujourd'hui" : dateCourte(jourPesee)}
               <input type="date" value={jourPesee} max={aujourdhui} onChange={(e) => setJourPesee(e.target.value || aujourdhui)} aria-label="Jour de la pesée" />
@@ -384,6 +411,11 @@ function Suivi(props: Props & { animal: Animal }) {
         </div>
       </Section>
 
+      </>
+      )}
+
+      {onglet === "provisions" && (
+      <>
       <Section titre="Commande régulière">
         {commande ? (
           <div className="carte mitsu-commande">
@@ -506,8 +538,13 @@ function Suivi(props: Props & { animal: Animal }) {
         )}
       </Section>
 
+      </>
+      )}
+
+      {onglet === "sante" && (
+      <>
       <Section
-        titre="Santé et entretien"
+        titre="À venir"
         action={<button className="lien" onClick={() => basculer("soin")}>Ajouter</button>}
       >
         <Feuille ouverte={ouvert === "soin"} onFermer={fermer} titre="Ajouter au carnet" fermer="Annuler">
@@ -531,7 +568,7 @@ function Suivi(props: Props & { animal: Animal }) {
           </form>
         </Feuille>
         <CarnetPropose animal={animal} aujourdhui={aujourdhui} modifier={modifier} />
-        {animal.soins.length > 0 && (
+        {soinsAVenir(animal).length > 0 && (
           <ul className="carte groupe">
             {soinsAVenir(animal).map((s) => (
               <li key={s.id}>
@@ -544,17 +581,27 @@ function Suivi(props: Props & { animal: Animal }) {
                 </div>
                 <div className="tache-actions mitsu-actions">
                   <button className="lien" onClick={() => enregistrer(marquerSoinFait(animal, s.id, aujourdhui, contexteReel))}>Fait aujourd'hui</button>
-                  <button className="lien danger" onClick={() => enregistrer(retirerSoin(animal, s.id))}>Retirer</button>
                 </div>
                 </Glissable>
               </li>
             ))}
-            {soinsFaits(animal).slice(0, 5).map((s) => (
-              <li key={s.id} className="ligne">
-                <span className="ligne-texte discret">{s.libelle} · fait le {dateCourte(s.date)}</span>
-              </li>
-            ))}
           </ul>
+        )}
+        {soinsFaits(animal).length > 0 && (
+          // Ce qui est fait (les vaccins de chaton, les vermifuges passés) se range ici, replié.
+          <details className="carte mitsu-classes">
+            <summary>
+              <span className="ligne-texte">Déjà faits</span>
+              <span className="discret">{soinsFaits(animal).length}</span>
+            </summary>
+            <ul className="groupe">
+              {soinsFaits(animal).map((s) => (
+                <li key={s.id} className="ligne">
+                  <span className="ligne-texte discret">{s.libelle} · fait le {dateCourte(s.date)}</span>
+                </li>
+              ))}
+            </ul>
+          </details>
         )}
       </Section>
 
@@ -625,6 +672,8 @@ function Suivi(props: Props & { animal: Animal }) {
           </Feuille>
         </div>
       </Section>
+      </>
+      )}
 
       {(erreur || message) && (
         <div className="toast" role={erreur ? "alert" : "status"}>
@@ -632,6 +681,6 @@ function Suivi(props: Props & { animal: Animal }) {
           <button className="lien" onClick={() => { setErreur(null); setMessage(null); }}>OK</button>
         </div>
       )}
-    </main>
+    </Page>
   );
 }

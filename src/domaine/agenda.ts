@@ -477,6 +477,18 @@ function dateDe(jour: number, mois: number, an: number | null, aujourdhui: Jour)
   return j;
 }
 
+/** « le 28 » sans mois : le prochain 28, ce mois-ci s'il n'est pas passé, sinon le mois suivant. */
+function prochainQuantieme(jour: number, aujourdhui: Jour, apres: Jour = aujourdhui): Jour | null {
+  if (jour < 1 || jour > 31) return null;
+  let [a, m] = [annee(apres), Number(apres.slice(5, 7))];
+  for (let i = 0; i < 3; i++) {
+    const j = `${a}-${deux(m)}-${deux(jour)}`;
+    if (RE_DATE_VALIDE(j) && j >= apres && j >= aujourdhui) return j;
+    [a, m] = m === 12 ? [a + 1, 1] : [a, m + 1];
+  }
+  return null;
+}
+
 function heureDe(h: string, m?: string): string | null {
   const hh = Number(h);
   const mm = m ? Number(m) : 0;
@@ -520,6 +532,15 @@ export function analyserPhrase(texte: string, aujourdhui: Jour, membres: Foyer["
     if (d > f) d = `${annee(f) - 1}${d.slice(4)}`;
     [jour, fin] = [d, f];
   });
+  // « du 20 au 27 », sans mois : les prochains.
+  if (!jour) {
+    retirer(/\bdu (\d{1,2})(?:er)? au (\d{1,2})(?:er)?(?=\W)(?! ?[h:])/i, (m) => {
+      const d = prochainQuantieme(Number(m[1]), aujourdhui);
+      const f = d && prochainQuantieme(Number(m[2]), aujourdhui, d);
+      if (!d || !f) return false;
+      [jour, fin] = [d, f];
+    });
+  }
   // « de 8h à 17h », « 14h-15h30 ».
   retirer(/\b(?:de |entre )?(\d{1,2}) ?[h:](\d{2})? ?(?:à|a|-|–|et) ?(\d{1,2}) ?[h:](\d{2})?(?=\W)/i, (m) => {
     const [a, b] = [heureDe(m[1], m[2]), heureDe(m[3], m[4])];
@@ -551,6 +572,13 @@ export function analyserPhrase(texte: string, aujourdhui: Jour, membres: Foyer["
   if (!jour) {
     retirer(/\b(?:le )?(\d{1,2})[./](\d{1,2})(?:[./](\d{2,4}))?(?=\W)/, (m) => {
       const d = dateDe(Number(m[1]), Number(m[2]), m[3] ? Number(m[3]) : null, aujourdhui);
+      if (!d) return false;
+      jour = d;
+    });
+  }
+  if (!jour) {
+    retirer(/\ble (\d{1,2})(?:er)?(?=\W)(?! ?[h:])/i, (m) => {
+      const d = prochainQuantieme(Number(m[1]), aujourdhui);
       if (!d) return false;
       jour = d;
     });

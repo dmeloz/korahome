@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  nettoyerPages,
+  pageDe,
+  pageSuivante,
+  pagesVisibles,
+  widgetsDeLaPage,
   DISPOSITION_DE_DEPART,
   ajouterWidget,
   deplacerWidget,
@@ -45,7 +50,7 @@ describe("tableau de bord", () => {
   it("sépare ce qu'on peut ajouter de ce qui arrive bientôt", () => {
     const { prets, bientot } = widgetsAAjouter(["taches"]);
     expect(prets.map((w) => w.id)).toEqual(["courses", "listes", "agenda", "mitsu", "stock", "entretien", "jardin", "chef"]);
-    expect(bientot).toEqual([]);
+    expect(bientot.map((w) => w.id)).toEqual(["budget", "infos"]);
   });
 
   it("fait remonter l'urgent en gardant l'ordre choisi pour le reste", () => {
@@ -57,14 +62,14 @@ describe("tableau de bord", () => {
 
 describe("taille et glisser des widgets", () => {
   it("un widget est grand tant qu'on ne l'a pas réduit", () => {
-    expect(tailleDe({}, "taches")).toBe("grand");
-    const petit = basculerTaille({}, "taches");
-    expect(tailleDe(petit, "taches")).toBe("petit");
-    expect(tailleDe(basculerTaille(petit, "taches"), "taches")).toBe("grand");
+    expect(tailleDe({}, "taches")).toBe("petit");
+    const grand = basculerTaille({}, "taches");
+    expect(tailleDe(grand, "taches")).toBe("grand");
+    expect(tailleDe(basculerTaille(grand, "taches"), "taches")).toBe("petit");
   });
 
   it("relit les tailles en ignorant le reste", () => {
-    expect(nettoyerTailles({ taches: "petit", courses: "grand", inconnu: "petit" })).toEqual({ taches: "petit" });
+    expect(nettoyerTailles({ taches: "petit", courses: "grand", inconnu: "grand" })).toEqual({ courses: "grand" });
     expect(nettoyerTailles("n'importe quoi")).toEqual({});
   });
 
@@ -73,5 +78,28 @@ describe("taille et glisser des widgets", () => {
     expect(deplacerVers(d, "mitsu", "courses")).toEqual(["taches", "mitsu", "courses", "listes"]);
     expect(deplacerVers(d, "taches", "listes")).toEqual(["courses", "listes", "taches", "mitsu"]);
     expect(deplacerVers(d, "taches", "taches")).toBe(d);
+  });
+});
+
+describe("les pages de l'accueil", () => {
+  it("range chaque widget sur sa page de départ", () => {
+    expect(pageDe({}, "courses")).toBe("maison");
+    expect(pageDe({}, "agenda")).toBe("nous");
+    expect(pageDe({}, "mitsu")).toBe("dehors");
+    expect(widgetsDeLaPage(["taches", "agenda", "courses", "mitsu"], {}, "maison")).toEqual(["taches", "courses"]);
+  });
+
+  it("change un widget de page en boucle, et relit les pages enregistrées", () => {
+    const une = pageSuivante({}, "courses");
+    expect(pageDe(une, "courses")).toBe("nous");
+    const deux = pageSuivante(une, "courses");
+    expect(pageDe(deux, "courses")).toBe("dehors");
+    expect(pageSuivante(deux, "courses")).toEqual({});
+    expect(nettoyerPages({ courses: "nous", inconnu: "nous", taches: "ailleurs" })).toEqual({ courses: "nous" });
+  });
+
+  it("ne montre que les pages qui ont des widgets, et toujours la Maison", () => {
+    expect(pagesVisibles(["agenda"], {})).toEqual(["maison", "nous"]);
+    expect(pagesVisibles([], {})).toEqual(["maison"]);
   });
 });

@@ -30,6 +30,8 @@ export function TicketDeCaisse(props: {
   donnees: DonneesFoyer & { aujourdhui: string; membreId: string | null };
   depot: Depot;
   catalogue: ProduitHabituel[];
+  /** La classe du bouton : dans la barre Jarvis, il en prend l'allure. */
+  classe?: string;
 }) {
   const { depot, donnees } = props;
   const choix = useRef<HTMLInputElement>(null);
@@ -108,7 +110,7 @@ export function TicketDeCaisse(props: {
 
   return (
     <>
-      <button type="button" className="bouton-scan" onClick={() => choix.current?.click()} aria-label="Photographier un ticket de caisse" disabled={etat === "lecture"}>
+      <button type="button" className={props.classe ?? "bouton-scan"} onClick={() => choix.current?.click()} aria-label="Photographier un ticket de caisse" disabled={etat === "lecture"}>
         <Icone nom="ticket" taille={22} />
       </button>
       <input
