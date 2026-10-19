@@ -524,6 +524,121 @@ function decrireCourt(o, jour) {
 	return e.heure && o.debut === jour ? `${titreDe(o)} à ${e.heure}` : titreDe(o);
 }
 //#endregion
+//#region src/domaine/budget.ts
+/** « 84.30 CHF », « 2’000 CHF », « −12.50 CHF » : comme sur un relevé suisse. */
+function formaterMontant(n, avecDevise = true) {
+	const c = Math.round(Math.abs(n) * 100);
+	const entier = Math.floor(c / 100).toString().replace(/\B(?=(\d{3})+(?!\d))/g, "’");
+	const centimes = c % 100;
+	const texte = `${n < 0 && c > 0 ? "−" : ""}${entier}${centimes ? `.${String(centimes).padStart(2, "0")}` : ""}`;
+	return avecDevise ? `${texte} CHF` : texte;
+}
+function planDe(docs) {
+	return docs.find((d) => d.genre === "plan") ?? null;
+}
+function moisDe$1(jour) {
+	return jour.slice(0, 7);
+}
+const depenses = (docs) => docs.filter((d) => d.genre === "depense").sort((a, b) => b.jour.localeCompare(a.jour) || b.creeLe.localeCompare(a.creeLe));
+/** Le premier jour de paie du mois (le dernier jour du mois si la paie tombe un 31 en février). */
+function jourDuMois(mois, jour) {
+	const [a, m] = mois.split("-").map(Number);
+	const dernier = new Date(Date.UTC(a, m, 0)).getUTCDate();
+	return `${mois}-${String(Math.min(Math.max(1, jour), dernier)).padStart(2, "0")}`;
+}
+const moisSuivant = (mois) => decaler(`${mois}-01`, {
+	unite: "mois",
+	tous: 1
+}).slice(0, 7);
+/** Les échéances d'une charge commune entre deux jours (compris). */
+function echeancesDe(poste, de, a) {
+	const jours = [];
+	if (poste.frequence === "an") {
+		if (!poste.mois) return jours;
+		for (let annee = Number(de.slice(0, 4)); annee <= Number(a.slice(0, 4)); annee++) {
+			const j = jourDuMois(`${annee}-${String(poste.mois).padStart(2, "0")}`, poste.jour ?? 1);
+			if (j >= de && j <= a) jours.push(j);
+		}
+		return jours;
+	}
+	if (!poste.jour) return jours;
+	for (let mois = moisDe$1(de); mois <= moisDe$1(a); mois = moisSuivant(mois)) {
+		const j = jourDuMois(mois, poste.jour);
+		if (j >= de && j <= a) jours.push(j);
+	}
+	return jours;
+}
+/** Une dépense règle une échéance quand elle la nomme, ou qu'elle paie la même charge dans le même mois (le même mois de l'année pour une charge annuelle, à un mois près). */
+function regle(d, poste, echeance) {
+	if (d.posteId !== poste.id) return false;
+	if (d.echeance) return d.echeance === echeance;
+	const ecart = ecartJours(echeance, d.jour);
+	return poste.frequence === "an" ? ecart >= -45 && ecart <= 45 : moisDe$1(d.jour) === moisDe$1(echeance);
+}
+/** Les factures communes dont on connaît la date, des 30 derniers jours aux `jours` prochains. */
+function factures(plan, docs, aujourdhui, jours = 60) {
+	const de = decaler(aujourdhui, {
+		unite: "jour",
+		tous: -30
+	});
+	const a = decaler(aujourdhui, {
+		unite: "jour",
+		tous: jours
+	});
+	const toutes = depenses(docs);
+	const resultat = [];
+	for (const poste of plan.postes.filter((p) => p.qui === null && p.pot !== "courses")) for (const echeance of echeancesDe(poste, de, a)) {
+		const automatique = poste.prelevement && poste.frequence === "mois";
+		const payee = automatique ? echeance <= aujourdhui : toutes.some((d) => regle(d, poste, echeance));
+		if (echeance < plan.depart.mois && !payee) continue;
+		resultat.push({
+			poste,
+			echeance,
+			montant: poste.montant,
+			payee,
+			automatique
+		});
+	}
+	return resultat.sort((x, y) => x.echeance.localeCompare(y.echeance) || x.poste.libelle.localeCompare(y.poste.libelle, "fr"));
+}
+/** Ce qui reste à payer à la main : en retard d'abord, puis dans l'ordre. */
+function facturesAPayer(plan, docs, aujourdhui, jours = 60) {
+	return factures(plan, docs, aujourdhui, jours).filter((f) => !f.payee && !f.automatique);
+}
+/** Les factures du jour pour la carte « Aujourd'hui » et le rappel du matin. */
+function facturesDuJour(docs, aujourdhui, jours = 3) {
+	const plan = planDe(docs);
+	if (!plan) return [];
+	return facturesAPayer(plan, docs, aujourdhui, jours).map((f) => ({
+		id: `${f.poste.id}-${f.echeance}`,
+		libelle: `${f.poste.libelle} (${formaterMontant(f.montant)})`,
+		echeance: f.echeance
+	}));
+}
+const NOMS_MOIS = [
+	"janvier",
+	"février",
+	"mars",
+	"avril",
+	"mai",
+	"juin",
+	"juillet",
+	"août",
+	"septembre",
+	"octobre",
+	"novembre",
+	"décembre"
+];
+/** « le 15 mars », « aujourd'hui », « demain », « en retard (le 3 octobre) ». */
+function decrireEcheanceFacture(echeance, aujourdhui) {
+	const ecart = ecartJours(aujourdhui, echeance);
+	const date = `le ${Number(echeance.slice(8, 10))} ${NOMS_MOIS[Number(echeance.slice(5, 7)) - 1]}`;
+	if (ecart < 0) return `en retard (${date})`;
+	if (ecart === 0) return "aujourd'hui";
+	if (ecart === 1) return "demain";
+	return date;
+}
+//#endregion
 //#region src/domaine/meteo.ts
 /** Le jardin du foyer, à Renens (VD). */
 const LIEU_DU_JARDIN = {
@@ -1130,6 +1245,7 @@ const PREFERENCES_DE_DEPART = {
 	jardin: true,
 	mots: true,
 	agenda: true,
+	budget: true,
 	heure: 8,
 	jours: TOUS_LES_JOURS
 };
@@ -1265,6 +1381,10 @@ function rappelDuMatin(entree) {
 		if (t.enRetard.length) lignes.push(`En retard : ${enumerer(t.enRetard.map((x) => x.titre))}`);
 		nombre += t.aujourdhui.length + t.enRetard.length;
 	}
+	if (preferences.budget && entree.factures?.length) {
+		lignes.push(`Factures : ${enumerer(entree.factures.map((f) => `${f.libelle} ${decrireEcheanceFacture(f.echeance, aujourdhui)}`))}`);
+		nombre += entree.factures.length;
+	}
 	if (preferences.mitsu) for (const animal of entree.animaux) {
 		const urgentes = choseAFaire(animal, aujourdhui).filter((c) => c.urgent);
 		if (!urgentes.length) continue;
@@ -1317,4 +1437,4 @@ function rappelDu(instant, heure, dernierEnvoi, fuseau = FUSEAU_DU_FOYER, jours 
 	return dernierEnvoi === local.jour ? null : local.jour;
 }
 //#endregion
-export { FUSEAU_DU_FOYER, HEURE_DU_RAPPEL, HEURE_MAX, HEURE_MIN, JOURS_SEMAINE, PREFERENCES_DE_DEPART, RACCOURCIS_JOURS, TOUS_LES_JOURS, adresseMeteo, basculerJour, decalerHeure, decrireJours, evenementsDe, fenetreMotsProgrammes, formaterHeure, heureValide, jourDeLaSemaine, jourEtHeure, lireMeteo, nettoyerJours, notificationMot, rappelDu, rappelDuMatin, tachesDuMatin };
+export { FUSEAU_DU_FOYER, HEURE_DU_RAPPEL, HEURE_MAX, HEURE_MIN, JOURS_SEMAINE, PREFERENCES_DE_DEPART, RACCOURCIS_JOURS, TOUS_LES_JOURS, adresseMeteo, basculerJour, decalerHeure, decrireJours, evenementsDe, facturesDuJour, fenetreMotsProgrammes, formaterHeure, heureValide, jourDeLaSemaine, jourEtHeure, lireMeteo, nettoyerJours, notificationMot, rappelDu, rappelDuMatin, tachesDuMatin };

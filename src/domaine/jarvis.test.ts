@@ -23,6 +23,7 @@ import { nouvelAnimal } from "./mitsu";
 import { nouveauSouvenir } from "./memoire";
 import { nouveauProduit } from "./stock";
 import { nouvelleTache } from "./taches";
+import { enregistrerPoste, nouveauPlan, nouveauPoste } from "./budget";
 
 const AUJOURDHUI = "2026-10-12";
 
@@ -454,5 +455,35 @@ describe("Jarvis et l'agenda", () => {
     expect(r.modifications).toEqual([{ collection: "agenda", avant: cine, apres: cine, supprime: true }]);
     const [reunion] = lireActions([{ nom: "supprimer_evenement", entree: { titre: "Réunion", jour: null } }]);
     expect(appliquerActions([reunion], avecAgenda, null, AUJOURDHUI, ctx()).echecs).toEqual(["Je ne trouve pas « Réunion » dans l'agenda."]);
+  });
+});
+
+describe("Jarvis et le budget", () => {
+  function avecBudget() {
+    const { d } = foyerDeTest();
+    const c = contexteTest();
+    let plan = nouveauPlan(d.foyer.membres.map((m) => m.id), AUJOURDHUI, c);
+    plan = enregistrerPoste(plan, nouveauPoste({ libelle: "Électricité", montant: 60, pot: "factures", jour: 25 }, c), c);
+    return { ...d, budget: [plan] };
+  }
+
+  it("note le total d'un ticket dans les courses", () => {
+    const d = avecBudget();
+    const actions = lireActions([{ nom: "noter_depense", entree: { montant: 84.3, libelle: "Courses Migros", magasin: "Migros", pot: "courses", jour: "2026-10-11", charge: null } }]);
+    const r = appliquerActions(actions, d, null, AUJOURDHUI, ctx());
+    expect(r.faits).toEqual(["Noté au budget : courses migros, 84.30 CHF (courses)."]);
+    expect(r.modifications[0]).toMatchObject({ collection: "budget", apres: { pot: "courses", montant: 84.3, jour: "2026-10-11", source: "jarvis" } });
+  });
+
+  it("paie une facture nommée et en parle ensuite", () => {
+    const d = avecBudget();
+    const actions = lireActions([{ nom: "noter_depense", entree: { montant: 61.2, libelle: "", magasin: null, pot: "factures", jour: null, charge: "électricité" } }]);
+    const r = appliquerActions(actions, d, null, AUJOURDHUI, ctx());
+    expect(r.modifications[0].apres).toMatchObject({ libelle: "Électricité", echeance: "2026-10-25", montant: 61.2 });
+    expect(decrireFoyer(d, null, AUJOURDHUI)).toContain("Factures à payer : Électricité 60 le 25 octobre");
+  });
+
+  it("refuse un montant illisible", () => {
+    expect(lireActions([{ nom: "noter_depense", entree: { montant: -3, pot: "courses" } }])).toEqual([]);
   });
 });

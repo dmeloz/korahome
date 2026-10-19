@@ -433,6 +433,44 @@ const OUTILS_JARVIS = [
 		}
 	},
 	{
+		name: "noter_depense",
+		description: "Note une dépense au budget du foyer : un ticket de caisse (son total), une sortie, une facture payée (« j'ai payé Sunrise »), un versement à l'épargne.",
+		strict: true,
+		input_schema: {
+			type: "object",
+			additionalProperties: false,
+			required: [
+				"montant",
+				"libelle",
+				"magasin",
+				"pot",
+				"jour",
+				"charge"
+			],
+			properties: {
+				montant: {
+					type: "number",
+					description: "Le montant en francs : le total payé pour un ticket."
+				},
+				libelle: texte("Ce que c'est, en deux ou trois mots : « Courses Migros », « Cinéma »."),
+				magasin: ouNul("Le magasin du ticket (Migros, Coop, Lidl, Denner…) ; null sinon."),
+				pot: {
+					type: "string",
+					enum: [
+						"courses",
+						"plaisir",
+						"factures",
+						"epargne",
+						"commun"
+					],
+					description: "courses : alimentation et maison ; plaisir : sorties, cadeaux, envies ; factures : une facture ; epargne : un versement à l'épargne."
+				},
+				jour: ouNul("Le jour, AAAA-MM-JJ, s'il est écrit (ticket) ; null pour aujourd'hui."),
+				charge: ouNul("Pour une facture payée : le nom de la charge telle qu'elle figure dans le budget ; null sinon.")
+			}
+		}
+	},
+	{
 		name: "noter_souhait",
 		description: "Quand on te demande une chose que tu ne sais pas faire (aucun outil ne convient, ou l'app n'a pas cette fonction), note-la comme souhait d'amélioration pour Claude, qui fait évoluer l'app.",
 		strict: true,
@@ -460,7 +498,8 @@ Si on te demande une chose qu'aucun outil ne permet et que l'état du foyer ne t
 Ta mémoire est dans l'état du foyer : sers-t'en pour chaque demande (goûts, habitudes, règles de la maison). Quand on te dit « retiens que… » ou « n'oublie pas que… », utilise retenir (propose: false). Quand tu remarques une préférence ou une habitude durable qui n'est pas encore dans ta mémoire, propose-la avec retenir (propose: true), au plus une par réponse, jamais une information passagère ni de santé ou d'argent. Quand on te dit qu'un fait de ta mémoire est faux, utilise oublier, et retenir pour le fait juste.
 Pour une question sur le foyer, réponds à partir de l'état du foyer fourni ; s'il ne contient pas la réponse, dis-le.
 Avec une photo (lettre, facture, carte de rendez-vous, flyer, faire-part) : mets chaque rendez-vous ou événement daté dans l'agenda (ajouter_evenement, avec l'heure et le lieu indiqués), et crée une tâche unique pour chaque échéance ou paiement.
-Avec un ticket de caisse : range au stock (ajouter_au_stock) les produits alimentaires achetés, avec leur quantité dans le nom (« 1 l lait », « 500 g beurre ») et le lieu où on les range d'habitude ; laisse la date de péremption vide si elle n'est pas écrite, l'app la devine. Coche aussi les courses correspondantes (cocher_courses).
+Avec un ticket de caisse : range au stock (ajouter_au_stock) les produits alimentaires achetés, avec leur quantité dans le nom (« 1 l lait », « 500 g beurre ») et le lieu où on les range d'habitude ; laisse la date de péremption vide si elle n'est pas écrite, l'app la devine. Coche aussi les courses correspondantes (cocher_courses), et note le total payé au budget (noter_depense, pot courses, avec le magasin et la date du ticket).
+Pour l'argent : réponds à partir du budget de l'état du foyer (carte courses, plaisir, factures, épargne). « J'ai payé l'assurance voiture », « 32 francs de cinéma » : utilise noter_depense. Tu ne fais jamais de paiement toi-même.
 Avec une page de carnet de santé ou une facture de vétérinaire : note chaque vaccin, vermifuge, antiparasitaire ou visite avec noter_soin (fait: true à sa date, et fait: false pour la date du prochain rappel écrite), et les poids écrits avec noter_pesee à leur date.
 Quand on te dit qu'un animal a vomi, n'a pas mangé, ou que la litière est changée, note-le avec noter_journal ; si une tâche correspond (litière), marque-la aussi faite.
 Avec une recette : compare ses ingrédients au stock et à la liste de courses, et n'ajoute aux courses que ce qui manque, avec les quantités de la recette.

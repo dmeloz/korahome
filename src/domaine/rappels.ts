@@ -1,4 +1,5 @@
 import { decrireCourt, evenementsDuMatin, type Evenement } from "./agenda";
+import { decrireEcheanceFacture } from "./budget";
 import { gestesDuJardin, type Zone } from "./jardin";
 import { meteoFraiche, type Meteo } from "./meteo";
 import { choseAFaire, type Animal } from "./mitsu";
@@ -20,6 +21,8 @@ export { adresseMeteo, lireMeteo } from "./meteo";
 export { fenetreMotsProgrammes, notificationMot } from "./bandeau";
 /** Et il lit l'agenda du jour. */
 export { evenementsDe } from "./agenda";
+/** Et les factures du Budget à payer bientôt. */
+export { facturesDuJour } from "./budget";
 
 /** Ce que chaque personne choisit de recevoir, sur son téléphone. */
 export interface PreferencesRappels {
@@ -33,6 +36,8 @@ export interface PreferencesRappels {
   mots: boolean;
   /** Ce qui est à l'agenda ce jour-là, pour nous deux ou pour soi. */
   agenda: boolean;
+  /** Les factures du Budget à payer dans les trois jours, ou en retard. */
+  budget: boolean;
   /** L'heure du rappel, heure pleine, à Zurich. */
   heure: number;
   /** Les jours où le rappel arrive : 0 dimanche, 1 lundi… 6 samedi. */
@@ -46,7 +51,7 @@ export const HEURE_MIN = 5;
 export const HEURE_MAX = 22;
 
 export const TOUS_LES_JOURS = [1, 2, 3, 4, 5, 6, 0];
-export const PREFERENCES_DE_DEPART: PreferencesRappels = { taches: true, mitsu: true, stock: true, jardin: true, mots: true, agenda: true, heure: HEURE_DU_RAPPEL, jours: TOUS_LES_JOURS };
+export const PREFERENCES_DE_DEPART: PreferencesRappels = { taches: true, mitsu: true, stock: true, jardin: true, mots: true, agenda: true, budget: true, heure: HEURE_DU_RAPPEL, jours: TOUS_LES_JOURS };
 export const FUSEAU_DU_FOYER = "Europe/Zurich";
 
 export function heureValide(heure: unknown): heure is number {
@@ -144,6 +149,8 @@ export function rappelDuMatin(entree: {
   animaux: Animal[];
   /** L'agenda commun ; absent, rien n'est dit de l'agenda. */
   evenements?: readonly Evenement[];
+  /** Les factures du Budget à payer bientôt (facturesDuJour). */
+  factures?: readonly { libelle: string; echeance: Jour }[];
   /** Le stock du foyer ; absent, rien n'est dit du frigo. */
   produits?: readonly Produit[];
   /** Le jardin et sa météo ; une météo de plus de 12 heures n'est pas prise en compte. */
@@ -169,6 +176,11 @@ export function rappelDuMatin(entree: {
     if (t.aujourdhui.length) lignes.push(`Aujourd'hui : ${enumerer(t.aujourdhui.map((x) => x.titre))}`);
     if (t.enRetard.length) lignes.push(`En retard : ${enumerer(t.enRetard.map((x) => x.titre))}`);
     nombre += t.aujourdhui.length + t.enRetard.length;
+  }
+
+  if (preferences.budget && entree.factures?.length) {
+    lignes.push(`Factures : ${enumerer(entree.factures.map((f) => `${f.libelle} ${decrireEcheanceFacture(f.echeance, aujourdhui)}`))}`);
+    nombre += entree.factures.length;
   }
 
   if (preferences.mitsu) {

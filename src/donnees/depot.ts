@@ -1,6 +1,7 @@
 import type { Animal } from "../domaine/mitsu";
 import type { DocCouple } from "../domaine/bandeau";
 import type { DocAgenda } from "../domaine/agenda";
+import type { DocBudget } from "../domaine/budget";
 import type { DocChef } from "../domaine/chef";
 import type { Souvenir } from "../domaine/memoire";
 import type { RetourTest } from "../domaine/retours";
@@ -68,6 +69,11 @@ export interface Depot {
   lireAgenda(): Promise<DocAgenda[]>;
   enregistrerAgenda(doc: DocAgenda): Promise<void>;
   supprimerAgenda(id: Id): Promise<void>;
+
+  /** Le budget : le plan du foyer, les mois versés et les dépenses. */
+  lireBudget(): Promise<DocBudget[]>;
+  enregistrerBudget(doc: DocBudget): Promise<void>;
+  supprimerBudget(id: Id): Promise<void>;
 
   /** Les notes de test écrites depuis le coin « Dev ». */
   lireRetours(): Promise<RetourTest[]>;

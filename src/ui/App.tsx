@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } fr
 import { flushSync } from "react-dom";
 import { meteoFraiche } from "../domaine/meteo";
 import { rappelDuMatin } from "../domaine/rappels";
+import { facturesDuJour } from "../domaine/budget";
 import type { WidgetId } from "../domaine/tableauDeBord";
 import type { Foyer } from "../domaine/types";
 import type { DepotLocal } from "../donnees/depotLocal";
@@ -73,7 +74,7 @@ let ecranCourant = "Accueil";
 export const ecranAffiche = () => ecranCourant;
 
 export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJour: MiseAJour; partage: ServicesPartage | null }) {
-  const { pret, foyer, listes, elements, taches, retours, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda } = useDonnees(depot);
+  const { pret, foyer, listes, elements, taches, retours, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda, budget } = useDonnees(depot);
   // La météo sert au jardin et au bandeau de l'accueil. Trop ancienne (téléphone resté
   // hors ligne), elle ne déclenche plus d'alerte.
   const meteoLue = useMeteo(true);
@@ -113,7 +114,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   const aujourdhui = aujourdhuiLocal();
   useEffect(() => {
     if (!pret) return;
-    const rappel = rappelDuMatin({ foyer, membreId: membreRappels, taches, animaux, produits, zones, meteo, aujourdhui, preferences: lirePreferences() });
+    const rappel = rappelDuMatin({ foyer, membreId: membreRappels, factures: facturesDuJour(budget, aujourdhui), taches, animaux, produits, zones, meteo, aujourdhui, preferences: lirePreferences() });
     afficherPastilleIcone(rappel?.nombre ?? 0);
   }, [pret, foyer, membreRappels, taches, animaux, produits, zones, meteo, aujourdhui]);
 
@@ -187,7 +188,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       />
     );
   }
-  const donnees: DonneesModule = { foyer, membreId: membre, listes, elements, taches, animaux, produits, catalogue, zones, meteo, aujourdhui: aujourdhuiLocal(), souvenirs, retours, couple, menus, agenda };
+  const donnees: DonneesModule = { foyer, membreId: membre, listes, elements, taches, animaux, produits, catalogue, zones, meteo, aujourdhui: aujourdhuiLocal(), souvenirs, retours, couple, menus, agenda, budget };
 
   const ouvrir = (p: Page) =>
     avecTransition("avant", () => {
@@ -253,6 +254,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         foyer={leFoyer}
         taches={taches}
         evenements={evenementsDe(agenda)}
+        factures={facturesDuJour(budget, donnees.aujourdhui)}
         animaux={animaux}
         produits={produits}
         zones={zones}
@@ -298,7 +300,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   } else if (page.nom === "rappels") {
     ecran = <CentreRappels ouvrirNotifications={() => ouvrir({ nom: "notifications" })} />;
   } else if (page.nom === "sauvegarde") {
-    ecran = <Sauvegarde depot={depot} aujourdhui={donnees.aujourdhui} contenu={{ foyer: leFoyer, listes, elements, taches, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda, retours }} />;
+    ecran = <Sauvegarde depot={depot} aujourdhui={donnees.aujourdhui} contenu={{ foyer: leFoyer, listes, elements, taches, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda, budget, retours }} />;
   } else if (page.nom === "calendrier") {
     ecran = <CalendrierIphone foyer={leFoyer} membreId={membre} comptes={comptesIcloudDe(agenda)} distant={agendaPartage} />;
   } else if (page.nom === "retours") {

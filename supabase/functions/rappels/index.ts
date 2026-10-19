@@ -12,7 +12,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
-import { adresseMeteo, evenementsDe, fenetreMotsProgrammes, FUSEAU_DU_FOYER, jourEtHeure, lireMeteo, notificationMot, PREFERENCES_DE_DEPART, rappelDu, rappelDuMatin } from "./domaine.js";
+import { adresseMeteo, evenementsDe, facturesDuJour, fenetreMotsProgrammes, FUSEAU_DU_FOYER, jourEtHeure, lireMeteo, notificationMot, PREFERENCES_DE_DEPART, rappelDu, rappelDuMatin } from "./domaine.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -29,7 +29,7 @@ interface Abonnement {
   user_id: string;
   membre_id: string | null;
   cles: { p256dh: string; auth: string };
-  preferences: { taches?: boolean; mitsu?: boolean; stock?: boolean; jardin?: boolean; mots?: boolean; agenda?: boolean; jours?: number[] };
+  preferences: { taches?: boolean; mitsu?: boolean; stock?: boolean; jardin?: boolean; mots?: boolean; agenda?: boolean; budget?: boolean; jours?: number[] };
   heure: number;
   dernier_envoi: string | null;
 }
@@ -54,18 +54,18 @@ async function reglages(): Promise<{ publique: string; privee: string; cleCron: 
   return { publique: r.vapid_publique, privee: r.vapid_privee, cleCron: r.cle_cron };
 }
 
-/** Le foyer, ses tâches, ses animaux, son stock, son jardin et son agenda, tels que les téléphones les ont partagés. */
+/** Le foyer, ses tâches, ses animaux, son stock, son jardin, son agenda et ses factures, tels que les téléphones les ont partagés. */
 async function donneesDuFoyer(foyerId: string) {
   const lignes = await echec(
     serveur
       .from("documents")
       .select("collection, donnees")
       .eq("foyer_id", foyerId)
-      .in("collection", ["foyer", "taches", "animaux", "stock", "jardin", "agenda"])
+      .in("collection", ["foyer", "taches", "animaux", "stock", "jardin", "agenda", "budget"])
       .not("donnees", "is", null),
   );
   const de = (c: string) => (lignes as { collection: string; donnees: any }[]).filter((l) => l.collection === c).map((l) => l.donnees);
-  return { foyer: de("foyer")[0] ?? null, taches: de("taches"), animaux: de("animaux"), produits: de("stock"), zones: de("jardin"), evenements: evenementsDe(de("agenda")) };
+  return { foyer: de("foyer")[0] ?? null, taches: de("taches"), animaux: de("animaux"), produits: de("stock"), zones: de("jardin"), evenements: evenementsDe(de("agenda")), budget: de("budget") };
 }
 
 /** La météo du jardin (Open-Meteo, sans clé) ; sans elle, le rappel parle seulement de l'arrosage. */
@@ -82,6 +82,7 @@ async function meteoDuJardin() {
 function rappelPour(a: Abonnement, donnees: Awaited<ReturnType<typeof donneesDuFoyer>>, aujourdhui: string, meteo: Awaited<ReturnType<typeof meteoDuJardin>>) {
   return rappelDuMatin({
     ...donnees,
+    factures: facturesDuJour(donnees.budget, aujourdhui),
     meteo,
     membreId: a.membre_id,
     aujourdhui,

@@ -4,6 +4,7 @@ import type { ServeurJarvis } from "../../donnees/distant";
 import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from "react";
 import { bilanAOuvrir, bilanDeLaSemaine, ordreVivant, remarqueDuJour } from "../../domaine/apprentissage";
 import { carteDuJour, type ChoseDuJour } from "../../domaine/aujourdhui";
+import { facturesDuJour } from "../../domaine/budget";
 import { evenementsDe } from "../../domaine/agenda";
 import type { EtatPartage } from "../../domaine/etatPartage";
 import { decrireTemps, meteoDu } from "../../domaine/meteo";
@@ -181,13 +182,14 @@ export function Accueil(props: {
   const carte = carteDuJour({
     ...props.donnees,
     evenements: evenementsDe(props.donnees.agenda),
+    factures: facturesDuJour(props.donnees.budget, aujourdhui, 1),
     sauvegardeDue: sauvegardeDue(derniereSauvegarde, aujourdhui) && new Date().getDay() === 0,
     repartitionDue: repartitionDue(foyer, props.donnees.taches, aujourdhui, lireDerniereRepartition()),
   });
   const toucherChose = (c: ChoseDuJour) => {
     if (c.destination === "sauvegarde") props.ouvrirSauvegarde();
     else if (c.destination === "repartition") props.ouvrirRepartition();
-    else if (c.destination !== "budget") {
+    else {
       noterUsage("widget", c.destination);
       props.ouvrirModule(c.destination);
     }

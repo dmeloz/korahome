@@ -15,7 +15,7 @@ function contenu(): ContenuFoyer {
     listes: [courses],
     elements: [nouvelElement(courses, "Lait", "melo", ctx), nouvelElement(courses, "Pain", "melo", ctx)],
     taches: [nouvelleTache("Linge", null, "2026-10-19", ctx)],
-    animaux: [], produits: [], catalogue: [], zones: [], souvenirs: [], couple: [], menus: [], agenda: [], retours: [],
+    animaux: [], produits: [], catalogue: [], zones: [], souvenirs: [], couple: [], menus: [], agenda: [], budget: [], retours: [],
   };
 }
 
