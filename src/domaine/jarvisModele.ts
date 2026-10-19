@@ -376,6 +376,36 @@ export const OUTILS_JARVIS = [
     },
   },
   {
+    name: "enregistrer_recette",
+    description:
+      "Range une recette dans les recettes du foyer : lue derrière un lien, sur une photo (page de livre, fiche, écran) ou dictée. Une recette déjà enregistrée sous ce titre n'est pas copiée.",
+    strict: true,
+    input_schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["titre", "portions", "ingredients", "etapes", "lien"],
+      properties: {
+        titre: texte("Le nom du plat : « Gratin dauphinois »."),
+        portions: { type: ["integer", "null"], description: "Pour combien de personnes sont les quantités ; null si ce n'est pas dit." },
+        ingredients: {
+          type: "array",
+          description: "Tous les ingrédients, dans l'ordre de la recette.",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["nom", "quantite"],
+            properties: {
+              nom: texte("Le nom court, sans la quantité : « Lardons fumés »."),
+              quantite: ouNul("La quantité courte : « 200 g », « 2 », « 1 c. à soupe » ; null sans quantité."),
+            },
+          },
+        },
+        etapes: { type: "array", items: texte("Une étape, courte et claire, en français."), description: "Les étapes dans l'ordre ; vide si elles ne sont pas données." },
+        lien: ouNul("L'adresse de la page, pour une recette venue d'un lien ; null sinon."),
+      },
+    },
+  },
+  {
     name: "noter_souhait",
     description:
       "Quand on te demande une chose que tu ne sais pas faire (aucun outil ne convient, ou l'app n'a pas cette fonction), note-la comme souhait d'amélioration pour Claude, qui fait évoluer l'app.",
@@ -409,7 +439,8 @@ Avec un ticket de caisse : range au stock (ajouter_au_stock) les produits alimen
 Pour l'argent : réponds à partir du budget de l'état du foyer (carte courses, plaisir, factures, épargne). « J'ai payé l'assurance voiture », « 32 francs de cinéma » : utilise noter_depense. Tu ne fais jamais de paiement toi-même.
 Avec une page de carnet de santé ou une facture de vétérinaire : note chaque vaccin, vermifuge, antiparasitaire ou visite avec noter_soin (fait: true à sa date, et fait: false pour la date du prochain rappel écrite), et les poids écrits avec noter_pesee à leur date.
 Quand on te dit qu'un animal a vomi, n'a pas mangé, ou que la litière est changée, note-le avec noter_journal ; si une tâche correspond (litière), marque-la aussi faite.
-Avec une recette : compare ses ingrédients au stock et à la liste de courses, et n'ajoute aux courses que ce qui manque, avec les quantités de la recette.
+Avec une recette (un lien, une photo de page de livre ou de fiche, ou une recette dictée) : range-la dans les recettes du foyer (enregistrer_recette) avec tous ses ingrédients et leurs quantités, et ses étapes réécrites courtes en français. Pour un lien, mets l'adresse dans lien, puis compare ses ingrédients au stock et à la liste de courses et n'ajoute aux courses que ce qui manque, avec les quantités de la recette. Pour une photo ou une dictée, n'ajoute aux courses que si on te le demande.
+« Qu'est-ce qu'on mange ce soir ? » : propose une ou deux recettes du foyer (état du foyer) qu'on peut faire avec le stock, celles qu'on aime d'abord, en disant ce qui manque ; si aucune ne va, une idée simple avec ce qu'il y a. Ne propose jamais une recette marquée « pas pour eux ».
 Avec une photo de plante : reconnais-la (nom courant en français, le plus précis possible). Si on te demande de l'ajouter, utilise ajouter_plante, et écris quand même une phrase : son nom, puis son besoin principal (soleil, arrosage, gel). Si tu n'es pas sûr, dis-le et donne les deux noms les plus probables.`;
 
 /** Le conseil du dimanche : Jarvis prépare la semaine, le foyer valide ensemble. */
@@ -477,6 +508,8 @@ export interface Recette {
   titre: string;
   ingredients: string[];
   portions: string | null;
+  /** Les étapes, quand la page les donne (depuis Kora 0.0.38). */
+  etapes?: string[];
 }
 
 const decoder = (t: string) =>
@@ -515,16 +548,40 @@ export function extraireRecette(html: string): Recette | null {
         const ingredients = o.recipeIngredient.filter((i): i is string => typeof i === "string").map(decoder).filter(Boolean);
         if (!ingredients.length) continue;
         const rendement = Array.isArray(o.recipeYield) ? o.recipeYield[0] : o.recipeYield;
+        const etapes = lireEtapes(o.recipeInstructions);
         return {
           titre: typeof o.name === "string" ? decoder(o.name) : "Recette",
           ingredients,
           portions: typeof rendement === "string" || typeof rendement === "number" ? String(rendement) : null,
+          ...(etapes.length ? { etapes } : {}),
         };
       }
       if (o["@graph"]) aVisiter.push(o["@graph"]);
     }
   }
   return null;
+}
+
+/** Les étapes d'une recette JSON-LD : un texte, des HowToStep, ou des sections HowToSection. */
+function lireEtapes(v: unknown, max = 20): string[] {
+  const etapes: string[] = [];
+  const visiter = (n: unknown) => {
+    if (etapes.length >= max || !n) return;
+    if (typeof n === "string") {
+      for (const ligne of n.replace(/<[^>]+>/g, "\n").split(/\n+/)) {
+        const t = decoder(ligne);
+        if (t && etapes.length < max) etapes.push(t.slice(0, 400));
+      }
+    } else if (Array.isArray(n)) n.forEach(visiter);
+    else if (typeof n === "object") {
+      const o = n as Record<string, unknown>;
+      if (o.itemListElement) visiter(o.itemListElement);
+      else if (typeof o.text === "string") visiter(o.text);
+      else if (typeof o.name === "string") visiter(o.name);
+    }
+  };
+  visiter(v);
+  return etapes;
 }
 
 /** Le texte lisible d'une page, sans balises, pour une recette sans données structurées. */
@@ -543,7 +600,8 @@ export function lienDans(demande: string): string | null {
 
 /** Ce que le modèle lit d'une recette trouvée derrière un lien. */
 export function decrireRecette(r: Recette): string {
-  return `Recette « ${r.titre} »${r.portions ? ` (${r.portions})` : ""}, ingrédients :\n${r.ingredients.map((i) => `- ${i}`).join("\n")}`;
+  const etapes = r.etapes?.length ? `\nÉtapes :\n${r.etapes.map((e, i) => `${i + 1}. ${e}`).join("\n")}` : "";
+  return `Recette « ${r.titre} »${r.portions ? ` (${r.portions})` : ""}, ingrédients :\n${r.ingredients.map((i) => `- ${i}`).join("\n")}${etapes}`;
 }
 
 // ----- La conversation -----

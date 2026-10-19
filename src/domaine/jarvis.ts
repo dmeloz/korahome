@@ -14,6 +14,8 @@
 import { CATEGORIES, decrireAgenda, decrireJour, evenementsDe, preparerEvenement, REPETITIONS, type Categorie, type DocAgenda, type Evenement, type Repetition } from "./agenda";
 import { decrireBudget, facturesAPayer, formaterMontant as formaterMontantCourt, nouvelleDepense, payerFacture, planDe, POTS, type ArticleTicket, type Depense, type DocBudget, type Pot } from "./budget";
 import { completerPaiement } from "./paiements";
+import { avisDuPlat, menuDeLaSemaine, type DocChef } from "./chef";
+import { apprendreRecette, decrireRecettes, lireBrouillon, recettesDe, SOURCES_RECETTE, type BrouillonRecette, type Recette } from "./recettes";
 import { proposer, type ProduitHabituel } from "./catalogue";
 import { ajouterPlante, arroser, decrireJardin, nouvellePlante, type Zone } from "./jardin";
 import { analyserSaisie, nouvelElement, trouverDoublon } from "./listes";
@@ -76,6 +78,8 @@ export interface DonneesFoyer {
   agenda?: readonly DocAgenda[];
   /** Le budget du foyer. */
   budget?: readonly DocBudget[];
+  /** Les menus du Chef et les recettes du foyer. */
+  menus?: readonly DocChef[];
 }
 
 const listeCourses = (d: DonneesFoyer) => d.listes.find((l) => l.type === "courses") ?? null;
@@ -142,6 +146,12 @@ export function decrireFoyer(d: DonneesFoyer, membreId: Id | null, aujourdhui: J
     const journal = journalRecent(a).slice(0, 5);
     if (journal.length) lignes.push(`Journal de ${a.nom} : ${journal.map((e) => `${TYPES_EVENEMENT[e.quoi].toLowerCase()}${e.note ? ` (${e.note})` : ""} le ${e.jour}`).join(", ")}.`);
   }
+  if (d.menus) {
+    const menu = menuDeLaSemaine(d.menus, aujourdhui);
+    if (menu) lignes.push(`Menus du Chef cette semaine : ${menu.repas.map((r) => r.titre).join(", ")}.`);
+    const avis = (r: Recette) => avisDuPlat(d.souvenirs ?? [], r.titre)?.avis ?? null;
+    lignes.push(...decrireRecettes(recettesDe(d.menus), d.produits, aujourdhui, avis));
+  }
   if (d.zones?.length) lignes.push(...decrireJardin(d.zones, d.meteo ?? null, aujourdhui));
   if (d.agenda) lignes.push(...decrireAgenda(evenementsDe(d.agenda), d.foyer, aujourdhui));
   if (d.budget) lignes.push(...decrireBudget(d.budget, (id) => prenomDe(d.foyer, id) ?? "", aujourdhui));
@@ -168,6 +178,7 @@ export type ActionJarvis =
   | { outil: "retenir"; fait: string; propose: boolean }
   | { outil: "oublier"; fait: string }
   | { outil: "noter_souhait"; demande: string; manque: string }
+  | { outil: "enregistrer_recette"; recette: BrouillonRecette }
   | {
       outil: "ajouter_evenement";
       titre: string;
@@ -312,6 +323,9 @@ export function lireActions(appels: readonly { nom: string; entree: unknown }[])
           .slice(0, 80)
           .map((a) => ({ nom: a.nom.trim(), prix: a.prix })),
       });
+    } else if (nom === "enregistrer_recette") {
+      const recette = lireBrouillon(e, estTexte(e.lien) ? "lien" : "jarvis");
+      if (recette) actions.push({ outil: nom, recette });
     } else if (nom === "noter_souhait") {
       if (estTexte(e.demande)) actions.push({ outil: nom, demande: e.demande.trim(), manque: estTexte(e.manque) ? e.manque.trim() : "" });
     }
@@ -332,7 +346,8 @@ export type Modification =
   | { collection: "memoire"; avant: Souvenir | null; apres: Souvenir; supprime?: true }
   | { collection: "retours"; avant: null; apres: RetourTest }
   | { collection: "agenda"; avant: Evenement | null; apres: Evenement; supprime?: true }
-  | { collection: "budget"; avant: Depense | null; apres: Depense };
+  | { collection: "budget"; avant: Depense | null; apres: Depense }
+  | { collection: "menus"; avant: Recette | null; apres: Recette };
 
 export interface ResultatActions {
   modifications: Modification[];
@@ -376,6 +391,7 @@ export function appliquerActions(
   let produits = [...donnees.produits];
   let souvenirs = [...(donnees.souvenirs ?? [])];
   let evenements = evenementsDe(donnees.agenda ?? []).filter((e) => !e.source);
+  let recettes = recettesDe(donnees.menus ?? []);
   const liste = listeCourses(donnees);
 
   /** Une zone modifiée : la version d'avant reste celle de sa première modification. */
@@ -668,6 +684,15 @@ export function appliquerActions(
           faits.push(`Noté au budget : ${depense.libelle.toLowerCase()}, ${formaterMontantCourt(depense.montant)} (${POTS[depense.pot].nom.toLowerCase()}).`);
           break;
         }
+        case "enregistrer_recette": {
+          const { recette, avant } = apprendreRecette(recettes, action.recette, ctx);
+          recettes = [...recettes.filter((r) => r.id !== recette.id), recette];
+          const deja = modifications.find((m): m is Extract<Modification, { collection: "menus" }> => m.collection === "menus" && m.apres.id === recette.id);
+          if (deja) deja.apres = recette;
+          else modifications.push({ collection: "menus", avant, apres: recette });
+          faits.push(avant ? `« ${recette.titre} » était déjà dans vos recettes : elle monte dans la liste.` : `« ${recette.titre} » rangée dans vos recettes.`);
+          break;
+        }
         case "noter_souhait": {
           const texte = `Souhait pour Jarvis : ${action.demande}${action.manque ? ` (il faudrait : ${action.manque})` : ""}`;
           const deja = (donnees.retours ?? []).some((r) => !r.regleLe && normaliser(r.texte) === normaliser(texte));
@@ -725,6 +750,8 @@ export function decrireAction(action: ActionJarvis): string {
       return `Oublier : ${action.fait}`;
     case "noter_souhait":
       return `Souhait pour Claude : ${action.demande}`;
+    case "enregistrer_recette":
+      return `Recette : ${action.recette.titre} (${SOURCES_RECETTE[action.recette.source].toLowerCase()})`;
     case "ajouter_evenement":
       return `Agenda : ${action.titre}, le ${action.jour}${action.heure ? ` à ${action.heure}` : ""}${action.pour ? `, pour ${action.pour}` : ""}`;
     case "supprimer_evenement":

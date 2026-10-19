@@ -4,6 +4,7 @@ import type { DocCouple } from "../domaine/bandeau";
 import { paiementsAClasser } from "../domaine/paiements";
 import { decrireEcheanceFacture, etatDesPots, facturesAPayer, formaterMontant, moisAConfirmer, nommerMois, planDe, type DocBudget } from "../domaine/budget";
 import { menuDeLaSemaine, prochainPassage, reglageChef, type DocChef } from "../domaine/chef";
+import { recetteDuSoir, recettesDe } from "../domaine/recettes";
 import type { Souvenir } from "../domaine/memoire";
 import type { RetourTest } from "../domaine/retours";
 import { gestesDuJardin, type Zone } from "../domaine/jardin";
@@ -282,11 +283,13 @@ export const MODULES: Partial<Record<WidgetId, ModuleUI>> = {
     widget: (d) => {
       const menu = menuDeLaSemaine(d.menus, d.aujourdhui);
       const passage = prochainPassage(reglageChef(d.menus), new Date());
-      if (!menu) return { chiffre: 0, legende: passage ? `Prochains menus ${passage}` : "Lance le Chef pour la semaine", lignes: [], urgent: false };
+      const ceSoir = recetteDuSoir(recettesDe(d.menus), d.aujourdhui);
+      const soir = ceSoir ? [`Ce soir : ${ceSoir.titre}`] : [];
+      if (!menu) return { chiffre: 0, legende: passage ? `Prochains menus ${passage}` : "Lance le Chef pour la semaine", lignes: soir, urgent: false };
       return {
         chiffre: menu.repas.length,
         legende: "repas cette semaine",
-        lignes: [...menu.alertesMitsu.slice(0, 1), ...menu.repas.map((r) => r.titre)].slice(0, 3),
+        lignes: [...soir, ...menu.alertesMitsu.slice(0, 1), ...menu.repas.map((r) => r.titre)].slice(0, 3),
         urgent: false,
       };
     },

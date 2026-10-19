@@ -7,7 +7,8 @@
 //
 // Il lit le stock, la liste de courses et Mitsu, demande les menus à Claude (réponse au format
 // imposé), puis écrit lui-même : les articles qui manquent sur la liste de courses, marqués
-// « chef », et les menus dans la collection « menus ». Il n'écrit rien d'autre ; relancé,
+// « chef », et les menus dans la collection « menus », avec la recette de chaque repas
+// (ingrédients et étapes) rangée dans les recettes du foyer, même collection. Il n'écrit rien d'autre ; relancé,
 // il remplace seulement ses propres articles pas encore cochés. Sa dépense compte dans le
 // plafond de Jarvis (5 CHF par mois). Les téléphones du foyer reçoivent une notification.
 //
@@ -33,6 +34,8 @@ import {
   notificationChef,
   nouveauMenu,
   preparerAjouts,
+  recettesDe,
+  recettesDuChef,
   reglageChef,
   SCHEMA_CHEF,
 } from "./domaine.js";
@@ -117,10 +120,10 @@ async function cuisiner(foyerId: string, lance: "auto" | "maintenant") {
   const client = new Anthropic({ apiKey: cle });
   const reponse = await client.messages.create({
     model: MODELE_CHEF,
-    max_tokens: 4000,
+    max_tokens: 8000,
     system: CONSIGNES_CHEF,
     output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA_CHEF } },
-    messages: [{ role: "user", content: messageChef({ produits: d.produits, enCourses, aujourdhui, souvenirs: d.souvenirs }) }],
+    messages: [{ role: "user", content: messageChef({ produits: d.produits, enCourses, aujourdhui, souvenirs: d.souvenirs, recettes: recettesDe(d.menus) }) }],
   });
   const budget = etatBudget(await compter(foyerId, coutChef(reponse.usage)));
   if (reponse.stop_reason === "refusal") throw new Error("Le Chef n'a pas pu préparer les menus cette fois.");
@@ -133,7 +136,8 @@ async function cuisiner(foyerId: string, lance: "auto" | "maintenant") {
   const aRetirer = new Set(articlesARemplacer(ancien, d.elements));
   const restants = d.elements.filter((e: { id: string }) => !aRetirer.has(e.id));
   const ajouts = courses ? preparerAjouts(proposition.aAcheter, courses, restants, ctx) : [];
-  const menu = nouveauMenu({ proposition, ajouts, produits: d.produits, animaux: d.animaux, aujourdhui, lance }, ctx);
+  const { repas, recettes } = recettesDuChef(proposition, d.menus, ctx);
+  const menu = nouveauMenu({ proposition, repas, ajouts, produits: d.produits, animaux: d.animaux, aujourdhui, lance }, ctx);
 
   const maj = new Date().toISOString();
   const lignes = [
@@ -141,6 +145,7 @@ async function cuisiner(foyerId: string, lance: "auto" | "maintenant") {
     ...ajouts.map((e) => ({ foyer_id: foyerId, collection: "elements", id: e.id, donnees: e, maj_client: maj })),
     // Un ancien menu d'un autre jour de la semaine laisse sa place.
     ...(ancien && ancien.id !== menu.id ? [{ foyer_id: foyerId, collection: "menus", id: ancien.id, donnees: null, maj_client: maj }] : []),
+    ...recettes.map((r) => ({ foyer_id: foyerId, collection: "menus", id: r.id, donnees: r, maj_client: maj })),
     { foyer_id: foyerId, collection: "menus", id: menu.id, donnees: menu, maj_client: maj },
   ];
   await echec(serveur.from("documents").upsert(lignes, { onConflict: "foyer_id,collection,id" }));

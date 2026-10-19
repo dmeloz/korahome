@@ -61,9 +61,10 @@ export interface Depot {
   enregistrerCouple(doc: DocCouple): Promise<void>;
   supprimerCouple(id: Id): Promise<void>;
 
-  /** Le Chef de la semaine : ses menus (écrits par le serveur) et son réglage. */
+  /** Le Chef de la semaine : ses menus (écrits par le serveur), son réglage et les recettes du foyer. */
   lireMenus(): Promise<DocChef[]>;
   enregistrerMenu(doc: DocChef): Promise<void>;
+  supprimerMenu(id: Id): Promise<void>;
 
   /** L'agenda commun : un document par événement, et l'état de chaque compte iCloud relié. */
   lireAgenda(): Promise<DocAgenda[]>;

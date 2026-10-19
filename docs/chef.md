@@ -38,3 +38,28 @@ un document `reglage` de la collection partagée `menus`, valable pour tout le f
    elle vérifie elle-même la session ou la clé du passage horaire).
 3. Programmer le passage de chaque heure :
    `select prive.programmer_chef('https://ffnmyfrzqvhvafnxvyxx.supabase.co');`
+
+## Les recettes du foyer (0.0.38)
+
+Onglet « Nos recettes » de la page « Menus de la semaine ». Une base qui se remplit seule, comme la
+Base de Frigo et placards :
+
+- **Le Chef** y range chaque repas qu'il propose, avec ses ingrédients (quantités pour deux) et ses
+  étapes. Il relit les recettes que le foyer aime et peut les reprendre sous leur titre exact.
+- **Jarvis** y range une recette lue derrière un lien (données JSON-LD, étapes comprises), sur une
+  photo (bouton « Photographier une recette ») ou dictée/collée dans la barre (outil
+  `enregistrer_recette`). Un titre seul dans la barre ouvre une fiche à remplir à la main.
+- Une recette déjà là (même titre) n'est pas copiée : elle monte (`vue` + 1), et ce que le foyer a
+  écrit n'est jamais écrasé.
+
+La fiche : portions (les quantités se recalculent, les courses aussi), ce qui est déjà à la maison
+d'après le stock (le sel, l'huile et les épices sont supposés là), « Mettre aux courses ce qui
+manque », un soir des sept prochains jours (la recette rejoint « Prévu ces soirs » et le manquant part
+aux courses), le mode cuisine (plein écran, écran allumé, une étape à la fois, glisser pour avancer),
+« On l'a fait » (compté, sans rien retirer du stock), l'avis « On aime » / « Pas pour nous » partagé
+avec le Chef. Jarvis répond à « qu'est-ce qu'on mange ce soir ? » à partir de ces recettes et du stock.
+
+Rangement : documents `type: "recette"` (id `recette-…`) dans la collection `menus`, à côté des menus
+et du réglage : pas de nouvelle table. Règles et tests : `src/domaine/recettes.ts`. Écrans :
+`src/ui/ecrans/Recettes.tsx`. Après une modification : `npm run fonction`, puis redéployer `chef` et
+`jarvis`.

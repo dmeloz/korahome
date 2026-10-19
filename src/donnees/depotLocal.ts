@@ -219,6 +219,7 @@ export function creerDepotLocal(
 
     lireMenus: () => tous<DocChef>("menus"),
     enregistrerMenu: (doc) => poser("menus", [doc]),
+    supprimerMenu: (id) => supprimer("menus", [id]),
 
     lireAgenda: () => tous<DocAgenda>("agenda"),
     enregistrerAgenda: (doc) => poser("agenda", [doc]),
