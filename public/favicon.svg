@@ -1,1 +1,55 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#C8553D"/><path d="M256 120 112 236v156h108v-96h72v96h108V236Z" fill="#F7F4EF"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="fond" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#1c1538"/>
+      <stop offset="0.55" stop-color="#0f0f22"/>
+      <stop offset="1" stop-color="#080a12"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#b48cff" stop-opacity=".55"/>
+      <stop offset=".45" stop-color="#8a5cf6" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#8a5cf6" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="halo2" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#8fe3ff" stop-opacity=".35"/>
+      <stop offset="1" stop-color="#4fc6f5" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="coeur" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset=".45" stop-color="#efe6ff"/>
+      <stop offset="1" stop-color="#b48cff"/>
+    </radialGradient>
+    <linearGradient id="maison" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4efff" stop-opacity=".95"/>
+      <stop offset="1" stop-color="#c7b8ee" stop-opacity=".75"/>
+    </linearGradient>
+    <radialGradient id="porte" cx="0.5" cy="0.2" r="0.9">
+      <stop offset="0" stop-color="#ffd9a0"/>
+      <stop offset="1" stop-color="#f0a75a"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#fond)"/>
+  <!-- lueurs -->
+  <circle cx="330" cy="150" r="170" fill="url(#halo)"/>
+  <circle cx="160" cy="420" r="160" fill="url(#halo2)" opacity=".5"/>
+  <!-- maison en trait fin -->
+  <path d="M136 400 V250 L256 152 L376 250 V400 Z" fill="none" stroke="url(#maison)" stroke-width="18" stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- porte allumée -->
+  <rect x="226" y="314" width="60" height="86" rx="30" ry="30" fill="url(#porte)"/>
+  <rect x="226" y="350" width="60" height="50" fill="url(#porte)"/>
+  <!-- la fée -->
+  <g transform="translate(336 128) scale(1.35)">
+    <ellipse cx="-24" cy="-14" rx="26" ry="14" transform="rotate(-28 -24 -14)" fill="#e4d8ff" opacity=".55"/>
+    <ellipse cx="24" cy="-14" rx="26" ry="14" transform="rotate(28 24 -14)" fill="#e4d8ff" opacity=".55"/>
+    <ellipse cx="-18" cy="10" rx="16" ry="9" transform="rotate(20 -18 10)" fill="#e4d8ff" opacity=".4"/>
+    <ellipse cx="18" cy="10" rx="16" ry="9" transform="rotate(-20 18 10)" fill="#e4d8ff" opacity=".4"/>
+    <circle r="17" fill="url(#coeur)"/>
+  </g>
+  <!-- étincelles -->
+  <g fill="#efe6ff">
+    <path d="M404 214 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4z" opacity=".8"/>
+    <circle cx="290" cy="96" r="4" opacity=".7"/>
+    <circle cx="384" cy="86" r="3" opacity=".55"/>
+    <circle cx="300" cy="196" r="2.5" opacity=".5"/>
+  </g>
+</svg>
