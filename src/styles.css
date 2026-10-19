@@ -844,7 +844,7 @@ html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
 .rappels-message { text-align: center; margin-top: 12px; }
 /* L'heure se touche comme une alarme : la roue de l'iPhone s'ouvre par-dessus. */
 .rappels-horloge { position: relative; display: grid; justify-items: center; gap: 6px; padding: 10px 0 6px; }
-.rappels-roue { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; font-size: var(--t-detail); }
+.rappels-roue { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; font-size: var(--t-detail); -webkit-appearance: none; appearance: none; }
 .rappels-jours { display: flex; justify-content: space-between; gap: 6px; margin-top: 8px; }
 .rappels-jour {
   flex: 1;

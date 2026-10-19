@@ -834,10 +834,6 @@ const FUSEAU_DU_FOYER = "Europe/Zurich";
 function heureValide(heure) {
 	return Number.isInteger(heure) && heure >= 5 && heure <= 22;
 }
-Array.from({ length: 36 }, (_, i) => ({
-	heure: 5 + Math.floor(i / 2),
-	minute: i % 2 ? 30 : 0
-}));
 /** Les jours de la semaine, dans l'ordre suisse : lundi d'abord. */
 const JOURS_SEMAINE = [
 	{
