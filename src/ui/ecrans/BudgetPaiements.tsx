@@ -154,11 +154,11 @@ export function InvitationApplePay(props: { ouvrir: () => void }) {
   );
 }
 
-/** Avec l'IA de Raccourcis : la phrase copiée crée le raccourci, il reste à le brancher. */
+/** Avec l'IA de Raccourcis (iOS 26) : la phrase copiée crée le raccourci et son déclencheur. */
 const ETAPES = [
-  "Dans Raccourcis, crée un nouveau raccourci, touche « Décrire un raccourci » et colle la demande copiée. Vérifie qu'il contient bien l'action « Obtenir le contenu de l'URL », puis OK.",
-  "Onglet Automatisation, + puis « Transaction ». Coche les cartes du foyer (Revolut courses, plaisir…), garde toutes les catégories, choisis « Exécuter immédiatement », puis Suivant.",
-  "Choisis le raccourci « Kora paiement ». Au premier paiement de chaque carte, Kora demande une fois son pot ; ensuite tout se range seul.",
+  "Dans Raccourcis, crée un nouveau raccourci et colle la demande copiée dans « Décrire un raccourci ».",
+  "Vérifie le résultat : un bloc « Lorsque n'importe quelle carte est présentée », puis « Obtenir le contenu de » avec ton adresse. Touche › au bout de l'adresse : Méthode POST, Corps JSON, champs carte, montant, marchand.",
+  "Touche › après « est présentée » et choisis de l'exécuter sans demander. Au premier paiement de chaque carte, Kora demande une fois son pot ; ensuite tout se range seul.",
 ];
 
 /** Sans l'IA : le même raccourci, fait à la main. */
@@ -166,6 +166,7 @@ const A_LA_MAIN = [
   "Nouveau raccourci, action « Obtenir le contenu de l'URL », colle l'adresse (bouton Copier l'adresse).",
   "Dans les options : Méthode POST, Corps de la requête JSON.",
   "Trois champs Texte : montant, marchand, carte, avec les variables Montant, Commerçant et Carte de l'entrée du raccourci.",
+  "Ajoute le déclencheur « Lorsque n'importe quelle carte est présentée » (Transaction), exécuté sans demander.",
 ];
 
 /** La mise en route sur cet iPhone, et les cartes que Kora connaît. */
