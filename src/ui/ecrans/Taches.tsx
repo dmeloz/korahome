@@ -1,3 +1,4 @@
+import { feteFee } from "../fee";
 import { useEffect, useState } from "react";
 import { Feuille } from "../Feuille";
 import { appliquerEtalement, appliquerRepartition, compteRepartition, etalementPropose, proposerRepartition, tachesDeLaSemaine } from "../../domaine/repartition";
@@ -85,6 +86,7 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
     vibrer();
     const apres = marquerFaite(t, moi, aujourdhui, contexteReel);
     await props.depot.enregistrerTache(apres);
+    feteFee();
     noterUsage("tache", t.id);
     const suite = apres.recurrence ? ` Prochaine fois ${decrireEcheance(apres.echeance, aujourdhui)}.` : "";
     setAnnulable({ texte: `« ${t.titre} » faite.${suite}`, avant: t });

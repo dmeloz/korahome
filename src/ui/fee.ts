@@ -1,5 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { feeDe, type Fee, type TeinteFee } from "../domaine/fee";
+import { heuresDiscretes, nettoyerRenvois, type AllureMeteo, type Eclat } from "../domaine/vieFee";
+import { aujourdhuiLocal } from "./contexte";
 
 // La fée de ce téléphone (Tael ou Navi) et ce qu'elle est en train de dire. Toute page peut la
 // faire parler (un signe touché, le mot du jour) ; c'est la fée, en bas, qui montre la bulle.
@@ -45,6 +47,10 @@ export interface Parole {
   actions?: ActionParole[];
   /** Fermée sans toucher d'action (le temps passé, un toucher ailleurs). */
   sansSuite?: () => void;
+  /** Elle l'a dit d'elle-même : la renvoyer compte pour sa discrétion. */
+  spontanee?: boolean;
+  /** « Hey ! Listen ! » : la bulle crie. */
+  crie?: boolean;
 }
 
 let parole: Parole | null = null;
@@ -66,11 +72,16 @@ if (typeof window !== "undefined") {
   window.addEventListener("scroll", geste, { passive: true });
 }
 
-/** Dit la chose si le moment s'y prête ; faux sinon, pour réessayer plus tard. */
-export function direSiCalme(p: Parole): boolean {
+/**
+ * Dit la chose si le moment s'y prête ; faux sinon, pour réessayer plus tard. Ce qui n'est pas
+ * urgent attend aussi qu'on ne soit pas à une heure où elle a appris à se taire.
+ */
+export function direSiCalme(p: Parole, urgent = false): boolean {
   const html = document.documentElement.classList;
   if (parole || Date.now() - dernierGeste < CALME_MS || html.contains("saisie-ouverte") || html.contains("feuille-ouverte")) return false;
-  direFee(p);
+  // La nuit, ou pendant qu'elle scintille pour une alerte, seul l'urgent passe.
+  if (!urgent && (etat.nuit || etat.alerte || heuresDiscretes(lireRenvois()).has(new Date().getHours()))) return false;
+  direFee({ ...p, spontanee: true });
   return true;
 }
 
@@ -89,6 +100,150 @@ export function useParoleFee(): Parole | null {
     },
     () => parole,
   );
+}
+
+// ----- Son état : éclat, nuit, météo, alerte, joie -----
+
+export interface EtatFee {
+  eclat: Eclat;
+  nuit: boolean;
+  allure: AllureMeteo;
+  /** Elle scintille près d'un widget : la toucher fait dire l'alerte. */
+  alerte: Parole | null;
+  /** Où elle vole (un sélecteur de l'écran), au lieu de sa place. */
+  cible: string | null;
+  joie: boolean;
+  /** Le réveil : elle s'étire. */
+  etire: boolean;
+}
+
+let etat: EtatFee = { eclat: "normal", nuit: false, allure: null, alerte: null, cible: null, joie: false, etire: false };
+const abonnesEtat = new Set<() => void>();
+
+export function changerEtatFee(changement: Partial<EtatFee>): void {
+  const suivant = { ...etat, ...changement };
+  if ((Object.keys(changement) as (keyof EtatFee)[]).every((k) => suivant[k] === etat[k])) return;
+  etat = suivant;
+  abonnesEtat.forEach((a) => a());
+}
+
+export const lireEtatFee = () => etat;
+
+export function useEtatFee(): EtatFee {
+  return useSyncExternalStore(
+    (a) => {
+      abonnesEtat.add(a);
+      return () => abonnesEtat.delete(a);
+    },
+    () => etat,
+  );
+}
+
+const JOIE_MS = 1400;
+const ENTRE_JOIES_MS = 10_000;
+let derniereJoie = 0;
+
+/** Une tâche faite par moi : elle fait une petite boucle et scintille (une fois toutes les 10 s au plus). */
+export function feteFee(): void {
+  if (Date.now() - derniereJoie < ENTRE_JOIES_MS) return;
+  derniereJoie = Date.now();
+  changerEtatFee({ joie: true });
+  setTimeout(() => changerEtatFee({ joie: false }), JOIE_MS);
+}
+
+/** Touchée la nuit, elle reste réveillée dix minutes. */
+let eveilleeJusqua = 0;
+export function reveillerFee(): void {
+  eveilleeJusqua = Date.now() + 10 * 60_000;
+  changerEtatFee({ nuit: false });
+}
+export const estEveillee = () => Date.now() < eveilleeJusqua;
+
+// ----- Son tintement (coupé tant qu'on ne l'a pas allumé dans Réglages) -----
+
+const CLE_SON = "korahome.feeSon";
+export function sonActif(): boolean {
+  try {
+    return localStorage.getItem(CLE_SON) === "1";
+  } catch {
+    return false;
+  }
+}
+export function changerSon(actif: boolean): void {
+  try {
+    if (actif) localStorage.setItem(CLE_SON, "1");
+    else localStorage.removeItem(CLE_SON);
+  } catch {
+    // vaut pour cette visite
+  }
+}
+
+let audio: AudioContext | null = null;
+/** Deux notes claires, comme une clochette. Safari ne joue un son qu'après un premier toucher. */
+export function tinter(force = false): void {
+  if (!force && !sonActif()) return;
+  try {
+    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctx) return;
+    audio ??= new Ctx();
+    const t = audio.currentTime;
+    [1318.5, 1760].forEach((f, i) => {
+      const o = audio!.createOscillator();
+      const g = audio!.createGain();
+      o.type = "sine";
+      o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t + i * 0.12);
+      g.gain.exponentialRampToValueAtTime(0.12, t + i * 0.12 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.12 + 0.5);
+      o.connect(g).connect(audio!.destination);
+      o.start(t + i * 0.12);
+      o.stop(t + i * 0.12 + 0.55);
+    });
+  } catch {
+    // Pas de son : elle scintille quand même.
+  }
+}
+
+// ----- Sa discrétion apprise -----
+
+const CLE_RENVOIS = "korahome.feeRenvois";
+const CLE_DISCRETE_DIT = "korahome.feeDiscreteDit";
+
+export function lireRenvois() {
+  try {
+    return nettoyerRenvois(JSON.parse(localStorage.getItem(CLE_RENVOIS) ?? "[]"), aujourdhuiLocal());
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Une bulle qu'elle a dite d'elle-même, renvoyée d'un toucher ailleurs. Renvoie l'heure quand
+ * elle vient d'apprendre à s'y taire (pour le dire une fois), sinon null.
+ */
+export function noterRenvoi(): number | null {
+  const heure = new Date().getHours();
+  const renvois = [...lireRenvois(), { jour: aujourdhuiLocal(), heure }];
+  try {
+    localStorage.setItem(CLE_RENVOIS, JSON.stringify(renvois));
+    if (!heuresDiscretes(renvois).has(heure)) return null;
+    const dites: number[] = JSON.parse(localStorage.getItem(CLE_DISCRETE_DIT) ?? "[]");
+    if (dites.includes(heure)) return null;
+    localStorage.setItem(CLE_DISCRETE_DIT, JSON.stringify([...dites, heure]));
+    return heure;
+  } catch {
+    return null;
+  }
+}
+
+/** Réglages › La fée › Remettre à zéro : elle reparle à toute heure. */
+export function oublierDiscretion(): void {
+  try {
+    localStorage.removeItem(CLE_RENVOIS);
+    localStorage.removeItem(CLE_DISCRETE_DIT);
+  } catch {
+    // rien
+  }
 }
 
 // ----- Ce que j'ai déjà vu de l'autre -----

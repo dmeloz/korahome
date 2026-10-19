@@ -372,6 +372,10 @@ export function BarreJarvis(props: {
       attentes={ouverte ? [] : attentes}
       ouvrirAttente={ouvrirAttente}
       teinteAutre={teinteAutre}
+      cacher={() => {
+        if (ecoute) ecoute();
+        fermer();
+      }}
     />
     <div className={`barre-zone${ouverte ? " ouverte" : ""}`} style={clavier ? { bottom: clavier } : undefined} aria-hidden={!ouverte}>
       <div ref={(el) => void (el && el.firstChild !== emplacement() && el.appendChild(emplacement()))} />
