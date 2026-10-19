@@ -4,9 +4,9 @@ Kora 0.0.23 range l'interface en quelques pièces qui se répètent sur toutes l
 
 ## Ce que voit la personne
 
-- **L'accueil** : la date et la météo, le bandeau du couple qui défile (à la place de la salutation, réglable dans « Nos mots »), la carte « Aujourd'hui » (les choses du jour par urgence, trois en vue et les autres au doigt, un rond pour cocher une tâche), puis des pages de widgets à glisser, rangées par usage (Ménage, Courses, Cuisine, Budget, Agenda). En bas : l'état du partage, la dernière sauvegarde, « Modifier l'accueil ».
+- **L'accueil** : la date et la météo, le bandeau du couple qui défile (à la place de la salutation, réglable dans « Nos mots »), la carte « Aujourd'hui » (les choses du jour par urgence, trois en vue et les autres au doigt, un rond pour cocher une tâche), puis une rangée de bulles par usage (Ménage, Courses, Cuisine, Budget, Agenda) qui ouvrent chacune leur page, et le tableau de bord : tous les widgets sur une seule page, pour la vue d'ensemble. En bas : l'état du partage, la dernière sauvegarde, « Modifier l'accueil ».
 - **La barre Jarvis**, en bas de chaque page : la seule façon d'ajouter quelque chose. On écrit ou on dit une phrase ; Kora la range seule quand c'est simple (courses, tâche, rendez-vous, pesée de Mitsu, nouvelle liste), sinon la confie à Jarvis. Le bouton ticket y photographie un ticket de caisse.
-- **La visite guidée** : au premier lancement sur chaque téléphone, des bulles montrent la banderole, la carte Aujourd'hui, les pages, un widget, la barre Jarvis, les gestes, la recherche et les réglages. « Passer » à tout moment ; Réglages › Visite guidée la relance et remontre les aides des pages.
+- **La visite guidée** : au premier lancement sur chaque téléphone, des bulles montrent la banderole, la carte Aujourd'hui, les bulles, un widget, la barre Jarvis, les gestes, la recherche et les réglages. « Passer » à tout moment ; Réglages › Visite guidée la relance et remontre les aides des pages.
 - **Une page** : grand titre, une ligne de contexte, une aide montrée une seule fois, puis le contenu.
 - **Les gestes**, partout les mêmes : glisser vers la droite = fait (coché, pris) ; vers la gauche = supprimer, avec « Annuler » ; appui long = menu rapide ; glisser depuis le bord gauche = revenir.
 - **Le thème** : Auto, Sombre ou Clair doux, choisi par téléphone (Réglages, Ce téléphone). Les textes suivent la taille de texte de l'iPhone.
@@ -26,7 +26,7 @@ Kora 0.0.23 range l'interface en quelques pièces qui se répètent sur toutes l
 | `AuDessusDeLaBarre` | `src/ui/pieces/barre.tsx` | Contenu du même `safeAreaInset`, au-dessus du champ |
 | `Glissable` | `src/ui/Glissable.tsx` | `.swipeActions(edge: .leading / .trailing)` et `.contextMenu` |
 | `Feuille` | `src/ui/Feuille.tsx` | `.sheet` avec `presentationDetents` |
-| Pages d'accueil à glisser | `src/ui/ecrans/Accueil.tsx` | `TabView` en style `.page` |
+| Bulles des espaces et page d'un espace | `src/ui/ecrans/Accueil.tsx`, `src/ui/ecrans/Espace.tsx` | `ScrollView(.horizontal)` de boutons ronds, `NavigationLink` vers une vue de l'espace |
 | Recherche (tirer vers le bas) | `src/ui/Recherche.tsx` | `.searchable` |
 | Thème | `src/ui/theme.ts` | `.preferredColorScheme` et un `Asset Catalog` de couleurs |
 

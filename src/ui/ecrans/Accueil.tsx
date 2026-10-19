@@ -17,29 +17,22 @@ import {
   basculerTaille,
   definition,
   deplacerVers,
+  ESPACES,
   nettoyerDisposition,
-  nettoyerPages,
   nettoyerTailles,
   ordreAffichage,
-  pageDe,
-  pageSuivante,
-  PAGE_PRINCIPALE,
-  PAGES_ACCUEIL,
-  pagesVisibles,
   retirerWidget,
   tailleDe,
   widgetsAAjouter,
-  widgetsDeLaPage,
   type Disposition,
-  type PageAccueil,
-  type PagesWidgets,
+  type EspaceId,
   type Tailles,
   type WidgetId,
 } from "../../domaine/tableauDeBord";
 import { useAnnoncer } from "../annulation";
-import { contexteReel, enregistrerDisposition, enregistrerPages, enregistrerTailles, lireDisposition, lirePages, lireTailles } from "../contexte";
+import { contexteReel, enregistrerDisposition, enregistrerTailles, lireDisposition, lireTailles } from "../contexte";
 import { Icone } from "../Icone";
-import { MODULES, PICTOS, type ApercuWidget, type DonneesModule } from "../modules";
+import { MODULES, PICTOS, PICTOS_ESPACES, type ApercuWidget, type DonneesModule } from "../modules";
 import { vibrer } from "../haptique";
 import { calculerApprentissages } from "../apprendre";
 import { CarteAujourdhui, Visite } from "../pieces";
@@ -68,6 +61,8 @@ const TIRER_POUR_CHERCHER = 72;
 export function Accueil(props: {
   donnees: DonneesModule;
   ouvrirModule: (id: WidgetId) => void;
+  /** Une bulle : la page d'un usage du quotidien. */
+  ouvrirEspace: (id: EspaceId) => void;
   ouvrirReglages: () => void;
   ouvrirMots: () => void;
   ouvrirBilan: () => void;
@@ -94,12 +89,9 @@ export function Accueil(props: {
     if (versionLocale) setDisposition(nettoyerDisposition(lireDisposition()));
   }, [versionLocale]);
   const [tailles, setTailles] = useState<Tailles>(() => nettoyerTailles(lireTailles()));
-  const [pages, setPages] = useState<PagesWidgets>(() => nettoyerPages(lirePages()));
   const [edition, setEdition] = useState(false);
   const [glisse, setGlisse] = useState<WidgetId | null>(null);
   const [recherche, setRecherche] = useState(false);
-  const [pageActive, setPageActive] = useState<PageAccueil>(PAGE_PRINCIPALE);
-  const defilant = useRef<HTMLDivElement>(null);
   const appui = useRef<{ minuterie: ReturnType<typeof setTimeout>; x: number; y: number } | null>(null);
   const ignorerClic = useRef(false);
   const { foyer, membreId, aujourdhui } = props.donnees;
@@ -108,14 +100,13 @@ export function Accueil(props: {
   const date = new Date().toLocaleDateString("fr-CH", { weekday: "long", day: "numeric", month: "long" });
   const jourMeteo = meteoDu(props.donnees.meteo, aujourdhui);
   const temps = jourMeteo ? `${Math.round(jourMeteo.max)}°, ${decrireTemps(jourMeteo.code).toLowerCase()}` : null;
-  // La visite guidée attend que l'accueil soit posé, tout en haut et sur sa première page.
+  // La visite guidée attend que l'accueil soit posé, tout en haut.
   const visiteDemandee = useSyncExternalStore(abonnerVisite, visiteEnAttente);
   const [visite, setVisite] = useState(false);
   useEffect(() => {
     if (!visiteDemandee || !props.auDessus || edition || recherche) return;
     const id = setTimeout(() => {
       window.scrollTo(0, 0);
-      defilant.current?.scrollTo({ left: 0 });
       setVisite(true);
     }, 700);
     return () => clearTimeout(id);
@@ -131,11 +122,6 @@ export function Accueil(props: {
     const suivantes = basculerTaille(tailles, id);
     setTailles(suivantes);
     enregistrerTailles(suivantes);
-  };
-  const changerPage = (id: WidgetId) => {
-    const suivantes = pageSuivante(pages, id);
-    setPages(suivantes);
-    enregistrerPages(suivantes);
   };
 
   // Appui long sur un widget : on passe en mode modification, sans ouvrir la page.
@@ -190,9 +176,6 @@ export function Accueil(props: {
     : adaptations.accueilVivant
       ? ordreVivant(ordreAffichage(disposition, urgents), urgents, lireUsages(), heure, aujourdhui)
       : ordreAffichage(disposition, urgents);
-  const visibles = pagesVisibles(disposition, pages);
-  // En modification, toutes les pages restent là pour y ranger un widget.
-  const lesPages = edition ? PAGES_ACCUEIL.map((p) => p.id) : visibles;
 
   // Le bilan du dimanche attend qu'on le regarde ; le mot du jour de Jarvis, une fois par jour au plus.
   const aApprendre = bilanDeLaSemaine(calculerApprentissages(props.donnees)).length;
@@ -233,25 +216,6 @@ export function Accueil(props: {
     setGlisse(null);
   };
 
-  // Les pages se feuillettent au doigt ; les onglets suivent, et y mènent d'un toucher.
-  const suivrePage = () => {
-    const zone = defilant.current;
-    if (!zone) return;
-    const i = Math.round(zone.scrollLeft / Math.max(zone.clientWidth, 1));
-    const p = lesPages[Math.min(i, lesPages.length - 1)];
-    if (p && p !== pageActive) setPageActive(p);
-  };
-  const allerPage = (p: PageAccueil) => {
-    const zone = defilant.current;
-    const i = lesPages.indexOf(p);
-    if (!zone || i < 0) return;
-    zone.scrollTo({ left: i * zone.clientWidth, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-    setPageActive(p);
-  };
-  useEffect(() => {
-    if (!lesPages.includes(pageActive)) allerPage(PAGE_PRINCIPALE);
-  }); // eslint-disable-line react-hooks/exhaustive-deps
-
   function widget(id: WidgetId, i: number): ReactNode {
     const c = apercus.get(id);
     if (!c) return null;
@@ -279,8 +243,6 @@ export function Accueil(props: {
       </>
     );
     if (edition) {
-      const page = PAGES_ACCUEIL.find((p) => p.id === pageDe(pages, id))!;
-      const suivante = PAGES_ACCUEIL[(PAGES_ACCUEIL.indexOf(page) + 1) % PAGES_ACCUEIL.length];
       return (
         <div
           key={id}
@@ -298,9 +260,6 @@ export function Accueil(props: {
           </button>
           <button className="badge-widget taille" onClick={() => changerTaille(id)} aria-label={taille === "grand" ? `Réduire ${def.titre}` : `Agrandir ${def.titre}`}>
             <Icone nom={taille === "grand" ? "reduire" : "agrandir"} taille={14} />
-          </button>
-          <button className="badge-widget page-widget" onClick={() => changerPage(id)} aria-label={`Envoyer ${def.titre} sur la page ${suivante.titre}`}>
-            <Icone nom="deplacer" taille={14} />
           </button>
         </div>
       );
@@ -395,36 +354,30 @@ export function Accueil(props: {
 
       {!edition && <CarteAujourdhui carte={carte} toucher={toucherChose} cocher={(c) => void cocherChose(c)} voirTout={() => props.ouvrirModule("taches")} />}
 
-      {lesPages.length > 1 && (
-        <nav className="onglets-accueil" aria-label="Pages de l'accueil">
-          {lesPages.map((p) => (
-            <button key={p} className={p === pageActive ? "actif" : ""} aria-current={p === pageActive ? "page" : undefined} onClick={() => allerPage(p)}>
-              {PAGES_ACCUEIL.find((x) => x.id === p)!.titre}
+      {!edition && (
+        <nav className="bulles-espaces" aria-label="Espaces">
+          {ESPACES.map((e) => (
+            <button key={e.id} className="bulle-espace" onClick={() => props.ouvrirEspace(e.id)}>
+              <span className="bulle-rond" aria-hidden><Icone nom={PICTOS_ESPACES[e.id]} taille={22} /></span>
+              <span className="bulle-nom">{e.titre}</span>
             </button>
           ))}
         </nav>
       )}
 
-      <div className="pages-accueil" ref={defilant} onScroll={suivrePage} data-geste-propre>
-        {lesPages.map((p) => {
-          const ids = widgetsDeLaPage(ordonnes, pages, p);
-          return (
-            <section key={p} className="page-accueil" aria-label={PAGES_ACCUEIL.find((x) => x.id === p)!.titre}>
-              <div className={`widgets${edition ? " en-edition" : ""}`}>{ids.map((id, i) => widget(id, i))}</div>
-              {ids.length === 0 && (
-                <div className="carte vide-tableau">
-                  <p>{edition ? "Envoie un widget ici avec sa flèche." : "Cette page est vide."}</p>
-                  {!edition && <button className="bouton-principal" onClick={() => setEdition(true)}>Ajouter des widgets</button>}
-                </div>
-              )}
-            </section>
-          );
-        })}
-      </div>
+      <section className="widgets-accueil" aria-label="Tableau de bord">
+        <div className={`widgets${edition ? " en-edition" : ""}`}>{ordonnes.map((id, i) => widget(id, i))}</div>
+        {ordonnes.length === 0 && (
+          <div className="carte vide-tableau">
+            <p>Le tableau de bord est vide.</p>
+            {!edition && <button className="bouton-principal" onClick={() => setEdition(true)}>Ajouter des widgets</button>}
+          </div>
+        )}
+      </section>
 
       {edition && (
         <section className="ajout-widgets">
-          <p className="discret aide-edition">Glisse un widget pour le déplacer. Les flèches changent sa taille ; l'autre flèche l'envoie sur la page suivante.</p>
+          <p className="discret aide-edition">Glisse un widget pour le déplacer. Les flèches changent sa taille.</p>
           {prets.length > 0 && <h2 className="rayon">Ajouter</h2>}
           {prets.map((w) => (
             <button key={w.id} className="carte proposition" onClick={() => changer(ajouterWidget(disposition, w.id))}>

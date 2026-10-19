@@ -4,13 +4,14 @@ import { flushSync } from "react-dom";
 import { meteoFraiche } from "../domaine/meteo";
 import { rappelDuMatin } from "../domaine/rappels";
 import { facturesDuJour } from "../domaine/budget";
-import type { WidgetId } from "../domaine/tableauDeBord";
+import { destinationBulle, espace, type EspaceId, type WidgetId } from "../domaine/tableauDeBord";
 import type { Foyer } from "../domaine/types";
 import type { DepotLocal } from "../donnees/depotLocal";
 import { FournisseurAnnulation } from "./annulation";
 import { CoinDev } from "./CoinDev";
 import { aujourdhuiLocal, choisirMembreCourant, lireMembreCourant } from "./contexte";
 import { Accueil } from "./ecrans/Accueil";
+import { Espace } from "./ecrans/Espace";
 import { Bienvenue } from "./ecrans/Bienvenue";
 import { Conseil } from "./ecrans/Conseil";
 import { Bilan } from "./ecrans/Bilan";
@@ -51,6 +52,7 @@ import { demanderVisite } from "./visite";
 type Page =
   | { nom: "accueil" }
   | { nom: "module"; id: WidgetId }
+  | { nom: "espace"; id: EspaceId }
   | { nom: "liste"; id: string }
   | { nom: "reglages" }
   | { nom: "partage" }
@@ -151,6 +153,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     if (p.nom === "sauvegarde") return "Sauvegarde";
     if (p.nom === "calendrier") return "Calendrier de l'iPhone";
     if (p.nom === "module") return MODULES[p.id]?.libelle ?? "Retour";
+    if (p.nom === "espace") return espace(p.id).titre;
     return listes.find((l) => l.id === p.id)?.nom ?? "Liste";
   }
   /** Le nom de l'écran tel qu'il apparaît dans les notes et le journal. */
@@ -215,6 +218,10 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       <Accueil
         donnees={donnees}
         ouvrirModule={(id) => ouvrir({ nom: "module", id })}
+        ouvrirEspace={(id) => {
+          const cible = destinationBulle(id);
+          ouvrir(cible.type === "module" ? { nom: "module", id: cible.id } : { nom: "espace", id: cible.id });
+        }}
         ouvrirReglages={() => ouvrir({ nom: "reglages" })}
         ouvrirMots={() => ouvrir({ nom: "mots" })}
         ouvrirBilan={() => ouvrir({ nom: "bilan" })}
@@ -235,6 +242,8 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         auDessus={pile.length === 1}
       />
     );
+  } else if (page.nom === "espace") {
+    ecran = <Espace id={page.id} donnees={donnees} ouvrirModule={(id) => ouvrir({ nom: "module", id })} />;
   } else if (page.nom === "module") {
     ecran = MODULES[page.id]?.page({ ...donnees, depot, ouvrirListe, jarvis: jarvisPartage, agendaDistant: agendaPartage });
   } else if (page.nom === "liste") {

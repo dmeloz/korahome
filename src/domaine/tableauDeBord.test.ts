@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
-  nettoyerPages,
-  pageDe,
-  pageSuivante,
-  pagesVisibles,
-  widgetsDeLaPage,
+  CATALOGUE,
+  destinationBulle,
+  ESPACES,
+  modulesDeLEspace,
   DISPOSITION_DE_DEPART,
   ajouterWidget,
   deplacerWidget,
@@ -81,26 +80,18 @@ describe("taille et glisser des widgets", () => {
   });
 });
 
-describe("les pages de l'accueil", () => {
-  it("range chaque widget sur sa page de départ", () => {
-    expect(pageDe({}, "courses")).toBe("courses");
-    expect(pageDe({}, "chef")).toBe("cuisine");
-    expect(pageDe({}, "agenda")).toBe("agenda");
-    expect(widgetsDeLaPage(["taches", "agenda", "courses", "mitsu"], {}, "menage")).toEqual(["taches", "mitsu"]);
+describe("les bulles des espaces", () => {
+  it("range chaque module dans un seul espace", () => {
+    const ranges = ESPACES.flatMap((e) => e.widgets);
+    expect(new Set(ranges).size).toBe(ranges.length);
+    expect([...ranges].sort()).toEqual(CATALOGUE.map((w) => w.id).sort());
   });
 
-  it("change un widget de page en boucle, et relit les pages enregistrées", () => {
-    let pages = pageSuivante({}, "courses");
-    expect(pageDe(pages, "courses")).toBe("cuisine");
-    for (let i = 0; i < 3; i++) pages = pageSuivante(pages, "courses");
-    expect(pageDe(pages, "courses")).toBe("menage");
-    expect(pageSuivante(pages, "courses")).toEqual({});
-    // Les pages d'avant (Maison, Nous deux, Mitsu et jardin) sont oubliées : le widget revient à sa page de départ.
-    expect(nettoyerPages({ courses: "cuisine", agenda: "nous", inconnu: "budget", taches: "ailleurs" })).toEqual({ courses: "cuisine" });
-  });
-
-  it("ne montre que les pages qui ont des widgets, et toujours le Ménage", () => {
-    expect(pagesVisibles(["agenda"], {})).toEqual(["menage", "agenda"]);
-    expect(pagesVisibles([], {})).toEqual(["menage"]);
+  it("ouvre la page de l'espace, ou directement le module quand il est seul", () => {
+    expect(destinationBulle("menage")).toEqual({ type: "espace", id: "menage" });
+    expect(modulesDeLEspace("cuisine")).toEqual(["chef", "stock"]);
+    // Les infos de la maison ne sont pas encore prêtes : le Budget est seul dans son espace.
+    expect(destinationBulle("budget")).toEqual({ type: "module", id: "budget" });
+    expect(destinationBulle("agenda")).toEqual({ type: "module", id: "agenda" });
   });
 });
