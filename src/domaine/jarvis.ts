@@ -12,7 +12,7 @@
 // comme souhait pour Claude (une note « Idée » des retours de test).
 
 import { CATEGORIES, decrireAgenda, decrireJour, evenementsDe, preparerEvenement, REPETITIONS, type Categorie, type DocAgenda, type Evenement, type Repetition } from "./agenda";
-import { decrireBudget, facturesAPayer, formaterMontant as formaterMontantCourt, nouvelleDepense, payerFacture, planDe, POTS, type Depense, type DocBudget, type Pot } from "./budget";
+import { decrireBudget, facturesAPayer, formaterMontant as formaterMontantCourt, nouvelleDepense, payerFacture, planDe, POTS, type ArticleTicket, type Depense, type DocBudget, type Pot } from "./budget";
 import { proposer, type ProduitHabituel } from "./catalogue";
 import { ajouterPlante, arroser, decrireJardin, nouvellePlante, type Zone } from "./jardin";
 import { analyserSaisie, nouvelElement, trouverDoublon } from "./listes";
@@ -180,7 +180,7 @@ export type ActionJarvis =
       lieu: string | null;
     }
   | { outil: "supprimer_evenement"; titre: string; jour: Jour | null }
-  | { outil: "noter_depense"; montant: number; libelle: string; magasin: string | null; pot: Pot; jour: Jour | null; charge: string | null };
+  | { outil: "noter_depense"; montant: number; libelle: string; magasin: string | null; pot: Pot; jour: Jour | null; charge: string | null; articles: ArticleTicket[] };
 
 /** Ce qui attend le oui de la personne avant de se faire : supprimer, ou retenir ce que Jarvis a remarqué seul. */
 export function aConfirmer(action: ActionJarvis): boolean {
@@ -306,6 +306,10 @@ export function lireActions(appels: readonly { nom: string; entree: unknown }[])
         pot,
         jour: jourOuNul(e.jour),
         charge: estTexte(e.charge) ? e.charge.trim() : null,
+        articles: (Array.isArray(e.articles) ? e.articles : [])
+          .filter((a): a is { nom: string; prix: number } => !!a && typeof a === "object" && estTexte(a.nom) && typeof a.prix === "number" && a.prix > 0 && a.prix < 10_000)
+          .slice(0, 80)
+          .map((a) => ({ nom: a.nom.trim(), prix: a.prix })),
       });
     } else if (nom === "noter_souhait") {
       if (estTexte(e.demande)) actions.push({ outil: nom, demande: e.demande.trim(), manque: estTexte(e.manque) ? e.manque.trim() : "" });
@@ -645,7 +649,11 @@ export function appliquerActions(
               ? { ...payerFacture(facture, jour, membreId, ctx, "jarvis"), montant: Math.round(action.montant * 100) / 100 }
               : nouvelleDepense({ montant: action.montant, pot: poste.pot && poste.pot !== "commun" ? poste.pot : "factures", libelle: poste.libelle, jour, posteId: poste.id, source: "jarvis" }, membreId, ctx);
           } else {
-            depense = nouvelleDepense({ montant: action.montant, pot: action.pot, libelle: action.libelle || action.magasin || POTS[action.pot].nom, magasin: action.magasin, jour, source: "jarvis" }, membreId, ctx);
+            depense = nouvelleDepense(
+              { montant: action.montant, pot: action.pot, libelle: action.libelle || action.magasin || POTS[action.pot].nom, magasin: action.magasin, jour, source: "jarvis", articles: action.articles },
+              membreId,
+              ctx,
+            );
           }
           modifications.push({ collection: "budget", avant: null, apres: depense });
           faits.push(`Noté au budget : ${depense.libelle.toLowerCase()}, ${formaterMontantCourt(depense.montant)} (${POTS[depense.pot].nom.toLowerCase()}).`);

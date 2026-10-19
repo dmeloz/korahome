@@ -1,6 +1,15 @@
 import { useState } from "react";
 import {
+  abonnementsALAnnee,
   avanceeProjet,
+  courbeEpargne,
+  coursesParMagasin,
+  coursesParMois,
+  motDuMois,
+  previsionFactures,
+  prixQuiMontent,
+  repartitionDuCommun,
+  rythmeCourses,
   bilanDuMois,
   CATEGORIES_POSTE,
   confirmerMois,
@@ -21,7 +30,6 @@ import {
   nouveauPlan,
   nouveauPoste,
   nouvelleDepense,
-  parMois,
   payerFacture,
   planDe,
   POTS,
@@ -42,8 +50,9 @@ import { vibrer } from "../haptique";
 import { Icone } from "../Icone";
 import type { PropsPage } from "../modules";
 import { Feuille, Onglets, Page, PointEtat, useGestionnaireBarre } from "../pieces";
+import { AnneauDuCommun, CourbeEpargne, CoursesParMois, JaugeRythme, Magasins, MoisLourds, MotDeJarvis, phraseRythme, PrixQuiMontent, TrajetSalaire } from "./BudgetVisuels";
 
-type Onglet = "mois" | "charges" | "epargne";
+type Onglet = "mois" | "charges" | "courses" | "epargne";
 
 const prenomDe = (foyer: Foyer, id: Id | null) => (id ? (foyer.membres.find((m) => m.id === id)?.prenom ?? "") : "Commun");
 const montant = (n: number) => formaterMontant(n);
@@ -122,12 +131,14 @@ export function Budget(p: PropsPage) {
         onglets={[
           { id: "mois", libelle: "Ce mois", compte: facturesAPayer(plan, p.budget, aujourdhui, 7).length },
           { id: "charges", libelle: "Charges" },
+          { id: "courses", libelle: "Courses" },
           { id: "epargne", libelle: "Épargne" },
         ]}
       />
 
       {onglet === "mois" && <CeMois {...p} plan={plan} voirCharges={() => setOnglet("charges")} />}
       {onglet === "charges" && <Charges {...p} plan={plan} ouvrirPoste={setPoste} ouvrirPersonne={setPersonne} />}
+      {onglet === "courses" && <Courses {...p} plan={plan} />}
       {onglet === "epargne" && <Epargne {...p} plan={plan} reglerProjet={() => setProjet(true)} />}
 
       <FeuillePoste plan={plan} poste={poste} foyer={foyer} fermer={() => setPoste(null)} enregistrer={enregistrer} />
@@ -151,6 +162,9 @@ function CeMois(p: PropsPage & { plan: PlanBudget; voirCharges: () => void }) {
   const datesManquantes = sansDate(plan);
   const duMois = depenses(p.budget).filter((d) => moisDe(d.jour) === moisDe(aujourdhui));
   const avancee = avanceeProjet(plan, p.budget, aujourdhui);
+  const rythme = rythmeCourses(plan, p.budget, aujourdhui);
+  const mot = motDuMois(plan, p.budget, aujourdhui);
+  const annee = previsionFactures(plan, p.budget, aujourdhui);
 
   async function confirmer(mois: string) {
     const doc = confirmerMois(mois, { ...bilan.versements, epargne: epargne ?? bilan.versements.epargne }, p.membreId, contexteReel);
@@ -173,7 +187,7 @@ function CeMois(p: PropsPage & { plan: PlanBudget; voirCharges: () => void }) {
 
   const detail: Record<Pot, string> = {
     commun: "",
-    courses: `${montant(pots.courses.depenseDuMois)} dépensés sur ${montant(pots.courses.budgetDuMois)} ce mois`,
+    courses: rythme ? phraseRythme(rythme) : `${montant(pots.courses.depenseDuMois)} dépensés ce mois`,
     plaisir: `${montant(pots.plaisir.budgetDuMois)} versés ce mois`,
     factures: aPayer[0] ? `Prochaine : ${aPayer[0].poste.libelle}, ${decrireEcheanceFacture(aPayer[0].echeance, aujourdhui)}` : "Rien à payer ces prochaines semaines",
     epargne: avancee ? `${Math.round(avancee.part * 100)} % de « ${avancee.projet.nom} »` : `${montant(pots.epargne.budgetDuMois)} prévus ce mois`,
@@ -181,6 +195,7 @@ function CeMois(p: PropsPage & { plan: PlanBudget; voirCharges: () => void }) {
 
   return (
     <>
+      {mot && <MotDeJarvis texte={mot} />}
       {aConfirmer && (
         <section className="carte budget-versement">
           <p className="surtitre">{nommerMois(aConfirmer, aujourdhui)} : les versements du mois</p>
@@ -204,16 +219,12 @@ function CeMois(p: PropsPage & { plan: PlanBudget; voirCharges: () => void }) {
       <div className="budget-pots">
         {POTS_SUIVIS.map((pot) => {
           const e = pots[pot];
-          const jauge = pot === "courses" && e.budgetDuMois > 0 ? Math.min(1, e.depenseDuMois / e.budgetDuMois) : null;
+          const jauge = pot === "courses" && rythme ? rythme : null;
           return (
             <section key={pot} className={`carte budget-pot${e.solde < 0 ? " negatif" : ""}`}>
               <p className="surtitre">{plan.comptes[pot] || POTS[pot].nom}</p>
               <p className="budget-solde">{montant(e.solde)}</p>
-              {jauge !== null && (
-                <span className="widget-jauge" aria-hidden>
-                  <span style={{ width: `${Math.round(jauge * 100)}%` }} />
-                </span>
-              )}
+              {jauge && <JaugeRythme rythme={jauge} />}
               <p className="discret">{detail[pot]}</p>
             </section>
           );
@@ -255,6 +266,13 @@ function CeMois(p: PropsPage & { plan: PlanBudget; voirCharges: () => void }) {
         </button>
       )}
 
+      {annee.some((m) => m.sorties > 0) && (
+        <>
+          <h2 className="rayon">L'année des factures</h2>
+          <MoisLourds mois={annee} aujourdhui={aujourdhui} />
+        </>
+      )}
+
       <h2 className="rayon">Dépenses du mois</h2>
       {duMois.length ? (
         <ul className="carte groupe">
@@ -287,9 +305,15 @@ function CeMois(p: PropsPage & { plan: PlanBudget; voirCharges: () => void }) {
 
 function Charges(p: PropsPage & { plan: PlanBudget; ouvrirPoste: (x: Poste) => void; ouvrirPersonne: (id: Id) => void }) {
   const { plan, foyer } = p;
+  const [tout, setTout] = useState(false);
   const bilan = bilanDuMois(plan);
+  // Ce téléphone montre d'abord ses charges et le commun ; celles de l'autre restent à un toucher.
+  const visible = (id: Id | null) => tout || !p.membreId || id === null || id === p.membreId;
+  const autres = bilan.personnes.filter((b) => !visible(b.membreId));
+  const masquees = p.membreId ? bilan.personnes.filter((b) => b.membreId !== p.membreId) : [];
   const communes = plan.postes.filter((x) => x.qui === null);
-  const abonnements = plan.postes.filter((x) => x.categorie === "abonnement");
+  const abonnements = abonnementsALAnnee(plan).filter((x) => visible(x.poste.qui));
+  const nomDuPot = (pot: Pot) => plan.comptes[pot] || POTS[pot].nom;
   const ligne = (x: Poste) => (
     <li key={x.id}>
       <button className="ligne" onClick={() => p.ouvrirPoste(x)} aria-haspopup="dialog">
@@ -309,11 +333,12 @@ function Charges(p: PropsPage & { plan: PlanBudget; ouvrirPoste: (x: Poste) => v
 
   return (
     <>
-      {bilan.personnes.map((b) => {
+      {bilan.personnes.filter((b) => visible(b.membreId)).map((b) => {
         const siennes = plan.postes.filter((x) => x.qui === b.membreId);
         return (
           <section key={b.membreId}>
             <h2 className="rayon">{prenomDe(foyer, b.membreId)}</h2>
+            <TrajetSalaire b={b} />
             <ul className="carte groupe">
               <li>
                 <button className="ligne" onClick={() => p.ouvrirPersonne(b.membreId)} aria-haspopup="dialog">
@@ -338,6 +363,7 @@ function Charges(p: PropsPage & { plan: PlanBudget; ouvrirPoste: (x: Poste) => v
       })}
 
       <h2 className="rayon">Compte commun</h2>
+      <AnneauDuCommun parts={repartitionDuCommun(plan)} entree={bilan.entreeCommun} noms={nomDuPot} />
       <ul className="carte groupe">
         <li className="ligne">
           <span className="ligne-texte">Entrée du mois</span>
@@ -363,11 +389,63 @@ function Charges(p: PropsPage & { plan: PlanBudget; ouvrirPoste: (x: Poste) => v
         </li>
       </ul>
 
-      {abonnements.length > 0 && (
-        <p className="discret budget-note">
-          Abonnements : {montant(abonnements.reduce((t, x) => t + parMois(x), 0))} par mois, soit {montant(abonnements.reduce((t, x) => t + parMois(x) * 12, 0))} par an.
-        </p>
+      {masquees.length > 0 && (
+        <button type="button" className="lien budget-note" onClick={() => setTout(!tout)} aria-expanded={tout}>
+          {autres.length ? `Voir aussi les charges de ${autres.map((b) => prenomDe(foyer, b.membreId)).join(" et ")}` : "Ne voir que les miennes et le commun"}
+        </button>
       )}
+
+      {abonnements.length > 0 && (
+        <>
+          <h2 className="rayon">Abonnements à l'année</h2>
+          <ul className="carte groupe">
+            {abonnements.map(({ poste, parAn }) => (
+              <li key={poste.id}>
+                <button className="ligne" onClick={() => p.ouvrirPoste(poste)} aria-haspopup="dialog">
+                  <span className="ligne-texte">
+                    {poste.libelle}
+                    <span className="tache-details"> · {prenomDe(foyer, poste.qui)}</span>
+                  </span>
+                  <span className="budget-montant">{montant(parAn)}</span>
+                </button>
+              </li>
+            ))}
+            <li className="ligne budget-total">
+              <span className="ligne-texte">
+                Par an
+                <span className="tache-details"> · {montant(abonnements.reduce((t, x) => t + x.parAn, 0) / 12)} par mois</span>
+              </span>
+              <span className="budget-montant">{montant(abonnements.reduce((t, x) => t + x.parAn, 0))}</span>
+            </li>
+          </ul>
+        </>
+      )}
+    </>
+  );
+}
+
+// ----- Les courses -----
+
+function Courses(p: PropsPage & { plan: PlanBudget }) {
+  const { plan, aujourdhui } = p;
+  const parMoisCourses = coursesParMois(p.budget, aujourdhui);
+  const budget = bilanDuMois(plan).versements.courses;
+  const magasins = coursesParMagasin(p.budget, aujourdhui);
+  if (!parMoisCourses.some((m) => m.total > 0)) {
+    return <p className="discret budget-note">Les courses apparaîtront ici dès le premier ticket photographié, ou une dépense écrite dans la barre (« Migros 84.30 »).</p>;
+  }
+  return (
+    <>
+      <h2 className="rayon">Six derniers mois</h2>
+      <CoursesParMois mois={parMoisCourses} budget={budget} aujourdhui={aujourdhui} />
+      {magasins.length > 1 && (
+        <>
+          <h2 className="rayon">Par magasin</h2>
+          <Magasins magasins={magasins} />
+        </>
+      )}
+      <h2 className="rayon">Prix qui montent</h2>
+      <PrixQuiMontent hausses={prixQuiMontent(p.budget, aujourdhui)} />
     </>
   );
 }
@@ -379,6 +457,7 @@ function Epargne(p: PropsPage & { plan: PlanBudget; reglerProjet: () => void }) 
   const a = avanceeProjet(plan, p.budget, aujourdhui);
   const pots = etatDesPots(plan, p.budget, aujourdhui);
   const historique = historiqueEpargne(plan, p.budget).slice(-12).reverse();
+  const courbe = courbeEpargne(plan, p.budget, aujourdhui);
   return (
     <>
       <section className="carte budget-projet">
@@ -414,6 +493,8 @@ function Epargne(p: PropsPage & { plan: PlanBudget; reglerProjet: () => void }) 
           </>
         )}
       </section>
+
+      <CourbeEpargne points={courbe} objectif={plan.projet?.objectif ?? null} aujourdhui={aujourdhui} />
 
       {historique.length > 0 && (
         <>

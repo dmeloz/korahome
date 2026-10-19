@@ -117,8 +117,16 @@ export interface Depense {
   posteId: Id | null;
   echeance: Jour | null;
   source: "main" | "ticket" | "jarvis";
+  /** Les lignes d'un ticket de caisse, avec leur prix : Kora y voit les prix qui montent. */
+  articles?: ArticleTicket[];
   par: Id | null;
   creeLe: string;
+}
+
+export interface ArticleTicket {
+  nom: string;
+  /** Le prix payé pour la ligne, en francs. */
+  prix: number;
 }
 
 export type DocBudget = PlanBudget | MoisBudget | Depense;
@@ -443,7 +451,17 @@ export const sansDate = (plan: PlanBudget) => plan.postes.filter((p) => p.qui ==
 // ----- Les dépenses -----
 
 export function nouvelleDepense(
-  champs: { montant: number; pot: Pot; libelle: string; jour: Jour; magasin?: string | null; posteId?: Id | null; echeance?: Jour | null; source?: Depense["source"] },
+  champs: {
+    montant: number;
+    pot: Pot;
+    libelle: string;
+    jour: Jour;
+    magasin?: string | null;
+    posteId?: Id | null;
+    echeance?: Jour | null;
+    source?: Depense["source"];
+    articles?: readonly ArticleTicket[];
+  },
   par: Id | null,
   ctx: Contexte,
 ): Depense {
@@ -458,6 +476,7 @@ export function nouvelleDepense(
     posteId: champs.posteId ?? null,
     echeance: champs.echeance ?? null,
     source: champs.source ?? "main",
+    ...(champs.articles?.length ? { articles: champs.articles.filter((a) => a.nom.trim() && a.prix > 0).map((a) => ({ nom: a.nom.trim(), prix: auCentime(a.prix) })) } : {}),
     par,
     creeLe: ctx.maintenant(),
   };
@@ -540,6 +559,242 @@ export function avanceeProjet(plan: PlanBudget, docs: readonly DocBudget[], aujo
     atteintVers = mois;
   }
   return { projet, epargne, part: Math.min(1, epargne / projet.objectif), manque, parMoisPourLaDate, atteintVers };
+}
+
+// ----- Les visuels -----
+
+export interface PartDuCommun {
+  pot: Pot;
+  montant: number;
+  /** De 0 à 1, sur tout ce que le commun répartit dans le mois. */
+  part: number;
+  postes: Poste[];
+}
+
+/** Où part chaque mois l'argent du compte commun, pot par pot : l'anneau du mois. */
+export function repartitionDuCommun(plan: PlanBudget): PartDuCommun[] {
+  const { versements } = bilanDuMois(plan);
+  const ordre: Pot[] = ["commun", "courses", "factures", "plaisir", "epargne"];
+  const total = ordre.reduce((t, pot) => t + versements[pot], 0);
+  return ordre
+    .filter((pot) => versements[pot] > 0)
+    .map((pot) => ({
+      pot,
+      montant: versements[pot],
+      part: total > 0 ? versements[pot] / total : 0,
+      postes: plan.postes.filter((x) => x.qui === null && x.pot === pot).sort((a, b) => parMois(b) - parMois(a)),
+    }));
+}
+
+export interface RythmeCourses {
+  depense: number;
+  budget: number;
+  /** Ce qu'on aurait dépensé à ce jour en suivant le budget au même pas tout le mois. */
+  attendu: number;
+  /** Au rythme du mois, la dépense à la fin du mois ; null les quatre premiers jours (trop tôt pour le dire). */
+  projection: number | null;
+  /** Le jour du mois, sur le nombre de jours du mois : de 0 à 1. */
+  avanceeDuMois: number;
+}
+
+/** Le rythme de la carte courses : où on en est, et où on finira le mois à ce pas. */
+export function rythmeCourses(plan: PlanBudget, docs: readonly DocBudget[], aujourdhui: Jour): RythmeCourses | null {
+  const { budgetDuMois: budget, depenseDuMois: depense } = etatDesPots(plan, docs, aujourdhui).courses;
+  if (budget <= 0) return null;
+  const jour = Number(aujourdhui.slice(8, 10));
+  const jours = Number(jourDuMois(moisDe(aujourdhui), 31).slice(8, 10));
+  return {
+    depense,
+    budget,
+    attendu: auCentime((budget * jour) / jours),
+    projection: jour >= 5 ? auCentime((depense / jour) * jours) : null,
+    avanceeDuMois: jour / jours,
+  };
+}
+
+export interface MoisDeFactures {
+  mois: string;
+  /** Ce qui sortira du pot factures ce mois-là (pour le mois en cours : ce qui n'est pas encore payé). */
+  sorties: number;
+  /** Les factures de l'année qui tombent ce mois-là. */
+  annuelles: { libelle: string; montant: number }[];
+  /** Le solde du pot à la fin du mois, si tout se passe comme prévu. */
+  solde: number;
+}
+
+/**
+ * Les douze mois qui viennent pour le pot factures : chaque mois reçoit son versement,
+ * paie les factures du mois et celles de l'année qui tombent ce mois-là. Montre les mois
+ * lourds, et le mois où le pot manquerait s'il en manque un.
+ */
+export function previsionFactures(plan: PlanBudget, docs: readonly DocBudget[], aujourdhui: Jour, combien = 12): MoisDeFactures[] {
+  const postes = plan.postes.filter((p) => p.qui === null && p.pot === "factures");
+  const versement = bilanDuMois(plan).versements.factures;
+  const toutes = depenses(docs);
+  const auto = prelevementsPasses(plan, aujourdhui);
+  const ceMois = moisDe(aujourdhui);
+  const dejaPaye = (poste: Poste) =>
+    auto.some((a) => a.poste.id === poste.id && moisDe(a.jour) === ceMois) ||
+    toutes.some((d) => regle(d, poste, poste.frequence === "an" ? jourDuMois(ceMois, poste.jour ?? 1) : `${ceMois}-01`) && (poste.frequence === "an" || moisDe(d.jour) === ceMois));
+  let solde = etatDesPots(plan, docs, aujourdhui).factures.solde;
+  const resultat: MoisDeFactures[] = [];
+  let mois = ceMois;
+  for (let i = 0; i < combien; i++, mois = moisSuivant(mois)) {
+    const numero = Number(mois.slice(5, 7));
+    const duMois = postes.filter((p) => p.frequence === "mois" || p.mois === numero);
+    const aPayer = i === 0 ? duMois.filter((p) => !dejaPaye(p)) : duMois;
+    const sorties = auCentime(aPayer.reduce((t, p) => t + p.montant, 0));
+    const verse = i === 0 && moisDocs(docs).some((m) => m.mois === ceMois) ? 0 : mois >= plan.depart.mois ? versement : 0;
+    solde = auCentime(solde + verse - sorties);
+    resultat.push({
+      mois,
+      sorties,
+      annuelles: aPayer.filter((p) => p.frequence === "an").map((p) => ({ libelle: p.libelle, montant: p.montant })),
+      solde,
+    });
+  }
+  return resultat;
+}
+
+export interface PointEpargne {
+  mois: string;
+  solde: number;
+  /** Un mois à venir, au rythme prévu. */
+  prevu: boolean;
+}
+
+/**
+ * La courbe de l'épargne : le solde à la fin de chaque mois versé depuis le départ, puis,
+ * au rythme prévu, les mois à venir jusqu'à l'objectif du projet (au plus deux ans), ou
+ * six mois sans projet.
+ */
+export function courbeEpargne(plan: PlanBudget, docs: readonly DocBudget[], aujourdhui: Jour): PointEpargne[] {
+  const ceMois = moisDe(aujourdhui);
+  const verses = moisDocs(docs).filter((m) => m.mois >= plan.depart.mois && m.mois <= ceMois);
+  const sorties = depenses(docs).filter((d) => d.pot === "epargne" && d.jour >= `${plan.depart.mois}-01`);
+  const points: PointEpargne[] = [];
+  let solde = plan.depart.soldes.epargne ?? 0;
+  for (let mois = plan.depart.mois; mois <= ceMois; mois = moisSuivant(mois)) {
+    solde += verses.find((m) => m.mois === mois)?.versements.epargne ?? 0;
+    solde -= sorties.filter((d) => moisDe(d.jour) === mois).reduce((t, d) => t + d.montant, 0);
+    points.push({ mois, solde: auCentime(solde), prevu: false });
+  }
+  const rythme = bilanDuMois(plan).versements.epargne;
+  const objectif = plan.projet?.objectif ?? 0;
+  if (rythme > 0) {
+    const limite = objectif > solde ? 24 : 6;
+    let mois = ceMois;
+    for (let i = 0; i < limite && !(objectif > 0 && solde >= objectif && i >= 3); i++) {
+      mois = moisSuivant(mois);
+      solde += rythme;
+      points.push({ mois, solde: auCentime(solde), prevu: true });
+    }
+  }
+  return points;
+}
+
+const depensesCourses = (docs: readonly DocBudget[]) => depenses(docs).filter((d) => d.pot === "courses");
+
+/** Ce que la carte courses a payé chaque mois, sur les `combien` derniers mois (le mois en cours compris). */
+export function coursesParMois(docs: readonly DocBudget[], aujourdhui: Jour, combien = 6): { mois: string; total: number }[] {
+  const liste = depensesCourses(docs);
+  let mois = moisDe(aujourdhui);
+  const resultat: { mois: string; total: number }[] = [];
+  for (let i = 0; i < combien; i++) {
+    const m = mois;
+    resultat.unshift({ mois: m, total: auCentime(liste.filter((d) => moisDe(d.jour) === m).reduce((t, d) => t + d.montant, 0)) });
+    mois = decaler(`${mois}-01`, { unite: "mois", tous: -1 }).slice(0, 7);
+  }
+  return resultat;
+}
+
+/** Les courses des `combien` derniers mois, magasin par magasin, du plus gros au plus petit. */
+export function coursesParMagasin(docs: readonly DocBudget[], aujourdhui: Jour, combien = 6): { magasin: string; total: number; part: number }[] {
+  const depuis = decaler(`${moisDe(aujourdhui)}-01`, { unite: "mois", tous: -(combien - 1) });
+  const totaux = new Map<string, number>();
+  for (const d of depensesCourses(docs)) {
+    if (d.jour < depuis || d.jour > aujourdhui) continue;
+    const magasin = d.magasin ?? "Autres";
+    totaux.set(magasin, (totaux.get(magasin) ?? 0) + d.montant);
+  }
+  const total = [...totaux.values()].reduce((t, x) => t + x, 0);
+  return [...totaux.entries()]
+    .map(([magasin, t]) => ({ magasin, total: auCentime(t), part: total > 0 ? t / total : 0 }))
+    .sort((a, b) => b.total - a.total);
+}
+
+/** Les abonnements à l'année, du plus cher au moins cher. `qui` : seulement ceux de ces personnes (et le commun). */
+export function abonnementsALAnnee(plan: PlanBudget, qui?: readonly (Id | null)[]): { poste: Poste; parAn: number }[] {
+  return plan.postes
+    .filter((p) => p.categorie === "abonnement" && (!qui || qui.includes(p.qui)))
+    .map((poste) => ({ poste, parAn: auCentime(parMois(poste) * 12) }))
+    .sort((a, b) => b.parAn - a.parAn);
+}
+
+const nomDeProduit = (nom: string) => sansAccents(nom).replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+
+export interface PrixQuiMonte {
+  nom: string;
+  magasin: string | null;
+  avant: { jour: Jour; prix: number };
+  maintenant: { jour: Jour; prix: number };
+  /** La hausse, de 0 à 1 (0,08 : 8 %). */
+  hausse: number;
+}
+
+/**
+ * Les produits habituels dont le prix a monté : la même ligne de ticket (même nom, même
+ * magasin), au moins un mois d'écart sur les six derniers mois, au moins 5 % de plus.
+ */
+export function prixQuiMontent(docs: readonly DocBudget[], aujourdhui: Jour): PrixQuiMonte[] {
+  const depuis = decaler(aujourdhui, { unite: "mois", tous: -6 });
+  const releves = new Map<string, { nom: string; magasin: string | null; jour: Jour; prix: number }[]>();
+  for (const d of depenses(docs)) {
+    if (d.jour < depuis || d.jour > aujourdhui) continue;
+    for (const a of d.articles ?? []) {
+      const cle = `${nomDeProduit(a.nom)}|${d.magasin ? sansAccents(d.magasin) : ""}`;
+      releves.set(cle, [...(releves.get(cle) ?? []), { nom: a.nom, magasin: d.magasin, jour: d.jour, prix: a.prix }]);
+    }
+  }
+  const resultat: PrixQuiMonte[] = [];
+  for (const liste of releves.values()) {
+    const tries = [...liste].sort((a, b) => a.jour.localeCompare(b.jour));
+    const premier = tries[0];
+    const dernier = tries[tries.length - 1];
+    if (ecartJours(premier.jour, dernier.jour) < 28 || premier.prix <= 0) continue;
+    const hausse = (dernier.prix - premier.prix) / premier.prix;
+    if (hausse < 0.05) continue;
+    resultat.push({ nom: dernier.nom, magasin: dernier.magasin, avant: { jour: premier.jour, prix: premier.prix }, maintenant: { jour: dernier.jour, prix: dernier.prix }, hausse });
+  }
+  return resultat.sort((a, b) => b.hausse - a.hausse);
+}
+
+/**
+ * Le mot de Jarvis sur le mois écoulé, les sept premiers jours du mois suivant : il compare
+ * les courses au mois d'avant et l'épargne à ce qui était prévu. Sans rien de parlant, il se tait.
+ */
+export function motDuMois(plan: PlanBudget, docs: readonly DocBudget[], aujourdhui: Jour): string | null {
+  if (Number(aujourdhui.slice(8, 10)) > 7) return null;
+  const mois = decaler(`${moisDe(aujourdhui)}-01`, { unite: "mois", tous: -1 }).slice(0, 7);
+  if (mois < plan.depart.mois) return null;
+  const precedent = decaler(`${mois}-01`, { unite: "mois", tous: -1 }).slice(0, 7);
+  const parMoisCourses = coursesParMois(docs, `${mois}-28`, 2);
+  const [avant, celui] = [parMoisCourses.find((m) => m.mois === precedent)?.total ?? 0, parMoisCourses.find((m) => m.mois === mois)?.total ?? 0];
+  const phrases: string[] = [];
+  const nom = nommerMois(mois);
+  if (avant > 0 && celui > 0) {
+    const ecart = (celui - avant) / avant;
+    if (ecart <= -0.05) phrases.push(`${Math.round(-ecart * 100)} % de moins en courses qu'en ${nommerMois(precedent)}, bravo.`);
+    else if (ecart >= 0.1) phrases.push(`${Math.round(ecart * 100)} % de plus en courses qu'en ${nommerMois(precedent)}.`);
+    else phrases.push(`Les courses de ${nom} sont proches de celles de ${nommerMois(precedent)}.`);
+  }
+  const verse = moisDocs(docs).find((m) => m.mois === mois)?.versements.epargne;
+  const prevu = bilanDuMois(plan).versements.epargne;
+  if (verse !== undefined && prevu > 0) {
+    if (verse >= prevu) phrases.push(`L'épargne prévue est mise de côté (${formaterMontant(verse)}).`);
+    else phrases.push(`${formaterMontant(prevu - verse)} de moins que prévu à l'épargne.`);
+  }
+  return phrases.length ? phrases.join(" ") : null;
 }
 
 const NOMS_MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];

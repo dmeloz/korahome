@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
+  abonnementsALAnnee,
   avanceeProjet,
+  courbeEpargne,
+  coursesParMagasin,
+  coursesParMois,
+  motDuMois,
+  previsionFactures,
+  prixQuiMontent,
+  repartitionDuCommun,
+  rythmeCourses,
   bilanDuMois,
   confirmerMois,
   decrireBudget,
@@ -177,5 +186,84 @@ describe("Jarvis", () => {
     expect(devinerCategorie("Netflix")).toBe("abonnement");
     expect(devinerCategorie("Assurance maladie Visana")).toBe("sante");
     expect(devinerCategorie("Assurance voiture")).toBe("vehicule");
+  });
+});
+
+describe("les visuels", () => {
+  const ctx = contexteTest();
+  const p = plan();
+
+  it("l'anneau répartit l'entrée du commun entre les pots", () => {
+    const r = repartitionDuCommun(p);
+    expect(r.map((x) => x.pot)).toEqual(["commun", "courses", "factures", "plaisir", "epargne"]);
+    expect(r.reduce((t, x) => t + x.part, 0)).toBeCloseTo(1);
+    expect(r.find((x) => x.pot === "factures")!.postes.map((x) => x.libelle).slice(-2)).toEqual(["Électricité", "Taxe véhicule"]);
+  });
+
+  it("le rythme des courses projette la fin du mois", () => {
+    const docs: DocBudget[] = [p, nouvelleDepense({ montant: 200, pot: "courses", libelle: "Migros", jour: "2026-10-10" }, A, ctx)];
+    const r = rythmeCourses(p, docs, "2026-10-10")!;
+    expect(r.depense).toBe(200);
+    expect(r.attendu).toBe(129.03);
+    expect(r.projection).toBe(620);
+    expect(rythmeCourses(p, docs, "2026-10-03")!.projection).toBeNull();
+  });
+
+  it("la prévision du pot factures montre les mois lourds et le mois où il manquerait", () => {
+    const depart = { ...p, depart: { mois: "2026-10", soldes: { factures: 100 } } };
+    const f = previsionFactures(depart, [depart], AUJOURDHUI, 3);
+    // Octobre : Internet est déjà prélevé (le 5) ; il reste l'électricité. Novembre : l'assurance voiture tombe.
+    expect(f[0]).toMatchObject({ mois: "2026-10", sorties: 60, solde: 100 - 100 + 280 - 60 });
+    expect(f[1]).toMatchObject({ mois: "2026-11", sorties: 1360, annuelles: [{ libelle: "Assurance voiture", montant: 1200 }] });
+    expect(f[1].solde).toBeLessThan(0);
+  });
+
+  it("la courbe d'épargne suit les mois versés puis le rythme prévu", () => {
+    const depart = { ...p, depart: { mois: "2026-09", soldes: { epargne: 1000 } }, projet: { nom: "Vacances", objectif: 2500, date: null } };
+    const docs: DocBudget[] = [depart, confirmerMois("2026-09", { epargne: 500 }, A, ctx)];
+    const c = courbeEpargne(depart, docs, AUJOURDHUI);
+    expect(c.slice(0, 2)).toEqual([
+      { mois: "2026-09", solde: 1500, prevu: false },
+      { mois: "2026-10", solde: 1500, prevu: false },
+    ]);
+    expect(c[2]).toEqual({ mois: "2026-11", solde: 2074, prevu: true });
+    expect(c.filter((x) => x.prevu).length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("les courses se comptent par mois et par magasin", () => {
+    const docs: DocBudget[] = [
+      nouvelleDepense({ montant: 100, pot: "courses", libelle: "Migros", magasin: "Migros", jour: "2026-09-12" }, A, ctx),
+      nouvelleDepense({ montant: 50, pot: "courses", libelle: "Coop", magasin: "Coop", jour: "2026-10-02" }, A, ctx),
+      nouvelleDepense({ montant: 30, pot: "plaisir", libelle: "Cinéma", jour: "2026-10-03" }, A, ctx),
+    ];
+    expect(coursesParMois(docs, AUJOURDHUI, 2)).toEqual([{ mois: "2026-09", total: 100 }, { mois: "2026-10", total: 50 }]);
+    expect(coursesParMagasin(docs, AUJOURDHUI).map((x) => x.magasin)).toEqual(["Migros", "Coop"]);
+  });
+
+  it("les abonnements se lisent à l'année", () => {
+    const q = enregistrerPoste(p, { ...nouveauPoste({ libelle: "Netflix", montant: 20, qui: A }, ctx), id: "netflix" }, ctx);
+    expect(abonnementsALAnnee(q).map((x) => `${x.poste.libelle} ${x.parAn}`)).toEqual(["Internet 1200", "Netflix 240"]);
+    expect(abonnementsALAnnee(q, [B, null]).map((x) => x.poste.libelle)).toEqual(["Internet"]);
+  });
+
+  it("repère un prix qui monte sur les tickets", () => {
+    const ticket = (jour: string, prix: number) =>
+      nouvelleDepense({ montant: 40, pot: "courses", libelle: "Migros", magasin: "Migros", jour, source: "ticket", articles: [{ nom: "Lait entier 1 l", prix }, { nom: "Pain", prix: 3 }] }, A, ctx);
+    const hausses = prixQuiMontent([ticket("2026-07-01", 1.6), ticket("2026-10-01", 1.75)], AUJOURDHUI);
+    expect(hausses).toHaveLength(1);
+    expect(hausses[0]).toMatchObject({ nom: "Lait entier 1 l", magasin: "Migros", avant: { prix: 1.6 }, maintenant: { prix: 1.75 } });
+    expect(hausses[0].hausse).toBeCloseTo(0.094, 2);
+  });
+
+  it("Jarvis dit un mot du mois écoulé, la première semaine", () => {
+    const depart = { ...p, depart: { mois: "2026-09", soldes: {} } };
+    const docs: DocBudget[] = [
+      depart,
+      nouvelleDepense({ montant: 400, pot: "courses", libelle: "Courses", jour: "2026-09-10" }, A, ctx),
+      nouvelleDepense({ montant: 340, pot: "courses", libelle: "Courses", jour: "2026-10-10" }, A, ctx),
+      confirmerMois("2026-10", { epargne: 574 }, A, ctx),
+    ];
+    expect(motDuMois(depart, docs, "2026-11-03")).toBe("15 % de moins en courses qu'en septembre, bravo. L'épargne prévue est mise de côté (574 CHF).");
+    expect(motDuMois(depart, docs, "2026-11-12")).toBeNull();
   });
 });

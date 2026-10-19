@@ -18,7 +18,7 @@ import { annulerModifications, enregistrerModifications, photoPourJarvis } from 
 // du ticket compte dans la carte courses du Budget.
 
 const DEMANDE =
-  "Voici un ticket de caisse. Range au stock tous les produits alimentaires et d'hygiène achetés (ajouter_au_stock), un par ligne du ticket, avec leur quantité dans le nom et le lieu où on les range d'habitude. Coche aussi les courses correspondantes (cocher_courses), et note le total payé au budget (noter_depense, pot courses, avec le magasin et la date du ticket).";
+  "Voici un ticket de caisse. Range au stock tous les produits alimentaires et d'hygiène achetés (ajouter_au_stock), un par ligne du ticket, avec leur quantité dans le nom et le lieu où on les range d'habitude. Coche aussi les courses correspondantes (cocher_courses), et note le total payé au budget (noter_depense, pot courses, avec le magasin, la date du ticket et chaque ligne avec son prix dans articles).";
 
 interface LigneTicket {
   nom: string;
