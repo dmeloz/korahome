@@ -17,6 +17,7 @@ import { Bilan } from "./ecrans/Bilan";
 import { CeQueKoraSait } from "./ecrans/CeQueKoraSait";
 import { CalendrierIphone, icloudEnErreur } from "./ecrans/CalendrierIphone";
 import { Siri, siriRelie } from "./ecrans/Siri";
+import { LaFee } from "./ecrans/LaFee";
 import { MemoireJarvis } from "./ecrans/MemoireJarvis";
 import { NosMots } from "./ecrans/NosMots";
 import { Jarvis } from "./ecrans/Jarvis";
@@ -68,7 +69,8 @@ type Page =
   | { nom: "rappels" }
   | { nom: "sauvegarde" }
   | { nom: "calendrier" }
-  | { nom: "siri" };
+  | { nom: "siri" }
+  | { nom: "fee" };
 
 /** Une page de la pile, avec l'endroit où elle était défilée quand on en est parti. */
 type Entree = Page & { defilement?: number };
@@ -154,6 +156,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     if (p.nom === "sauvegarde") return "Sauvegarde";
     if (p.nom === "calendrier") return "Calendrier de l'iPhone";
     if (p.nom === "siri") return "Siri";
+    if (p.nom === "fee") return nomFee();
     if (p.nom === "module") return MODULES[p.id]?.libelle ?? "Retour";
     return listes.find((l) => l.id === p.id)?.nom ?? "Liste";
   }
@@ -312,6 +315,8 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     ecran = <Sauvegarde depot={depot} aujourdhui={donnees.aujourdhui} contenu={{ foyer: leFoyer, listes, elements, taches, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda, budget, retours }} />;
   } else if (page.nom === "calendrier") {
     ecran = <CalendrierIphone foyer={leFoyer} membreId={membre} comptes={comptesIcloudDe(agenda)} distant={agendaPartage} />;
+  } else if (page.nom === "fee") {
+    ecran = <LaFee />;
   } else if (page.nom === "siri") {
     ecran = <Siri foyer={leFoyer} membreId={membre} distant={jarvisPartage} />;
   } else if (page.nom === "retours") {
@@ -333,6 +338,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         ouvrirSauvegarde={() => ouvrir({ nom: "sauvegarde" })}
         ouvrirCalendrier={() => ouvrir({ nom: "calendrier" })}
         ouvrirSiri={() => ouvrir({ nom: "siri" })}
+        ouvrirFee={() => ouvrir({ nom: "fee" })}
         siri={siriRelie() ? "Relié" : "Pas relié"}
         revoirVisite={() => {
           demanderVisite();

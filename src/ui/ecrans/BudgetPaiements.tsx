@@ -274,7 +274,7 @@ export function FeuilleApplePay(p: PropsPage & { plan: PlanBudget; ouverte: bool
                 ))}
               </ol>
             </details>
-            <p className="discret">À faire sur chaque iPhone qui paie avec les cartes du foyer, chacun avec son propre lien. Les paiements par numéro de carte (en ligne) n'y passent pas : écris-les dans la barre.</p>
+            <p className="discret">À faire sur chaque iPhone qui paie avec les cartes du foyer, chacun avec son propre lien. Les paiements par numéro de carte (en ligne) n'y passent pas : dis-les à ta fée.</p>
           </>
         )}
 

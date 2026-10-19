@@ -2460,3 +2460,19 @@ html.nuit-kora .page-dessus .accueil { filter: brightness(.72) saturate(.85); tr
   .fee .aile, .fee .flotte, .fee .halo, .fee .coeur, .attend svg, .fee svg, .fee .etincelles i, .fee::after { animation: none; }
   .fee, .attend { transition: opacity .3s; }
 }
+
+/* ---------- Kora 0.0.45 : les pages sans cadre ---------- */
+/* Comme « Ce soir » sur l'accueil : les listes perdent leur cadre, seuls de fins traits les
+   séparent. Les cartes visuelles gardent leurs graphiques, sans bordure. Les Réglages, eux,
+   gardent leurs groupes, comme ceux de l'iPhone. */
+main.page .carte { background: none; border: 0; box-shadow: none; border-radius: 0; padding-left: 0; padding-right: 0; }
+main.page .carte.groupe { padding: 0; }
+main.page .groupe li + li { border-top: .5px solid var(--trait); }
+main.page .carte.proposition, main.page .carte.bientot { background: var(--surface); border-radius: 16px; padding: 14px 16px; }
+/* La chose du moment en grand : la première ligne pas encore faite du groupe qui presse. */
+main.page .phare-ligne .ligne-texte { font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+main.page .phare-ligne .ligne { min-height: 64px; }
+/* Sans cadre, la ligne est transparente ; elle ne prend le fond qu'en glissant, pour couvrir l'action. */
+main.page .glissable-contenu { background: transparent; }
+main.page .glissable-contenu.glisse, main.page .glissable.ouverte .glissable-contenu { background: var(--fond); }
+main.page .glissable:not(.ouverte):not(:has(.glisse)) :is(.glissable-action, .glissable-fait) { opacity: 0; }

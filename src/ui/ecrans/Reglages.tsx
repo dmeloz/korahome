@@ -9,6 +9,7 @@ import type { EtatPartage } from "../../domaine/etatPartage";
 import { decrireDerniere } from "../../domaine/sauvegarde";
 import { aujourdhuiLocal } from "../contexte";
 import { lireDerniereSauvegarde } from "../sauvegarde";
+import { nomFee, sonActif } from "../fee";
 import { choisirTheme, lireTheme, THEMES, type Theme } from "../theme";
 import { enregistrerDate, enregistrerVerre, lireDate, lireVerre, TAILLE_DATE } from "../accueilLocal";
 
@@ -46,6 +47,7 @@ export function Reglages(props: {
   ouvrirSauvegarde: () => void;
   ouvrirCalendrier: () => void;
   ouvrirSiri: () => void;
+  ouvrirFee: () => void;
   siri: string;
   revoirVisite: () => void;
   calendrier: string;
@@ -91,6 +93,7 @@ export function Reglages(props: {
           onClick={props.ouvrirNotifications}
         />
         <Ligne picto="calendrier" titre="Calendrier de l'iPhone" valeur={props.calendrier} alerte={props.calendrierEnErreur} onClick={props.ouvrirCalendrier} />
+        <Ligne picto="jarvis" titre={nomFee()} valeur={sonActif() ? "Son activé" : "Sans son"} onClick={props.ouvrirFee} />
         <Ligne picto="micro" titre="Siri" valeur={props.siri} onClick={props.ouvrirSiri} />
         <Ligne picto="appris" titre="Ce que Kora sait de nous" onClick={props.ouvrirAppris} />
       </ul>

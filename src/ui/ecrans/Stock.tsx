@@ -384,7 +384,7 @@ export function Stock(props: {
       titre="Frigo et placards"
       className="page-stock"
       sousTitre={props.produits.length > 0 ? `${props.produits.length} produit${props.produits.length > 1 ? "s" : ""}${resume.aConsommer.length ? ` · ${resume.aConsommer.length} à consommer` : " · rien ne presse"}` : undefined}
-      aide={{ cle: "stock", texte: "Écris dans la barre du bas, « 6 œufs frigo jusqu'au 25 » : la quantité, le lieu et la date se remplissent pendant que tu écris. Scanner lit un code-barres, Ticket range un ticket de caisse entier." }}
+      aide={{ cle: "stock", texte: "Écris à ta fée (un appui long sur elle), « 6 œufs frigo jusqu'au 25 » : la quantité, le lieu et la date se remplissent pendant que tu écris. Scanner lit un code-barres, Ticket range un ticket de caisse entier." }}
     >
       <Onglets
         libelle="Vue"
