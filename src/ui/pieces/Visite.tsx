@@ -11,8 +11,8 @@ import { noter } from "../journal";
 const SELECTEURS: Record<CibleVisite, string> = {
   bandeau: ".page-dessus .bandeau-couple",
   aujourdhui: ".page-dessus .carte-jour",
-  pages: ".page-dessus .onglets-accueil",
-  widget: ".page-dessus .pages-accueil .widget",
+  pages: ".page-dessus .bulles-espaces",
+  widget: ".page-dessus .widgets-accueil .widget",
   barre: ".barre-zone .barre-jarvis",
   chercher: ".page-dessus .entete-boutons",
   reglages: ".page-dessus .avatar-reglages",

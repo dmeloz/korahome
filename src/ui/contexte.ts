@@ -70,23 +70,3 @@ export function enregistrerTailles(tailles: object): void {
     // Stockage indisponible : les tailles valent pour cette visite seulement.
   }
 }
-
-const CLE_PAGES = "korahome.pagesAccueil";
-
-/** La page de l'accueil où est rangé chaque widget. Propre à chaque téléphone. */
-export function lirePages(): unknown {
-  try {
-    const brut = localStorage.getItem(CLE_PAGES);
-    return brut === null ? undefined : JSON.parse(brut);
-  } catch {
-    return undefined;
-  }
-}
-
-export function enregistrerPages(pages: object): void {
-  try {
-    localStorage.setItem(CLE_PAGES, JSON.stringify(pages));
-  } catch {
-    // Stockage indisponible : les pages valent pour cette visite seulement.
-  }
-}

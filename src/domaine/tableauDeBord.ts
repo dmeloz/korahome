@@ -110,69 +110,41 @@ export function basculerTaille(tailles: Tailles, id: WidgetId): Tailles {
   return suivantes;
 }
 
-// ----- Les pages de l'accueil -----
-// L'accueil se feuillette d'un glissement, comme celui de l'iPhone, rangé par usage du
-// quotidien (idée de Sarah) : le ménage, les courses, la cuisine, le budget, l'agenda.
-// Chaque widget a sa page ; on peut le changer de page.
+// ----- Les espaces -----
+// Le tableau de bord reste une seule page : la vue d'ensemble et les infos rapides.
+// Au-dessus, une bulle par usage du quotidien (idée de Sarah) ouvre la page de cet
+// usage, avec tous ses modules, qu'ils soient posés sur l'accueil ou non.
 
-export type PageAccueil = "menage" | "courses" | "cuisine" | "budget" | "agenda";
+export type EspaceId = "menage" | "courses" | "cuisine" | "budget" | "agenda";
 
-export const PAGES_ACCUEIL: readonly { id: PageAccueil; titre: string }[] = [
-  { id: "menage", titre: "Ménage" },
-  { id: "courses", titre: "Courses" },
-  { id: "cuisine", titre: "Cuisine" },
-  { id: "budget", titre: "Budget" },
-  { id: "agenda", titre: "Agenda" },
+export interface Espace {
+  id: EspaceId;
+  titre: string;
+  description: string;
+  widgets: readonly WidgetId[];
+}
+
+export const ESPACES: readonly Espace[] = [
+  { id: "menage", titre: "Ménage", description: "Les tâches, l'entretien, Mitsu et le jardin.", widgets: ["taches", "entretien", "mitsu", "jardin"] },
+  { id: "courses", titre: "Courses", description: "Ce qu'il reste à acheter et vos autres listes.", widgets: ["courses", "listes"] },
+  { id: "cuisine", titre: "Cuisine", description: "Les menus de la semaine, les recettes et ce qu'il y a à la maison.", widgets: ["chef", "stock"] },
+  { id: "budget", titre: "Budget", description: "Le budget du foyer et les papiers de la maison.", widgets: ["budget", "infos"] },
+  { id: "agenda", titre: "Agenda", description: "Rendez-vous, anniversaires et vacances.", widgets: ["agenda"] },
 ];
 
-/** La première page, toujours là. */
-export const PAGE_PRINCIPALE: PageAccueil = "menage";
-
-const PAGE_DE_DEPART: Record<WidgetId, PageAccueil> = {
-  taches: "menage",
-  entretien: "menage",
-  mitsu: "menage",
-  jardin: "menage",
-  courses: "courses",
-  listes: "courses",
-  chef: "cuisine",
-  stock: "cuisine",
-  budget: "budget",
-  infos: "budget",
-  agenda: "agenda",
-};
-
-export type PagesWidgets = Partial<Record<WidgetId, PageAccueil>>;
-
-export function nettoyerPages(brutes: unknown): PagesWidgets {
-  const pages: PagesWidgets = {};
-  if (!brutes || typeof brutes !== "object") return pages;
-  for (const [id, page] of Object.entries(brutes)) {
-    if (PAR_ID.has(id as WidgetId) && PAGES_ACCUEIL.some((p) => p.id === page)) pages[id as WidgetId] = page as PageAccueil;
-  }
-  return pages;
+export function espace(id: EspaceId): Espace {
+  return ESPACES.find((e) => e.id === id)!;
 }
 
-export const pageDe = (pages: PagesWidgets, id: WidgetId): PageAccueil => pages[id] ?? PAGE_DE_DEPART[id];
-
-/** Le widget passe à la page suivante (la dernière revient à la première). */
-export function pageSuivante(pages: PagesWidgets, id: WidgetId): PagesWidgets {
-  const i = PAGES_ACCUEIL.findIndex((p) => p.id === pageDe(pages, id));
-  const suivante = PAGES_ACCUEIL[(i + 1) % PAGES_ACCUEIL.length].id;
-  const copie = { ...pages };
-  if (suivante === PAGE_DE_DEPART[id]) delete copie[id];
-  else copie[id] = suivante;
-  return copie;
+/** Les modules prêts d'un espace, dans l'ordre de l'espace. */
+export function modulesDeLEspace(id: EspaceId): WidgetId[] {
+  return espace(id).widgets.filter((w) => definition(w).disponible);
 }
 
-/** Les widgets d'une page, dans l'ordre de la disposition. */
-export function widgetsDeLaPage(d: Disposition, pages: PagesWidgets, page: PageAccueil): Disposition {
-  return d.filter((id) => pageDe(pages, id) === page);
-}
-
-/** Les pages qui ont au moins un widget ; le Ménage est toujours là. */
-export function pagesVisibles(d: Disposition, pages: PagesWidgets): PageAccueil[] {
-  return PAGES_ACCUEIL.map((p) => p.id).filter((p) => p === PAGE_PRINCIPALE || d.some((id) => pageDe(pages, id) === p));
+/** Toucher une bulle : un espace d'un seul module ouvre directement ce module. */
+export function destinationBulle(id: EspaceId): { type: "module"; id: WidgetId } | { type: "espace"; id: EspaceId } {
+  const modules = modulesDeLEspace(id);
+  return modules.length === 1 ? { type: "module", id: modules[0] } : { type: "espace", id };
 }
 
 /** Glisse un widget à la place d'un autre, comme sur l'écran d'accueil de l'iPhone. */

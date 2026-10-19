@@ -11,7 +11,7 @@ import { gestesDuJardin, type Zone } from "../domaine/jardin";
 import { compterAPrendre } from "../domaine/listes";
 import { decrireTemps, formaterTemperatures, meteoDu, type Meteo } from "../domaine/meteo";
 import { choseAFaire, decrireAge, formaterPoids, poidsActuel, rationDuJour, type Animal } from "../domaine/mitsu";
-import type { WidgetId } from "../domaine/tableauDeBord";
+import type { EspaceId, WidgetId } from "../domaine/tableauDeBord";
 import type { ProduitHabituel } from "../domaine/catalogue";
 import { decrirePeremption, resumeStock, type Produit } from "../domaine/stock";
 import { compterDues, decaler, decrireEcheance, organiserTaches } from "../domaine/taches";
@@ -338,4 +338,13 @@ export const PICTOS: Record<WidgetId, NomIcone> = {
   chef: "toque",
   budget: "portefeuille",
   infos: "dossier",
+};
+
+/** Le pictogramme de chaque bulle de l'accueil. */
+export const PICTOS_ESPACES: Record<EspaceId, NomIcone> = {
+  menage: "maison",
+  courses: "panier",
+  cuisine: "toque",
+  budget: "portefeuille",
+  agenda: "calendrier",
 };

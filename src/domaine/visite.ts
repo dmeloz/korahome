@@ -43,8 +43,8 @@ export function parcoursVisite(autre: string | null): EtapeVisite[] {
     {
       id: "pages",
       cible: "pages",
-      titre: "Les pages de l'accueil",
-      texte: "Les widgets se rangent en pages par usage : Ménage, Courses, Cuisine, Budget, Agenda. Glisse de côté, ou touche un nom, pour changer de page.",
+      titre: "Les bulles",
+      texte: "Une bulle par usage : Ménage, Courses, Cuisine, Budget, Agenda. Touche-en une pour ouvrir sa page, avec tout ce qui va avec.",
     },
     {
       id: "widget",
