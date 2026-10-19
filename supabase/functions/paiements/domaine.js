@@ -201,5 +201,23 @@ function cartesDuFoyer(plan, docs) {
 		dernier: recus.filter((d) => cleDeCarte(d.carte) === cleDeCarte(carte)).reduce((m, d) => !m || d.jour > m ? d.jour : m, null)
 	})).sort((a, b) => a.carte.localeCompare(b.carte));
 }
+/**
+* La phrase à coller dans « Décrire un raccourci » (l'IA de l'app Raccourcis, iOS 26) : elle crée
+* le raccourci « Kora paiement », l'adresse de cet iPhone déjà dedans. Il reste à le brancher sur
+* l'automatisation « Transaction ».
+*/
+function demandeRaccourci(adresse) {
+	return [
+		"Crée un raccourci nommé « Kora paiement » qui reçoit en entrée une transaction Apple Pay de Wallet (il sera lancé par une automatisation « Transaction »).",
+		"Il contient une seule action « Obtenir le contenu de l'URL » :",
+		`- URL : ${adresse}`,
+		"- Méthode : POST",
+		"- Corps de la requête : JSON, avec trois champs de type Texte :",
+		"  • montant = le Montant de la transaction (entrée du raccourci)",
+		"  • marchand = le Commerçant de la transaction",
+		"  • carte = le nom de la Carte de la transaction",
+		"Pas d'autre action, pas de notification, ne rien afficher."
+	].join("\n");
+}
 //#endregion
-export { POTS_DE_CARTE, cartesDuFoyer, choixDeCarte, classerPaiement, completerPaiement, lireMontantPaye, nomDeCarte, nomDeCommercant, paiementsAClasser, recevoirPaiement, retenirCarte };
+export { POTS_DE_CARTE, cartesDuFoyer, choixDeCarte, classerPaiement, completerPaiement, demandeRaccourci, lireMontantPaye, nomDeCarte, nomDeCommercant, paiementsAClasser, recevoirPaiement, retenirCarte };

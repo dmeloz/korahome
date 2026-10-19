@@ -2022,3 +2022,5 @@ html.avec-barre { --hauteur-barre: 84px; }
 .budget-adresse { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--fond); font-family: var(--police-fixe); font-size: var(--t-legende); color: var(--discret); word-break: break-all; user-select: all; -webkit-user-select: all; }
 .budget-etapes { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; font-size: var(--t-detail); line-height: 1.45; color: var(--texte); }
 .budget-etapes li::marker { color: var(--accent); font-weight: 600; }
+.budget-a-la-main summary { cursor: pointer; color: var(--accent); font-size: var(--t-detail); font-weight: 600; padding: 4px 0; }
+.budget-a-la-main .budget-etapes { margin-top: 8px; }
