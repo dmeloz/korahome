@@ -17,6 +17,19 @@ export function directionGeste(dx: number, dy: number): Direction | null {
   return Math.abs(dx) > Math.abs(dy) ? "horizontale" : "verticale";
 }
 
+/** Le retour ne prend la main qu'au-delà de 12 px, pour ne pas confondre avec le début d'un défilement. */
+const SEUIL_RETOUR = 12;
+
+/**
+ * Le glisser pour revenir : vers la droite et franchement de côté (au moins deux fois plus
+ * qu'en hauteur). Un défilement un peu en biais reste un défilement, sinon la page partait
+ * de côté au lieu de défiler. null tant qu'on ne sait pas encore.
+ */
+export function gesteRetour(dx: number, dy: number): "retour" | "autre" | null {
+  if (Math.hypot(dx, dy) < SEUIL_RETOUR) return null;
+  return dx > 0 && Math.abs(dx) >= 2 * Math.abs(dy) ? "retour" : "autre";
+}
+
 /** Vitesse en px par ms ; une durée nulle compte pour 1 ms. */
 const vitesse = (dx: number, duree: number) => dx / Math.max(duree, 1);
 

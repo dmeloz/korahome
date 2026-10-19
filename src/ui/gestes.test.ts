@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LARGEUR_ACTION, borner, directionGeste, finFait, finLigne, finRetour } from "./gestes";
+import { LARGEUR_ACTION, borner, directionGeste, finFait, finLigne, finRetour, gesteRetour } from "./gestes";
 
 describe("direction d'un geste", () => {
   it("attend que le doigt ait assez bougé", () => {
@@ -62,5 +62,19 @@ describe("glisser une ligne vers la droite", () => {
     expect(finFait(110, 600, 400)).toBe(true);
     expect(finFait(60, 600, 400)).toBe(false);
     expect(finFait(60, 80, 400)).toBe(true);
+  });
+});
+
+describe("gesteRetour", () => {
+  it("attend d'en savoir assez", () => {
+    expect(gesteRetour(8, 2)).toBeNull();
+  });
+  it("revient sur un geste franchement vers la droite", () => {
+    expect(gesteRetour(30, 8)).toBe("retour");
+  });
+  it("laisse défiler un geste en biais ou vers la gauche", () => {
+    expect(gesteRetour(14, 10)).toBe("autre");
+    expect(gesteRetour(-30, 2)).toBe("autre");
+    expect(gesteRetour(3, 30)).toBe("autre");
   });
 });
