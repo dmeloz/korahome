@@ -1,5 +1,6 @@
-import { evenementsDe } from "../domaine/agenda";
+import { comptesIcloudDe, evenementsDe } from "../domaine/agenda";
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { flushSync } from "react-dom";
 import { meteoFraiche } from "../domaine/meteo";
 import { rappelDuMatin } from "../domaine/rappels";
 import type { WidgetId } from "../domaine/tableauDeBord";
@@ -13,6 +14,7 @@ import { Bienvenue } from "./ecrans/Bienvenue";
 import { Conseil } from "./ecrans/Conseil";
 import { Bilan } from "./ecrans/Bilan";
 import { CeQueKoraSait } from "./ecrans/CeQueKoraSait";
+import { CalendrierIphone, icloudEnErreur } from "./ecrans/CalendrierIphone";
 import { MemoireJarvis } from "./ecrans/MemoireJarvis";
 import { NosMots } from "./ecrans/NosMots";
 import { Jarvis } from "./ecrans/Jarvis";
@@ -60,7 +62,8 @@ type Page =
   | { nom: "bilan" }
   | { nom: "appris" }
   | { nom: "rappels" }
-  | { nom: "sauvegarde" };
+  | { nom: "sauvegarde" }
+  | { nom: "calendrier" };
 
 /** Une page de la pile, avec l'endroit où elle était défilée quand on en est parti. */
 type Entree = Page & { defilement?: number };
@@ -144,6 +147,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     if (p.nom === "appris") return "Ce que Kora sait";
     if (p.nom === "rappels") return "Rappels";
     if (p.nom === "sauvegarde") return "Sauvegarde";
+    if (p.nom === "calendrier") return "Calendrier de l'iPhone";
     if (p.nom === "module") return MODULES[p.id]?.libelle ?? "Retour";
     return listes.find((l) => l.id === p.id)?.nom ?? "Liste";
   }
@@ -295,6 +299,8 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     ecran = <CentreRappels ouvrirNotifications={() => ouvrir({ nom: "notifications" })} />;
   } else if (page.nom === "sauvegarde") {
     ecran = <Sauvegarde depot={depot} aujourdhui={donnees.aujourdhui} contenu={{ foyer: leFoyer, listes, elements, taches, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda, retours }} />;
+  } else if (page.nom === "calendrier") {
+    ecran = <CalendrierIphone foyer={leFoyer} membreId={membre} comptes={comptesIcloudDe(agenda)} distant={agendaPartage} />;
   } else if (page.nom === "retours") {
     ecran = <RetoursTest depot={depot} foyer={leFoyer} retours={retours} partageActif={partageActif} />;
   } else {
@@ -312,6 +318,9 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         ouvrirNotifications={() => ouvrir({ nom: "notifications" })}
         ouvrirAppris={() => ouvrir({ nom: "appris" })}
         ouvrirSauvegarde={() => ouvrir({ nom: "sauvegarde" })}
+        ouvrirCalendrier={() => ouvrir({ nom: "calendrier" })}
+        calendrier={comptesIcloudDe(agenda).some((c) => c.membre === membre) ? "Relié" : "Pas relié"}
+        calendrierEnErreur={icloudEnErreur(comptesIcloudDe(agenda), membre)}
         etatPartage={etatPartage}
         partage={!partage ? "indisponible" : partageActif ? "actif" : "inactif"}
         pastilleVisible={pastille}
@@ -336,7 +345,6 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
 
   // Toutes les pages de la pile restent montées, comme sur l'iPhone : celle d'en dessous
   // garde son état et apparaît sous le doigt quand on glisse pour revenir.
-  const progression = glissement.decalage / Math.max(window.innerWidth, 1);
   return (
     <FournisseurAnnulation>
     <FournisseurSaisie>
@@ -350,15 +358,12 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         </button>
       );
       if (!dessus) {
-        const visible = i === pile.length - 2 && (glissement.decalage > 0 || glissement.anime);
+        const visible = i === pile.length - 2 && glissement;
         return (
           <div
             key={`${i}-${p.nom}`}
-            className={`contenu page-dessous${visible ? " visible" : ""}${glissement.anime ? " retour-anime" : ""}`}
-            style={{
-              top: -(p.defilement ?? 0),
-              ...(visible ? { transform: `translateX(${(progression - 1) * 28}%)`, filter: `brightness(${0.7 + 0.3 * progression})` } : {}),
-            }}
+            className={`contenu page-dessous${visible ? " visible" : ""}`}
+            style={{ top: -(p.defilement ?? 0) }}
             aria-hidden
             inert
           >
@@ -370,8 +375,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       return (
     <div
       key={`${i}-${p.nom}`}
-      className={`contenu page-dessus${glissement.decalage ? " retour-glisse" : ""}${glissement.anime ? " retour-anime" : ""}`}
-      style={glissement.decalage ? { transform: `translateX(${glissement.decalage}px)` } : undefined}
+      className={`contenu page-dessus${glissement ? " retour-glisse" : ""}`}
     >
       {retour}
       {ecranDe(p)}
@@ -412,20 +416,51 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
 const ZONES_A_GESTE = ".glissable.ouverte, .defilant, .bandeau-couple, input, textarea, select, [data-geste-propre]";
 
 function useGlissementRetour(actif: boolean, revenir: () => void) {
-  const [decalage, setDecalage] = useState(0);
-  const [anime, setAnime] = useState(false);
+  // Pendant le geste, la page suit le doigt sans repasser par React : seules l'entrée et la
+  // sortie du geste changent l'état, le reste s'écrit directement sur les deux pages, une
+  // fois par image. Sinon chaque mouvement redessinait toute la pile et la page saccadait.
+  const [glisse, setGlisse] = useState(false);
   const rappel = useRef(revenir);
   rappel.current = revenir;
 
   useEffect(() => {
     if (!actif) return;
-    let geste: { x: number; y: number; t: number; horizontal: boolean } | null = null;
+    let geste: { x: number; y: number; t: number; horizontal: boolean; dx: number } | null = null;
+    let image = 0;
+    let fini = false;
     const largeur = () => window.innerWidth;
+    const pages = () => ({
+      dessus: document.querySelector<HTMLElement>(".contenu.page-dessus"),
+      dessous: [...document.querySelectorAll<HTMLElement>(".contenu.page-dessous")].pop() ?? null,
+    });
+    const placer = (dx: number) => {
+      const { dessus, dessous } = pages();
+      const progression = Math.min(1, dx / Math.max(largeur(), 1));
+      if (dessus) dessus.style.transform = dx ? `translateX(${dx}px)` : "";
+      if (dessous) {
+        dessous.style.transform = `translateX(${(progression - 1) * 28}%)`;
+        dessous.style.filter = `brightness(${0.7 + 0.3 * progression})`;
+      }
+    };
+    const animer = (oui: boolean) => {
+      const { dessus, dessous } = pages();
+      for (const el of [dessus, dessous]) el?.classList.toggle("retour-anime", oui);
+    };
+    const effacer = () => {
+      const { dessus, dessous } = pages();
+      for (const el of [dessus, dessous]) {
+        if (!el) continue;
+        el.classList.remove("retour-anime");
+        el.style.transform = "";
+        el.style.filter = "";
+      }
+    };
     const debut = (e: PointerEvent) => {
+      if (fini) return;
       const cible = e.target instanceof Element ? e.target : null;
       const libre = e.clientX <= BORD_RETOUR || !cible?.closest(ZONES_A_GESTE);
       geste = libre && e.isPrimary && !document.documentElement.classList.contains("feuille-ouverte")
-        ? { x: e.clientX, y: e.clientY, t: e.timeStamp, horizontal: false }
+        ? { x: e.clientX, y: e.clientY, t: e.timeStamp, horizontal: false, dx: 0 }
         : null;
     };
     const mouvement = (e: PointerEvent) => {
@@ -436,41 +471,68 @@ function useGlissementRetour(actif: boolean, revenir: () => void) {
         if (direction === "verticale" || (direction === "horizontale" && dx < 0)) geste = null;
         if (direction !== "horizontale" || !geste) return;
         geste.horizontal = true;
+        // On repart de la position actuelle du doigt : la page ne saute pas des 8 px du seuil.
+        geste.x = e.clientX;
+        flushSync(() => setGlisse(true));
       }
-      setAnime(false);
-      setDecalage(Math.max(0, dx));
+      geste.dx = Math.max(0, e.clientX - geste.x);
+      cancelAnimationFrame(image);
+      const position = geste.dx;
+      image = requestAnimationFrame(() => placer(position));
+    };
+    // Une fois le geste parti de côté, la page ne défile plus en même temps : sur l'iPhone, ce
+    // défilement interrompait le geste et la page revenait d'un coup en place.
+    const toucher = (e: TouchEvent) => {
+      if (geste?.horizontal && e.cancelable) e.preventDefault();
     };
     const fin = (e: PointerEvent) => {
       const g = geste;
       geste = null;
       if (!g?.horizontal) return;
-      setAnime(true);
-      if (e.type === "pointerup" && finRetour(e.clientX - g.x, e.timeStamp - g.t, largeur())) {
-        setDecalage(largeur());
-        setTimeout(() => {
-          rappel.current();
-          setAnime(false);
-          setDecalage(0);
+      cancelAnimationFrame(image);
+      const dx = e.type === "pointerup" ? Math.max(0, e.clientX - g.x) : g.dx;
+      const part = finRetour(dx, e.timeStamp - g.t, largeur());
+      placer(dx);
+      // Une image plus tard, pour que l'animation parte bien de la position du doigt.
+      requestAnimationFrame(() => {
+        animer(true);
+        placer(part ? largeur() : 0);
+      });
+      fini = true;
+      setTimeout(() => {
+        effacer();
+        fini = false;
+        if (part) {
+          flushSync(() => {
+            rappel.current();
+            setGlisse(false);
+          });
           noter("geste", "Glisser pour revenir", ecranCourant);
-        }, 220);
-      } else {
-        setDecalage(0);
-      }
+        } else {
+          setGlisse(false);
+        }
+      }, DUREE_RETOUR_MS + 20);
     };
     window.addEventListener("pointerdown", debut);
     window.addEventListener("pointermove", mouvement);
     window.addEventListener("pointerup", fin);
     window.addEventListener("pointercancel", fin);
+    window.addEventListener("touchmove", toucher, { passive: false });
     return () => {
+      cancelAnimationFrame(image);
       window.removeEventListener("pointerdown", debut);
       window.removeEventListener("pointermove", mouvement);
       window.removeEventListener("pointerup", fin);
       window.removeEventListener("pointercancel", fin);
+      window.removeEventListener("touchmove", toucher);
     };
   }, [actif]);
 
-  return { decalage, anime };
+  return glisse;
 }
+
+/** La durée de la fin du geste, accordée à `.retour-anime` dans styles.css. */
+const DUREE_RETOUR_MS = 220;
 
 const sansAbonnement = () => () => {};
 
