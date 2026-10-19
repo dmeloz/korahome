@@ -2008,3 +2008,17 @@ html.avec-barre { --hauteur-barre: 84px; }
 .budget-hausse { color: var(--urgent); font-size: var(--t-legende); margin-left: 4px; }
 .budget-mot { display: flex; gap: 10px; align-items: flex-start; margin: 16px 4px 0; font-size: var(--t-detail); color: var(--discret); }
 .budget-mot svg { flex: none; margin-top: 2px; color: var(--accent); }
+
+/* ----- Budget : les paiements Apple Pay (0.0.29) ----- */
+.budget-a-classer .groupe { margin: 6px 0 10px; }
+.budget-paiement { display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px; }
+.budget-paiement + .budget-paiement { border-top: 1px solid var(--trait); padding-top: 4px; }
+.budget-paiement .puces { padding: 0 2px; }
+.budget-paiement .puce:disabled { opacity: 0.4; }
+.budget-francs { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 2px; }
+.budget-invitation p { margin: 0 0 12px; color: var(--texte); }
+.budget-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.budget-actions .bouton-secondaire { margin-top: 0; }
+.budget-adresse { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--fond); font-family: var(--police-fixe); font-size: var(--t-legende); color: var(--discret); word-break: break-all; user-select: all; -webkit-user-select: all; }
+.budget-etapes { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; font-size: var(--t-detail); line-height: 1.45; color: var(--texte); }
+.budget-etapes li::marker { color: var(--accent); font-weight: 600; }

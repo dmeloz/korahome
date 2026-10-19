@@ -87,6 +87,8 @@ export interface PlanBudget {
   jourDePaie: number | null;
   /** Le nom du compte ou de la carte de chaque pot (« Carte courses »). Jamais de numéro ni d'identifiant. */
   comptes: Partial<Record<Pot, string>>;
+  /** Le pot que paie chaque carte de Wallet (« aucun » : hors du budget), retenu au premier paiement Apple Pay. Le nom seul, sans chiffres. */
+  cartes?: Record<string, Pot | "aucun">;
   /** Les soldes au début du mois où Kora commence à compter. */
   depart: { mois: string; soldes: Partial<Record<Pot, number>> };
   projet: ProjetEpargne | null;
@@ -116,7 +118,9 @@ export interface Depense {
   /** La charge que cette dépense paie, et l'échéance réglée. */
   posteId: Id | null;
   echeance: Jour | null;
-  source: "main" | "ticket" | "jarvis";
+  source: "main" | "ticket" | "jarvis" | "applepay";
+  /** La carte de Wallet qui a payé (son nom seul, sans chiffres), pour un paiement Apple Pay. */
+  carte?: string;
   /** Les lignes d'un ticket de caisse, avec leur prix : Kora y voit les prix qui montent. */
   articles?: ArticleTicket[];
   par: Id | null;
@@ -129,7 +133,21 @@ export interface ArticleTicket {
   prix: number;
 }
 
-export type DocBudget = PlanBudget | MoisBudget | Depense;
+/** Un paiement Apple Pay qui attend son pot : carte encore inconnue, ou autre monnaie (voir paiements.ts). */
+export interface PaiementAClasser {
+  id: Id;
+  genre: "paiement";
+  jour: Jour;
+  montant: number;
+  /** « CHF », « EUR »… : le montant payé, dans cette monnaie. */
+  devise: string;
+  marchand: string | null;
+  carte: string;
+  par: Id | null;
+  creeLe: string;
+}
+
+export type DocBudget = PlanBudget | MoisBudget | Depense | PaiementAClasser;
 
 // ----- Les montants -----
 

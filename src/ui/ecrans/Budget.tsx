@@ -50,6 +50,8 @@ import { vibrer } from "../haptique";
 import { Icone } from "../Icone";
 import type { PropsPage } from "../modules";
 import { Feuille, Onglets, Page, PointEtat, useGestionnaireBarre } from "../pieces";
+import { completerPaiement, paiementsAClasser } from "../../domaine/paiements";
+import { FeuilleApplePay, InvitationApplePay, PaiementsAClasser } from "./BudgetPaiements";
 import { AnneauDuCommun, CourbeEpargne, CoursesParMois, JaugeRythme, Magasins, MoisLourds, MotDeJarvis, phraseRythme, PrixQuiMontent, TrajetSalaire } from "./BudgetVisuels";
 
 type Onglet = "mois" | "charges" | "courses" | "epargne";
@@ -66,6 +68,7 @@ export function Budget(p: PropsPage) {
   const [poste, setPoste] = useState<Poste | null>(null);
   const [personne, setPersonne] = useState<Id | null>(null);
   const [projet, setProjet] = useState(false);
+  const [applePay, setApplePay] = useState(false);
   const plan = planDe(p.budget);
 
   useGestionnaireBarre("module:budget", async (texte) => {
@@ -87,6 +90,15 @@ export function Budget(p: PropsPage) {
     const depense = facture
       ? { ...payerFacture(facture, aujourdhui, p.membreId, contexteReel), montant: saisie.montant }
       : nouvelleDepense({ ...saisie, jour: aujourdhui }, p.membreId, contexteReel);
+    // Déjà arrivée par Apple Pay, du même montant aujourd'hui : on complète ce paiement.
+    const deja = completerPaiement(depense, p.budget);
+    if (deja) {
+      const avant = depenses(p.budget).find((d) => d.id === deja.id)!;
+      await depot.enregistrerBudget(deja);
+      vibrer();
+      annoncer(`Déjà payé par Apple Pay : ${deja.libelle} complété.`, () => depot.enregistrerBudget(avant));
+      return true;
+    }
     await depot.enregistrerBudget(depense);
     vibrer();
     annoncer(`${montant(depense.montant)} : ${depense.libelle}, ${POTS[depense.pot].nom.toLowerCase()}.`, () => depot.supprimerBudget(depense.id));
@@ -129,14 +141,14 @@ export function Budget(p: PropsPage) {
         actif={onglet}
         changer={setOnglet}
         onglets={[
-          { id: "mois", libelle: "Ce mois", compte: facturesAPayer(plan, p.budget, aujourdhui, 7).length },
+          { id: "mois", libelle: "Ce mois", compte: facturesAPayer(plan, p.budget, aujourdhui, 7).length + paiementsAClasser(p.budget).length },
           { id: "charges", libelle: "Charges" },
           { id: "courses", libelle: "Courses" },
           { id: "epargne", libelle: "Épargne" },
         ]}
       />
 
-      {onglet === "mois" && <CeMois {...p} plan={plan} voirCharges={() => setOnglet("charges")} />}
+      {onglet === "mois" && <CeMois {...p} plan={plan} voirCharges={() => setOnglet("charges")} ouvrirApplePay={() => setApplePay(true)} />}
       {onglet === "charges" && <Charges {...p} plan={plan} ouvrirPoste={setPoste} ouvrirPersonne={setPersonne} />}
       {onglet === "courses" && <Courses {...p} plan={plan} />}
       {onglet === "epargne" && <Epargne {...p} plan={plan} reglerProjet={() => setProjet(true)} />}
@@ -144,14 +156,24 @@ export function Budget(p: PropsPage) {
       <FeuillePoste plan={plan} poste={poste} foyer={foyer} fermer={() => setPoste(null)} enregistrer={enregistrer} />
       <FeuillePersonne plan={plan} membreId={personne} foyer={foyer} fermer={() => setPersonne(null)} enregistrer={enregistrer} />
       <FeuilleProjet plan={plan} ouverte={projet} fermer={() => setProjet(false)} enregistrer={enregistrer} />
-      <FeuilleReglages plan={plan} ouverte={reglages} fermer={() => setReglages(false)} enregistrer={enregistrer} />
+      <FeuilleReglages
+        plan={plan}
+        ouverte={reglages}
+        fermer={() => setReglages(false)}
+        enregistrer={enregistrer}
+        ouvrirApplePay={() => {
+          setReglages(false);
+          setApplePay(true);
+        }}
+      />
+      <FeuilleApplePay {...p} plan={plan} ouverte={applePay} fermer={() => setApplePay(false)} />
     </Page>
   );
 }
 
 // ----- Ce mois -----
 
-function CeMois(p: PropsPage & { plan: PlanBudget; voirCharges: () => void }) {
+function CeMois(p: PropsPage & { plan: PlanBudget; voirCharges: () => void; ouvrirApplePay: () => void }) {
   const { plan, depot, aujourdhui } = p;
   const annoncer = useAnnoncer();
   const bilan = bilanDuMois(plan);
@@ -196,6 +218,7 @@ function CeMois(p: PropsPage & { plan: PlanBudget; voirCharges: () => void }) {
   return (
     <>
       {mot && <MotDeJarvis texte={mot} />}
+      <PaiementsAClasser {...p} plan={plan} />
       {aConfirmer && (
         <section className="carte budget-versement">
           <p className="surtitre">{nommerMois(aConfirmer, aujourdhui)} : les versements du mois</p>
@@ -285,7 +308,8 @@ function CeMois(p: PropsPage & { plan: PlanBudget; voirCharges: () => void }) {
                     <span className="tache-details">
                       {" "}
                       · {POTS[d.pot].nom} · {Number(d.jour.slice(8, 10))} {nomDuMois(Number(d.jour.slice(5, 7)))}
-                      {d.source === "ticket" ? " · ticket" : ""}
+                      {d.source === "ticket" || d.articles?.length ? " · ticket" : ""}
+                      {d.source === "applepay" ? " · Apple Pay" : ""}
                     </span>
                   </span>
                   <span className="budget-montant">{montant(d.montant)}</span>
@@ -297,6 +321,7 @@ function CeMois(p: PropsPage & { plan: PlanBudget; voirCharges: () => void }) {
       ) : (
         <p className="discret budget-note">Rien de noté ce mois. Photographie un ticket depuis la barre, ou écris « Migros 84.30 ».</p>
       )}
+      {p.jarvis && !Object.keys(plan.cartes ?? {}).length && <InvitationApplePay ouvrir={p.ouvrirApplePay} />}
     </>
   );
 }
@@ -690,7 +715,7 @@ function FeuilleProjet(props: { plan: PlanBudget; ouverte: boolean; fermer: () =
   );
 }
 
-function FeuilleReglages(props: { plan: PlanBudget; ouverte: boolean; fermer: () => void; enregistrer: (p: PlanBudget) => Promise<void> }) {
+function FeuilleReglages(props: { plan: PlanBudget; ouverte: boolean; fermer: () => void; enregistrer: (p: PlanBudget) => Promise<void>; ouvrirApplePay: () => void }) {
   const { plan } = props;
   const changer = (c: Parameters<typeof modifierPlan>[1]) => void props.enregistrer(modifierPlan(plan, c, contexteReel));
   return (
@@ -704,6 +729,9 @@ function FeuilleReglages(props: { plan: PlanBudget; ouverte: boolean; fermer: ()
             <input defaultValue={plan.comptes[pot] ?? ""} placeholder={POTS[pot].description} onBlur={(e) => changer({ comptes: { ...plan.comptes, [pot]: e.target.value.trim() || undefined } })} />
           </label>
         ))}
+        <button type="button" className="bouton-secondaire" onClick={props.ouvrirApplePay}>
+          Paiements Apple Pay{Object.keys(plan.cartes ?? {}).length ? ` · ${Object.keys(plan.cartes ?? {}).length} carte${Object.keys(plan.cartes ?? {}).length > 1 ? "s" : ""}` : ""}
+        </button>
         <label>
           Jour de paie
           <input

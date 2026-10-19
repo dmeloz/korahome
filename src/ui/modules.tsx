@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { evenementsDe, ligneWidget, resumeAgenda, type DocAgenda } from "../domaine/agenda";
 import type { DocCouple } from "../domaine/bandeau";
+import { paiementsAClasser } from "../domaine/paiements";
 import { decrireEcheanceFacture, etatDesPots, facturesAPayer, formaterMontant, moisAConfirmer, nommerMois, planDe, type DocBudget } from "../domaine/budget";
 import { menuDeLaSemaine, prochainPassage, reglageChef, type DocChef } from "../domaine/chef";
 import type { Souvenir } from "../domaine/memoire";
@@ -303,10 +304,12 @@ export const MODULES: Partial<Record<WidgetId, ModuleUI>> = {
       const aPayer = facturesAPayer(plan, d.budget, d.aujourdhui, 14);
       const courses = pots.courses;
       const aNoter = moisAConfirmer(plan, d.budget, d.aujourdhui);
+      const aClasser = paiementsAClasser(d.budget).length;
       return {
         chiffre: Math.max(0, Math.floor(courses.solde)),
         legende: aNoter ? `Versements de ${nommerMois(aNoter)} à noter` : courses.solde < 1 ? "Carte courses vide" : "CHF sur la carte courses",
         lignes: [
+          ...(aClasser ? [aClasser === 1 ? "Un paiement à classer" : `${aClasser} paiements à classer`] : []),
           `Plaisir : ${formaterMontant(pots.plaisir.solde)}`,
           ...aPayer.slice(0, 1).map((f) => `${f.poste.libelle} · ${decrireEcheanceFacture(f.echeance, d.aujourdhui)}`),
           `Épargne : ${formaterMontant(pots.epargne.solde)}`,

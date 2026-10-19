@@ -43,9 +43,32 @@ Sobres, un chiffre qui compte par visuel ; règles dans `budget.ts`, dessin dans
   (`articles` de la dépense, lues par Jarvis avec leur prix).
 - **Épargne** : la courbe du mis de côté, puis la suite au rythme prévu jusqu'au projet (`courbeEpargne`).
 
+## Les paiements Apple Pay (0.0.29)
+
+Les cartes Revolut du foyer (courses, plaisir…) sont dans Wallet. Sur chaque iPhone, une
+automatisation « Transaction » de l'app Raccourcis envoie chaque paiement (montant, commerçant, nom
+de la carte) à la fonction serveur `paiements`, avec un lien propre à la personne (Budget, Comptes et
+réglages, « Paiements Apple Pay »). Kora :
+
+- range le paiement dans le pot de la carte, qu'elle retient au premier paiement (`plan.cartes`) ;
+  une carte inconnue, ou une autre monnaie, attend d'être classée d'un toucher en haut de « Ce mois » ;
+- ignore une carte marquée « Hors budget » (une carte personnelle) ;
+- ne compte pas deux fois : même jour et même montant qu'une dépense déjà notée, c'est un doublon ;
+  un ticket photographié ou une dépense écrite ensuite complète le paiement (lignes, magasin) au lieu
+  d'en créer un second (`completerPaiement`).
+
+Aucun identifiant bancaire : le nom de la carte est gardé sans ses chiffres, le serveur ne garde que
+l'empreinte SHA-256 du lien (`prive.jetons_paiement`). Les paiements par numéro de carte (en ligne)
+ne passent pas par Wallet : on les écrit dans la barre.
+
+Déploiement : appliquer la fin de `supabase/schema.sql` (jetons), puis déployer
+`supabase/functions/paiements` (index.ts et domaine.js) **sans vérification du JWT** : le raccourci
+n'a pas de session, il s'identifie par son lien.
+
 ## Où est quoi
 
-- Règles et tests : `src/domaine/budget.ts`. Page : `src/ui/ecrans/Budget.tsx`, entrée `budget` de
+- Règles et tests : `src/domaine/budget.ts`, paiements Apple Pay dans `src/domaine/paiements.ts`
+  (écrans dans `src/ui/ecrans/BudgetPaiements.tsx`). Page : `src/ui/ecrans/Budget.tsx`, entrée `budget` de
   `src/ui/modules.tsx`.
 - Données : collection partagée `budget` de la table `documents`. Un document `plan` (personnes,
   charges, comptes, jour de paie, part plaisir, soldes de départ, projet), un `mois-AAAA-MM` par mois

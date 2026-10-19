@@ -87,7 +87,7 @@ export function TicketDeCaisse(props: {
     if (total && compterTotal) actions.push({ ...total, pot: "courses", charge: null });
     const applique = appliquerActions(actions, donnees, donnees.membreId, donnees.aujourdhui, contexteReel);
     // Le total vient d'un ticket : marqué comme tel dans les dépenses du mois.
-    const resultat = { ...applique, modifications: applique.modifications.map((m) => (m.collection === "budget" ? { ...m, apres: { ...m.apres, source: "ticket" as const } } : m)) };
+    const resultat = { ...applique, modifications: applique.modifications.map((m) => (m.collection === "budget" && !m.avant ? { ...m, apres: { ...m.apres, source: "ticket" as const } } : m)) };
     await enregistrerModifications(depot, resultat.modifications);
     // La Base apprend chaque produit, comme pour un ajout à la main.
     let catalogue = [...props.catalogue];
