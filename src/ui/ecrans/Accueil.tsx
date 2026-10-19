@@ -3,27 +3,46 @@ import type { Depot } from "../../donnees/depot";
 import type { ServeurJarvis } from "../../donnees/distant";
 import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from "react";
 import { bilanAOuvrir, bilanDeLaSemaine, ordreVivant, remarqueDuJour } from "../../domaine/apprentissage";
+import { carteDuJour, type ChoseDuJour } from "../../domaine/aujourdhui";
+import { evenementsDe } from "../../domaine/agenda";
+import type { EtatPartage } from "../../domaine/etatPartage";
+import { decrireTemps, meteoDu } from "../../domaine/meteo";
+import type { OuRecherche } from "../../domaine/recherche";
+import { repartitionDue } from "../../domaine/repartition";
+import { decrireDerniere, sauvegardeDue } from "../../domaine/sauvegarde";
 import {
   ajouterWidget,
   basculerTaille,
   definition,
   deplacerVers,
   nettoyerDisposition,
+  nettoyerPages,
   nettoyerTailles,
   ordreAffichage,
+  pageDe,
+  pageSuivante,
+  PAGES_ACCUEIL,
+  pagesVisibles,
   retirerWidget,
   tailleDe,
   widgetsAAjouter,
+  widgetsDeLaPage,
   type Disposition,
+  type PageAccueil,
+  type PagesWidgets,
   type Tailles,
   type WidgetId,
 } from "../../domaine/tableauDeBord";
-import { enregistrerDisposition, enregistrerTailles, lireDisposition, lireTailles } from "../contexte";
+import { enregistrerDisposition, enregistrerPages, enregistrerTailles, lireDisposition, lirePages, lireTailles } from "../contexte";
 import { Icone } from "../Icone";
 import { MODULES, PICTOS, type ApercuWidget, type DonneesModule } from "../modules";
 import { vibrer } from "../haptique";
 import { calculerApprentissages } from "../apprendre";
+import { CarteAujourdhui } from "../pieces";
+import { Recherche } from "../Recherche";
+import { lireDerniereSauvegarde } from "../sauvegarde";
 import { fermerRemarque, lireAdaptations, lireDernierBilan, lireUsages, noterUsage, remarqueAMontrer, useApprentissageLocal } from "../usage";
+import { lireDerniereRepartition } from "./Taches";
 
 function salutation(heure: number): string {
   if (heure < 5) return "Bonne nuit";
@@ -35,18 +54,28 @@ function salutation(heure: number): string {
 const APPUI_LONG_MS = 450;
 /** Au-delà de ce déplacement, le doigt fait défiler la page : pas d'appui long. */
 const TOLERANCE_PX = 10;
+/** Tirée vers le bas d'autant, depuis le haut, la page ouvre la recherche. */
+const TIRER_POUR_CHERCHER = 72;
 
 export function Accueil(props: {
   donnees: DonneesModule;
   ouvrirModule: (id: WidgetId) => void;
   ouvrirReglages: () => void;
-  ouvrirJarvis: () => void;
   ouvrirMots: () => void;
   ouvrirBilan: () => void;
+  ouvrirRappels: () => void;
+  ouvrirSauvegarde: () => void;
+  ouvrirPartage: () => void;
+  ouvrirRepartition: () => void;
+  aller: (ou: OuRecherche) => void;
   depot: Depot;
   jarvis: { serveur: ServeurJarvis; foyerId: string } | null;
   /** Une nouvelle version attend : pastille rouge sur les Réglages. */
   nouvelleVersion: boolean;
+  partage: EtatPartage;
+  rappelsNonLus: number;
+  /** Aucune page n'est ouverte par-dessus : les gestes de l'accueil sont à lui. */
+  auDessus: boolean;
 }) {
   const [disposition, setDisposition] = useState<Disposition>(() => nettoyerDisposition(lireDisposition()));
   // Un widget retiré depuis le bilan : l'accueil, resté ouvert dessous, relit sa disposition.
@@ -55,13 +84,20 @@ export function Accueil(props: {
     if (versionLocale) setDisposition(nettoyerDisposition(lireDisposition()));
   }, [versionLocale]);
   const [tailles, setTailles] = useState<Tailles>(() => nettoyerTailles(lireTailles()));
+  const [pages, setPages] = useState<PagesWidgets>(() => nettoyerPages(lirePages()));
   const [edition, setEdition] = useState(false);
   const [glisse, setGlisse] = useState<WidgetId | null>(null);
+  const [recherche, setRecherche] = useState(false);
+  const [pageActive, setPageActive] = useState<PageAccueil>("maison");
+  const defilant = useRef<HTMLDivElement>(null);
   const appui = useRef<{ minuterie: ReturnType<typeof setTimeout>; x: number; y: number } | null>(null);
   const ignorerClic = useRef(false);
-  const { foyer, membreId } = props.donnees;
+  const { foyer, membreId, aujourdhui } = props.donnees;
   const moi = foyer.membres.find((m) => m.id === membreId);
   const date = new Date().toLocaleDateString("fr-CH", { weekday: "long", day: "numeric", month: "long" });
+  const jourMeteo = meteoDu(props.donnees.meteo, aujourdhui);
+  const temps = jourMeteo ? `${Math.round(jourMeteo.max)}°, ${decrireTemps(jourMeteo.code).toLowerCase()}` : null;
+  usePourChercher(props.auDessus && !edition && !recherche, () => setRecherche(true));
 
   const changer = (d: Disposition) => {
     setDisposition(d);
@@ -71,6 +107,11 @@ export function Accueil(props: {
     const suivantes = basculerTaille(tailles, id);
     setTailles(suivantes);
     enregistrerTailles(suivantes);
+  };
+  const changerPage = (id: WidgetId) => {
+    const suivantes = pageSuivante(pages, id);
+    setPages(suivantes);
+    enregistrerPages(suivantes);
   };
 
   // Appui long sur un widget : on passe en mode modification, sans ouvrir la page.
@@ -119,13 +160,15 @@ export function Accueil(props: {
 
   const urgents = new Set(disposition.filter((id) => apercus.get(id)?.urgent));
   const adaptations = lireAdaptations();
-  const { aujourdhui } = props.donnees;
   const heure = new Date().getHours();
-  const affiches = edition
+  const ordonnes = edition
     ? disposition
     : adaptations.accueilVivant
       ? ordreVivant(ordreAffichage(disposition, urgents), urgents, lireUsages(), heure, aujourdhui)
       : ordreAffichage(disposition, urgents);
+  const visibles = pagesVisibles(disposition, pages);
+  // En modification, toutes les pages restent là pour y ranger un widget.
+  const lesPages = edition ? PAGES_ACCUEIL.map((p) => p.id) : visibles;
 
   // Le bilan du dimanche attend qu'on le regarde ; le mot du jour de Jarvis, une fois par jour au plus.
   const aApprendre = bilanDeLaSemaine(calculerApprentissages(props.donnees)).length;
@@ -134,18 +177,134 @@ export function Accueil(props: {
   const montrerRemarque = remarqueAMontrer(remarque?.cle ?? null, aujourdhui);
   const { prets, bientot } = widgetsAAjouter(disposition);
 
+  const derniereSauvegarde = lireDerniereSauvegarde();
+  const carte = carteDuJour({
+    ...props.donnees,
+    evenements: evenementsDe(props.donnees.agenda),
+    sauvegardeDue: sauvegardeDue(derniereSauvegarde, aujourdhui) && new Date().getDay() === 0,
+    repartitionDue: repartitionDue(foyer, props.donnees.taches, aujourdhui, lireDerniereRepartition()),
+  });
+  const toucherChose = (c: ChoseDuJour) => {
+    if (c.destination === "sauvegarde") props.ouvrirSauvegarde();
+    else if (c.destination === "repartition") props.ouvrirRepartition();
+    else if (c.destination !== "budget") {
+      noterUsage("widget", c.destination);
+      props.ouvrirModule(c.destination);
+    }
+  };
+
   const terminer = () => {
     setEdition(false);
     setGlisse(null);
   };
 
+  // Les pages se feuillettent au doigt ; les onglets suivent, et y mènent d'un toucher.
+  const suivrePage = () => {
+    const zone = defilant.current;
+    if (!zone) return;
+    const i = Math.round(zone.scrollLeft / Math.max(zone.clientWidth, 1));
+    const p = lesPages[Math.min(i, lesPages.length - 1)];
+    if (p && p !== pageActive) setPageActive(p);
+  };
+  const allerPage = (p: PageAccueil) => {
+    const zone = defilant.current;
+    const i = lesPages.indexOf(p);
+    if (!zone || i < 0) return;
+    zone.scrollTo({ left: i * zone.clientWidth, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    setPageActive(p);
+  };
+  useEffect(() => {
+    if (!lesPages.includes(pageActive)) allerPage("maison");
+  }); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function widget(id: WidgetId, i: number): ReactNode {
+    const c = apercus.get(id);
+    if (!c) return null;
+    const def = definition(id);
+    const taille = tailleDe(tailles, id);
+    const classes = `widget ${taille}${c.urgent && !edition ? " urgent" : ""}`;
+    const corps: ReactNode = (
+      <>
+        <span className="widget-haut">
+          <Icone nom={PICTOS[id]} taille={18} />
+          <span className="widget-titre">{def.titre}</span>
+          {!edition && c.urgent && <span className="point-etat urgent" aria-label="À faire" />}
+        </span>
+        <span className="widget-bas">
+          <span className="widget-valeur">{c.chiffre > 0 ? `${c.chiffre} ${c.legende}` : c.legende}</span>
+          {c.jauge !== undefined && (
+            <span className="widget-jauge" aria-hidden><span style={{ width: `${Math.round(Math.min(1, c.jauge) * 100)}%` }} /></span>
+          )}
+          {c.lignes.length > 0 && (
+            <span className="widget-apercu">
+              {(taille === "grand" ? c.lignes : c.lignes.slice(0, 1)).map((ligne) => <span key={ligne}>{ligne}</span>)}
+            </span>
+          )}
+        </span>
+      </>
+    );
+    if (edition) {
+      const page = PAGES_ACCUEIL.find((p) => p.id === pageDe(pages, id))!;
+      const suivante = PAGES_ACCUEIL[(PAGES_ACCUEIL.indexOf(page) + 1) % PAGES_ACCUEIL.length];
+      return (
+        <div
+          key={id}
+          data-widget={id}
+          className={`${classes} en-edition${glisse === id ? " glisse" : ""}`}
+          style={{ animationDelay: `${(i % 3) * -0.09}s` }}
+          onPointerDown={(e) => commencerGlisse(e, id)}
+          onPointerMove={suivreGlisse}
+          onPointerUp={() => setGlisse(null)}
+          onPointerCancel={() => setGlisse(null)}
+        >
+          {corps}
+          <button className="badge-widget retirer" onClick={() => changer(retirerWidget(disposition, id))} aria-label={`Retirer ${def.titre}`}>
+            <Icone nom="moins" taille={14} />
+          </button>
+          <button className="badge-widget taille" onClick={() => changerTaille(id)} aria-label={taille === "grand" ? `Réduire ${def.titre}` : `Agrandir ${def.titre}`}>
+            <Icone nom={taille === "grand" ? "reduire" : "agrandir"} taille={14} />
+          </button>
+          <button className="badge-widget page-widget" onClick={() => changerPage(id)} aria-label={`Envoyer ${def.titre} sur la page ${suivante.titre}`}>
+            <Icone nom="deplacer" taille={14} />
+          </button>
+        </div>
+      );
+    }
+    return (
+      <button
+        key={id}
+        data-widget={id}
+        className={classes}
+        onPointerDown={appuyer}
+        onPointerMove={bouger}
+        onPointerUp={lacher}
+        onPointerCancel={lacher}
+        onPointerLeave={lacher}
+        onContextMenu={(e) => e.preventDefault()}
+        onClick={() => {
+          if (ignorerClic.current) {
+            ignorerClic.current = false;
+            return;
+          }
+          noterUsage("widget", id);
+          props.ouvrirModule(id);
+        }}
+      >
+        {corps}
+      </button>
+    );
+  }
+
   return (
-    <main className="tableau">
+    <main className="tableau accueil">
       <header className="entete-accueil">
-        <div>
-          <p className="surtitre">{date}</p>
+        <div className="entete-titres">
+          <p className="entete-date">
+            {date}
+            {temps ? ` · ${temps}` : ""}
+          </p>
           <h1>
-            {salutation(new Date().getHours())}
+            {salutation(heure)}
             {moi ? `, ${moi.prenom}` : ""}
           </h1>
         </div>
@@ -153,15 +312,20 @@ export function Accueil(props: {
           <button className="bouton-termine" onClick={terminer}>Terminé</button>
         ) : (
           <div className="entete-boutons">
-            <button className="bouton-icone jarvis-bouton" onClick={props.ouvrirJarvis} aria-label="Jarvis">
-              <Icone nom="jarvis" taille={22} />
+            <button className="bouton-icone" onClick={() => setRecherche(true)} aria-label="Chercher">
+              <Icone nom="loupe" taille={21} />
+            </button>
+            <button className="bouton-icone avec-alerte" onClick={props.ouvrirRappels} aria-label={props.rappelsNonLus ? `Rappels, ${props.rappelsNonLus} nouveaux` : "Rappels"}>
+              <Icone nom="cloche" taille={21} />
+              {props.rappelsNonLus > 0 && <span className="alerte compte" aria-hidden>{props.rappelsNonLus}</span>}
             </button>
             <button
-              className="bouton-icone avec-alerte"
+              className="avatar-reglages avec-alerte"
+              style={moi ? { background: `color-mix(in srgb, ${moi.couleur} 26%, var(--surface))` } : undefined}
               onClick={props.ouvrirReglages}
               aria-label={props.nouvelleVersion ? "Réglages, nouvelle version disponible" : "Réglages"}
             >
-              <Icone nom="reglages" taille={22} />
+              {moi ? moi.prenom.charAt(0) : <Icone nom="reglages" taille={20} />}
               {props.nouvelleVersion && <span className="alerte" aria-hidden />}
             </button>
           </div>
@@ -193,92 +357,38 @@ export function Accueil(props: {
         </div>
       )}
 
-      {affiches.length === 0 && !edition && (
-        <div className="carte vide-tableau">
-          <p>Ton tableau de bord est vide.</p>
-          <button className="bouton-principal" onClick={() => setEdition(true)}>Ajouter des widgets</button>
-        </div>
+      {!edition && <CarteAujourdhui carte={carte} toucher={toucherChose} voirTout={() => props.ouvrirModule("taches")} />}
+
+      {lesPages.length > 1 && (
+        <nav className="onglets-accueil" aria-label="Pages de l'accueil">
+          {lesPages.map((p) => (
+            <button key={p} className={p === pageActive ? "actif" : ""} aria-current={p === pageActive ? "page" : undefined} onClick={() => allerPage(p)}>
+              {PAGES_ACCUEIL.find((x) => x.id === p)!.titre}
+            </button>
+          ))}
+        </nav>
       )}
 
-      <div className={`widgets${edition ? " en-edition" : ""}`}>
-        {affiches.map((id, i) => {
-          const c = apercus.get(id);
-          if (!c) return null;
-          const def = definition(id);
-          const taille = tailleDe(tailles, id);
-          const classes = `widget ${taille}${c.urgent && !edition ? " urgent" : ""}`;
-          const corps: ReactNode = (
-            <>
-              <span className="widget-haut">
-                <span className="pictogramme"><Icone nom={PICTOS[id]} taille={20} /></span>
-                <span className="widget-titre">{def.titre}</span>
-                {!edition && c.urgent && taille === "grand" && <span className="signal">À faire</span>}
-              </span>
-              <span className="widget-chiffre">
-                {c.chiffre > 0 && <strong>{c.chiffre}</strong>}
-                <span>{c.legende}</span>
-              </span>
-              {taille === "grand" && c.lignes.length > 0 && (
-                <span className="widget-apercu">
-                  {c.lignes.map((ligne) => <span key={ligne}>{ligne}</span>)}
-                </span>
+      <div className="pages-accueil" ref={defilant} onScroll={suivrePage} data-geste-propre>
+        {lesPages.map((p) => {
+          const ids = widgetsDeLaPage(ordonnes, pages, p);
+          return (
+            <section key={p} className="page-accueil" aria-label={PAGES_ACCUEIL.find((x) => x.id === p)!.titre}>
+              <div className={`widgets${edition ? " en-edition" : ""}`}>{ids.map((id, i) => widget(id, i))}</div>
+              {ids.length === 0 && (
+                <div className="carte vide-tableau">
+                  <p>{edition ? "Envoie un widget ici avec sa flèche." : "Cette page est vide."}</p>
+                  {!edition && <button className="bouton-principal" onClick={() => setEdition(true)}>Ajouter des widgets</button>}
+                </div>
               )}
-            </>
-          );
-          return edition ? (
-            <div
-              key={id}
-              data-widget={id}
-              className={`${classes} en-edition${glisse === id ? " glisse" : ""}`}
-              style={{ animationDelay: `${(i % 3) * -0.09}s` }}
-              onPointerDown={(e) => commencerGlisse(e, id)}
-              onPointerMove={suivreGlisse}
-              onPointerUp={() => setGlisse(null)}
-              onPointerCancel={() => setGlisse(null)}
-            >
-              {corps}
-              <button className="badge-widget retirer" onClick={() => changer(retirerWidget(disposition, id))} aria-label={`Retirer ${def.titre}`}>
-                <Icone nom="moins" taille={14} />
-              </button>
-              <button
-                className="badge-widget taille"
-                onClick={() => changerTaille(id)}
-                aria-label={taille === "grand" ? `Réduire ${def.titre}` : `Agrandir ${def.titre}`}
-              >
-                <Icone nom={taille === "grand" ? "reduire" : "agrandir"} taille={14} />
-              </button>
-            </div>
-          ) : (
-            <button
-              key={id}
-              data-widget={id}
-              className={classes}
-              onPointerDown={appuyer}
-              onPointerMove={bouger}
-              onPointerUp={lacher}
-              onPointerCancel={lacher}
-              onPointerLeave={lacher}
-              onContextMenu={(e) => e.preventDefault()}
-              onClick={() => {
-                if (ignorerClic.current) {
-                  ignorerClic.current = false;
-                  return;
-                }
-                noterUsage("widget", id);
-                props.ouvrirModule(id);
-              }}
-            >
-              {corps}
-            </button>
+            </section>
           );
         })}
       </div>
 
       {edition && (
         <section className="ajout-widgets">
-          {affiches.length > 0 && (
-            <p className="discret aide-edition">Glisse un widget pour le déplacer. Les flèches changent sa taille.</p>
-          )}
+          <p className="discret aide-edition">Glisse un widget pour le déplacer. Les flèches changent sa taille ; l'autre flèche l'envoie sur la page suivante.</p>
           {prets.length > 0 && <h2 className="rayon">Ajouter</h2>}
           {prets.map((w) => (
             <button key={w.id} className="carte proposition" onClick={() => changer(ajouterWidget(disposition, w.id))}>
@@ -303,11 +413,55 @@ export function Accueil(props: {
         </section>
       )}
 
-      {!edition && affiches.length > 0 && (
-        <button className="lien modifier" onClick={() => setEdition(true)}>
-          Modifier le tableau de bord
-        </button>
+      {!edition && (
+        <footer className="pied-accueil">
+          <button className={`etat-pied ${props.partage.ton}`} onClick={props.ouvrirPartage}>
+            <span className={`point-etat ${props.partage.ton}`} aria-hidden />
+            {props.partage.texte}
+          </button>
+          <button className="etat-pied" onClick={props.ouvrirSauvegarde}>
+            <Icone nom="sauvegarde" taille={15} />
+            Sauvegarde : {decrireDerniere(derniereSauvegarde, aujourdhui)}
+          </button>
+          <button className="lien modifier" onClick={() => setEdition(true)}>Modifier l'accueil</button>
+        </footer>
       )}
+
+      <Recherche ouverte={recherche} fermer={() => setRecherche(false)} donnees={props.donnees} aller={props.aller} />
     </main>
   );
+}
+
+/**
+ * Comme sur l'accueil de l'iPhone : tirer la page vers le bas depuis le haut ouvre la
+ * recherche. Seulement quand la page est déjà tout en haut.
+ */
+function usePourChercher(actif: boolean, ouvrir: () => void) {
+  const rappel = useRef(ouvrir);
+  rappel.current = ouvrir;
+  useEffect(() => {
+    if (!actif) return;
+    let depart: { x: number; y: number } | null = null;
+    const debut = (e: TouchEvent) => {
+      const cible = e.target instanceof Element ? e.target : null;
+      depart = window.scrollY <= 0 && e.touches.length === 1 && !cible?.closest(".feuille, .barre-zone, input, textarea") ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+    };
+    const mouvement = (e: TouchEvent) => {
+      if (!depart) return;
+      const dy = e.touches[0].clientY - depart.y;
+      const dx = Math.abs(e.touches[0].clientX - depart.x);
+      if (dx > dy) depart = null;
+      else if (dy > TIRER_POUR_CHERCHER && window.scrollY <= 0) {
+        depart = null;
+        vibrer();
+        rappel.current();
+      }
+    };
+    window.addEventListener("touchstart", debut, { passive: true });
+    window.addEventListener("touchmove", mouvement, { passive: true });
+    return () => {
+      window.removeEventListener("touchstart", debut);
+      window.removeEventListener("touchmove", mouvement);
+    };
+  }, [actif]);
 }

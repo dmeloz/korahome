@@ -1,8 +1,7 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { Feuille } from "../Feuille";
-import { ErreurValidation } from "../../domaine/foyer";
+import { appliquerEtalement, appliquerRepartition, compteRepartition, etalementPropose, proposerRepartition, tachesDeLaSemaine } from "../../domaine/repartition";
 import {
-  RECURRENCES,
   TACHES_DE_LA_SEMAINE,
   decrireEcheance,
   decrireRecurrence,
@@ -21,6 +20,37 @@ import { Glissable } from "../Glissable";
 import { vibrer } from "../haptique";
 import { equilibreDesTaches, equilibreVisible } from "../../domaine/apprentissage";
 import { noterUsage } from "../usage";
+import { Onglets, Page } from "../pieces";
+import { Icone } from "../Icone";
+
+// Les tâches de la maison. On en ajoute d'une phrase dans la barre Jarvis (« linge chaque
+// mercredi ») ; on glisse une tâche vers la droite pour la marquer faite, vers la gauche
+// pour la supprimer ; un appui long ouvre sa fiche. Le dimanche, on se répartit la semaine.
+
+const CLE_REPARTITION = "korahome.derniereRepartition";
+
+/** Le dernier dimanche où la semaine a été répartie sur ce téléphone. */
+export function lireDerniereRepartition(): string | null {
+  try {
+    return localStorage.getItem(CLE_REPARTITION);
+  } catch {
+    return null;
+  }
+}
+
+function noterRepartition(jour: string): void {
+  try {
+    localStorage.setItem(CLE_REPARTITION, jour);
+  } catch {
+    // Stockage indisponible : Kora reproposera, sans gravité.
+  }
+}
+
+// « On se répartit la semaine ? » touché sur l'accueil : la page s'ouvre sur la répartition.
+let repartitionDemandee = false;
+export const demanderRepartition = () => {
+  repartitionDemandee = true;
+};
 
 const FILTRES: { id: Filtre; libelle: string }[] = [
   { id: "toutes", libelle: "Toutes" },
@@ -31,12 +61,13 @@ const FILTRES: { id: Filtre; libelle: string }[] = [
 export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | null; taches: Tache[] }) {
   const aujourdhui = aujourdhuiLocal();
   const [filtre, setFiltre] = useState<Filtre>("toutes");
-  const [saisie, setSaisie] = useState("");
-  const [frequence, setFrequence] = useState(2); // « Chaque semaine »
-  const [echeance, setEcheance] = useState(aujourdhui);
   const [ouverte, setOuverte] = useState<string | null>(null);
   const [aSupprimer, setASupprimer] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [repartir, setRepartir] = useState(() => {
+    const demandee = repartitionDemandee;
+    repartitionDemandee = false;
+    return demandee;
+  });
   const [annulable, setAnnulable] = useState<{ texte: string; avant: Tache } | null>(null);
 
   useEffect(() => {
@@ -49,20 +80,6 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
   const membre = (id: string | null) => props.foyer.membres.find((m) => m.id === id);
   const plusieurs = props.foyer.membres.length > 1;
   const { groupes, terminees } = organiserTaches(props.taches, aujourdhui, filtre, moi);
-
-  async function ajouter(e: FormEvent) {
-    e.preventDefault();
-    try {
-      const tache = nouvelleTache(saisie, RECURRENCES[frequence].valeur, echeance, contexteReel);
-      await props.depot.enregistrerTache(tache);
-      setSaisie("");
-      setEcheance(aujourdhui);
-      setMessage(null);
-    } catch (err) {
-      if (err instanceof ErreurValidation) setMessage(err.message);
-      else throw err;
-    }
-  }
 
   async function faire(t: Tache) {
     vibrer();
@@ -89,12 +106,12 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
     setAnnulable({ texte: `« ${t.titre} » supprimée.`, avant: t });
   }
 
-  const ajouterSemaine = () =>
-    props.depot.enregistrerTaches(
-      TACHES_DE_LA_SEMAINE.map((titre) =>
-        nouvelleTache(titre, { unite: "semaine", tous: 1 }, aujourdhui, contexteReel),
-      ),
-    );
+  // Les six tâches arrivent déjà étalées sur la semaine, pas toutes le même jour.
+  const ajouterSemaine = () => {
+    const nouvelles = TACHES_DE_LA_SEMAINE.map((titre) => nouvelleTache(titre, { unite: "semaine", tous: 1 }, aujourdhui, contexteReel));
+    const etalees = new Map(appliquerEtalement(etalementPropose(nouvelles, aujourdhui)).map((x) => [x.id, x]));
+    return props.depot.enregistrerTaches(nouvelles.map((x) => etalees.get(x.id) ?? x));
+  };
 
   function ligne(t: Tache) {
     const terminee = estTerminee(t);
@@ -108,7 +125,15 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
 
     return (
       <li key={t.id}>
-        <Glissable onSupprimer={() => void supprimer(t)}>
+        <Glissable
+          onSupprimer={() => void supprimer(t)}
+          onFait={terminee ? undefined : () => void faire(t)}
+          libelleFait="Faite"
+          onAppuiLong={() => {
+            setOuverte(t.id);
+            setASupprimer(null);
+          }}
+        >
         <div className={`ligne tache${terminee ? " coche" : ""}`}>
           <button
             className="case"
@@ -128,7 +153,7 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
             <span className="ligne-texte">{t.titre}</span>
             <span className={`tache-details${enRetard ? " retard" : ""}`}>{details.join(" · ")}</span>
           </button>
-          {resp && plusieurs && (
+          {resp && plusieurs && resp.id !== moi && (
             <span className="initiale" style={{ background: resp.couleur }} title={`S'en occupe : ${resp.prenom}`}>
               {resp.prenom.charAt(0)}
             </span>
@@ -142,9 +167,17 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
   const vide = props.taches.length === 0;
 
   const t = props.taches.find((x) => x.id === ouverte);
+  const etalement = etalementPropose(props.taches, aujourdhui);
+  const dues = groupes.filter((g) => g.cle === "retard" || g.cle === "aujourdhui").reduce((n, g) => n + g.taches.length, 0);
+  const autre = props.foyer.membres.find((m) => m.id !== moi);
   return (
-    <main>
-      <h1>Tâches</h1>
+    <Page
+      titre="Tâches"
+      sousTitre={vide ? undefined : dues ? `${dues} à faire aujourd'hui` : "Rien ne presse aujourd'hui"}
+      actions={plusieurs && !vide ? <button className="lien" onClick={() => setRepartir(true)}>Répartir</button> : undefined}
+      aide={{ cle: "taches", texte: "Écris une tâche dans la barre du bas, avec son rythme : « linge chaque mercredi ». Glisse une tâche vers la droite quand elle est faite, vers la gauche pour la supprimer. Un appui long ouvre sa fiche." }}
+    >
+      <Repartition ouverte={repartir} fermer={() => setRepartir(false)} foyer={props.foyer} taches={props.taches} aujourdhui={aujourdhui} depot={props.depot} />
 
       <Feuille ouverte={!!t} onFermer={() => setOuverte(null)} titre={t?.titre}>
         {t && (
@@ -159,6 +192,11 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
             {moi && t.responsable !== moi && (
               <button type="button" className="bouton-principal" onClick={() => props.depot.enregistrerTache(prendre(t, moi))}>
                 Je m'en occupe
+              </button>
+            )}
+            {autre && t.responsable !== autre.id && (
+              <button type="button" className="secondaire" onClick={() => props.depot.enregistrerTache(prendre(t, autre.id))}>
+                Donner à {autre.prenom}
               </button>
             )}
             {t.responsable !== null && (
@@ -179,49 +217,18 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
         )}
       </Feuille>
 
-      <form onSubmit={ajouter} className="ajout-tache">
-        <div className="ajout">
-          <input
-            value={saisie}
-            onChange={(e) => setSaisie(e.target.value)}
-            placeholder="Ajouter une tâche"
-            enterKeyHint="done"
-            aria-label="Nouvelle tâche"
-          />
-          <button type="submit" disabled={!saisie.trim()} aria-label="Ajouter">+</button>
-        </div>
-        {saisie.trim() && (
-          <div className="options-tache">
-            <div className="puces" role="group" aria-label="Fréquence">
-              {RECURRENCES.map((r, i) => (
-                <button
-                  type="button"
-                  key={r.libelle}
-                  className={`puce${i === frequence ? " active" : ""}`}
-                  aria-pressed={i === frequence}
-                  onClick={() => setFrequence(i)}
-                >
-                  {r.libelle}
-                </button>
-              ))}
-            </div>
-            <label className="date-tache">
-              {RECURRENCES[frequence].valeur ? "À partir du" : "Pour le"}
-              <input type="date" value={echeance} min="2000-01-01" onChange={(e) => setEcheance(e.target.value || aujourdhui)} />
-            </label>
-          </div>
-        )}
-      </form>
-      {message && <p className="erreur" role="status">{message}</p>}
 
-      {!vide && (
-        <div className="segments" role="group" aria-label="Afficher">
-          {FILTRES.filter((f) => f.id !== "miennes" || moi).map((f) => (
-            <button key={f.id} className={f.id === filtre ? "actif" : ""} aria-pressed={f.id === filtre} onClick={() => setFiltre(f.id)}>
-              {f.libelle}
-            </button>
-          ))}
-        </div>
+      {!vide && <Onglets libelle="Afficher" onglets={FILTRES.filter((f) => f.id !== "miennes" || moi)} actif={filtre} changer={setFiltre} />}
+
+      {etalement.length > 0 && (
+        <button className="carte proposition" onClick={() => void props.depot.enregistrerTaches(appliquerEtalement(etalement))}>
+          <span className="pictogramme"><Icone nom="calendrier" taille={20} /></span>
+          <span className="proposition-texte">
+            <strong>Étaler sur la semaine</strong>
+            <span className="discret">Plusieurs tâches tombent le même jour : Kora les pose sur des jours différents.</span>
+          </span>
+          <Icone nom="suivant" taille={18} />
+        </button>
       )}
 
       {!vide && equilibreVisible(props.foyer) && <CarteEquilibre foyer={props.foyer} taches={props.taches} aujourdhui={aujourdhui} />}
@@ -229,7 +236,7 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
       {vide && (
         <div className="carte bientot">
           <p>Aucune tâche pour l'instant.</p>
-          <p className="discret">Les tâches de la semaine que vous avez choisies : {TACHES_DE_LA_SEMAINE.join(", ")}.</p>
+          <p className="discret">Les tâches de la semaine que vous avez choisies : {TACHES_DE_LA_SEMAINE.join(", ")}. Kora les pose sur six jours différents.</p>
           <button className="bouton-principal" onClick={ajouterSemaine}>Ajouter ces 6 tâches</button>
         </div>
       )}
@@ -263,7 +270,56 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
           <button className="lien" onClick={annuler}>Annuler</button>
         </div>
       )}
-    </main>
+    </Page>
+  );
+}
+
+/** Le dimanche : Kora propose qui fait quoi cette semaine, à parts égales ; chacun change d'un toucher. */
+function Repartition(props: { ouverte: boolean; fermer: () => void; foyer: Foyer; taches: Tache[]; aujourdhui: string; depot: Depot }) {
+  const [choix, setChoix] = useState<Map<string, string | null>>(new Map());
+  useEffect(() => {
+    if (props.ouverte) setChoix(new Map(proposerRepartition(props.taches, props.foyer, props.aujourdhui)));
+  }, [props.ouverte]); // eslint-disable-line react-hooks/exhaustive-deps
+  const semaine = tachesDeLaSemaine(props.taches, props.aujourdhui);
+  const membres = props.foyer.membres;
+  const suivant = (actuel: string | null | undefined) => {
+    const i = actuel ? membres.findIndex((m) => m.id === actuel) : -1;
+    return i + 1 < membres.length ? membres[i + 1].id : null;
+  };
+  async function valider() {
+    const changees = appliquerRepartition(props.taches, choix);
+    if (changees.length) await props.depot.enregistrerTaches(changees);
+    noterRepartition(props.aujourdhui);
+    vibrer();
+    props.fermer();
+  }
+  return (
+    <Feuille ouverte={props.ouverte} onFermer={props.fermer} titre="On se répartit la semaine ?" fermer="Plus tard">
+      {semaine.length === 0 ? (
+        <p className="discret">Rien à répartir cette semaine.</p>
+      ) : (
+        <>
+          <p className="discret">Kora propose à parts égales, en alternant avec la dernière fois. Touche un prénom pour changer. {compteRepartition(choix, props.foyer)}.</p>
+          <ul className="carte groupe">
+            {semaine.map((t) => {
+              const qui = membres.find((m) => m.id === choix.get(t.id));
+              return (
+                <li key={t.id} className="ligne">
+                  <span className="ligne-texte">
+                    {t.titre}
+                    <span className="tache-details">{decrireEcheance(t.echeance, props.aujourdhui)}</span>
+                  </span>
+                  <button className="puce" onClick={() => setChoix((c) => new Map(c).set(t.id, suivant(c.get(t.id))))}>
+                    {qui ? <><span className="initiale petite" style={{ background: qui.couleur }}>{qui.prenom.charAt(0)}</span>{qui.prenom}</> : "Libre"}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          <button className="bouton-principal" onClick={() => void valider()}>C'est d'accord</button>
+        </>
+      )}
+    </Feuille>
   );
 }
 

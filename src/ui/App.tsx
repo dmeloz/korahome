@@ -21,6 +21,15 @@ import { Notifications } from "./ecrans/Notifications";
 import { Partage, type ServicesPartage } from "./ecrans/Partage";
 import { Reglages, Telephone } from "./ecrans/Reglages";
 import { RetoursTest } from "./ecrans/RetoursTest";
+import { CentreRappels } from "./ecrans/CentreRappels";
+import { Sauvegarde } from "./ecrans/Sauvegarde";
+import { demanderRepartition } from "./ecrans/Taches";
+import { preparerDemande } from "./ecrans/Jarvis";
+import { BarreJarvis, FournisseurSaisie } from "./pieces";
+import { useEtatPartage } from "./etatPartage";
+import { lireRappels } from "./centreRappels";
+import { nonLus } from "../domaine/centreRappels";
+import type { LieuBarre } from "../domaine/barre";
 import { Icone } from "./Icone";
 import type { MiseAJour } from "./miseAJour";
 import { BORD_RETOUR, directionGeste, finRetour } from "./gestes";
@@ -49,7 +58,9 @@ type Page =
   | { nom: "memoire" }
   | { nom: "mots" }
   | { nom: "bilan" }
-  | { nom: "appris" };
+  | { nom: "appris" }
+  | { nom: "rappels" }
+  | { nom: "sauvegarde" };
 
 /** Une page de la pile, avec l'endroit où elle était défilée quand on en est parti. */
 type Entree = Page & { defilement?: number };
@@ -70,6 +81,15 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   const [pastille, setPastille] = useState(lirePastilleVisible);
 
   const synchro = partage?.synchro;
+  const etatPartage = useEtatPartage(depot, synchro ?? null);
+  // La cloche : ce que Kora a envoyé et pas encore relu, recompté au retour dans l'app.
+  const [rappelsNonLus, setRappelsNonLus] = useState(0);
+  useEffect(() => {
+    const compter = () => void lireRappels(aujourdhuiLocal()).then((j) => setRappelsNonLus(nonLus(j)));
+    compter();
+    document.addEventListener("visibilitychange", compter);
+    return () => document.removeEventListener("visibilitychange", compter);
+  }, [pile.length]);
   const partageActif = useSyncExternalStore(synchro?.abonner ?? sansAbonnement, () => (synchro?.statut().etat ?? "inactif") !== "inactif");
   useEffect(() => (synchro ? planifierSynchro(synchro, depot) : undefined), [synchro, depot]);
 
@@ -122,6 +142,8 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     if (p.nom === "mots") return "Nos mots";
     if (p.nom === "bilan") return "Bilan";
     if (p.nom === "appris") return "Ce que Kora sait";
+    if (p.nom === "rappels") return "Rappels";
+    if (p.nom === "sauvegarde") return "Sauvegarde";
     if (p.nom === "module") return MODULES[p.id]?.libelle ?? "Retour";
     return listes.find((l) => l.id === p.id)?.nom ?? "Liste";
   }
@@ -188,12 +210,22 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         donnees={donnees}
         ouvrirModule={(id) => ouvrir({ nom: "module", id })}
         ouvrirReglages={() => ouvrir({ nom: "reglages" })}
-        ouvrirJarvis={() => ouvrir({ nom: "jarvis" })}
         ouvrirMots={() => ouvrir({ nom: "mots" })}
         ouvrirBilan={() => ouvrir({ nom: "bilan" })}
+        ouvrirRappels={() => ouvrir({ nom: "rappels" })}
+        ouvrirSauvegarde={() => ouvrir({ nom: "sauvegarde" })}
+        ouvrirPartage={() => ouvrir({ nom: "partage" })}
+        ouvrirRepartition={() => {
+          demanderRepartition();
+          ouvrir({ nom: "module", id: "taches" });
+        }}
+        aller={(ou) => ouvrir(ou.type === "module" ? { nom: "module", id: ou.id } : ou.type === "liste" ? { nom: "liste", id: ou.id } : { nom: "memoire" })}
         depot={depot}
         jarvis={jarvisPartage}
         nouvelleVersion={nouvelleVersion}
+        partage={etatPartage}
+        rappelsNonLus={rappelsNonLus}
+        auDessus={pile.length === 1}
       />
     );
   } else if (page.nom === "module") {
@@ -259,6 +291,10 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     const notifier =
       partage && foyerPartage ? (m: { id: string; de: string | null; texte: string }) => partage.rappels.notifierMot({ foyerId: foyerPartage, id: m.id, de: m.de, texte: m.texte }) : null;
     ecran = <NosMots donnees={donnees} depot={depot} notifier={notifier} />;
+  } else if (page.nom === "rappels") {
+    ecran = <CentreRappels ouvrirNotifications={() => ouvrir({ nom: "notifications" })} />;
+  } else if (page.nom === "sauvegarde") {
+    ecran = <Sauvegarde depot={depot} aujourdhui={donnees.aujourdhui} contenu={{ foyer: leFoyer, listes, elements, taches, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda, retours }} />;
   } else if (page.nom === "retours") {
     ecran = <RetoursTest depot={depot} foyer={leFoyer} retours={retours} partageActif={partageActif} />;
   } else {
@@ -275,6 +311,8 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         ouvrirPartage={() => ouvrir({ nom: "partage" })}
         ouvrirNotifications={() => ouvrir({ nom: "notifications" })}
         ouvrirAppris={() => ouvrir({ nom: "appris" })}
+        ouvrirSauvegarde={() => ouvrir({ nom: "sauvegarde" })}
+        etatPartage={etatPartage}
         partage={!partage ? "indisponible" : partageActif ? "actif" : "inactif"}
         pastilleVisible={pastille}
         changerPastille={(visible) => {
@@ -288,11 +326,20 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   return ecran;
   }
 
+  // La barre Jarvis, en bas de l'accueil et de chaque module : là où l'on ajoute quelque chose.
+  // Les autres pages (Réglages, Nos mots, Jarvis lui-même) ont leurs propres champs.
+  const lieuBarre: LieuBarre | null = page.nom === "accueil" ? "accueil" : page.nom === "module" ? page.id : page.nom === "liste" ? "liste" : null;
+  const cleBarre = page.nom === "module" ? `module:${page.id}` : page.nom === "liste" ? `liste:${page.id}` : page.nom;
+  const coinDev = pastille && !nouvelleVersion && page.nom !== "retours" && (
+    <CoinDev depot={depot} ecran={nomEcran} membreId={membre} ouvertes={ouvertes} voirRetours={() => ouvrir({ nom: "retours" })} dansLaBarre={lieuBarre !== null} />
+  );
+
   // Toutes les pages de la pile restent montées, comme sur l'iPhone : celle d'en dessous
   // garde son état et apparaît sous le doigt quand on glisse pour revenir.
   const progression = glissement.decalage / Math.max(window.innerWidth, 1);
   return (
     <FournisseurAnnulation>
+    <FournisseurSaisie>
     {pile.map((p, i) => {
       const dessus = i === pile.length - 1;
       const avant = i > 0 ? pile[i - 1] : null;
@@ -328,19 +375,29 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     >
       {retour}
       {ecranDe(p)}
-      {pastille && !nouvelleVersion && page.nom !== "retours" && (
-        <CoinDev
-          depot={depot}
-          ecran={nomEcran}
-          membreId={membre}
-          ouvertes={ouvertes}
-          voirRetours={() => ouvrir({ nom: "retours" })}
-        />
-      )}
       {bandeauVersion}
     </div>
       );
     })}
+    {lieuBarre ? (
+      <BarreJarvis
+        cle={cleBarre}
+        lieu={lieuBarre}
+        liste={page.nom === "liste" ? (listes.find((l) => l.id === page.id) ?? null) : null}
+        donnees={donnees}
+        depot={depot}
+        jarvis={jarvisPartage}
+        demanderAJarvis={(demande) => {
+          preparerDemande(demande);
+          ouvrir({ nom: "jarvis" });
+        }}
+        ouvrirJarvis={() => ouvrir({ nom: "jarvis" })}
+        avant={coinDev}
+      />
+    ) : (
+      coinDev
+    )}
+    </FournisseurSaisie>
     </FournisseurAnnulation>
   );
 }

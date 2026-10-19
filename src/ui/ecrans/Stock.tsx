@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, type FormEvent } from "react";
+import { lazy, Suspense, useState } from "react";
 import type { ServeurJarvis } from "../../donnees/distant";
 import type { DonneesModule } from "../modules";
 import { TicketDeCaisse } from "../TicketDeCaisse";
@@ -53,6 +53,7 @@ import { useAnnoncer } from "../annulation";
 import { contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
 import { Icone } from "../Icone";
+import { AuDessusDeLaBarre, Onglets, Page, useGestionnaireBarre, useSaisieBarre } from "../pieces";
 
 // Frigo, congélateur et placard : ce qu'il y a à la maison, ce qui arrive à sa date
 // en tête. On ajoute d'une phrase (tapée ou dictée), d'un scan ou d'un toucher sur un
@@ -85,7 +86,8 @@ export function Stock(props: {
   const { aujourdhui, depot, catalogue } = props;
   const [vue, setVue] = useState<Vue>("stock");
   const [filtre, setFiltre] = useState<Lieu | "tous">("tous");
-  const [saisie, setSaisie] = useState("");
+  // La phrase s'écrit dans la barre Jarvis ; la page la complète (combien, où, jusqu'à quand).
+  const { texte: saisie, changer: setSaisie } = useSaisieBarre();
   // Ce que la personne a choisi elle-même ; undefined : on suit ce que Kora a compris.
   const [lieuChoisi, setLieuChoisi] = useState<Lieu | undefined>();
   const [dateChoisie, setDateChoisie] = useState<Jour | null | undefined>();
@@ -133,9 +135,9 @@ export function Stock(props: {
     });
   }
 
-  async function ajouter(e: FormEvent) {
-    e.preventDefault();
-    if (!compris) return;
+  /** La barre envoie la phrase : le produit entre au stock tel que la page l'a compris. */
+  async function ajouter(): Promise<boolean> {
+    if (!compris?.nom) return false;
     try {
       const p = creerProduit({ nom: compris.nom, nombre, unite, lieu, peremption, code: fiche?.code ?? null, image: fiche?.image ?? null }, props.membreId, contexteReel);
       await entrer(p, `« ${p.nom} » ajouté ${a(p.lieu)}.`);
@@ -145,7 +147,10 @@ export function Stock(props: {
       if (err instanceof ErreurValidation) setMessage(err.message);
       else throw err;
     }
+    return true;
   }
+  // Une question (« qu'est-ce qui périme ? ») n'est pas un produit : la barre la confie à Jarvis.
+  useGestionnaireBarre("module:stock", (phrase) => (/\?\s*$|^(qu|est-ce|combien|quand|quel)/i.test(phrase.trim()) ? Promise.resolve(false) : ajouter()));
 
   async function remettre(h: ProduitHabituel) {
     const p = produitDepuisHabituel(h, aujourdhui, props.membreId, contexteReel);
@@ -276,25 +281,22 @@ export function Stock(props: {
   }
 
   const composer = (
-    <form onSubmit={ajouter} className="composer carte">
-      <div className="ajout composer-ligne">
-        <input
-          value={saisie}
-          onChange={(e) => setSaisie(e.target.value)}
-          placeholder="2 yaourts frigo mardi"
-          enterKeyHint="done"
-          autoComplete="off"
-          aria-label="Nouveau produit, en une phrase"
-        />
-        <button type="button" className="bouton-scan" onClick={() => setScanner(true)} aria-label="Scanner un code-barres" disabled={recherche}>
-          <Icone nom="codeBarres" taille={22} />
+    <div className="composer">
+      <div className="composer-outils">
+        <button type="button" className="carte outil-ajout" onClick={() => setScanner(true)} disabled={recherche}>
+          <Icone nom="codeBarres" taille={20} />
+          <span>Scanner</span>
         </button>
-        {props.donnees && <TicketDeCaisse jarvis={props.jarvis ?? null} donnees={props.donnees} depot={depot} catalogue={catalogue} />}
-        <button type="submit" disabled={!compris?.nom} aria-label="Ajouter">+</button>
+        {props.donnees && props.jarvis && (
+          <span className="carte outil-ajout">
+            <TicketDeCaisse jarvis={props.jarvis} donnees={props.donnees} depot={depot} catalogue={catalogue} classe="outil-ticket" />
+            <span>Ticket</span>
+          </span>
+        )}
       </div>
       {recherche && <p className="discret composer-aide">Lecture de la fiche du produit…</p>}
-      {!compris && !recherche && props.produits.length > 0 && <p className="discret composer-aide">Écris ou dicte une phrase : la quantité, le lieu et la date se remplissent seuls.</p>}
 
+      <AuDessusDeLaBarre>
       {suggestions.length > 0 && (
         <div className="puces suggestions" role="group" aria-label="Produits habituels">
           {suggestions.map((h) => (
@@ -306,7 +308,7 @@ export function Stock(props: {
       )}
 
       {compris?.nom && (
-        <div className="compris">
+        <div className="compris carte">
           {fiche?.image && <img className="compris-photo" src={fiche.image} alt="" />}
           <div className="compris-ligne">
             <span className="compris-titre">Combien</span>
@@ -369,7 +371,8 @@ export function Stock(props: {
           )}
         </div>
       )}
-    </form>
+      </AuDessusDeLaBarre>
+    </div>
   );
 
   const aRemettre = habituelsARemettre(catalogue, props.produits);
@@ -377,28 +380,18 @@ export function Stock(props: {
   const jours = calendrierDates(props.produits, aujourdhui);
 
   return (
-    <main className="page-stock">
-      <h1>Frigo et placards</h1>
-      {/* Stock vide : la carte plus bas explique tout, une seule fois. */}
-      {props.produits.length > 0 && (
-        <p className="discret sous-titre">
-          {`${props.produits.length} produit${props.produits.length > 1 ? "s" : ""}${resume.aConsommer.length ? ` · ${resume.aConsommer.length} à consommer` : " · rien ne presse"}`}
-        </p>
-      )}
-
-      <div className="segments" role="group" aria-label="Vue">
-        {(
-          [
-            ["stock", "Stock"],
-            ["dates", "Dates"],
-            ["base", "Base"],
-          ] as const
-        ).map(([v, libelle]) => (
-          <button key={v} className={v === vue ? "actif" : ""} aria-pressed={v === vue} onClick={() => enTransition(() => setVue(v))}>
-            {libelle}
-          </button>
-        ))}
-      </div>
+    <Page
+      titre="Frigo et placards"
+      className="page-stock"
+      sousTitre={props.produits.length > 0 ? `${props.produits.length} produit${props.produits.length > 1 ? "s" : ""}${resume.aConsommer.length ? ` · ${resume.aConsommer.length} à consommer` : " · rien ne presse"}` : undefined}
+      aide={{ cle: "stock", texte: "Écris dans la barre du bas, « 6 œufs frigo jusqu'au 25 » : la quantité, le lieu et la date se remplissent pendant que tu écris. Scanner lit un code-barres, Ticket range un ticket de caisse entier." }}
+    >
+      <Onglets
+        libelle="Vue"
+        onglets={[{ id: "stock", libelle: "Stock" }, { id: "dates", libelle: "Dates" }, { id: "base", libelle: "Base" }] as const}
+        actif={vue}
+        changer={(v) => enTransition(() => setVue(v))}
+      />
 
       {vue === "stock" && (
         <>
@@ -508,7 +501,7 @@ export function Stock(props: {
           </div>
         )}
       </Feuille>
-    </main>
+    </Page>
   );
 }
 

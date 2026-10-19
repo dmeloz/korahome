@@ -9,6 +9,7 @@ import { contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
 import { Feuille } from "../Feuille";
 import { vibrer } from "../haptique";
+import { Page } from "../pieces";
 
 /** L'entretien de la maison : ce qui revient tous les quelques mois, du plus pressé au plus lointain. */
 export function Entretien(props: { depot: Depot; membreId: string | null; taches: Tache[]; aujourdhui: Jour }) {
@@ -33,8 +34,7 @@ export function Entretien(props: { depot: Depot; membreId: string | null; taches
 
   const t = props.taches.find((x) => x.id === ouverte);
   return (
-    <main>
-      <h1>Entretien</h1>
+    <Page titre="Entretien" sousTitre="Ce qui revient pour la maison" aide={{ cle: "entretien", texte: "Écris dans la barre du bas : « Détartrer la bouilloire tous les 3 mois ». Glisse une ligne vers la droite quand c'est fait, vers la gauche pour la retirer." }}>
       <Feuille ouverte={!!t} onFermer={() => setOuverte(null)} titre={t?.titre}>
         {t && (
           <div className="formulaire tache-feuille">
@@ -86,6 +86,6 @@ export function Entretien(props: { depot: Depot; membreId: string | null; taches
           </div>
         </section>
       )}
-    </main>
+    </Page>
   );
 }

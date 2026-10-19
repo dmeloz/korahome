@@ -5,6 +5,11 @@ import { decrireJours, formaterHeure } from "../../domaine/rappels";
 import { lirePreferences } from "../rappels";
 import { Icone, type NomIcone } from "../Icone";
 import { MESSAGES_VERIFICATION, type ResultatVerification } from "../miseAJour";
+import type { EtatPartage } from "../../domaine/etatPartage";
+import { decrireDerniere } from "../../domaine/sauvegarde";
+import { aujourdhuiLocal } from "../contexte";
+import { lireDerniereSauvegarde } from "../sauvegarde";
+import { choisirTheme, lireTheme, THEMES, type Theme } from "../theme";
 
 const ETATS_PARTAGE = { indisponible: "Bientôt", inactif: "Désactivé", actif: "Activé" } as const;
 
@@ -37,6 +42,8 @@ export function Reglages(props: {
   ouvrirPartage: () => void;
   ouvrirNotifications: () => void;
   ouvrirAppris: () => void;
+  ouvrirSauvegarde: () => void;
+  etatPartage: EtatPartage;
   partage: "indisponible" | "inactif" | "actif";
   pastilleVisible: boolean;
   changerPastille: (visible: boolean) => void;
@@ -68,7 +75,8 @@ export function Reglages(props: {
       </button>
 
       <ul className="carte groupe">
-        <Ligne picto="partage" titre="Partage" valeur={ETATS_PARTAGE[props.partage]} onClick={props.ouvrirPartage} />
+        <Ligne picto="partage" titre="Partage" valeur={props.partage === "actif" ? props.etatPartage.texte : ETATS_PARTAGE[props.partage]} alerte={props.etatPartage.ton === "urgent"} onClick={props.ouvrirPartage} />
+        <Ligne picto="sauvegarde" titre="Sauvegarde" valeur={decrireDerniere(lireDerniereSauvegarde(), aujourdhuiLocal())} onClick={props.ouvrirSauvegarde} />
         <Ligne
           picto="cloche"
           titre="Notifications"
@@ -123,10 +131,31 @@ export function Telephone(props: { foyer: Foyer; membreId: string | null; choisi
   const moi = props.foyer.membres.find((m) => m.id === props.membreId);
   const [deverrouille, setDeverrouille] = useState(!moi);
   const [confirmer, setConfirmer] = useState(false);
+  const [theme, setTheme] = useState<Theme>(lireTheme);
 
   return (
     <main className="reglages">
       <h1>Ce téléphone</h1>
+      <h2 className="rayon">Thème</h2>
+      <div className="choix-theme" role="radiogroup" aria-label="Thème de ce téléphone">
+        {THEMES.map((t) => (
+          <button
+            key={t.id}
+            role="radio"
+            aria-checked={theme === t.id}
+            className={`theme-carte theme-${t.id}${theme === t.id ? " actif" : ""}`}
+            onClick={() => {
+              choisirTheme(t.id);
+              setTheme(t.id);
+            }}
+          >
+            <span className="theme-apercu" aria-hidden><span /><span /><span /></span>
+            <strong>{t.libelle}</strong>
+            <span className="discret">{t.detail}</span>
+          </button>
+        ))}
+      </div>
+      <h2 className="rayon">Qui l'utilise</h2>
       {moi && !deverrouille ? (
         <>
           <div className="carte profil verrou">

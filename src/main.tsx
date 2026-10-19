@@ -7,6 +7,7 @@ import { creerSynchro } from "./donnees/synchro";
 import { App, ecranAffiche } from "./ui/App";
 import { installerJournal } from "./ui/journal";
 import { creerMiseAJour, surveillerMisesAJour } from "./ui/miseAJour";
+import { appliquerTheme, lireTheme } from "./ui/theme";
 import "./styles.css";
 
 const miseAJour = creerMiseAJour(
@@ -14,6 +15,9 @@ const miseAJour = creerMiseAJour(
   (recharger) => navigator.serviceWorker?.addEventListener("controllerchange", recharger),
   () => window.location.reload(),
 );
+
+// Le thème de ce téléphone, avant le premier affichage.
+appliquerTheme(lireTheme());
 
 installerJournal(ecranAffiche);
 

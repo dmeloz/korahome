@@ -1,4 +1,3 @@
-import { useState, type FormEvent } from "react";
 import { compterAPrendre, nouvelleListe } from "../../domaine/listes";
 import type { Element, Liste } from "../../domaine/types";
 import type { Depot } from "../../donnees/depot";
@@ -6,6 +5,7 @@ import { useAnnoncer } from "../annulation";
 import { contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
 import { Icone } from "../Icone";
+import { Page, useGestionnaireBarre } from "../pieces";
 
 export function Listes(props: {
   depot: Depot;
@@ -13,7 +13,6 @@ export function Listes(props: {
   elements: Element[];
   ouvrirListe: (id: string) => void;
 }) {
-  const [nom, setNom] = useState("");
   const annoncer = useAnnoncer();
 
   // La liste de courses est celle de tout le foyer : elle ne se supprime pas.
@@ -26,16 +25,18 @@ export function Listes(props: {
     });
   }
 
-  async function creer(e: FormEvent) {
-    e.preventDefault();
-    if (!nom.trim()) return;
-    await props.depot.enregistrerListe(nouvelleListe(nom, "📝", "simple", contexteReel));
-    setNom("");
-  }
+  // Sur cette page, la barre crée une liste du nom écrit ; une question part chez Jarvis.
+  useGestionnaireBarre("module:listes", async (texte) => {
+    const nom = texte.trim().replace(/^(nouvelle |une )?liste\s*(de |des |du |pour )?/i, "");
+    if (!nom || nom.endsWith("?")) return false;
+    const liste = nouvelleListe(nom.charAt(0).toUpperCase() + nom.slice(1), "📝", "simple", contexteReel);
+    await props.depot.enregistrerListe(liste);
+    annoncer(`Liste « ${liste.nom} » créée.`, () => props.depot.supprimerListe(liste.id));
+    return true;
+  });
 
   return (
-    <main>
-      <h1>Listes</h1>
+    <Page titre="Listes" sousTitre="Les courses et vos autres listes" aide={{ cle: "listes", texte: "Écris le nom d'une nouvelle liste dans la barre du bas (cadeaux, bricolage, vacances). Glisse une liste vers la gauche pour la retirer." }}>
       <ul className="carte groupe">
         {props.listes.map((l) => {
           const n = compterAPrendre(l, props.elements);
@@ -54,10 +55,6 @@ export function Listes(props: {
           );
         })}
       </ul>
-      <form onSubmit={creer} className="ajout">
-        <input value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Nouvelle liste (cadeaux, bricolage…)" />
-        <button type="submit" disabled={!nom.trim()} aria-label="Créer la liste">+</button>
-      </form>
-    </main>
+    </Page>
   );
 }

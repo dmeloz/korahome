@@ -88,7 +88,7 @@ describe("le bandeau", () => {
     const textes = elementsBandeau({ docs, foyer: f, moi: melo, maintenant: MAINTENANT, aujourdhui: AUJOURDHUI, infos: [{ cle: "x", genre: "info", texte: "Info" }] }).map((e) => e.texte);
     expect(textes).toEqual([
       "Pense au pain",
-      "Toi 😊 · Sarah 😴",
+      "Toi : bien · Sarah : fatigue",
       "Anniversaire de Sarah dans 5 jours",
       "Un vendredi parfait pour une raclette.",
       "Info",

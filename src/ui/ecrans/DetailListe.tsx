@@ -1,7 +1,7 @@
-import { useRef, useState, type FormEvent } from "react";
-import { decrireGaspillage, souventJete, trouverHabituel, type ProduitHabituel } from "../../domaine/catalogue";
-import { devinerArticles, noterAchat, oublierAchat, panierHabituel, quantiteHabituelle, suggestions } from "../../domaine/habitudes";
-import { analyserSaisie, basculerCoche, nouvelElement, organiserListe, trouverDoublon } from "../../domaine/listes";
+import { useEffect, useRef, useState } from "react";
+import type { ProduitHabituel } from "../../domaine/catalogue";
+import { devinerArticles, noterAchat, oublierAchat, panierHabituel, suggestions } from "../../domaine/habitudes";
+import { analyserSaisie, basculerCoche, nouvelElement, organiserListe } from "../../domaine/listes";
 import type { Element, Foyer, Liste } from "../../domaine/types";
 import type { Depot } from "../../donnees/depot";
 import { useAnnoncer } from "../annulation";
@@ -9,6 +9,16 @@ import { aujourdhuiLocal, contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
 import { vibrer } from "../haptique";
 import { Icone } from "../Icone";
+import { ajouterArticles } from "../ajouts";
+import { AuDessusDeLaBarre, Page, useSaisieBarre } from "../pieces";
+
+// Une liste (les courses ou une autre). On ajoute dans la barre Jarvis, en bas ; ce qui
+// est tapé fait apparaître les articles déjà achetés. Toucher ou glisser vers la droite
+// coche ; la ligne reste barrée deux secondes avant de rejoindre le panier, pour voir ce
+// qu'on vient de cocher et se rattraper.
+
+/** Le temps pendant lequel un article coché reste à sa place, barré. */
+const RESTE_BARRE_MS = 2000;
 
 export function DetailListe(props: {
   depot: Depot;
@@ -19,31 +29,20 @@ export function DetailListe(props: {
   /** La Base du stock : ce qui finit souvent périmé y est compté. */
   catalogue?: ProduitHabituel[];
 }) {
-  const [saisie, setSaisie] = useState("");
+  const { texte: saisie, changer: setSaisie } = useSaisieBarre();
   const [message, setMessage] = useState<string | null>(null);
-  const { aPrendre, coches } = organiserListe(props.liste, props.elements);
-  const siens = props.elements.filter((e) => e.listeId === props.liste.id);
+  // Les articles cochés il y a moins de deux secondes restent à leur place, barrés.
+  const [recents, setRecents] = useState<ReadonlySet<string>>(new Set());
+  const minuteries = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  useEffect(() => () => minuteries.current.forEach(clearTimeout), []);
+  const elementsVus = props.elements.map((e) => (recents.has(e.id) && e.coche ? { ...e, coche: false } : e));
+  const { aPrendre, coches } = organiserListe(props.liste, elementsVus);
   const annoncer = useAnnoncer();
-
-  async function ajouter(e: FormEvent) {
-    e.preventDefault();
-    if (!saisie.trim()) return;
-    const doublon = trouverDoublon(siens, saisie);
-    if (doublon) {
-      setMessage(`« ${doublon.texte} » est déjà sur la liste.`);
-      return;
-    }
-    await ajouterArticle(saisie);
-    setSaisie("");
-  }
 
   /** Sans quantité tapée, Kora reprend celle de d'habitude ; il prévient quand le produit finit souvent périmé. */
   async function ajouterArticle(texte: string) {
-    const element = nouvelElement(props.liste, texte, props.membreId, contexteReel);
-    const habituelle = courses && !element.quantite ? quantiteHabituelle(props.liste, element.texte) : null;
-    await props.depot.enregistrerElement(habituelle ? { ...element, quantite: habituelle } : element);
-    const base = props.catalogue ? trouverHabituel(props.catalogue, element.texte) : null;
-    setMessage(base && souventJete(base) ? `${base.nom} a souvent fini périmé (${decrireGaspillage(base)}) : prends-en un peu moins.` : null);
+    const r = await ajouterArticles(props.depot, props.liste, props.elements, [texte], props.membreId, props.catalogue);
+    setMessage(r.doublons.length ? `« ${r.doublons[0]} » est déjà sur la liste.` : r.conseil);
   }
 
   const courses = props.liste.type === "courses";
@@ -75,6 +74,21 @@ export function DetailListe(props: {
   async function basculer(el: Element) {
     vibrer();
     const apres = basculerCoche(el, contexteReel);
+    if (apres.coche) {
+      clearTimeout(minuteries.current.get(el.id));
+      setRecents((r) => new Set(r).add(el.id));
+      minuteries.current.set(
+        el.id,
+        setTimeout(() => {
+          minuteries.current.delete(el.id);
+          setRecents((r) => {
+            const s = new Set(r);
+            s.delete(el.id);
+            return s;
+          });
+        }, RESTE_BARRE_MS),
+      );
+    }
     await props.depot.enregistrerElement(apres);
     // Chaque achat coché apprend à Kora le rythme du foyer.
     // Plusieurs cases cochées d'affilée : chaque achat part de la version qui vient d'être écrite.
@@ -93,19 +107,23 @@ export function DetailListe(props: {
   }
   const prenom = (id: string | null) => props.foyer.membres.find((m) => m.id === id);
 
-  function ligne(el: Element) {
+  function ligne(vu: Element) {
+    // La version enregistrée : un article coché il y a un instant est barré, mais encore à sa place.
+    const el = props.elements.find((e) => e.id === vu.id) ?? vu;
     const auteur = prenom(el.ajoutePar);
+    // Le prénom de qui l'a ajouté, seulement quand ce n'est pas soi.
+    const autre = auteur && auteur.id !== props.membreId && props.foyer.membres.length > 1;
     return (
       <li key={el.id}>
-        <Glissable onSupprimer={() => void supprimer(el)}>
-        <button className={`ligne element${el.coche ? " coche" : ""}`} onClick={() => void basculer(el)}>
+        <Glissable onSupprimer={() => void supprimer(el)} onFait={el.coche ? undefined : () => void basculer(el)} libelleFait="Pris">
+        <button className={`ligne element${el.coche ? " coche" : ""}${recents.has(el.id) ? " vient-detre-coche" : ""}`} onClick={() => void basculer(el)}>
           <span className="case" aria-hidden>{el.coche ? "✓" : ""}</span>
           <span className="ligne-texte">
             {el.texte}
             {el.quantite && <span className="quantite"> · {el.quantite}</span>}
             {el.source === "chef" && <span className="etiquette-chef" title="Proposé par le Chef de la semaine">Chef</span>}
           </span>
-          {auteur && props.foyer.membres.length > 1 && (
+          {autre && (
             <span className="initiale" style={{ background: auteur.couleur }} title={`Ajouté par ${auteur.prenom}`}>
               {auteur.prenom.charAt(0)}
             </span>
@@ -116,20 +134,15 @@ export function DetailListe(props: {
     );
   }
 
+  const restant = aPrendre.reduce((n, g) => n + g.elements.length, 0);
   return (
-    <main>
-      <h1>{props.liste.nom}</h1>
-      <form onSubmit={ajouter} className="ajout">
-        <input
-          value={saisie}
-          onChange={(e) => setSaisie(e.target.value)}
-          placeholder={props.liste.type === "courses" ? "Ajouter (ex. 2 kg de pommes)" : "Ajouter un élément"}
-          enterKeyHint="done"
-          autoFocus
-        />
-        <button type="submit" disabled={!saisie.trim()} aria-label="Ajouter">+</button>
-      </form>
+    <Page
+      titre={props.liste.nom}
+      sousTitre={restant ? `${restant} à prendre` : coches.length ? "Tout est pris" : undefined}
+      aide={courses ? { cle: "courses", texte: "Écris dans la barre du bas : « 2 kg de pommes, du lait et du pain ». Touche un article ou glisse-le vers la droite quand il est pris ; vers la gauche pour le retirer." } : undefined}
+    >
       {enSaisie.length > 0 && (
+        <AuDessusDeLaBarre>
         <div className="puces saisie-devinee" aria-label="Déjà acheté">
           {enSaisie.map((a) => (
             <button
@@ -146,6 +159,7 @@ export function DetailListe(props: {
             </button>
           ))}
         </div>
+        </AuDessusDeLaBarre>
       )}
       {message && <p className="discret" role="status">{message}</p>}
       {panier && panier.articles.length > 0 && !saisie && (
@@ -191,6 +205,6 @@ export function DetailListe(props: {
           <ul className="carte groupe">{coches.map(ligne)}</ul>
         </section>
       )}
-    </main>
+    </Page>
   );
 }

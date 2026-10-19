@@ -10,6 +10,7 @@ self.addEventListener("push", (event) => {
   }
   event.waitUntil(
     Promise.all([
+      noterRappel(message).catch(() => {}),
       self.registration.showNotification(message.titre, {
         body: message.corps,
         icon: "/icone-192.png",
@@ -34,3 +35,22 @@ self.addEventListener("notificationclick", (event) => {
     }),
   );
 });
+
+// Le centre des rappels de l'accueil (la cloche) relit ce que Kora a envoyé, même une
+// notification balayée : chaque rappel reçu est gardé ici, un mois au plus (src/domaine/centreRappels.ts).
+const CACHE_RAPPELS = "korahome-rappels";
+const ADRESSE_RAPPELS = "/__rappels.json";
+
+async function noterRappel(message) {
+  const cache = await caches.open(CACHE_RAPPELS);
+  const reponse = await cache.match(ADRESSE_RAPPELS);
+  let journal = [];
+  try {
+    journal = reponse ? await reponse.json() : [];
+  } catch {
+    journal = [];
+  }
+  const genre = /^bonjour/i.test(message.titre) ? "rappel-du-matin" : "message";
+  journal.unshift({ le: new Date().toISOString(), titre: message.titre, corps: message.corps, genre });
+  await cache.put(ADRESSE_RAPPELS, new Response(JSON.stringify(journal.slice(0, 80)), { headers: { "content-type": "application/json" } }));
+}

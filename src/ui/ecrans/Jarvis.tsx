@@ -35,6 +35,12 @@ interface Echange extends TourJarvis {
 let conversation: Echange[] = [];
 let compteur = 0;
 
+// Une phrase écrite dans la barre Jarvis d'une autre page : elle part dès l'ouverture.
+let demandeEnAttente: string | null = null;
+export const preparerDemande = (demande: string) => {
+  demandeEnAttente = demande;
+};
+
 const EXEMPLES = ["Ajoute du lait et des œufs", "La litière est faite", "Retiens que Sarah n'aime pas la coriandre", "Qu'est-ce qui périme bientôt ?"];
 
 export function Jarvis(props: {
@@ -66,6 +72,12 @@ export function Jarvis(props: {
   const arretEcoute = useRef<(() => void) | null>(null);
   arretEcoute.current = ecoute;
   useEffect(() => () => arretEcoute.current?.(), []);
+  // La demande venue de la barre Jarvis : envoyée une fois, à l'arrivée sur la page.
+  useEffect(() => {
+    const demande = demandeEnAttente;
+    demandeEnAttente = null;
+    if (demande) void demander(demande, false);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const ajouter = (e: Omit<Echange, "n">) => setEchanges((avant) => [...avant, { ...e, n: ++compteur }]);
 

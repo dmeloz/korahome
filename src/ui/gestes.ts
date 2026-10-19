@@ -1,5 +1,6 @@
 // Les gestes de l'iPhone, en règles simples et testées : glisser depuis le bord
-// gauche pour revenir, glisser une ligne vers la gauche pour la supprimer.
+// gauche pour revenir, glisser une ligne vers la gauche pour la supprimer, vers la droite
+// pour la marquer faite (cochée, prise).
 
 /** Un geste qui part à moins de 24 px du bord gauche est un retour. */
 export const BORD_RETOUR = 24;
@@ -43,7 +44,15 @@ export function finLigne(position: number, deplacement: number, duree: number, l
   return position < -LARGEUR_ACTION / 2 ? "ouvrir" : "fermer";
 }
 
-/** La position d'une ligne pendant le geste : jamais vers la droite, jamais au-delà de sa largeur. */
-export function borner(position: number, largeur: number): number {
-  return Math.min(0, Math.max(-largeur, position));
+/**
+ * La position d'une ligne pendant le geste : jamais au-delà de sa largeur vers la gauche ;
+ * vers la droite seulement quand la ligne sait être « faite », et jusqu'à mi-largeur.
+ */
+export function borner(position: number, largeur: number, versLaDroite = false): number {
+  return Math.min(versLaDroite ? largeur * 0.5 : 0, Math.max(-largeur, position));
+}
+
+/** Tirée vers la droite au-delà d'un quart, ou lancée d'un geste vif : la ligne est faite. */
+export function finFait(position: number, duree: number, largeur: number): boolean {
+  return position >= largeur * 0.25 || (position > 40 && vitesse(position, duree) > 0.5);
 }

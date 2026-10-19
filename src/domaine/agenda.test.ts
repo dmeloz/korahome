@@ -256,3 +256,18 @@ describe("la vue Jour", () => {
     ]);
   });
 });
+
+describe("une date sans mois", () => {
+  const lire = (t: string) => analyserPhrase(t, "2026-10-19", []);
+  it("« le 28 » est le prochain 28", () => {
+    expect(lire("Anniversaire de Sarah le 28")).toMatchObject({ titre: "Anniversaire de Sarah", jour: "2026-10-28" });
+    expect(lire("Coiffeur le 5 à 10h")).toMatchObject({ titre: "Coiffeur", jour: "2026-11-05", heure: "10:00" });
+  });
+  it("« du 20 au 27 » prend les prochains, même à cheval sur deux mois", () => {
+    expect(lire("Vacances du 20 au 27")).toMatchObject({ titre: "Vacances", jour: "2026-10-20", fin: "2026-10-27" });
+    expect(lire("Ski du 28 au 3")).toMatchObject({ titre: "Ski", jour: "2026-10-28", fin: "2026-11-03" });
+  });
+  it("ne prend pas une heure pour un jour", () => {
+    expect(lire("Réunion le 21 de 8h à 9h")).toMatchObject({ jour: "2026-10-21", heure: "08:00", heureFin: "09:00" });
+  });
+});

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LARGEUR_ACTION, borner, directionGeste, finLigne, finRetour } from "./gestes";
+import { LARGEUR_ACTION, borner, directionGeste, finFait, finLigne, finRetour } from "./gestes";
 
 describe("direction d'un geste", () => {
   it("attend que le doigt ait assez bougé", () => {
@@ -48,5 +48,19 @@ describe("glisser une ligne pour la supprimer", () => {
     expect(borner(25, largeur)).toBe(0);
     expect(borner(-500, largeur)).toBe(-largeur);
     expect(borner(-40, largeur)).toBe(-40);
+  });
+});
+
+describe("glisser une ligne vers la droite", () => {
+  it("ne va vers la droite que si la ligne sait être faite, jusqu'à mi-largeur", () => {
+    expect(borner(80, 400)).toBe(0);
+    expect(borner(80, 400, true)).toBe(80);
+    expect(borner(300, 400, true)).toBe(200);
+  });
+
+  it("est faite au-delà d'un quart, ou d'un geste vif", () => {
+    expect(finFait(110, 600, 400)).toBe(true);
+    expect(finFait(60, 600, 400)).toBe(false);
+    expect(finFait(60, 80, 400)).toBe(true);
   });
 });

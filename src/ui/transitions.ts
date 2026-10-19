@@ -5,13 +5,16 @@ import { flushSync } from "react-dom";
 
 export type Sens = "avant" | "arriere";
 
+// Moins d'animations demandées dans l'iPhone : un fondu à la place du glissement.
+
 export function avecTransition(sens: Sens, changer: () => void): void {
   const doc = document as Document & { startViewTransition?: (maj: () => void) => unknown };
   const reduit = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  if (!doc.startViewTransition || reduit) {
+  if (!doc.startViewTransition) {
     changer();
     return;
   }
-  document.documentElement.dataset.sens = sens;
+  // Moins d'animations demandées : un simple fondu, sans glissement.
+  document.documentElement.dataset.sens = reduit ? "fondu" : sens;
   doc.startViewTransition(() => flushSync(changer));
 }

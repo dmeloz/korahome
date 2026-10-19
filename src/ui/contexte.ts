@@ -50,7 +50,8 @@ export function enregistrerDisposition(disposition: readonly string[]): void {
   }
 }
 
-const CLE_TAILLES = "korahome.taillesWidgets";
+// Depuis Kora 0.0.23, les widgets sont petits au départ : une nouvelle clé, les anciennes tailles sont oubliées.
+const CLE_TAILLES = "korahome.taillesWidgets.2";
 
 /** La taille de chaque widget (petit ou grand). Propre à chaque téléphone, comme la disposition. */
 export function lireTailles(): unknown {
@@ -67,5 +68,25 @@ export function enregistrerTailles(tailles: object): void {
     localStorage.setItem(CLE_TAILLES, JSON.stringify(tailles));
   } catch {
     // Stockage indisponible : les tailles valent pour cette visite seulement.
+  }
+}
+
+const CLE_PAGES = "korahome.pagesAccueil";
+
+/** La page de l'accueil où est rangé chaque widget. Propre à chaque téléphone. */
+export function lirePages(): unknown {
+  try {
+    const brut = localStorage.getItem(CLE_PAGES);
+    return brut === null ? undefined : JSON.parse(brut);
+  } catch {
+    return undefined;
+  }
+}
+
+export function enregistrerPages(pages: object): void {
+  try {
+    localStorage.setItem(CLE_PAGES, JSON.stringify(pages));
+  } catch {
+    // Stockage indisponible : les pages valent pour cette visite seulement.
   }
 }

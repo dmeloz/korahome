@@ -10,6 +10,7 @@ import { Feuille } from "../Feuille";
 import { Glissable } from "../Glissable";
 import { vibrer } from "../haptique";
 import type { PropsPage } from "../modules";
+import { Page } from "../pieces";
 
 const HEURES = Array.from({ length: HEURE_MAX - HEURE_MIN + 1 }, (_, i) => HEURE_MIN + i);
 
@@ -75,8 +76,7 @@ export function Chef(p: PropsPage) {
 
   const ajouts = menu ? etatDesAjouts(menu, p.elements) : [];
   return (
-    <main className="chef">
-      <h1>Menus de la semaine</h1>
+    <Page titre="Menus de la semaine" className="chef" aide={{ cle: "chef", texte: "Le Chef prépare les repas du soir avec ce qui reste au frigo et ajoute le manquant aux courses, marqué « Chef ». Lance-le ici, ou laisse-le passer seul le jour choisi." }}>
 
       <Feuille ouverte={confirmer} onFermer={() => setConfirmer(false)} titre="Relancer le Chef ?">
         <div className="formulaire">
@@ -197,7 +197,7 @@ export function Chef(p: PropsPage) {
         )}
         <p className="discret chef-note">Il ne fait qu'ajouter à la liste de courses, jamais il ne touche au stock. Les croquettes et la litière de Mitsu restent sur zooplus : il prévient seulement. Sa dépense compte dans le plafond de Jarvis.</p>
       </section>
-    </main>
+    </Page>
   );
 }
 

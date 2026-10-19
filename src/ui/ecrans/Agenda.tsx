@@ -34,6 +34,8 @@ import { Feuille } from "../Feuille";
 import { vibrer } from "../haptique";
 import { Icone } from "../Icone";
 import type { PropsPage } from "../modules";
+import { Onglets, Page, useGestionnaireBarre } from "../pieces";
+import { comprendrePhrase } from "../../domaine/barre";
 
 type Vue = "jour" | "semaine" | "mois" | "avenir";
 const VUES: Record<Vue, string> = { jour: "Jour", semaine: "Semaine", mois: "Mois", avenir: "À venir" };
@@ -105,48 +107,57 @@ export function Agenda(p: PropsPage) {
     });
   }
 
+  // Ce qu'on écrit dans la barre arrive au jour choisi quand la phrase ne dit pas le jour.
+  useGestionnaireBarre("module:agenda", async (texte) => {
+    const i = comprendrePhrase(texte, "agenda", aujourdhui, foyer.membres);
+    if (i.type !== "agenda") return false;
+    const b = i.brouillon;
+    const jour = b.jour ?? (choisi < aujourdhui ? aujourdhui : choisi);
+    const ev = preparerEvenement({ titre: b.titre, jour, fin: b.fin, heure: b.heure, heureFin: b.heureFin, categorie: b.categorie, repetition: b.repetition, pour: b.pour }, p.membreId, contexteReel);
+    await depot.enregistrerAgenda(ev);
+    vibrer();
+    setChoisi(ev.jour);
+    synchroniserBientot(p.agendaDistant);
+    annoncer(`« ${ev.titre} » ajouté, ${decrireJour(ev.jour, aujourdhui).toLowerCase()}${ev.heure ? ` à ${ev.heure}` : ""}.`, async () => {
+      await depot.supprimerAgenda(ev.id);
+      synchroniserBientot(p.agendaDistant);
+    });
+    return true;
+  });
+
+  // Entre les flèches : le mois (ou le jour) affiché ; le toucher ramène à aujourd'hui.
+  const libelleNav = vue === "jour" ? decrireJour(choisi, aujourdhui) : nomDuMois(vue === "semaine" ? plus(lundi, 3).slice(0, 7) : mois);
+  const navigation = (precedent: string, suivant: string) => (
+    <div className="agenda-nav">
+      <button className="bouton-icone" onClick={() => deplacer(-1)} aria-label={precedent}>
+        <Icone nom="retour" />
+      </button>
+      <button className="agenda-nav-titre" onClick={() => setChoisi(aujourdhui)} aria-label={`${libelleNav}, revenir à aujourd'hui`}>
+        {libelleNav}
+      </button>
+      <button className="bouton-icone" onClick={() => deplacer(1)} aria-label={suivant}>
+        <Icone nom="suivant" />
+      </button>
+    </div>
+  );
+
   const filtres: Record<string, string> = { tout: "Tout", nous: "Nous deux", ...Object.fromEntries(foyer.membres.map((m) => [m.id, m.prenom])) };
 
   return (
-    <main className="agenda">
-      <p className="surtitre">{vue === "avenir" ? `Les ${JOURS_A_VENIR} prochains jours` : nomDuMois(vue === "semaine" ? plus(lundi, 3).slice(0, 7) : mois)}</p>
-      <div className="entete-coches">
-        <h1>Agenda</h1>
-        <button className="lien" onClick={() => setEdition({ avant: null, jour: choisi < aujourdhui ? aujourdhui : choisi })}>Ajouter</button>
-      </div>
-
-      <div className="segments" role="tablist">
-        {(Object.keys(VUES) as Vue[]).map((v) => (
-          <button key={v} role="tab" aria-selected={vue === v} className={vue === v ? "actif" : ""} onClick={() => setVue(v)}>
-            {VUES[v]}
-          </button>
-        ))}
-      </div>
+    <Page
+      titre="Agenda"
+      sousTitre={vue === "avenir" ? `Les ${JOURS_A_VENIR} prochains jours` : undefined}
+      aide={{ cle: "agenda", texte: "Écris dans la barre du bas comme tu le dirais : « Dentiste jeudi 14h30 », « Vacances du 20 au 27 décembre ». Sans jour, l'événement va au jour choisi. Touche le mois entre les flèches pour revenir à aujourd'hui." }}
+      className="agenda"
+    >
+      <Onglets libelle="Vue" onglets={(Object.keys(VUES) as Vue[]).map((v) => ({ id: v, libelle: VUES[v] }))} actif={vue} changer={setVue} />
       <Puces libelle="Pour qui" valeur={filtre} choix={filtres} changer={setFiltre} />
 
-      {vue === "jour" && (
-        <div className="agenda-nav agenda-nav-jour">
-          <button className="bouton-icone" onClick={() => deplacer(-1)} aria-label="Jour précédent">
-            <Icone nom="retour" />
-          </button>
-          <button className="lien" onClick={() => setChoisi(aujourdhui)} disabled={choisi === aujourdhui}>Aujourd'hui</button>
-          <button className="bouton-icone" onClick={() => deplacer(1)} aria-label="Jour suivant">
-            <Icone nom="suivant" />
-          </button>
-        </div>
-      )}
+      {vue === "jour" && <div className="agenda-nav-jour">{navigation("Jour précédent", "Jour suivant")}</div>}
 
       {(vue === "semaine" || vue === "mois") && (
         <section className="carte agenda-calendrier">
-          <div className="agenda-nav">
-            <button className="bouton-icone" onClick={() => deplacer(-1)} aria-label={vue === "mois" ? "Mois précédent" : "Semaine précédente"}>
-              <Icone nom="retour" />
-            </button>
-            <button className="lien" onClick={() => setChoisi(aujourdhui)} disabled={choisi === aujourdhui}>Aujourd'hui</button>
-            <button className="bouton-icone" onClick={() => deplacer(1)} aria-label={vue === "mois" ? "Mois suivant" : "Semaine suivante"}>
-              <Icone nom="suivant" />
-            </button>
-          </div>
+          {navigation(vue === "mois" ? "Mois précédent" : "Semaine précédente", vue === "mois" ? "Mois suivant" : "Semaine suivante")}
           <div className={`agenda-grille${vue === "mois" ? " mois" : ""}`}>
             {INITIALES.map((x, i) => (
               <span key={i} className="agenda-initiale" aria-hidden>{x}</span>
@@ -162,11 +173,23 @@ export function Agenda(p: PropsPage) {
                   aria-label={`${decrireJour(j, aujourdhui)}, ${ce.length ? `${ce.length} événement${ce.length > 1 ? "s" : ""}` : "rien de prévu"}`}
                 >
                   <span className="agenda-numero">{Number(j.slice(8, 10))}</span>
-                  <span className="agenda-points" aria-hidden>
-                    {ce.slice(0, 3).map((o) => (
-                      <span key={o.cle} style={{ background: couleurDe(foyer, o.evenement.pour) }} />
-                    ))}
-                  </span>
+                  {vue === "mois" ? (
+                    // Le mois montre les titres, comme Calendrier : deux au plus, puis « +n ».
+                    <span className="agenda-titres" aria-hidden>
+                      {ce.slice(0, ce.length > 2 ? 1 : 2).map((o) => (
+                        <span key={o.cle} className="agenda-mini" style={{ ["--couleur" as string]: couleurDe(foyer, o.evenement.pour) }}>
+                          {o.evenement.titre}
+                        </span>
+                      ))}
+                      {ce.length > 2 && <span className="agenda-plus">+{ce.length - 1}</span>}
+                    </span>
+                  ) : (
+                    <span className="agenda-points" aria-hidden>
+                      {ce.slice(0, 3).map((o) => (
+                        <span key={o.cle} style={{ background: couleurDe(foyer, o.evenement.pour) }} />
+                      ))}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -237,7 +260,7 @@ export function Agenda(p: PropsPage) {
       />
 
       <SectionIcloud foyer={foyer} membreId={p.membreId} comptes={comptes} distant={p.agendaDistant} />
-    </main>
+    </Page>
   );
 }
 
@@ -380,7 +403,7 @@ function AVenir(props: { occ: Occurrence[]; aujourdhui: Jour; foyer: Foyer; ouvr
     return true;
   });
   const jours = [...new Set(occ.flatMap((o) => (o.debut < props.aujourdhui ? [props.aujourdhui] : [o.debut])))].sort();
-  if (!jours.length) return <p className="vide agenda-vide">Rien de prévu pour l'instant. Touche Ajouter, ou écris « Dentiste jeudi 14h ».</p>;
+  if (!jours.length) return <p className="vide agenda-vide">Rien de prévu pour l'instant. Écris dans la barre du bas, par exemple « Dentiste jeudi 14h ».</p>;
   return (
     <>
       {jours.map((j) => (
@@ -443,6 +466,7 @@ function Edition(props: {
   const [c, setC] = useState<Champs>(() => champsDe(null, props.aujourdhui));
   const [erreur, setErreur] = useState<string | null>(null);
   const [plusieursJours, setPlusieursJours] = useState(false);
+  const [details, setDetails] = useState(false);
   const [derniere, setDerniere] = useState<typeof props.edition>(null);
   if (props.edition !== derniere) {
     setDerniere(props.edition);
@@ -450,6 +474,7 @@ function Edition(props: {
       setPhrase("");
       setC(champsDe(props.edition.avant, props.edition.jour, props.edition.heure));
       setPlusieursJours(!!props.edition.avant?.fin);
+      setDetails(!!props.edition.avant);
       setErreur(null);
     }
   }
@@ -505,9 +530,27 @@ function Edition(props: {
         {!avant && (
           <label>
             Écris-le comme tu le dirais
-            <input value={phrase} onChange={(e) => lirePhrase(e.target.value)} placeholder="Dentiste jeudi 14h30, vacances du 20 au 27 déc." autoComplete="off" autoFocus enterKeyHint="done" />
+            <input value={phrase} onChange={(e) => lirePhrase(e.target.value)} placeholder="Dentiste 14h30, vacances jusqu'au 27" autoComplete="off" enterKeyHint="done" />
           </label>
         )}
+        {!details && (
+          <>
+            {c.titre.trim() && (
+              <p className="agenda-compris">
+                <strong>{c.titre}</strong>
+                <span className="discret">
+                  {" "}· {decrireJour(c.jour, props.aujourdhui)}
+                  {plusieursJours && c.fin ? ` au ${decrireJour(c.fin, props.aujourdhui).toLowerCase()}` : ""}
+                  {c.journee ? ", toute la journée" : ` à ${c.heure}${c.heureFin ? ` – ${c.heureFin}` : ""}`}
+                  {c.pour ? ` · ${prenomDe(props.foyer, c.pour)}` : ""}
+                </span>
+              </p>
+            )}
+            <button type="button" className="lien" onClick={() => setDetails(true)}>Plus de détails</button>
+          </>
+        )}
+        {details && (
+        <>
         <label>
           Titre
           <input value={c.titre} onChange={(e) => changer({ titre: e.target.value })} placeholder="Véto de Mitsu" autoComplete="off" />
@@ -556,6 +599,8 @@ function Edition(props: {
           <input value={c.note} onChange={(e) => changer({ note: e.target.value })} placeholder="Facultatif" autoComplete="off" />
         </label>
         {c.categorie === "anniversaire" && <p className="discret">Avec l'année de naissance dans la date, Kora affiche l'âge fêté.</p>}
+        </>
+        )}
         {erreur && <p className="erreur">{erreur}</p>}
         <button type="submit" className="bouton-principal" disabled={!c.titre.trim()}>
           {avant ? "Enregistrer" : "Ajouter à l'agenda"}
