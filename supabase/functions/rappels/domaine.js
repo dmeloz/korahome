@@ -360,7 +360,7 @@ function choseAFaire(animal, aujourdhui) {
 }
 //#endregion
 //#region src/domaine/agenda.ts
-const estEvenement = (d) => "titre" in d && "jour" in d;
+const estEvenement = (d) => "titre" in d && "jour" in d && !d.aRetirer;
 const evenementsDe = (docs) => docs.filter(estEvenement);
 const annee = (j) => Number(j.slice(0, 4));
 /** La même date une autre année ; le 29 février devient le 28 les années ordinaires. */
@@ -467,7 +467,7 @@ function occurrences(evenements, du, au, animaux = []) {
 					tous: duree
 				}),
 				annees: annees && annees > 0 ? annees : null,
-				lectureSeule: !!e.source
+				lectureSeule: !!e.source && !e.icloud
 			});
 		}
 	}

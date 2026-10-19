@@ -58,6 +58,13 @@ export interface Evenement {
   uid?: string;
   /** Vient d'ailleurs (un agenda iCloud, le carnet de Mitsu) : se modifie là-bas, pas dans Kora. */
   source?: string;
+  /**
+   * Lu dans un calendrier iCloud : où il y est rangé, sa version, et quand Kora l'a lu. Modifié
+   * dans Kora après `importeLe`, il y retourne au passage suivant.
+   */
+  icloud?: { href: string; etag: string | null; importeLe: string };
+  /** Retiré dans Kora, en attente d'être effacé de son calendrier iCloud : caché partout. */
+  aRetirer?: boolean;
 }
 
 /**
@@ -81,7 +88,9 @@ export const idCompteIcloud = (membre: Id) => `icloud-compte-${membre}`;
 /** Ce que contient la collection partagée « agenda ». */
 export type DocAgenda = Evenement | CompteIcloud;
 
-export const estEvenement = (d: DocAgenda): d is Evenement => "titre" in d && "jour" in d;
+export const estEvenement = (d: DocAgenda): d is Evenement => "titre" in d && "jour" in d && !(d as Evenement).aRetirer;
+/** Les événements iCloud retirés dans Kora, que le serveur doit encore effacer d'iCloud. */
+export const aRetirerDe = (docs: readonly DocAgenda[]): Evenement[] => docs.filter((d): d is Evenement => "titre" in d && !!(d as Evenement).aRetirer);
 export const evenementsDe = (docs: readonly DocAgenda[]): Evenement[] => docs.filter(estEvenement);
 export const comptesIcloudDe = (docs: readonly DocAgenda[]): CompteIcloud[] => docs.filter((d): d is CompteIcloud => "appleId" in d);
 
@@ -134,6 +143,8 @@ export function preparerEvenement(e: EntreeEvenement, membreId: Id | null, ctx: 
     ...(avant?.joursSemaine && avant.repetition === "semaine" && e.repetition === "semaine" ? { joursSemaine: avant.joursSemaine } : {}),
     ...(avant?.sauf?.length ? { sauf: avant.sauf } : {}),
     ...(avant?.uid ? { uid: avant.uid } : {}),
+    ...(avant?.source ? { source: avant.source } : {}),
+    ...(avant?.icloud ? { icloud: avant.icloud } : {}),
     modifieLe: ctx.maintenant(),
   };
 }
@@ -251,7 +262,7 @@ export function occurrences(evenements: readonly Evenement[], du: Jour, au: Jour
         debut,
         fin: decaler(debut, { unite: "jour", tous: duree }),
         annees: annees && annees > 0 ? annees : null,
-        lectureSeule: !!e.source,
+        lectureSeule: !!e.source && !e.icloud,
       });
     }
   }

@@ -433,6 +433,8 @@ export interface EntreeSynchro {
   kora: readonly Ressource[];
   /** Les événements des autres calendriers lus ; null quand la lecture a échoué (rien n'est retiré). */
   autres: readonly Ressource[] | null;
+  /** Les événements iCloud retirés dans Kora, à effacer de leur calendrier. */
+  aRetirer?: readonly Evenement[];
   maintenant: string;
   aujourdhui: Jour;
 }
@@ -446,6 +448,10 @@ export interface PlanSynchro {
   effacer: string[];
   /** Les liens à garder ; ceux de `envoyer` s'y ajoutent avec l'etag rendu par iCloud. */
   liens: Lien[];
+  /** Modifiés dans Kora : ils retournent dans leur calendrier iCloud (PUT, puis le document est réécrit). */
+  modifierIcloud: { evenement: Evenement; href: string; etag: string | null; ics: string }[];
+  /** Retirés dans Kora : effacés de leur calendrier iCloud (DELETE). */
+  retirerIcloud: string[];
 }
 
 export const prefixeImport = (membre: Id) => `icloud-${membre}-`;
@@ -481,7 +487,7 @@ function nettoyer(e: Evenement): Evenement {
 }
 
 const memeContenu = (a: Evenement, b: Evenement) => {
-  const cle = (e: Evenement) => JSON.stringify({ ...nettoyer(e), modifieLe: null, creeLe: null });
+  const cle = (e: Evenement) => JSON.stringify({ ...nettoyer(e), modifieLe: null, creeLe: null, icloud: e.icloud ? [e.icloud.href, e.icloud.etag] : null });
   return cle(a) === cle(b);
 };
 
@@ -492,35 +498,53 @@ const memeContenu = (a: Evenement, b: Evenement) => {
  * d'un coup (calendrier vidé) : Kora le réécrit alors plutôt que de tout perdre.
  */
 export function planSynchro(x: EntreeSynchro): PlanSynchro {
-  const plan: PlanSynchro = { ecrire: [], supprimer: [], envoyer: [], effacer: [], liens: [] };
+  const plan: PlanSynchro = { ecrire: [], supprimer: [], envoyer: [], effacer: [], liens: [], modifierIcloud: [], retirerIcloud: [] };
   const prefixe = prefixeImport(x.membre);
   const parId = new Map(x.evenements.map((e) => [e.id, e]));
   const source = `iCloud de ${prenomDe(x.foyer, x.membre) ?? "?"}`;
 
-  // 1. Les autres calendriers de ce compte : ils arrivent dans Kora, en lecture seule.
+  // 1. Les autres calendriers de ce compte : ils arrivent dans Kora, et ce que Kora y change y retourne.
   if (x.autres) {
     const vus = new Set<Id>();
+    const retires = new Set((x.aRetirer ?? []).map((e) => e.id));
     for (const r of x.autres) {
       for (const lu of lireIcs(r.ics)) {
         if (lu.uid.endsWith("@korahome")) continue;
         const id = `${prefixe}${empreinte(lu.uid)}`;
         if (vus.has(id)) continue;
         vus.add(id);
+        if (retires.has(id)) {
+          plan.retirerIcloud.push(r.href);
+          plan.supprimer.push(id);
+          continue;
+        }
         const avant = parId.get(id);
+        // Modifié dans Kora depuis la dernière lecture : il retourne dans iCloud, sauf si
+        // l'iPhone l'a changé aussi, plus récemment.
+        const lu0 = avant?.icloud;
+        const koraAChange = !!lu0 && !!avant?.modifieLe && avant.modifieLe > lu0.importeLe;
+        const iphoneAChange = !!lu0 && lu0.etag !== r.etag;
+        if (avant && koraAChange && (!iphoneAChange || !lu.modifie || lu.modifie <= avant.modifieLe!)) {
+          plan.modifierIcloud.push({ evenement: avant, href: r.href, etag: r.etag, ics: fusionnerIcs(r.ics, { ...avant, uid: lu.uid }, x.maintenant) });
+          continue;
+        }
         const e = nettoyer({
           id,
           ...champsLus(lu),
-          pour: x.membre,
+          pour: avant?.pour ?? x.membre,
           categorie: avant?.categorie ?? devinerCategorie(lu.titre),
           creePar: x.membre,
           creeLe: avant?.creeLe ?? x.maintenant,
           source,
+          icloud: { href: r.href, etag: r.etag, importeLe: x.maintenant },
           modifieLe: x.maintenant,
         } as Evenement);
         if (!avant || !memeContenu(avant, e)) plan.ecrire.push(e);
       }
     }
     for (const e of x.evenements) if (e.id.startsWith(prefixe) && !vus.has(e.id)) plan.supprimer.push(e.id);
+    // Retiré dans Kora et déjà parti d'iCloud : il ne reste qu'à l'oublier.
+    for (const id of retires) if (id.startsWith(prefixe) && !vus.has(id)) plan.supprimer.push(id);
   }
 
   // 2. Le calendrier « Kora » : tout l'agenda du foyer, sauf ce qui vient déjà de ce compte.
@@ -616,6 +640,85 @@ export function planSynchro(x: EntreeSynchro): PlanSynchro {
   return plan;
 }
 
+const PREVUS = ["UID", "DTSTAMP", "SUMMARY", "DTSTART", "DTEND", "DURATION", "LOCATION", "DESCRIPTION", "RRULE", "RDATE", "EXDATE", "LAST-MODIFIED", "SEQUENCE", "TRANSP"];
+const nomDe = (ligne: string) => ligne.split(/[;:]/)[0].toUpperCase();
+
+/**
+ * Un événement d'iCloud modifié dans Kora, prêt à y retourner : ce que Kora sait écrire (titre,
+ * dates, répétition, lieu, note) remplace l'ancien ; le reste (alertes, invités, exceptions
+ * d'une série, couleur…) est gardé tel quel.
+ */
+export function fusionnerIcs(original: string, e: Evenement, maintenant: string): string {
+  // Une ligne logique garde ses replis : rien n'est à replier de nouveau.
+  const logiques = (t: string) => t.replace(/(\r?\n)+$/, "").split(/\r?\n(?![ \t])/);
+  const neuf = logiques(icsEvenement(e, null, maintenant));
+  const lignes = logiques(original);
+
+  // Les blocs de premier niveau dans VCALENDAR, et ses propres lignes.
+  const entete: string[] = [];
+  const blocs: string[][] = [];
+  let bloc: string[] | null = null;
+  let profondeur = 0;
+  for (const l of lignes) {
+    const nom = nomDe(l);
+    if (nom === "BEGIN" && /^BEGIN:VCALENDAR$/i.test(l.trim())) continue;
+    if (nom === "END" && /^END:VCALENDAR$/i.test(l.trim())) continue;
+    if (bloc) {
+      bloc.push(l);
+      if (nom === "BEGIN") profondeur++;
+      else if (nom === "END" && --profondeur === 0) {
+        blocs.push(bloc);
+        bloc = null;
+      }
+    } else if (nom === "BEGIN") {
+      bloc = [l];
+      profondeur = 1;
+    } else entete.push(l);
+  }
+
+  const valeur = (b: string[], nom: string) => {
+    const l = b.find((x) => nomDe(x) === nom);
+    return l ? l.replace(/\r?\n[ \t]/g, "").slice(l.replace(/\r?\n[ \t]/g, "").indexOf(":") + 1) : null;
+  };
+  const estEvenement = (b: string[]) => /^BEGIN:VEVENT$/i.test(b[0].trim());
+  const maitre =
+    blocs.find((b) => estEvenement(b) && valeur(b, "UID") === e.uid && !valeur(b, "RECURRENCE-ID")) ?? blocs.find((b) => estEvenement(b) && !valeur(b, "RECURRENCE-ID"));
+
+  // Ce que le bloc d'origine contient en plus : ses propriétés inconnues de Kora et ses sous-blocs.
+  const enPlus: string[] = [];
+  if (maitre) {
+    let p = 0;
+    for (const l of maitre.slice(1, -1)) {
+      const nom = nomDe(l);
+      if (p === 0 && nom !== "BEGIN" && PREVUS.includes(nom)) continue;
+      // Le lieu « plan » d'Apple suit le lieu : changé, il ne vaut plus.
+      if (p === 0 && nom === "X-APPLE-STRUCTURED-LOCATION" && (e.lieu ?? "") !== (lireIcs(["BEGIN:VEVENT", ...maitre.filter((x) => nomDe(x) === "LOCATION"), "END:VEVENT"].join("\r\n"))[0]?.lieu ?? "")) continue;
+      if (nom === "BEGIN") p++;
+      else if (nom === "END") p--;
+      enPlus.push(l);
+    }
+  }
+  const sequence = Number(maitre ? valeur(maitre, "SEQUENCE") : 0) || 0;
+  const tampon = `${maintenant.replace(/[-:]/g, "").slice(0, 15)}Z`;
+
+  // Le nouvel événement, complété.
+  const debut = neuf.findIndex((l) => /^BEGIN:VEVENT$/i.test(l));
+  const fin = neuf.findIndex((l) => /^END:VEVENT$/i.test(l));
+  const evenement = [...neuf.slice(debut, fin), `SEQUENCE:${sequence + 1}`, `LAST-MODIFIED:${tampon}`, ...enPlus, neuf[fin]];
+  const fuseauNeuf = neuf.slice(neuf.findIndex((l) => /^BEGIN:VTIMEZONE$/i.test(l)), neuf.findIndex((l) => /^END:VTIMEZONE$/i.test(l)) + 1);
+  const aDejaLeFuseau = blocs.some((b) => /^BEGIN:VTIMEZONE$/i.test(b[0].trim()) && valeur(b, "TZID") === FUSEAU);
+
+  const sortie = [
+    "BEGIN:VCALENDAR",
+    ...(entete.length ? entete : neuf.slice(1, debut).filter((l) => !/^(BEGIN|END):VTIMEZONE$/i.test(l) && !fuseauNeuf.includes(l))),
+    ...(e.heure && !aDejaLeFuseau && fuseauNeuf.length > 1 ? fuseauNeuf : []),
+    ...blocs.filter((b) => b !== maitre).flat(),
+    ...evenement,
+    "END:VCALENDAR",
+  ];
+  return sortie.join("\r\n") + "\r\n";
+}
+
 /** « d.z…@icloud.com » : assez pour se reconnaître, pas pour être lu par-dessus l'épaule. */
 export function masquerAppleId(appleId: string): string {
   const [nom, domaine] = appleId.trim().split("@");
@@ -630,4 +733,4 @@ export function aujourdhuiAZurich(instant: Date): Jour {
 
 // Ce dont la fonction serveur a besoin, réuni ici pour qu'elle n'ait qu'un fichier de règles.
 export { decaler } from "./taches";
-export { evenementsDe, idCompteIcloud, type CompteIcloud } from "./agenda";
+export { aRetirerDe, evenementsDe, idCompteIcloud, type CompteIcloud } from "./agenda";

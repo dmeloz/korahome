@@ -3,6 +3,7 @@ import { preparerEvenement, type Evenement } from "./agenda";
 import { contexteTest } from "./contexteTest";
 import {
   empreinte,
+  fusionnerIcs,
   icsEvenement,
   lireCalendriers,
   lireIcs,
@@ -281,6 +282,64 @@ describe("la synchro, compte par compte", () => {
   it("une lecture des autres calendriers ratée ne retire rien", () => {
     const ancien = ev("Gardé", "2026-10-20", { id: `${prefixeImport("melo")}x`, source: "iCloud de Melo" });
     expect(planSynchro(base({ evenements: [ancien], autres: null })).supprimer).toEqual([]);
+  });
+
+  describe("modifier depuis Kora un événement d'un autre calendrier iCloud", () => {
+    const HREF = "https://x/cal/travail/T-1.ics";
+    const ics = (heure: string, extra = "") =>
+      `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Apple Inc.//iPhone OS 26//EN\r\nBEGIN:VEVENT\r\nUID:T-1\r\nDTSTART;TZID=Europe/Zurich:20261020T${heure}00\r\nDTEND;TZID=Europe/Zurich:20261020T170000\r\nSUMMARY:Réunion\r\nSEQUENCE:2\r\n${extra}BEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER:-PT15M\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n`;
+    /** L'événement tel que Kora l'a lu au passage précédent. */
+    const lu = () => planSynchro(base({ autres: [{ href: HREF, etag: '"1"', ics: ics("0800") }] })).ecrire[0];
+
+    it("garde où il est rangé et sa version", () => {
+      expect(lu().icloud).toEqual({ href: HREF, etag: '"1"', importeLe: MAINTENANT });
+      expect(planSynchro(base({ evenements: [lu()], autres: [{ href: HREF, etag: '"1"', ics: ics("0800") }] })).ecrire).toEqual([]);
+    });
+
+    it("renvoie à iCloud ce que Kora a changé, en gardant l'alerte", () => {
+      const change = { ...lu(), titre: "Réunion d'équipe", heure: "09:00", modifieLe: "2026-10-18T21:00:00.000Z" };
+      const plan = planSynchro(base({ evenements: [change], autres: [{ href: HREF, etag: '"1"', ics: ics("0800") }] }));
+      expect(plan.ecrire).toEqual([]);
+      expect(plan.modifierIcloud).toHaveLength(1);
+      const { href, etag, ics: envoye } = plan.modifierIcloud[0];
+      expect([href, etag]).toEqual([HREF, '"1"']);
+      expect(envoye).toContain("UID:T-1");
+      expect(envoye).toContain("SUMMARY:Réunion d'équipe");
+      expect(envoye).toContain("DTSTART;TZID=Europe/Zurich:20261020T090000");
+      expect(envoye).toContain("TRIGGER:-PT15M");
+      expect(envoye).toContain("SEQUENCE:3");
+      expect(envoye).toContain("PRODID:-//Apple Inc.//iPhone OS 26//EN");
+      expect(envoye.match(/BEGIN:VEVENT/g)).toHaveLength(1);
+      expect(envoye.match(/^SUMMARY/gm)).toHaveLength(1);
+    });
+
+    it("changé aussi sur l'iPhone, plus récemment : l'iPhone gagne", () => {
+      const change = { ...lu(), heure: "09:00", modifieLe: "2026-10-18T21:00:00.000Z" };
+      const iphone = { href: HREF, etag: '"2"', ics: ics("1000", "LAST-MODIFIED:20261018T220000Z\r\n") };
+      const plan = planSynchro(base({ evenements: [change], autres: [iphone] }));
+      expect(plan.modifierIcloud).toEqual([]);
+      expect(plan.ecrire[0]).toMatchObject({ heure: "10:00", icloud: { etag: '"2"' } });
+    });
+
+    it("retiré dans Kora : effacé de son calendrier iCloud", () => {
+      const retire = { ...lu(), aRetirer: true };
+      const plan = planSynchro(base({ aRetirer: [retire], autres: [{ href: HREF, etag: '"1"', ics: ics("0800") }] }));
+      expect(plan.retirerIcloud).toEqual([HREF]);
+      expect(plan.supprimer).toEqual([retire.id]);
+      expect(plan.ecrire).toEqual([]);
+    });
+  });
+
+  it("garde les exceptions d'une série et les fuseaux d'origine", () => {
+    const original =
+      "BEGIN:VCALENDAR\r\nPRODID:x\r\nBEGIN:VTIMEZONE\r\nTZID:Europe/Zurich\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:S\r\nDTSTART;TZID=Europe/Zurich:20261020T080000\r\nRRULE:FREQ=WEEKLY\r\nSUMMARY:Sport\r\nLOCATION:Salle\r\nX-APPLE-STRUCTURED-LOCATION;VALUE=URI:geo:1,2\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\nUID:S\r\nRECURRENCE-ID;TZID=Europe/Zurich:20261027T080000\r\nDTSTART;TZID=Europe/Zurich:20261027T090000\r\nSUMMARY:Sport\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+    const e = { ...ev("Sport", "2026-10-20", { heure: "08:30", repetition: "semaine", lieu: "Piscine" }), uid: "S" };
+    const sortie = fusionnerIcs(original, e, MAINTENANT);
+    expect(sortie.match(/BEGIN:VTIMEZONE/g)).toHaveLength(1);
+    expect(sortie).toContain("RECURRENCE-ID;TZID=Europe/Zurich:20261027T080000");
+    expect(sortie).toContain("LOCATION:Piscine");
+    expect(sortie).not.toContain("X-APPLE-STRUCTURED-LOCATION");
+    expect(sortie).toContain("DTSTART;TZID=Europe/Zurich:20261020T083000");
   });
 
   it("met dans « Kora » ce qui vient de l'iCloud de l'autre, avec son prénom", () => {
