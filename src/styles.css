@@ -2115,7 +2115,7 @@ html.avec-barre { --hauteur-barre: 84px; }
   .visite-trou, .visite-bulle, .visite-voile, .geste-dessin > span { animation: none !important; transition: none; }
 }
 
-/* Le Budget qui conseille (0.0.36) : tuiles à toucher, clôture du mois, dépenses par jour, conseiller et tableaux. */
+/* Le Budget qui conseille (0.0.37) : tuiles à toucher, clôture du mois, dépenses par jour, conseiller et tableaux. */
 button.budget-pot { width: 100%; text-align: left; font: inherit; color: var(--texte); cursor: pointer; }
 button.budget-pot:active { transform: scale(0.98); }
 .budget-pot .budget-solde { display: block; }

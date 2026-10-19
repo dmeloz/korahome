@@ -57,7 +57,7 @@ export function PaiementsAClasser(p: PropsPage & { plan: PlanBudget }) {
     }
     const montantChf = paiement.devise === "CHF" ? paiement.montant : lireMontant(francs[paiement.id] ?? "");
     if (montantChf === null) return;
-    // Un paiement qui règle une facture attendue la marque payée (Kora 0.0.36).
+    // Un paiement qui règle une facture attendue la marque payée (Kora 0.0.37).
     const classes: Depense[] = [];
     for (const x of paiement.devise === "CHF" ? autres : [paiement]) {
       classes.push(reglerFacture(classerPaiement(x, choix, x.id === paiement.id ? montantChf : x.montant, contexteReel), plan, [...p.budget, ...classes]));

@@ -134,7 +134,7 @@ function factures(plan, docs, aujourdhui, jours = 60) {
 }
 const motsDe = (t) => sansAccents(t).replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((m) => m.length >= 4);
 /**
-* La facture qu'un paiement règle, reconnue seule (Kora 0.0.36) : une facture à payer à la main,
+* La facture qu'un paiement règle, reconnue seule (Kora 0.0.37) : une facture à payer à la main,
 * dont l'échéance tombe de 25 jours après à 30 jours avant le paiement, et dont le nom se retrouve
 * dans le libellé (à 10 % près sur le montant), ou dont le montant est exactement le même quand le
 * paiement sort du pot de cette facture (ou du pot factures). Null si rien ne correspond.

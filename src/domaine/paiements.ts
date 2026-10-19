@@ -124,7 +124,7 @@ export function recevoirPaiement(
       par,
       creeLe: ctx.maintenant(),
     };
-    // Le paiement d'une facture attendue la règle (Kora 0.0.36).
+    // Le paiement d'une facture attendue la règle (Kora 0.0.37).
     const doc = reglerFacture(brut, plan, docs);
     if (doc.posteId) return { genre: "depense", doc, message: `Facture ${doc.libelle} payée.` };
     return { genre: "depense", doc, message: `${formaterMontant(lu.montant)} noté dans ${POTS[choix].nom.toLowerCase()}.` };

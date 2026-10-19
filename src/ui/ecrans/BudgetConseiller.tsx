@@ -14,7 +14,7 @@ import { Icone } from "../Icone";
 import type { PropsPage } from "../modules";
 import { vibrer } from "../haptique";
 
-// Le conseiller du Budget (Kora 0.0.36) : Jarvis lit tout le budget et répond par quelques
+// Le conseiller du Budget (Kora 0.0.37) : Jarvis lit tout le budget et répond par quelques
 // phrases, un tableau s'il le faut et des conseils chiffrés. Règles dans src/domaine/budgetConseil.ts.
 
 const montant = (n: number) => formaterMontant(n);

@@ -24,7 +24,7 @@ import { OUTIL_BUDGET } from "./jarvisModele";
 import { decaler } from "./taches";
 import type { Id, Jour } from "./types";
 
-// Le Budget qui conseille (Kora 0.0.36) : la clôture du mois, les tableaux des mois passés, la fin
+// Le Budget qui conseille (Kora 0.0.37) : la clôture du mois, les tableaux des mois passés, la fin
 // du mois à ce rythme, et ce que le conseiller (Jarvis, mode « budget ») reçoit et renvoie.
 
 const moisPrecedent = (mois: string) => decaler(`${mois}-01`, { unite: "mois", tous: -1 }).slice(0, 7);

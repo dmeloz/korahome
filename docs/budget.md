@@ -95,7 +95,7 @@ Le plan du foyer Cassa a été écrit une fois sur le serveur depuis l'Excel (oc
 versements, charges, charges de l'année, part plaisir, soldes de départ de l'épargne et du pot factures.
 Les noms des comptes, le jour de paie et les mois des factures de l'année restent à donner dans l'app.
 
-## Le Budget qui conseille (0.0.36)
+## Le Budget qui conseille (0.0.37)
 
 - **Parcours** : quatre onglets. *Ce mois* montre d'abord ce qui demande un geste (la clôture, les paiements à classer, les factures), puis les pots (toucher un pot ouvre ses dépenses ; l'épargne ouvre le Conseiller) et les quatre dernières dépenses. *Dépenses* : mois par mois, jour par jour, filtre par pot ; toucher une dépense la corrige (nom, montant, pot), glisser la retire ; l'import du relevé Revolut est là. *Charges* ne change pas. *Conseiller* réunit le conseiller, la fin du mois, le tableau des derniers mois, l'année des factures, l'épargne et les courses.
 - **Clôture du mois** (`moisACloturer`, `bilanDeMois` dans `src/domaine/budgetConseil.ts`) : quand le nouveau mois attend ses versements, le mois fini se résume pot par pot (sorti, versé, ce qui passe au mois suivant) avec le mot de Jarvis, et « Clôturer septembre » note les versements du nouveau mois d'un geste (Annuler possible). Aucun nouveau document : la clôture est la confirmation du mois suivant.
