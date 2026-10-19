@@ -203,12 +203,12 @@ function cartesDuFoyer(plan, docs) {
 }
 /**
 * La phrase à coller dans « Décrire un raccourci » (l'IA de l'app Raccourcis, iOS 26) : elle crée
-* le raccourci « Kora paiement », l'adresse de cet iPhone déjà dedans. Il reste à le brancher sur
-* l'automatisation « Transaction ».
+* le raccourci « Kora paiement » avec son déclencheur « Lorsque n'importe quelle carte est présentée »,
+* l'adresse de cet iPhone déjà dedans.
 */
 function demandeRaccourci(adresse) {
 	return [
-		"Crée un raccourci nommé « Kora paiement » qui reçoit en entrée une transaction Apple Pay de Wallet (il sera lancé par une automatisation « Transaction »).",
+		"Crée un raccourci nommé « Kora paiement » qui se lance tout seul, sans demander, lorsque n'importe quelle carte de Wallet est présentée pour payer (déclencheur Transaction), et reçoit cette transaction en entrée.",
 		"Il contient une seule action « Obtenir le contenu de l'URL » :",
 		`- URL : ${adresse}`,
 		"- Méthode : POST",

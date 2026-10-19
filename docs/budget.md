@@ -49,8 +49,9 @@ Les cartes Revolut du foyer (courses, plaisir…) sont dans Wallet. Sur chaque i
 automatisation « Transaction » de l'app Raccourcis envoie chaque paiement (montant, commerçant, nom
 de la carte) à la fonction serveur `paiements`, avec un lien propre à la personne (Budget, Comptes et
 réglages, « Paiements Apple Pay »). Depuis 0.0.30, Kora copie une demande toute prête, l'adresse
-dedans, à coller dans « Décrire un raccourci » (l'IA de Raccourcis) ; il reste à la brancher sur
-l'automatisation « Transaction » (`demandeRaccourci`). Kora :
+dedans, à coller dans « Décrire un raccourci » (l'IA de Raccourcis) 
+(`demandeRaccourci`) ; sur iOS 26 le déclencheur « Lorsque n'importe quelle carte est présentée »
+fait partie du raccourci (vérifié sur l'iPhone de Melo, 0.0.31). Kora :
 
 - range le paiement dans le pot de la carte, qu'elle retient au premier paiement (`plan.cartes`) ;
   une carte inconnue, ou une autre monnaie, attend d'être classée d'un toucher en haut de « Ce mois » ;
