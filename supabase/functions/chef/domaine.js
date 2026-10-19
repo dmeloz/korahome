@@ -257,19 +257,19 @@ function analyserSaisie(saisie) {
 	const debut = s.match(QUANTITE_DEBUT);
 	if (debut) return {
 		quantite: debut[1].replace(/\s+/g, " "),
-		texte: majuscule(debut[2])
+		texte: majuscule$1(debut[2])
 	};
 	const fin = s.match(QUANTITE_FIN);
 	if (fin) return {
 		quantite: fin[2].replace(/\s+/g, " "),
-		texte: majuscule(fin[1])
+		texte: majuscule$1(fin[1])
 	};
 	return {
 		quantite: null,
-		texte: majuscule(s)
+		texte: majuscule$1(s)
 	};
 }
-function majuscule(s) {
+function majuscule$1(s) {
 	return s.charAt(0).toUpperCase() + s.slice(1);
 }
 //#endregion
@@ -434,6 +434,143 @@ function prevoir(provision, animal, aujourdhui) {
 		commanderLe,
 		etat
 	};
+}
+/** « Pâtes fraîches » → « pate fraiche » : minuscules, sans accent, chaque mot au singulier. */
+function cleProduit(nom) {
+	return nom.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/œ/g, "oe").replace(/[^a-z0-9' ]+/g, " ").split(/\s+/).filter(Boolean).map((mot) => mot.length > 3 && /[sx]$/.test(mot) && !/(?:ss|is|us|ys)$/.test(mot) ? mot.slice(0, -1) : mot).join(" ");
+}
+const INGREDIENTS_MAX = 40;
+const ETAPES_MAX = 20;
+const idRecette = (ctx) => `recette-${ctx.nouvelId()}`;
+function cleRecette(titre) {
+	return normaliser(titre).replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+}
+function estRecette(doc) {
+	return !!doc && typeof doc === "object" && doc.type === "recette";
+}
+/** Les recettes parmi les documents de la collection « menus ». */
+function recettesDe(docs) {
+	return docs.filter(estRecette);
+}
+const chaine$1 = (v, max) => typeof v === "string" ? v.trim().replace(/\s+/g, " ").slice(0, max) : "";
+const portionsValides = (v) => typeof v === "number" && Number.isFinite(v) && v >= 1 && v <= 20 ? Math.round(v) : null;
+/** Relit une recette venue du modèle ou d'un formulaire sans lui faire confiance ; null sans titre ni ingrédient. */
+function lireBrouillon(brut, source) {
+	if (!brut || typeof brut !== "object") return null;
+	const o = brut;
+	const titre = chaine$1(o.titre, 80);
+	const ingredients = (Array.isArray(o.ingredients) ? o.ingredients : []).map((i) => {
+		if (typeof i === "string") return lireLigneIngredient(i);
+		const r = i ?? {};
+		const nom = chaine$1(r.nom, 60);
+		return nom ? {
+			nom: majuscule(nom),
+			quantite: chaine$1(r.quantite, 24) || null
+		} : null;
+	}).filter((i) => !!i).slice(0, INGREDIENTS_MAX);
+	if (!titre || !ingredients.length) return null;
+	const etapes = (Array.isArray(o.etapes) ? o.etapes : []).map((e) => chaine$1(e, 400)).filter(Boolean).slice(0, ETAPES_MAX);
+	const lien = chaine$1(o.lien, 500);
+	return {
+		titre: majuscule(titre),
+		portions: portionsValides(o.portions),
+		ingredients,
+		etapes,
+		source,
+		lien: /^https:\/\//.test(lien) ? lien : null
+	};
+}
+function majuscule(s) {
+	return s.charAt(0).toUpperCase() + s.slice(1);
+}
+const NOMBRE = String.raw`(\d+\s*\/\s*\d+|\d+(?:[.,]\d+)?\s*[½¼¾⅓⅔]?|[½¼¾⅓⅔])`;
+const UNITES_RECETTE = String.raw`(?:\s*(?:kg|g|mg|l|dl|cl|ml|c\.?\s*à\s*(?:soupe|café|s\.|c\.)|cs|cc|càs|càc|cuillères?\s+à\s+(?:soupe|café)|tasses?|verres?|pincées?|gousses?|tranches?|branches?|bottes?|brins?|feuilles?|boîtes?|sachets?|paquets?|pots?|morceaux?|filets?|pièces?|pc)\b\.?)?`;
+const LIGNE_DEBUT = new RegExp(`^(${NOMBRE}${UNITES_RECETTE})\\s+(?:de\\s+|d['’]\\s*)?(.+)$`, "i");
+/** Une ligne écrite à la main : « 200 g de lardons », « 1/2 citron », « sel ». */
+function lireLigneIngredient(ligne) {
+	const s = ligne.trim().replace(/^[-•*·]\s*/, "").replace(/\s+/g, " ");
+	if (!s) return null;
+	const m = s.match(LIGNE_DEBUT);
+	if (m) return {
+		nom: majuscule(m[3].trim()).slice(0, 60),
+		quantite: m[1].replace(/\s+/g, " ").trim()
+	};
+	const { texte, quantite } = analyserSaisie(s);
+	return {
+		nom: texte.slice(0, 60),
+		quantite
+	};
+}
+function nouvelleRecette(b, ctx) {
+	const maintenant = ctx.maintenant();
+	return {
+		id: idRecette(ctx),
+		type: "recette",
+		titre: b.titre,
+		cle: cleRecette(b.titre),
+		portions: portionsValides(b.portions) ?? 2,
+		ingredients: b.ingredients,
+		etapes: b.etapes,
+		source: b.source,
+		lien: b.lien ?? null,
+		vue: 1,
+		fois: 0,
+		derniereFois: null,
+		prevuLe: null,
+		creeLe: maintenant,
+		modifieLe: maintenant
+	};
+}
+/**
+* Une recette arrive (le Chef, Jarvis) : nouvelle, elle entre dans la base ; déjà là sous
+* le même titre, elle n'est pas copiée, elle monte (vue + 1) et ne reprend que ce qui lui
+* manquait (étapes, lien). Ce que le foyer a écrit n'est jamais écrasé.
+*/
+function apprendreRecette(recettes, b, ctx) {
+	const cle = cleRecette(b.titre);
+	const avant = recettes.find((r) => r.cle === cle) ?? null;
+	if (!avant) return {
+		recette: nouvelleRecette(b, ctx),
+		avant: null
+	};
+	return {
+		avant,
+		recette: {
+			...avant,
+			ingredients: avant.ingredients.length ? avant.ingredients : b.ingredients,
+			etapes: avant.etapes.length ? avant.etapes : b.etapes,
+			lien: avant.lien ?? b.lien ?? null,
+			vue: avant.vue + 1,
+			modifieLe: ctx.maintenant()
+		}
+	};
+}
+[
+	"sel",
+	"poivre",
+	"sel et poivre",
+	"fleur de sel",
+	"poivre noir",
+	"huile",
+	"huile d'olive",
+	"huile de tournesol",
+	"huile neutre",
+	"eau",
+	"eau chaude",
+	"eau froide",
+	"epice",
+	"noix de muscade",
+	"muscade",
+	"paprika",
+	"cumin",
+	"curry",
+	"herbe de provence",
+	"thym",
+	"laurier"
+].map(cleProduit);
+/** Les recettes que le Chef peut reprendre : celles que le foyer aime, puis les plus faites. */
+function recettesPourLeChef(recettes, aime, refuse, max = 15) {
+	return recettes.filter((r) => !refuse(r) && (aime(r) || r.fois > 0)).sort((a, b) => Number(aime(b)) - Number(aime(a)) || b.fois - a.fois || b.vue - a.vue).slice(0, max).map((r) => r.titre);
 }
 //#endregion
 //#region src/domaine/plantes.ts
@@ -1000,6 +1137,8 @@ const MOIS = [
 const CONSIGNES_CHEF = `Tu es le Chef de la semaine de KoraHome, l'app d'un couple qui vit à Renens, dans le canton de Vaud.
 Chaque dimanche, tu proposes 5 repas du soir pour la semaine, simples (45 minutes au plus), de saison en Suisse romande, pour deux personnes.
 Utilise d'abord les produits à finir vite, puis le reste du frigo, du congélateur et des placards. Varie les plats, évite deux fois la même base.
+Pour chaque repas, donne la recette complète pour deux personnes : tous ses ingrédients avec leur quantité (ceux du stock compris ; nom court dans « nom », quantité courte dans « quantite » ou vide), puis trois à huit étapes courtes et claires.
+Si une recette que le foyer aime convient à la semaine, reprends-la sous son titre exact.
 Ensuite, liste les ingrédients qui manquent pour ces repas : un article par ligne, nom court au singulier ou tel qu'on l'écrit sur une liste (« Poireaux », « Crème entière »), quantité courte (« 500 g », « 2 », « 1 l ») ou vide.
 Ne remets pas ce qui est déjà dans le stock ou déjà sur la liste de courses. Les épices, le sel, le poivre et l'huile sont supposés à la maison sauf s'ils sont vraiment absents.
 Ne mets jamais de croquettes, de litière ni rien pour le chat : cela se commande ailleurs.
@@ -1025,6 +1164,9 @@ function messageChef(d) {
 	lignes.push("Déjà sur la liste de courses :", ...d.enCourses.length ? d.enCourses.map((e) => `- ${e.texte}${e.quantite ? ` · ${e.quantite}` : ""}`) : ["- rien"]);
 	const memoire = souvenirsRetenus(d.souvenirs ?? []).sort((a, b) => a.creeLe.localeCompare(b.creeLe)).slice(-40);
 	if (memoire.length) lignes.push("", "Ce que le foyer aime, n'aime pas ou a l'habitude de faire :", ...memoire.map((s) => `- ${s.texte}`));
+	const avis = (r) => avisDuPlat(d.souvenirs ?? [], r.titre)?.avis ?? null;
+	const reprendre = recettesPourLeChef(d.recettes ?? [], (r) => avis(r) === "aime", (r) => avis(r) === "non");
+	if (reprendre.length) lignes.push("", "Recettes du foyer qu'il aime refaire :", ...reprendre.map((t) => `- ${t}`));
 	return lignes.join("\n");
 }
 /** La forme exacte de la réponse du Chef (sorties structurées de l'API). */
@@ -1046,12 +1188,32 @@ const SCHEMA_CHEF = {
 				required: [
 					"titre",
 					"description",
-					"avecLeStock"
+					"avecLeStock",
+					"portions",
+					"ingredients",
+					"etapes"
 				],
 				properties: {
 					titre: { type: "string" },
 					description: { type: "string" },
 					avecLeStock: {
+						type: "array",
+						items: { type: "string" }
+					},
+					portions: { type: "integer" },
+					ingredients: {
+						type: "array",
+						items: {
+							type: "object",
+							additionalProperties: false,
+							required: ["nom", "quantite"],
+							properties: {
+								nom: { type: "string" },
+								quantite: { type: "string" }
+							}
+						}
+					},
+					etapes: {
 						type: "array",
 						items: { type: "string" }
 					}
@@ -1085,12 +1247,17 @@ const chaine = (v, max) => typeof v === "string" ? v.trim().replace(/\s+/g, " ")
 function lireProposition(brut) {
 	if (!brut || typeof brut !== "object") return null;
 	const o = brut;
-	const repas = (Array.isArray(o.repas) ? o.repas : []).map((r) => ({
-		titre: chaine(r?.titre, 80),
-		description: chaine(r?.description, 300),
-		avecLeStock: (Array.isArray(r?.avecLeStock) ? r.avecLeStock : []).map((s) => chaine(s, 60)).filter(Boolean).slice(0, 8)
-	})).filter((r) => r.titre).slice(0, 5);
-	if (!repas.length) return null;
+	const lus = (Array.isArray(o.repas) ? o.repas : []).map((r) => ({
+		repas: {
+			titre: chaine(r?.titre, 80),
+			description: chaine(r?.description, 300),
+			avecLeStock: (Array.isArray(r?.avecLeStock) ? r.avecLeStock : []).map((s) => chaine(s, 60)).filter(Boolean).slice(0, 8)
+		},
+		recette: lireBrouillon(r, "chef")
+	})).filter((r) => r.repas.titre).slice(0, 5);
+	if (!lus.length) return null;
+	const repas = lus.map((l) => l.repas);
+	const recettes = lus.map((l) => l.recette);
 	const aAcheter = (Array.isArray(o.aAcheter) ? o.aAcheter : []).map((a) => {
 		const rayon = chaine(a?.rayon, 40);
 		return {
@@ -1102,6 +1269,7 @@ function lireProposition(brut) {
 	return {
 		mot: chaine(o.mot, 200),
 		repas,
+		recettes,
 		aAcheter
 	};
 }
@@ -1144,13 +1312,39 @@ function articlesARemplacer(ancien, elements) {
 	const siens = new Set(ancien.ajouts.map((a) => a.elementId));
 	return elements.filter((e) => siens.has(e.id) && !e.coche && e.source === "chef").map((e) => e.id);
 }
+/**
+* Les repas du Chef entrent dans les recettes du foyer : une recette déjà là monte sans être
+* copiée. Rend les recettes à enregistrer et les repas reliés à leur fiche.
+*/
+function recettesDuChef(proposition, docs, ctx) {
+	let base = recettesDe(docs);
+	const recettes = [];
+	return {
+		repas: proposition.repas.map((r, i) => {
+			const b = proposition.recettes[i];
+			if (!b) return r;
+			const { recette } = apprendreRecette(base, {
+				...b,
+				titre: r.titre
+			}, ctx);
+			base = [...base.filter((x) => x.id !== recette.id), recette];
+			if (!recettes.some((x) => x.id === recette.id)) recettes.push(recette);
+			else recettes.splice(recettes.findIndex((x) => x.id === recette.id), 1, recette);
+			return {
+				...r,
+				recetteId: recette.id
+			};
+		}),
+		recettes
+	};
+}
 function nouveauMenu(d, ctx) {
 	return {
 		id: idMenu(d.aujourdhui),
 		type: "menu",
 		semaine: d.aujourdhui,
 		mot: d.proposition.mot,
-		repas: d.proposition.repas,
+		repas: d.repas ?? d.proposition.repas,
 		ajouts: d.ajouts.map((e) => ({
 			elementId: e.id,
 			texte: e.texte,
@@ -1213,4 +1407,4 @@ function avisDuPlat(souvenirs, titre) {
 	return null;
 }
 //#endregion
-export { AJOUTS_MAX, CONSIGNES_CHEF, HEURE_DU_CHEF, JOURS_ALERTE_MITSU, JOURS_A_FINIR, JOUR_DU_CHEF, MODELE_CHEF, NOMBRE_REPAS, REGLAGE_DE_DEPART, SCHEMA_CHEF, SOUVENIRS_DU_CHEF, alertesMitsu, articlesARemplacer, avisDuPlat, avisSurPlat, cleAvis, coutChef, estLHeureDuChef, etatBudget, etatDesAjouts, idMenu, jourEtHeure, lireProposition, menuDeLaSemaine, messageChef, moisDe, nomDuJour, notificationChef, nouveauMenu, preparerAjouts, prochainPassage, produitsAFinir, reglageChef, reglerChef, retirerAjout };
+export { AJOUTS_MAX, CONSIGNES_CHEF, HEURE_DU_CHEF, JOURS_ALERTE_MITSU, JOURS_A_FINIR, JOUR_DU_CHEF, MODELE_CHEF, NOMBRE_REPAS, REGLAGE_DE_DEPART, SCHEMA_CHEF, SOUVENIRS_DU_CHEF, alertesMitsu, articlesARemplacer, avisDuPlat, avisSurPlat, cleAvis, coutChef, estLHeureDuChef, etatBudget, etatDesAjouts, idMenu, jourEtHeure, lireProposition, menuDeLaSemaine, messageChef, moisDe, nomDuJour, notificationChef, nouveauMenu, preparerAjouts, prochainPassage, produitsAFinir, recettesDe, recettesDuChef, reglageChef, reglerChef, retirerAjout };

@@ -103,6 +103,7 @@ describe("Mitsu", () => {
 describe("la réponse du modèle", () => {
   it("décrit une réponse stricte", () => {
     expect(SCHEMA_CHEF.required).toEqual(["mot", "repas", "aAcheter"]);
+    expect(SCHEMA_CHEF.properties.repas.items.required).toEqual(["titre", "description", "avecLeStock", "portions", "ingredients", "etapes"]);
     expect(SCHEMA_CHEF.properties.aAcheter.items.properties.rayon.enum).toContain("Fruits et légumes");
   });
 
@@ -165,7 +166,7 @@ describe("les menus de la semaine", () => {
     const ajouts = preparerAjouts([{ texte: "Poireaux", quantite: "2", rayon: null }, { texte: "Crème", quantite: null, rayon: null }], courses, [], ctx);
     const m = nouveauMenu(
       {
-        proposition: { mot: "Bonne semaine.", repas: [{ titre: "Gratin de poireaux", description: "Au four.", avecLeStock: [] }], aAcheter: [] },
+        proposition: { mot: "Bonne semaine.", repas: [{ titre: "Gratin de poireaux", description: "Au four.", avecLeStock: [] }], recettes: [null], aAcheter: [] },
         ajouts,
         produits: [produit("Yaourts", "2026-10-19")],
         animaux: [],

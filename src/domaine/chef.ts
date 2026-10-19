@@ -3,6 +3,9 @@
 // cinq repas du soir de saison qui finissent d'abord ce qui arrive à sa date, et ajoute à la
 // liste de courses ce qui manque, marqué « proposé par le chef ».
 //
+// Chaque repas entre dans les recettes du foyer (recettes.ts) avec ses ingrédients et ses étapes ;
+// il reprend volontiers les recettes que le foyer aime.
+//
 // Il ne fait qu'ajouter : jamais il ne touche au stock, aux tâches ni à Mitsu. Les croquettes
 // et la litière se commandent sur zooplus : il le signale, sans les mettre sur la liste.
 // La fonction serveur supabase/functions/chef embarque ce fichier (`npm run fonction`).
@@ -11,6 +14,7 @@ import { coutMicroChf, MODELE_CONSEIL, type Consommation } from "./jarvisModele"
 import { analyserSaisie } from "./listes";
 import { nouveauSouvenir, souvenirsRetenus, type Souvenir } from "./memoire";
 import { prevoir, type Animal } from "./mitsu";
+import { apprendreRecette, lireBrouillon, recettesDe, recettesPourLeChef, type BrouillonRecette, type Recette } from "./recettes";
 import { heureValide, jourEtHeure, JOURS_SEMAINE } from "./rappels";
 import { detecterRayon, normaliser } from "./rayons";
 import { decrirePeremption, LIEUX, ORDRE_LIEUX, type Produit } from "./stock";
@@ -20,6 +24,7 @@ import { RAYONS, type Contexte, type Element, type Id, type Jour, type Liste, ty
 // Ce dont la fonction serveur a aussi besoin : le compteur de Jarvis et l'heure de Zurich.
 export { etatBudget, moisDe } from "./jarvisModele";
 export { jourEtHeure } from "./rappels";
+export { recettesDe } from "./recettes";
 
 /** Le Chef prend le modèle du conseil : une fois par semaine, il peut réfléchir un peu. */
 export const MODELE_CHEF = MODELE_CONSEIL;
@@ -40,6 +45,8 @@ export interface RepasChef {
   description: string;
   /** Les produits du frigo ou des placards qu'il utilise. */
   avecLeStock: string[];
+  /** La fiche du plat dans les recettes du foyer (depuis Kora 0.0.38). */
+  recetteId?: Id;
 }
 
 /** Un article que le Chef a mis sur la liste de courses. */
@@ -78,7 +85,8 @@ export interface ReglageChef {
   modifieLe: string;
 }
 
-export type DocChef = MenuSemaine | ReglageChef;
+/** La collection « menus » : les menus, le réglage et les recettes du foyer. */
+export type DocChef = MenuSemaine | ReglageChef | Recette;
 
 export const idMenu = (jour: Jour): Id => `menu-${jour}`;
 
@@ -169,6 +177,8 @@ const MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", 
 export const CONSIGNES_CHEF = `Tu es le Chef de la semaine de KoraHome, l'app d'un couple qui vit à Renens, dans le canton de Vaud.
 Chaque dimanche, tu proposes ${NOMBRE_REPAS} repas du soir pour la semaine, simples (45 minutes au plus), de saison en Suisse romande, pour deux personnes.
 Utilise d'abord les produits à finir vite, puis le reste du frigo, du congélateur et des placards. Varie les plats, évite deux fois la même base.
+Pour chaque repas, donne la recette complète pour deux personnes : tous ses ingrédients avec leur quantité (ceux du stock compris ; nom court dans « nom », quantité courte dans « quantite » ou vide), puis trois à huit étapes courtes et claires.
+Si une recette que le foyer aime convient à la semaine, reprends-la sous son titre exact.
 Ensuite, liste les ingrédients qui manquent pour ces repas : un article par ligne, nom court au singulier ou tel qu'on l'écrit sur une liste (« Poireaux », « Crème entière »), quantité courte (« 500 g », « 2 », « 1 l ») ou vide.
 Ne remets pas ce qui est déjà dans le stock ou déjà sur la liste de courses. Les épices, le sel, le poivre et l'huile sont supposés à la maison sauf s'ils sont vraiment absents.
 Ne mets jamais de croquettes, de litière ni rien pour le chat : cela se commande ailleurs.
@@ -177,7 +187,7 @@ Le champ « mot » est une phrase chaleureuse et courte en français, sans emoji
 Réponds en français, avec le tutoiement.`;
 
 /** Le message du dimanche : le stock, ce qui presse, la liste de courses actuelle. */
-export function messageChef(d: { produits: readonly Produit[]; enCourses: readonly Element[]; aujourdhui: Jour; souvenirs?: readonly Souvenir[] }): string {
+export function messageChef(d: { produits: readonly Produit[]; enCourses: readonly Element[]; aujourdhui: Jour; souvenirs?: readonly Souvenir[]; recettes?: readonly Recette[] }): string {
   const aFinir = produitsAFinir(d.produits, d.aujourdhui);
   const urgents = new Set(aFinir.map((p) => p.id));
   const decrire = (p: Produit) => [p.nom, p.quantite, p.peremption && decrirePeremption(p, d.aujourdhui)].filter(Boolean).join(" · ");
@@ -191,6 +201,9 @@ export function messageChef(d: { produits: readonly Produit[]; enCourses: readon
   lignes.push("Déjà sur la liste de courses :", ...(d.enCourses.length ? d.enCourses.map((e) => `- ${e.texte}${e.quantite ? ` · ${e.quantite}` : ""}`) : ["- rien"]));
   const memoire = souvenirsRetenus(d.souvenirs ?? []).sort((a, b) => a.creeLe.localeCompare(b.creeLe)).slice(-SOUVENIRS_DU_CHEF);
   if (memoire.length) lignes.push("", "Ce que le foyer aime, n'aime pas ou a l'habitude de faire :", ...memoire.map((s) => `- ${s.texte}`));
+  const avis = (r: Recette) => avisDuPlat(d.souvenirs ?? [], r.titre)?.avis ?? null;
+  const reprendre = recettesPourLeChef(d.recettes ?? [], (r) => avis(r) === "aime", (r) => avis(r) === "non");
+  if (reprendre.length) lignes.push("", "Recettes du foyer qu'il aime refaire :", ...reprendre.map((t) => `- ${t}`));
   return lignes.join("\n");
 }
 
@@ -206,11 +219,22 @@ export const SCHEMA_CHEF = {
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["titre", "description", "avecLeStock"],
+        required: ["titre", "description", "avecLeStock", "portions", "ingredients", "etapes"],
         properties: {
           titre: { type: "string" },
           description: { type: "string" },
           avecLeStock: { type: "array", items: { type: "string" } },
+          portions: { type: "integer" },
+          ingredients: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              required: ["nom", "quantite"],
+              properties: { nom: { type: "string" }, quantite: { type: "string" } },
+            },
+          },
+          etapes: { type: "array", items: { type: "string" } },
         },
       },
     },
@@ -233,6 +257,8 @@ export const SCHEMA_CHEF = {
 export interface PropositionChef {
   mot: string;
   repas: RepasChef[];
+  /** La recette de chaque repas, dans le même ordre ; null quand ses ingrédients manquent. */
+  recettes: (BrouillonRecette | null)[];
   aAcheter: { texte: string; quantite: string | null; rayon: Rayon | null }[];
 }
 
@@ -242,15 +268,20 @@ const chaine = (v: unknown, max: number) => (typeof v === "string" ? v.trim().re
 export function lireProposition(brut: unknown): PropositionChef | null {
   if (!brut || typeof brut !== "object") return null;
   const o = brut as Record<string, unknown>;
-  const repas = (Array.isArray(o.repas) ? o.repas : [])
+  const lus = (Array.isArray(o.repas) ? o.repas : [])
     .map((r: Record<string, unknown>) => ({
-      titre: chaine(r?.titre, 80),
-      description: chaine(r?.description, 300),
-      avecLeStock: (Array.isArray(r?.avecLeStock) ? r.avecLeStock : []).map((s: unknown) => chaine(s, 60)).filter(Boolean).slice(0, 8),
+      repas: {
+        titre: chaine(r?.titre, 80),
+        description: chaine(r?.description, 300),
+        avecLeStock: (Array.isArray(r?.avecLeStock) ? r.avecLeStock : []).map((s: unknown) => chaine(s, 60)).filter(Boolean).slice(0, 8),
+      },
+      recette: lireBrouillon(r, "chef"),
     }))
-    .filter((r) => r.titre)
+    .filter((r) => r.repas.titre)
     .slice(0, NOMBRE_REPAS);
-  if (!repas.length) return null;
+  if (!lus.length) return null;
+  const repas = lus.map((l) => l.repas);
+  const recettes = lus.map((l) => l.recette);
   const aAcheter = (Array.isArray(o.aAcheter) ? o.aAcheter : [])
     .map((a: Record<string, unknown>) => {
       const rayon = chaine(a?.rayon, 40);
@@ -261,7 +292,7 @@ export function lireProposition(brut: unknown): PropositionChef | null {
       };
     })
     .filter((a) => a.texte);
-  return { mot: chaine(o.mot, 200), repas, aAcheter };
+  return { mot: chaine(o.mot, 200), repas, recettes, aAcheter };
 }
 
 /** Ce qui se commande sur zooplus n'a rien à faire sur la liste du magasin. */
@@ -311,8 +342,27 @@ export function articlesARemplacer(ancien: MenuSemaine | null, elements: readonl
   return elements.filter((e) => siens.has(e.id) && !e.coche && e.source === "chef").map((e) => e.id);
 }
 
+/**
+ * Les repas du Chef entrent dans les recettes du foyer : une recette déjà là monte sans être
+ * copiée. Rend les recettes à enregistrer et les repas reliés à leur fiche.
+ */
+export function recettesDuChef(proposition: PropositionChef, docs: readonly DocChef[], ctx: Contexte): { repas: RepasChef[]; recettes: Recette[] } {
+  let base = recettesDe(docs);
+  const recettes: Recette[] = [];
+  const repas = proposition.repas.map((r, i) => {
+    const b = proposition.recettes[i];
+    if (!b) return r;
+    const { recette } = apprendreRecette(base, { ...b, titre: r.titre }, ctx);
+    base = [...base.filter((x) => x.id !== recette.id), recette];
+    if (!recettes.some((x) => x.id === recette.id)) recettes.push(recette);
+    else recettes.splice(recettes.findIndex((x) => x.id === recette.id), 1, recette);
+    return { ...r, recetteId: recette.id };
+  });
+  return { repas, recettes };
+}
+
 export function nouveauMenu(
-  d: { proposition: PropositionChef; ajouts: readonly Element[]; produits: readonly Produit[]; animaux: readonly Animal[]; aujourdhui: Jour; lance: MenuSemaine["lance"] },
+  d: { proposition: PropositionChef; repas?: RepasChef[]; ajouts: readonly Element[]; produits: readonly Produit[]; animaux: readonly Animal[]; aujourdhui: Jour; lance: MenuSemaine["lance"] },
   ctx: Contexte,
 ): MenuSemaine {
   return {
@@ -320,7 +370,7 @@ export function nouveauMenu(
     type: "menu",
     semaine: d.aujourdhui,
     mot: d.proposition.mot,
-    repas: d.proposition.repas,
+    repas: d.repas ?? d.proposition.repas,
     ajouts: d.ajouts.map((e) => ({ elementId: e.id, texte: e.texte, quantite: e.quantite, rayon: e.rayon })),
     aFinir: produitsAFinir(d.produits, d.aujourdhui).map((p) => `${p.nom} · ${decrirePeremption(p, d.aujourdhui)}`),
     alertesMitsu: alertesMitsu(d.animaux, d.aujourdhui),
