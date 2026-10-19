@@ -1,7 +1,7 @@
 # KoraHome en ligne
 
-L'app est publiée sur Netlify à l'adresse **https://korahome-cassa.netlify.app**
-(projet `korahome-cassa`, équipe de Melo). Chaque fusion dans `main` reconstruit et
+L'app est publiée sur Netlify à l'adresse **https://kora-cassa.netlify.app**
+(projet `kora-cassa`, équipe « D. » de Melo, depuis le 20 octobre 2026 ; l’ancien projet `korahome-cassa` n’a plus de crédits). Chaque fusion dans `main` reconstruit et
 publie l'app toute seule (voir « Qui publie » ; réglages dans `netlify.toml`).
 Sur les iPhone, une pastille rouge sur les Réglages signale la nouvelle version.
 
@@ -23,7 +23,7 @@ Mise en place, une seule fois :
    token (nom « GitHub KoraHome », sans expiration), copier le jeton.
 2. GitHub : dépôt korahome > Settings > Secrets and variables > Actions > New repository
    secret, nom `NETLIFY_AUTH_TOKEN`, coller le jeton.
-3. Netlify : projet korahome-cassa > Project configuration > Build & deploy > Continuous
+3. Netlify : projet kora-cassa > Project configuration > Build & deploy > Continuous
    deployment > Build settings > Stop builds, pour ne plus voir les constructions refusées.
 
 Pour republier sans changement : GitHub > Actions > Publier > Run workflow.
