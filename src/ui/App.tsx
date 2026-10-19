@@ -34,7 +34,7 @@ import { nonLus } from "../domaine/centreRappels";
 import type { LieuBarre } from "../domaine/barre";
 import { Icone } from "./Icone";
 import type { MiseAJour } from "./miseAJour";
-import { BORD_RETOUR, directionGeste, finRetour } from "./gestes";
+import { BORD_RETOUR, finRetour, gesteRetour } from "./gestes";
 import { noter } from "./journal";
 import { useMeteo } from "./meteo";
 import { MODULES, type DonneesModule } from "./modules";
@@ -467,13 +467,15 @@ function useGlissementRetour(actif: boolean, revenir: () => void) {
       if (!geste) return;
       const dx = e.clientX - geste.x;
       if (!geste.horizontal) {
-        const direction = directionGeste(dx, e.clientY - geste.y);
-        if (direction === "verticale" || (direction === "horizontale" && dx < 0)) geste = null;
-        if (direction !== "horizontale" || !geste) return;
+        const sens = gesteRetour(dx, e.clientY - geste.y);
+        if (sens === "autre") geste = null;
+        if (sens !== "retour" || !geste) return;
         geste.horizontal = true;
         // On repart de la position actuelle du doigt : la page ne saute pas des 8 px du seuil.
         geste.x = e.clientX;
         flushSync(() => setGlisse(true));
+        // La page d'en dessous apparaît déjà décalée et assombrie, sans une image à sa place.
+        placer(0);
       }
       geste.dx = Math.max(0, e.clientX - geste.x);
       cancelAnimationFrame(image);
