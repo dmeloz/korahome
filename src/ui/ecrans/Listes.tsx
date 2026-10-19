@@ -36,7 +36,7 @@ export function Listes(props: {
   });
 
   return (
-    <Page titre="Listes" sousTitre="Les courses et vos autres listes" aide={{ cle: "listes", texte: "Écris le nom d'une nouvelle liste dans la barre du bas (cadeaux, bricolage, vacances). Glisse une liste vers la gauche pour la retirer." }}>
+    <Page titre="Listes" sousTitre="Les courses et vos autres listes" aide={{ cle: "listes", texte: "Dis le nom d'une nouvelle liste à ta fée (cadeaux, bricolage, vacances). Glisse une liste vers la gauche pour la retirer." }}>
       <ul className="carte groupe">
         {props.listes.map((l) => {
           const n = compterAPrendre(l, props.elements);

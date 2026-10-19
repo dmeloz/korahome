@@ -115,6 +115,9 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
     return props.depot.enregistrerTaches(nouvelles.map((x) => etalees.get(x.id) ?? x));
   };
 
+  // La chose du moment, en grand : la première tâche du groupe qui presse le plus.
+  const phare = groupes[0]?.taches.find((t) => !estTerminee(t))?.id ?? null;
+
   function ligne(t: Tache) {
     const terminee = estTerminee(t);
     const resp = membre(t.responsable);
@@ -126,7 +129,7 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
     ].filter(Boolean);
 
     return (
-      <li key={t.id}>
+      <li key={t.id} className={t.id === phare ? "phare-ligne" : undefined}>
         <Glissable
           onSupprimer={() => void supprimer(t)}
           onFait={terminee ? undefined : () => void faire(t)}
@@ -177,7 +180,7 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
       titre="Tâches"
       sousTitre={vide ? undefined : dues ? `${dues} à faire aujourd'hui` : "Rien ne presse aujourd'hui"}
       actions={plusieurs && !vide ? <button className="lien" onClick={() => setRepartir(true)}>Répartir</button> : undefined}
-      aide={{ cle: "taches", texte: "Écris une tâche dans la barre du bas, avec son rythme : « linge chaque mercredi ». Glisse une tâche vers la droite quand elle est faite, vers la gauche pour la supprimer. Un appui long ouvre sa fiche." }}
+      aide={{ cle: "taches", texte: "Dis une tâche à ta fée, avec son rythme : « linge chaque mercredi ». Glisse une tâche vers la droite quand elle est faite, vers la gauche pour la supprimer. Un appui long ouvre sa fiche." }}
     >
       <Repartition ouverte={repartir} fermer={() => setRepartir(false)} foyer={props.foyer} taches={props.taches} aujourdhui={aujourdhui} depot={props.depot} />
 

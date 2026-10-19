@@ -146,7 +146,7 @@ export function Agenda(p: PropsPage) {
     <Page
       titre="Agenda"
       sousTitre={vue === "avenir" ? `Les ${JOURS_A_VENIR} prochains jours` : undefined}
-      aide={{ cle: "agenda", texte: "Écris dans la barre du bas comme tu le dirais : « Dentiste jeudi 14h30 », « Vacances du 20 au 27 décembre ». Sans jour, l'événement va au jour choisi. Touche le mois entre les flèches pour revenir à aujourd'hui." }}
+      aide={{ cle: "agenda", texte: "Dis-le à ta fée comme tu le dirais (un appui long sur elle pour l'écrire) : « Dentiste jeudi 14h30 », « Vacances du 20 au 27 décembre ». Sans jour, l'événement va au jour choisi. Touche le mois entre les flèches pour revenir à aujourd'hui." }}
       className="agenda"
     >
       <Onglets libelle="Vue" onglets={(Object.keys(VUES) as Vue[]).map((v) => ({ id: v, libelle: VUES[v] }))} actif={vue} changer={setVue} />
@@ -402,7 +402,7 @@ function AVenir(props: { occ: Occurrence[]; aujourdhui: Jour; foyer: Foyer; ouvr
     return true;
   });
   const jours = [...new Set(occ.flatMap((o) => (o.debut < props.aujourdhui ? [props.aujourdhui] : [o.debut])))].sort();
-  if (!jours.length) return <p className="vide agenda-vide">Rien de prévu pour l'instant. Écris dans la barre du bas, par exemple « Dentiste jeudi 14h ».</p>;
+  if (!jours.length) return <p className="vide agenda-vide">Rien de prévu pour l'instant. Dis-le à ta fée, par exemple « Dentiste jeudi 14h ».</p>;
   return (
     <>
       {jours.map((j) => (

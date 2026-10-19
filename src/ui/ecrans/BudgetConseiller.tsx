@@ -113,7 +113,7 @@ export function CarteConseiller(props: { conseiller: Conseiller; disponible: boo
           </button>
         ))}
       </div>
-      <p className="discret">Ou pose ta question dans la barre : « Combien chez Coop depuis août ? »</p>
+      <p className="discret">Ou pose ta question à ta fée : « Combien chez Coop depuis août ? »</p>
       {enCours && (
         <p className="budget-conseiller-attente" aria-live="polite">
           {enCours} : {nomFee()} lit le budget…

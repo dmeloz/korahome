@@ -107,6 +107,9 @@ export function DetailListe(props: {
   }
   const prenom = (id: string | null) => props.foyer.membres.find((m) => m.id === id);
 
+  // Le premier article à prendre, en grand.
+  const phare = aPrendre[0]?.elements.find((e) => !e.coche)?.id ?? null;
+
   function ligne(vu: Element) {
     // La version enregistrée : un article coché il y a un instant est barré, mais encore à sa place.
     const el = props.elements.find((e) => e.id === vu.id) ?? vu;
@@ -114,7 +117,7 @@ export function DetailListe(props: {
     // Le prénom de qui l'a ajouté, seulement quand ce n'est pas soi.
     const autre = auteur && auteur.id !== props.membreId && props.foyer.membres.length > 1;
     return (
-      <li key={el.id}>
+      <li key={el.id} className={el.id === phare ? "phare-ligne" : undefined}>
         <Glissable onSupprimer={() => void supprimer(el)} onFait={el.coche ? undefined : () => void basculer(el)} libelleFait="Pris">
         <button className={`ligne element${el.coche ? " coche" : ""}${recents.has(el.id) ? " vient-detre-coche" : ""}`} onClick={() => void basculer(el)}>
           <span className="case" aria-hidden>{el.coche ? "✓" : ""}</span>
@@ -139,7 +142,7 @@ export function DetailListe(props: {
     <Page
       titre={props.liste.nom}
       sousTitre={restant ? `${restant} à prendre` : coches.length ? "Tout est pris" : undefined}
-      aide={courses ? { cle: "courses", texte: "Écris dans la barre du bas : « 2 kg de pommes, du lait et du pain ». Touche un article ou glisse-le vers la droite quand il est pris ; vers la gauche pour le retirer." } : undefined}
+      aide={courses ? { cle: "courses", texte: "Dis-le à ta fée (un appui long sur elle pour l'écrire) : « 2 kg de pommes, du lait et du pain ». Touche un article ou glisse-le vers la droite quand il est pris ; vers la gauche pour le retirer." } : undefined}
     >
       {enSaisie.length > 0 && (
         <AuDessusDeLaBarre>

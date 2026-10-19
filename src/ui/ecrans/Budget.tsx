@@ -138,10 +138,10 @@ export function Budget(p: PropsPage) {
   const enregistrer = (nouveau: PlanBudget) => depot.enregistrerBudget(nouveau);
   const aide =
     onglet === "conseiller"
-      ? "Pose ta question au conseiller dans la barre : « Où peut-on économiser ? », « Nos courses mois par mois ». Il répond avec des chiffres, un tableau et des conseils."
+      ? "Pose ta question au conseiller par ta fée : « Où peut-on économiser ? », « Nos courses mois par mois ». Il répond avec des chiffres, un tableau et des conseils."
       : onglet === "charges"
-      ? "Écris une charge dans la barre : « Netflix 20 », « Assurance maison 118 par an ». Touche une ligne pour la régler."
-      : `Écris une dépense dans la barre : « Migros 84.30 », « 32 cinéma ». Le ticket de caisse photographié par ${nomFee()} compte aussi dans les courses.`;
+      ? "Dis une charge à ta fée : « Netflix 20 », « Assurance maison 118 par an ». Touche une ligne pour la régler."
+      : `Dis une dépense à ta fée : « Migros 84.30 », « 32 cinéma ». Le ticket de caisse photographié par ${nomFee()} compte aussi dans les courses.`;
 
   return (
     <Page
@@ -341,7 +341,7 @@ function CeMois(p: PropsPage & { plan: PlanBudget; voirCharges: () => void; voir
           </li>
         </ul>
       ) : (
-        <p className="discret budget-note">Rien de noté pour l'instant. Photographie un ticket depuis la barre, ou écris « Migros 84.30 ».</p>
+        <p className="discret budget-note">Rien de noté pour l'instant. Photographie un ticket avec ta fée, ou dis-lui « Migros 84.30 ».</p>
       )}
     </>
   );
@@ -501,7 +501,7 @@ function Depenses(p: PropsPage & { plan: PlanBudget; filtre: Pot | null; filtrer
         ))
       ) : (
         <p className="discret budget-note">
-          {p.filtre ? `Rien dans ${nomDuPot(plan, p.filtre).toLowerCase()} en ${nommerMois(mois)}.` : `Rien de noté en ${nommerMois(mois)}. Écris « Migros 84.30 » dans la barre, ou photographie un ticket.`}
+          {p.filtre ? `Rien dans ${nomDuPot(plan, p.filtre).toLowerCase()} en ${nommerMois(mois)}.` : `Rien de noté en ${nommerMois(mois)}. Dis « Migros 84.30 » à ta fée, ou photographie un ticket.`}
         </p>
       )}
 
@@ -692,7 +692,7 @@ function Courses(p: PropsPage & { plan: PlanBudget }) {
   const budget = bilanDuMois(plan).versements.courses;
   const magasins = coursesParMagasin(p.budget, aujourdhui);
   if (!parMoisCourses.some((m) => m.total > 0)) {
-    return <p className="discret budget-note">Les courses apparaîtront ici dès le premier ticket photographié, ou une dépense écrite dans la barre (« Migros 84.30 »).</p>;
+    return <p className="discret budget-note">Les courses apparaîtront ici dès le premier ticket photographié, ou une dépense dite à ta fée (« Migros 84.30 »).</p>;
   }
   return (
     <>

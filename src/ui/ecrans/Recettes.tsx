@@ -126,7 +126,7 @@ export function OngletRecettes(p: PropsPage & { recettes: Recette[]; ouvrir: (id
 
       {(p.jarvis || p.recettes.length < 3) && (
       <section className="carte recettes-ajout">
-        {p.recettes.length < 3 && <p className="discret">Le Chef range ici chaque repas qu'il propose, et {nomFee()} chaque recette que tu lui donnes. Écris un titre dans la barre pour en ajouter une à la main, ou colle une recette entière.</p>}
+        {p.recettes.length < 3 && <p className="discret">Le Chef range ici chaque repas qu'il propose, et {nomFee()} chaque recette que tu lui donnes. Écris un titre à ta fée (appui long sur elle) pour en ajouter une à la main, ou colle une recette entière.</p>}
         {p.jarvis && <PhotoRecette occupe={lecture !== null} lire={(image) => void lireParJarvis("Voici une recette en photo (page de livre, fiche ou écran). Range-la dans nos recettes avec tous ses ingrédients, leurs quantités et ses étapes.", image, "photo")} />}
         {lecture && <p className="discret recettes-lecture">{lecture}</p>}
       </section>
