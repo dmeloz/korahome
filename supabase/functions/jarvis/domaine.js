@@ -52,7 +52,13 @@ const ouNul = (description) => ({
 	type: ["string", "null"],
 	description
 });
-/** Les outils proposés au modèle (format de l'API Claude, schémas stricts). */
+/**
+* L'API refuse toute la demande au-delà de 16 champs « ou null » dans l'ensemble des outils
+* stricts. Les outils qui en ont le plus (agenda, dépense, recette) ne sont donc pas stricts :
+* lireActions vérifie de toute façon chaque action avant de l'appliquer.
+*/
+const MAX_UNIONS_STRICTES = 16;
+/** Les outils proposés au modèle (format de l'API Claude). */
 const OUTILS_JARVIS = [
 	{
 		name: "ajouter_courses",
@@ -371,7 +377,7 @@ const OUTILS_JARVIS = [
 	{
 		name: "ajouter_evenement",
 		description: "Ajoute un événement à l'agenda commun : rendez-vous (médecin, véto), anniversaire, vacances, sortie, horaire de travail. Il apparaît aussi dans le calendrier de l'iPhone.",
-		strict: true,
+		strict: false,
 		input_schema: {
 			type: "object",
 			additionalProperties: false,
@@ -435,7 +441,7 @@ const OUTILS_JARVIS = [
 	{
 		name: "noter_depense",
 		description: "Note une dépense au budget du foyer : un ticket de caisse (son total), une sortie, une facture payée (« j'ai payé Sunrise »), un versement à l'épargne.",
-		strict: true,
+		strict: false,
 		input_schema: {
 			type: "object",
 			additionalProperties: false,
@@ -490,7 +496,7 @@ const OUTILS_JARVIS = [
 	{
 		name: "enregistrer_recette",
 		description: "Range une recette dans les recettes du foyer : lue derrière un lien, sur une photo (page de livre, fiche, écran) ou dictée. Une recette déjà enregistrée sous ce titre n'est pas copiée.",
-		strict: true,
+		strict: false,
 		input_schema: {
 			type: "object",
 			additionalProperties: false,
@@ -731,4 +737,4 @@ function lienAutorise(adresse) {
 	return !/^[\d.]+$/.test(hote) && !hote.includes(":") && !hote.startsWith("[");
 }
 //#endregion
-export { CONSIGNES_BUDGET, CONSIGNES_CONSEIL, CONSIGNES_JARVIS, MODELE_CONSEIL, MODELE_JARVIS, OUTILS_JARVIS, OUTIL_BUDGET, PLAFOND_CHF, TOURS_RETENUS, coutMicroChf, decrireRecette, etatBudget, extraireRecette, formaterChf, lienAutorise, lienDans, lirePage, messageDemande, moisDe, texteDePage };
+export { CONSIGNES_BUDGET, CONSIGNES_CONSEIL, CONSIGNES_JARVIS, MAX_UNIONS_STRICTES, MODELE_CONSEIL, MODELE_JARVIS, OUTILS_JARVIS, OUTIL_BUDGET, PLAFOND_CHF, TOURS_RETENUS, coutMicroChf, decrireRecette, etatBudget, extraireRecette, formaterChf, lienAutorise, lienDans, lirePage, messageDemande, moisDe, texteDePage };
