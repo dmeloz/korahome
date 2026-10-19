@@ -6,10 +6,9 @@ import type { Animal } from "../../domaine/mitsu";
 import type { Produit } from "../../domaine/stock";
 import {
   basculerJour,
+  CRENEAUX_RAPPEL,
   decrireJours,
   formaterHeure,
-  HEURE_MAX,
-  HEURE_MIN,
   JOURS_SEMAINE,
   RACCOURCIS_JOURS,
   rappelDuMatin,
@@ -79,7 +78,7 @@ export function Notifications(props: {
 
   const { serveur, foyerId, membreId } = props;
   const pret = serveur && foyerId;
-  const heure = formaterHeure(preferences.heure);
+  const heure = formaterHeure(preferences.heure, preferences.minute);
 
   /** Enregistre les choix sur ce téléphone et, si les rappels sont actifs, sur le serveur. */
   const changer = (suivantes: PreferencesRappels) =>
@@ -89,7 +88,6 @@ export function Notifications(props: {
       if (etat === "actifs" && serveur && foyerId) await mettreAJourRappels(serveur, foyerId, membreId, suivantes);
     });
 
-  const heures = Array.from({ length: HEURE_MAX - HEURE_MIN + 1 }, (_, i) => HEURE_MIN + i);
   const memesJours = (jours: readonly number[]) =>
     jours.length === preferences.jours.length && jours.every((j) => preferences.jours.includes(j));
 
@@ -103,13 +101,17 @@ export function Notifications(props: {
         <select
           className="rappels-roue"
           aria-label="Heure du rappel"
-          value={preferences.heure}
+          value={formaterHeure(preferences.heure, preferences.minute)}
           disabled={occupe}
-          onChange={(e) => changer({ ...preferences, heure: Number(e.target.value) })}
+          onChange={(e) => {
+            const [h, m] = e.target.value.split(":").map(Number);
+            changer({ ...preferences, heure: h, minute: m === 30 ? 30 : 0 });
+          }}
         >
-          {heures.map((h) => (
-            <option key={h} value={h}>{formaterHeure(h)}</option>
-          ))}
+          {CRENEAUX_RAPPEL.map((c) => {
+            const texte = formaterHeure(c.heure, c.minute);
+            return <option key={texte} value={texte}>{texte}</option>;
+          })}
         </select>
       </label>
       <div className="rappels-jours" role="group" aria-label="Jours du rappel">

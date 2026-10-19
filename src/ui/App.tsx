@@ -221,6 +221,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         ouvrirRappels={() => ouvrir({ nom: "rappels" })}
         ouvrirSauvegarde={() => ouvrir({ nom: "sauvegarde" })}
         ouvrirPartage={() => ouvrir({ nom: "partage" })}
+        synchroniser={synchro && partageActif ? () => synchro.synchroniser() : undefined}
         ouvrirRepartition={() => {
           demanderRepartition();
           ouvrir({ nom: "module", id: "taches" });

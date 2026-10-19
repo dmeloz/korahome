@@ -111,29 +111,35 @@ export function basculerTaille(tailles: Tailles, id: WidgetId): Tailles {
 }
 
 // ----- Les pages de l'accueil -----
-// L'accueil se feuillette d'un glissement, comme celui de l'iPhone : la maison, le
-// couple, puis Mitsu et le jardin. Chaque widget a sa page ; on peut le changer de page.
+// L'accueil se feuillette d'un glissement, comme celui de l'iPhone, rangé par usage du
+// quotidien (idée de Sarah) : le ménage, les courses, la cuisine, le budget, l'agenda.
+// Chaque widget a sa page ; on peut le changer de page.
 
-export type PageAccueil = "maison" | "nous" | "dehors";
+export type PageAccueil = "menage" | "courses" | "cuisine" | "budget" | "agenda";
 
 export const PAGES_ACCUEIL: readonly { id: PageAccueil; titre: string }[] = [
-  { id: "maison", titre: "Maison" },
-  { id: "nous", titre: "Nous deux" },
-  { id: "dehors", titre: "Mitsu et jardin" },
+  { id: "menage", titre: "Ménage" },
+  { id: "courses", titre: "Courses" },
+  { id: "cuisine", titre: "Cuisine" },
+  { id: "budget", titre: "Budget" },
+  { id: "agenda", titre: "Agenda" },
 ];
 
+/** La première page, toujours là. */
+export const PAGE_PRINCIPALE: PageAccueil = "menage";
+
 const PAGE_DE_DEPART: Record<WidgetId, PageAccueil> = {
-  taches: "maison",
-  courses: "maison",
-  stock: "maison",
-  entretien: "maison",
-  budget: "maison",
-  infos: "maison",
-  agenda: "nous",
-  listes: "nous",
-  chef: "nous",
-  mitsu: "dehors",
-  jardin: "dehors",
+  taches: "menage",
+  entretien: "menage",
+  mitsu: "menage",
+  jardin: "menage",
+  courses: "courses",
+  listes: "courses",
+  chef: "cuisine",
+  stock: "cuisine",
+  budget: "budget",
+  infos: "budget",
+  agenda: "agenda",
 };
 
 export type PagesWidgets = Partial<Record<WidgetId, PageAccueil>>;
@@ -164,9 +170,9 @@ export function widgetsDeLaPage(d: Disposition, pages: PagesWidgets, page: PageA
   return d.filter((id) => pageDe(pages, id) === page);
 }
 
-/** Les pages qui ont au moins un widget ; la Maison est toujours là (elle porte « Aujourd'hui »). */
+/** Les pages qui ont au moins un widget ; le Ménage est toujours là. */
 export function pagesVisibles(d: Disposition, pages: PagesWidgets): PageAccueil[] {
-  return PAGES_ACCUEIL.map((p) => p.id).filter((p) => p === "maison" || d.some((id) => pageDe(pages, id) === p));
+  return PAGES_ACCUEIL.map((p) => p.id).filter((p) => p === PAGE_PRINCIPALE || d.some((id) => pageDe(pages, id) === p));
 }
 
 /** Glisse un widget à la place d'un autre, comme sur l'écran d'accueil de l'iPhone. */

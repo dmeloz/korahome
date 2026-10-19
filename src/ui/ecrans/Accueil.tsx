@@ -23,6 +23,7 @@ import {
   ordreAffichage,
   pageDe,
   pageSuivante,
+  PAGE_PRINCIPALE,
   PAGES_ACCUEIL,
   pagesVisibles,
   retirerWidget,
@@ -73,6 +74,8 @@ export function Accueil(props: {
   ouvrirRappels: () => void;
   ouvrirSauvegarde: () => void;
   ouvrirPartage: () => void;
+  /** Envoie et reçoit les changements tout de suite ; absent sans partage. */
+  synchroniser?: () => Promise<void>;
   ouvrirRepartition: () => void;
   aller: (ou: OuRecherche) => void;
   depot: Depot;
@@ -95,7 +98,7 @@ export function Accueil(props: {
   const [edition, setEdition] = useState(false);
   const [glisse, setGlisse] = useState<WidgetId | null>(null);
   const [recherche, setRecherche] = useState(false);
-  const [pageActive, setPageActive] = useState<PageAccueil>("maison");
+  const [pageActive, setPageActive] = useState<PageAccueil>(PAGE_PRINCIPALE);
   const defilant = useRef<HTMLDivElement>(null);
   const appui = useRef<{ minuterie: ReturnType<typeof setTimeout>; x: number; y: number } | null>(null);
   const ignorerClic = useRef(false);
@@ -246,7 +249,7 @@ export function Accueil(props: {
     setPageActive(p);
   };
   useEffect(() => {
-    if (!lesPages.includes(pageActive)) allerPage("maison");
+    if (!lesPages.includes(pageActive)) allerPage(PAGE_PRINCIPALE);
   }); // eslint-disable-line react-hooks/exhaustive-deps
 
   function widget(id: WidgetId, i: number): ReactNode {
@@ -452,6 +455,7 @@ export function Accueil(props: {
             <span className={`point-etat ${props.partage.ton}`} aria-hidden />
             {props.partage.texte}
           </button>
+          {props.synchroniser && <BoutonSynchro synchroniser={props.synchroniser} />}
           <button className="etat-pied" onClick={props.ouvrirSauvegarde}>
             <Icone nom="sauvegarde" taille={15} />
             Sauvegarde : {decrireDerniere(derniereSauvegarde, aujourdhui)}
@@ -472,6 +476,28 @@ export function Accueil(props: {
 
       <Recherche ouverte={recherche} fermer={() => setRecherche(false)} donnees={props.donnees} aller={props.aller} />
     </main>
+  );
+}
+
+/** « Synchroniser » : la synchro passe déjà seule, mais on peut la demander d'un toucher. */
+function BoutonSynchro({ synchroniser }: { synchroniser: () => Promise<void> }) {
+  const [enCours, setEnCours] = useState(false);
+  const lancer = async () => {
+    if (enCours) return;
+    vibrer();
+    setEnCours(true);
+    try {
+      // Assez long pour voir que ça tourne, même quand tout est déjà à jour.
+      await Promise.all([synchroniser().catch(() => {}), new Promise((r) => setTimeout(r, 600))]);
+    } finally {
+      setEnCours(false);
+    }
+  };
+  return (
+    <button className={`etat-pied bouton-synchro${enCours ? " en-cours" : ""}`} onClick={() => void lancer()} disabled={enCours}>
+      <Icone nom="actualiser" taille={15} />
+      {enCours ? "Synchronisation…" : "Synchroniser"}
+    </button>
   );
 }
 

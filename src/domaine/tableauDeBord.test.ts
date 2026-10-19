@@ -83,23 +83,24 @@ describe("taille et glisser des widgets", () => {
 
 describe("les pages de l'accueil", () => {
   it("range chaque widget sur sa page de départ", () => {
-    expect(pageDe({}, "courses")).toBe("maison");
-    expect(pageDe({}, "agenda")).toBe("nous");
-    expect(pageDe({}, "mitsu")).toBe("dehors");
-    expect(widgetsDeLaPage(["taches", "agenda", "courses", "mitsu"], {}, "maison")).toEqual(["taches", "courses"]);
+    expect(pageDe({}, "courses")).toBe("courses");
+    expect(pageDe({}, "chef")).toBe("cuisine");
+    expect(pageDe({}, "agenda")).toBe("agenda");
+    expect(widgetsDeLaPage(["taches", "agenda", "courses", "mitsu"], {}, "menage")).toEqual(["taches", "mitsu"]);
   });
 
   it("change un widget de page en boucle, et relit les pages enregistrées", () => {
-    const une = pageSuivante({}, "courses");
-    expect(pageDe(une, "courses")).toBe("nous");
-    const deux = pageSuivante(une, "courses");
-    expect(pageDe(deux, "courses")).toBe("dehors");
-    expect(pageSuivante(deux, "courses")).toEqual({});
-    expect(nettoyerPages({ courses: "nous", inconnu: "nous", taches: "ailleurs" })).toEqual({ courses: "nous" });
+    let pages = pageSuivante({}, "courses");
+    expect(pageDe(pages, "courses")).toBe("cuisine");
+    for (let i = 0; i < 3; i++) pages = pageSuivante(pages, "courses");
+    expect(pageDe(pages, "courses")).toBe("menage");
+    expect(pageSuivante(pages, "courses")).toEqual({});
+    // Les pages d'avant (Maison, Nous deux, Mitsu et jardin) sont oubliées : le widget revient à sa page de départ.
+    expect(nettoyerPages({ courses: "cuisine", agenda: "nous", inconnu: "budget", taches: "ailleurs" })).toEqual({ courses: "cuisine" });
   });
 
-  it("ne montre que les pages qui ont des widgets, et toujours la Maison", () => {
-    expect(pagesVisibles(["agenda"], {})).toEqual(["maison", "nous"]);
-    expect(pagesVisibles([], {})).toEqual(["maison"]);
+  it("ne montre que les pages qui ont des widgets, et toujours le Ménage", () => {
+    expect(pagesVisibles(["agenda"], {})).toEqual(["menage", "agenda"]);
+    expect(pagesVisibles([], {})).toEqual(["menage"]);
   });
 });
