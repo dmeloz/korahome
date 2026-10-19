@@ -41,6 +41,8 @@ export interface CarteDuJour {
   choses: ChoseDuJour[];
   /** Ce qui n'a pas trouvé de place dans la carte. */
   autres: number;
+  /** Les tâches cochées aujourd'hui (par soi, ou par n'importe qui sans personne choisie), pour la jauge. */
+  faites: number;
 }
 
 /** Une facture à payer (le module Budget la fournira). */
@@ -141,7 +143,22 @@ export function repasDuSoir(menus: readonly DocChef[], aujourdhui: Jour): string
 /** La carte de l'accueil : au plus trois choses, et combien d'autres attendent. */
 export function carteDuJour(e: EntreeDuJour, max = 3): CarteDuJour {
   const toutes = chosesDuJour(e);
-  return { jour: e.aujourdhui, choses: toutes.slice(0, max), autres: Math.max(0, toutes.length - max) };
+  const faites = e.taches.filter((t) => (t.historique ?? []).some((f) => f.le === e.aujourdhui && (e.membreId === null || f.par === e.membreId))).length;
+  return { jour: e.aujourdhui, choses: toutes.slice(0, max), autres: Math.max(0, toutes.length - max), faites };
+}
+
+/** Où en est la journée : les tâches cochées sur celles du jour (cochées et restantes), de 0 à 1. */
+export function avanceeDuJour(carte: CarteDuJour): { faites: number; total: number; part: number } {
+  const restantes = carte.choses.filter((c) => c.tacheId).length + carte.autres;
+  const total = carte.faites + restantes;
+  return { faites: carte.faites, total, part: total ? carte.faites / total : 1 };
+}
+
+/** Le grand titre de la carte : combien de choses attendent. */
+export function titreCarte(carte: CarteDuJour): string {
+  const n = carte.choses.length + carte.autres;
+  if (n === 0) return carte.faites ? "Tout est fait" : "Journée libre";
+  return n === 1 ? "1 chose à faire" : `${n} choses à faire`;
 }
 
 /** La même carte, dite en une phrase : ce que répondra Siri. */

@@ -1,7 +1,7 @@
 // KoraHome : la fonction qui envoie les rappels du matin (Supabase Edge Function, Deno).
 //
-// - Chaque heure, le serveur l'appelle (pg_cron, voir supabase/schema.sql) avec sa clé
-//   « x-cle-cron » : chaque téléphone abonné reçoit son rappel à son heure, les jours choisis.
+// - Chaque demi-heure, le serveur l'appelle (pg_cron, voir supabase/schema.sql) avec sa clé
+//   « x-cle-cron » : chaque téléphone abonné reçoit son rappel à son heure (8:00, 8:30…), les jours choisis.
 // - Un téléphone l'appelle avec sa session pour lire la clé publique d'envoi (« cle »)
 //   ou recevoir tout de suite un rappel d'essai (« essai »).
 // - Un mot du couple est annoncé à l'autre téléphone : tout de suite quand le téléphone qui
@@ -12,7 +12,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
-import { adresseMeteo, evenementsDe, facturesDuJour, fenetreMotsProgrammes, FUSEAU_DU_FOYER, jourEtHeure, lireMeteo, notificationMot, PREFERENCES_DE_DEPART, rappelDu, rappelDuMatin } from "./domaine.js";
+import { adresseMeteo, evenementsDe, facturesDuJour, fenetreMotsProgrammes, formaterHeure, FUSEAU_DU_FOYER, jourEtHeure, lireMeteo, notificationMot, PREFERENCES_DE_DEPART, rappelDu, rappelDuMatin } from "./domaine.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -29,7 +29,7 @@ interface Abonnement {
   user_id: string;
   membre_id: string | null;
   cles: { p256dh: string; auth: string };
-  preferences: { taches?: boolean; mitsu?: boolean; stock?: boolean; jardin?: boolean; mots?: boolean; agenda?: boolean; budget?: boolean; jours?: number[] };
+  preferences: { taches?: boolean; mitsu?: boolean; stock?: boolean; jardin?: boolean; mots?: boolean; agenda?: boolean; budget?: boolean; jours?: number[]; minute?: number };
   heure: number;
   dernier_envoi: string | null;
 }
@@ -155,7 +155,7 @@ async function passageDuMatin(cles: { publique: string; privee: string }) {
   let meteo: ReturnType<typeof meteoDuJardin> | null = null;
   const bilan: Record<string, number> = {};
   for (const a of abonnements) {
-    const jour = rappelDu(maintenant, a.heure, a.dernier_envoi, FUSEAU_DU_FOYER, a.preferences?.jours);
+    const jour = rappelDu(maintenant, a.heure, a.dernier_envoi, FUSEAU_DU_FOYER, a.preferences?.jours, a.preferences?.minute);
     if (!jour) continue;
     if (!parFoyer.has(a.foyer_id)) parFoyer.set(a.foyer_id, donneesDuFoyer(a.foyer_id));
     meteo ??= meteoDuJardin();
@@ -174,7 +174,7 @@ async function essai(utilisateur: string, endpoint: string, cles: { publique: st
   const { jour } = jourEtHeure(new Date(), FUSEAU_DU_FOYER);
   const message = rappelPour(a, await donneesDuFoyer(a.foyer_id), jour, await meteoDuJardin()) ?? {
     titre: "Tout est en ordre",
-    corps: `Rien à faire aujourd'hui. Les rappels arriveront ici chaque matin à ${a.heure} h.`,
+    corps: `Rien à faire aujourd'hui. Les rappels arriveront ici chaque jour à ${formaterHeure(a.heure, a.preferences?.minute)}.`,
     nombre: 0,
   };
   const resultat = await envoyer(a, message, cles);
@@ -191,7 +191,8 @@ Deno.serve(async (req) => {
     if (cleCron) {
       if (cleCron !== cles.cleCron) return repondre({ erreur: "Clé inconnue" }, 401);
       const bilan = await passageDuMatin(cles);
-      const mots = await motsProgrammes(cles).catch((e) => (console.error("Mots programmés", (e as Error).message), 0));
+      // Les mots programmés tombent à l'heure pleine : seul le passage de l'heure les annonce.
+      const mots = new Date().getUTCMinutes() < 30 ? await motsProgrammes(cles).catch((e) => (console.error("Mots programmés", (e as Error).message), 0)) : 0;
       return repondre({ ...bilan, mots });
     }
 

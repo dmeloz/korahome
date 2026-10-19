@@ -38,8 +38,10 @@ export interface PreferencesRappels {
   agenda: boolean;
   /** Les factures du Budget à payer dans les trois jours, ou en retard. */
   budget: boolean;
-  /** L'heure du rappel, heure pleine, à Zurich. */
+  /** L'heure du rappel, à Zurich. */
   heure: number;
+  /** Et sa demi-heure : 0 pour « 8:00 », 30 pour « 8:30 » (idée de Sarah). Absente : heure pleine. */
+  minute?: 0 | 30;
   /** Les jours où le rappel arrive : 0 dimanche, 1 lundi… 6 samedi. */
   jours: number[];
 }
@@ -57,6 +59,16 @@ export const FUSEAU_DU_FOYER = "Europe/Zurich";
 export function heureValide(heure: unknown): heure is number {
   return Number.isInteger(heure) && (heure as number) >= HEURE_MIN && (heure as number) <= HEURE_MAX;
 }
+
+export function minuteValide(minute: unknown): minute is 0 | 30 {
+  return minute === 0 || minute === 30;
+}
+
+/** Les moments proposés pour le rappel, de demi-heure en demi-heure : 5:00, 5:30… 22:30. */
+export const CRENEAUX_RAPPEL: readonly { heure: number; minute: 0 | 30 }[] = Array.from({ length: (HEURE_MAX - HEURE_MIN + 1) * 2 }, (_, i) => ({
+  heure: HEURE_MIN + Math.floor(i / 2),
+  minute: i % 2 ? 30 : 0,
+}));
 
 /** Une heure plus tôt (-1) ou plus tard (+1), sans sortir des heures possibles. */
 export function decalerHeure(heure: number, sens: -1 | 1): number {
@@ -110,9 +122,9 @@ export function jourDeLaSemaine(jour: Jour): number {
   return new Date(`${jour}T12:00:00Z`).getUTCDay();
 }
 
-/** « 8:00 », « 18:00 ». */
-export function formaterHeure(heure: number): string {
-  return `${heure}:00`;
+/** « 8:00 », « 18:30 ». */
+export function formaterHeure(heure: number, minute = 0): string {
+  return `${heure}:${minute === 30 ? "30" : "00"}`;
 }
 
 export interface RappelDuMatin {
@@ -211,18 +223,18 @@ export function rappelDuMatin(entree: {
 }
 
 /** La date et l'heure d'un instant dans le fuseau du foyer (l'heure d'été est prise en compte). */
-export function jourEtHeure(instant: Date, fuseau: string = FUSEAU_DU_FOYER): { jour: Jour; heure: number } {
+export function jourEtHeure(instant: Date, fuseau: string = FUSEAU_DU_FOYER): { jour: Jour; heure: number; minute: number } {
   const parties = Object.fromEntries(
-    new Intl.DateTimeFormat("en-CA", { timeZone: fuseau, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hourCycle: "h23" })
+    new Intl.DateTimeFormat("en-CA", { timeZone: fuseau, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
       .formatToParts(instant)
       .map((p) => [p.type, p.value]),
   );
-  return { jour: `${parties.year}-${parties.month}-${parties.day}`, heure: Number(parties.hour) };
+  return { jour: `${parties.year}-${parties.month}-${parties.day}`, heure: Number(parties.hour), minute: Number(parties.minute) };
 }
 
 /**
- * Le serveur passe chaque heure : un téléphone reçoit son rappel au premier passage
- * à partir de son heure, une seule fois par jour (un passage manqué est rattrapé
+ * Le serveur passe chaque demi-heure : un téléphone reçoit son rappel au premier passage
+ * à partir de son heure (et de sa demi-heure), une seule fois par jour (un passage manqué est rattrapé
  * dans la matinée, jamais l'après-midi), et seulement les jours choisis.
  */
 export function rappelDu(
@@ -231,9 +243,12 @@ export function rappelDu(
   dernierEnvoi: Jour | null,
   fuseau: string = FUSEAU_DU_FOYER,
   jours: readonly number[] = TOUS_LES_JOURS,
+  minute: number = 0,
 ): Jour | null {
   const local = jourEtHeure(instant, fuseau);
-  if (local.heure < heure || local.heure >= Math.max(heure + 1, 12)) return null;
+  const maintenant = local.heure * 60 + local.minute;
+  const prevu = heure * 60 + (minuteValide(minute) ? minute : 0);
+  if (maintenant < prevu || maintenant >= Math.max(prevu + 60, 12 * 60)) return null;
   if (!nettoyerJours(jours).includes(jourDeLaSemaine(local.jour))) return null;
   return dernierEnvoi === local.jour ? null : local.jour;
 }

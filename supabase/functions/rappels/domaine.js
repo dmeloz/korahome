@@ -1253,6 +1253,14 @@ const FUSEAU_DU_FOYER = "Europe/Zurich";
 function heureValide(heure) {
 	return Number.isInteger(heure) && heure >= 5 && heure <= 22;
 }
+function minuteValide(minute) {
+	return minute === 0 || minute === 30;
+}
+/** Les moments proposés pour le rappel, de demi-heure en demi-heure : 5:00, 5:30… 22:30. */
+const CRENEAUX_RAPPEL = Array.from({ length: 36 }, (_, i) => ({
+	heure: 5 + Math.floor(i / 2),
+	minute: i % 2 ? 30 : 0
+}));
 /** Une heure plus tôt (-1) ou plus tard (+1), sans sortir des heures possibles. */
 function decalerHeure(heure, sens) {
 	return Math.min(22, Math.max(5, heure + sens));
@@ -1347,9 +1355,9 @@ function decrireJours(jours) {
 function jourDeLaSemaine(jour) {
 	return (/* @__PURE__ */ new Date(`${jour}T12:00:00Z`)).getUTCDay();
 }
-/** « 8:00 », « 18:00 ». */
-function formaterHeure(heure) {
-	return `${heure}:00`;
+/** « 8:00 », « 18:30 ». */
+function formaterHeure(heure, minute = 0) {
+	return `${heure}:${minute === 30 ? "30" : "00"}`;
 }
 /** Au plus trois noms par ligne, puis « et 2 autres ». */
 const MAX_PAR_LIGNE = 3;
@@ -1418,23 +1426,27 @@ function jourEtHeure(instant, fuseau = FUSEAU_DU_FOYER) {
 		month: "2-digit",
 		day: "2-digit",
 		hour: "2-digit",
+		minute: "2-digit",
 		hourCycle: "h23"
 	}).formatToParts(instant).map((p) => [p.type, p.value]));
 	return {
 		jour: `${parties.year}-${parties.month}-${parties.day}`,
-		heure: Number(parties.hour)
+		heure: Number(parties.hour),
+		minute: Number(parties.minute)
 	};
 }
 /**
-* Le serveur passe chaque heure : un téléphone reçoit son rappel au premier passage
-* à partir de son heure, une seule fois par jour (un passage manqué est rattrapé
+* Le serveur passe chaque demi-heure : un téléphone reçoit son rappel au premier passage
+* à partir de son heure (et de sa demi-heure), une seule fois par jour (un passage manqué est rattrapé
 * dans la matinée, jamais l'après-midi), et seulement les jours choisis.
 */
-function rappelDu(instant, heure, dernierEnvoi, fuseau = FUSEAU_DU_FOYER, jours = TOUS_LES_JOURS) {
+function rappelDu(instant, heure, dernierEnvoi, fuseau = FUSEAU_DU_FOYER, jours = TOUS_LES_JOURS, minute = 0) {
 	const local = jourEtHeure(instant, fuseau);
-	if (local.heure < heure || local.heure >= Math.max(heure + 1, 12)) return null;
+	const maintenant = local.heure * 60 + local.minute;
+	const prevu = heure * 60 + (minuteValide(minute) ? minute : 0);
+	if (maintenant < prevu || maintenant >= Math.max(prevu + 60, 720)) return null;
 	if (!nettoyerJours(jours).includes(jourDeLaSemaine(local.jour))) return null;
 	return dernierEnvoi === local.jour ? null : local.jour;
 }
 //#endregion
-export { FUSEAU_DU_FOYER, HEURE_DU_RAPPEL, HEURE_MAX, HEURE_MIN, JOURS_SEMAINE, PREFERENCES_DE_DEPART, RACCOURCIS_JOURS, TOUS_LES_JOURS, adresseMeteo, basculerJour, decalerHeure, decrireJours, evenementsDe, facturesDuJour, fenetreMotsProgrammes, formaterHeure, heureValide, jourDeLaSemaine, jourEtHeure, lireMeteo, nettoyerJours, notificationMot, rappelDu, rappelDuMatin, tachesDuMatin };
+export { CRENEAUX_RAPPEL, FUSEAU_DU_FOYER, HEURE_DU_RAPPEL, HEURE_MAX, HEURE_MIN, JOURS_SEMAINE, PREFERENCES_DE_DEPART, RACCOURCIS_JOURS, TOUS_LES_JOURS, adresseMeteo, basculerJour, decalerHeure, decrireJours, evenementsDe, facturesDuJour, fenetreMotsProgrammes, formaterHeure, heureValide, jourDeLaSemaine, jourEtHeure, lireMeteo, minuteValide, nettoyerJours, notificationMot, rappelDu, rappelDuMatin, tachesDuMatin };

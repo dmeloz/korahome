@@ -1,4 +1,4 @@
-import { sousTitreCarte, type CarteDuJour, type ChoseDuJour } from "../../domaine/aujourdhui";
+import { avanceeDuJour, sousTitreCarte, titreCarte, type CarteDuJour, type ChoseDuJour } from "../../domaine/aujourdhui";
 import { Icone } from "../Icone";
 import { PointEtat } from "./Page";
 
@@ -17,8 +17,12 @@ export function CarteAujourdhui(props: {
   return (
     <section className="carte-jour" aria-label="Aujourd'hui">
       <header className="carte-jour-entete">
-        <h2>Aujourd'hui</h2>
-        <span>{sousTitreCarte(carte)}</span>
+        <div>
+          <h2>Aujourd'hui</h2>
+          <p className="carte-jour-titre">{titreCarte(carte)}</p>
+          <span className="carte-jour-sous">{sousTitreCarte(carte)}</span>
+        </div>
+        <Jauge carte={carte} />
       </header>
       {carte.choses.length === 0 ? (
         <p className="carte-jour-vide">Rien d'urgent ni de prévu. Bonne journée.</p>
@@ -46,5 +50,24 @@ export function CarteAujourdhui(props: {
         </button>
       )}
     </section>
+  );
+}
+
+/** Les tâches du jour cochées, en anneau comme les cercles d'Activité de l'iPhone. */
+function Jauge({ carte }: { carte: CarteDuJour }) {
+  const { faites, total, part } = avanceeDuJour(carte);
+  if (!total) return null;
+  const r = 19;
+  const tour = 2 * Math.PI * r;
+  return (
+    <div className="carte-jour-jauge" role="img" aria-label={`${faites} tâche${faites > 1 ? "s" : ""} faite${faites > 1 ? "s" : ""} sur ${total}`}>
+      <svg viewBox="0 0 48 48" width={48} height={48} aria-hidden>
+        <circle cx={24} cy={24} r={r} className="jauge-fond" />
+        {part > 0 && <circle cx={24} cy={24} r={r} className="jauge-plein" strokeDasharray={`${tour * part} ${tour}`} transform="rotate(-90 24 24)" />}
+      </svg>
+      <span aria-hidden>
+        {faites}/{total}
+      </span>
+    </div>
   );
 }

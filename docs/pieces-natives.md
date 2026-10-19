@@ -4,7 +4,7 @@ Kora 0.0.23 range l'interface en quelques pièces qui se répètent sur toutes l
 
 ## Ce que voit la personne
 
-- **L'accueil** : la date et la météo, la salutation, le bandeau du couple qui défile, la carte « Aujourd'hui » (trois choses au plus, rangées par urgence), puis trois pages de widgets à glisser (Maison, Nous deux, Mitsu et jardin). En bas : l'état du partage, la dernière sauvegarde, « Modifier l'accueil ».
+- **L'accueil** : la date et la météo, le bandeau du couple qui défile (à la place de la salutation, réglable dans « Nos mots »), la carte « Aujourd'hui » (les choses du jour par urgence, trois en vue et les autres au doigt, un rond pour cocher une tâche), puis des pages de widgets à glisser, rangées par usage (Ménage, Courses, Cuisine, Budget, Agenda). En bas : l'état du partage, la dernière sauvegarde, « Modifier l'accueil ».
 - **La barre Jarvis**, en bas de chaque page : la seule façon d'ajouter quelque chose. On écrit ou on dit une phrase ; Kora la range seule quand c'est simple (courses, tâche, rendez-vous, pesée de Mitsu, nouvelle liste), sinon la confie à Jarvis. Le bouton ticket y photographie un ticket de caisse.
 - **Une page** : grand titre, une ligne de contexte, une aide montrée une seule fois, puis le contenu.
 - **Les gestes**, partout les mêmes : glisser vers la droite = fait (coché, pris) ; vers la gauche = supprimer, avec « Annuler » ; appui long = menu rapide ; glisser depuis le bord gauche = revenir.

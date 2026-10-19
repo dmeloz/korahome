@@ -183,7 +183,7 @@ grant execute on function prive.est_membre(text) to authenticated;
 
 -- ===== Rappels du matin (notifications) =====
 -- Chaque iPhone qui accepte les notifications laisse ici son adresse d'envoi (Web Push).
--- La fonction « rappels » (supabase/functions/rappels) passe chaque heure et envoie à
+-- La fonction « rappels » (supabase/functions/rappels) passe chaque demi-heure et envoie à
 -- chacun, à son heure (8 h au départ, heure de Zurich), le résumé de sa journée. Mise en route : docs/notifications.md.
 
 create table if not exists public.abonnements_push (
@@ -258,7 +258,7 @@ begin
   return query select r.vapid_publique, r.vapid_privee, r.cle_cron from reglages_push r;
 end $$;
 
--- Le passage de chaque heure. À lancer une fois avec l'adresse du projet :
+-- Le passage de chaque demi-heure (rappels à 8:00 ou 8:30). À lancer une fois avec l'adresse du projet :
 --   select prive.programmer_rappels('https://<projet>.supabase.co');
 create extension if not exists pg_cron with schema pg_catalog;
 create extension if not exists pg_net with schema extensions;
@@ -269,7 +269,7 @@ language plpgsql security definer set search_path = '' as $$
 begin
   perform cron.schedule(
     'rappels-du-matin',
-    '0 * * * *',
+    '0,30 * * * *',
     format(
       $cmd$select net.http_post(url := %L, body := '{"mode": "matin"}'::jsonb,
         headers := jsonb_build_object('Content-Type', 'application/json',

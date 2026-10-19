@@ -12,6 +12,8 @@ import {
   heureValide,
   jourDeLaSemaine,
   jourEtHeure,
+  minuteValide,
+  CRENEAUX_RAPPEL,
   nettoyerJours,
   PREFERENCES_DE_DEPART,
   rappelDu,
@@ -109,9 +111,9 @@ describe("le jardin dans le rappel du matin", () => {
 
 describe("l'heure du rappel", () => {
   it("suit l'heure de Zurich, été comme hiver", () => {
-    expect(jourEtHeure(new Date("2026-10-12T06:00:00Z"))).toEqual({ jour: "2026-10-12", heure: 8 });
-    expect(jourEtHeure(new Date("2026-12-12T07:00:00Z"))).toEqual({ jour: "2026-12-12", heure: 8 });
-    expect(jourEtHeure(new Date("2026-12-11T23:30:00Z"))).toEqual({ jour: "2026-12-12", heure: 0 });
+    expect(jourEtHeure(new Date("2026-10-12T06:00:00Z"))).toEqual({ jour: "2026-10-12", heure: 8, minute: 0 });
+    expect(jourEtHeure(new Date("2026-12-12T07:00:00Z"))).toEqual({ jour: "2026-12-12", heure: 8, minute: 0 });
+    expect(jourEtHeure(new Date("2026-12-11T23:30:00Z"))).toEqual({ jour: "2026-12-12", heure: 0, minute: 30 });
   });
 
   it("part une fois par jour, au premier passage à partir de 8 h", () => {
@@ -134,6 +136,21 @@ describe("l'heure du rappel", () => {
     expect(heureValide(23)).toBe(false);
     expect(heureValide("8")).toBe(false);
     expect(formaterHeure(7)).toBe("7:00");
+  });
+
+  it("se règle à la demi-heure, le serveur passant toutes les trente minutes", () => {
+    // 8:30 à Zurich (6:30 UTC en octobre) : pas au passage de 8:00, oui à celui de 8:30.
+    expect(rappelDu(new Date("2026-10-12T06:00:00Z"), 8, null, undefined, undefined, 30)).toBeNull();
+    expect(rappelDu(new Date("2026-10-12T06:30:00Z"), 8, null, undefined, undefined, 30)).toBe("2026-10-12");
+    expect(rappelDu(new Date("2026-10-12T07:00:00Z"), 8, null, undefined, undefined, 30)).toBe("2026-10-12");
+    // 18:30 : rattrapé une heure au plus.
+    expect(rappelDu(new Date("2026-10-12T17:30:00Z"), 18, null, undefined, undefined, 30)).toBeNull();
+    expect(formaterHeure(8, 30)).toBe("8:30");
+    expect(minuteValide(30)).toBe(true);
+    expect(minuteValide(15)).toBe(false);
+    expect(CRENEAUX_RAPPEL[0]).toEqual({ heure: 5, minute: 0 });
+    expect(CRENEAUX_RAPPEL[1]).toEqual({ heure: 5, minute: 30 });
+    expect(CRENEAUX_RAPPEL.at(-1)).toEqual({ heure: 22, minute: 30 });
   });
 });
 

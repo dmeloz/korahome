@@ -1,4 +1,4 @@
-import { heureValide, nettoyerJours, PREFERENCES_DE_DEPART, type PreferencesRappels } from "../domaine/rappels";
+import { heureValide, minuteValide, nettoyerJours, PREFERENCES_DE_DEPART, type PreferencesRappels } from "../domaine/rappels";
 import type { ServeurRappels } from "../donnees/distant";
 
 // Les rappels du matin côté téléphone : demander la permission, inscrire l'iPhone
@@ -51,6 +51,7 @@ export function lirePreferences(): PreferencesRappels {
       agenda: typeof brut?.agenda === "boolean" ? brut.agenda : PREFERENCES_DE_DEPART.agenda,
       budget: typeof brut?.budget === "boolean" ? brut.budget : PREFERENCES_DE_DEPART.budget,
       heure: heureValide(brut?.heure) ? brut.heure : PREFERENCES_DE_DEPART.heure,
+      minute: minuteValide(brut?.minute) ? brut.minute : 0,
       jours: nettoyerJours(brut?.jours),
     };
   } catch {

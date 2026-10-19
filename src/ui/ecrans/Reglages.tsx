@@ -83,7 +83,7 @@ export function Reglages(props: {
         <Ligne
           picto="cloche"
           titre="Notifications"
-          valeur={`${formaterHeure(rappels.heure)} · ${decrireJours(rappels.jours)}`}
+          valeur={`${formaterHeure(rappels.heure, rappels.minute)} · ${decrireJours(rappels.jours)}`}
           onClick={props.ouvrirNotifications}
         />
         <Ligne picto="calendrier" titre="Calendrier de l'iPhone" valeur={props.calendrier} alerte={props.calendrierEnErreur} onClick={props.ouvrirCalendrier} />

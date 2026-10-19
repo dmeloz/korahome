@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { carteDuJour, chosesDuJour, phraseDuJour, repasDuSoir, sousTitreCarte, type EntreeDuJour } from "./aujourdhui";
+import { avanceeDuJour, carteDuJour, chosesDuJour, phraseDuJour, repasDuSoir, sousTitreCarte, titreCarte, type EntreeDuJour } from "./aujourdhui";
 import { preparerEvenement } from "./agenda";
 import type { MenuSemaine } from "./chef";
 import { contexteTest } from "./contexteTest";
 import { nouveauProduit } from "./stock";
-import { nouvelleTache } from "./taches";
+import { marquerFaite, nouvelleTache } from "./taches";
 
 const ctx = contexteTest();
 const auj = "2026-10-19";
@@ -78,6 +78,18 @@ describe("la carte Aujourd'hui", () => {
     const carte = carteDuJour(entree({ taches }), 12);
     expect(carte.choses).toHaveLength(5);
     expect(carte.autres).toBe(0);
+  });
+
+  it("compte les tâches cochées aujourd'hui pour la jauge et le titre", () => {
+    const faite = marquerFaite(nouvelleTache("Litière", semaine, auj, ctx), "melo", auj, ctx);
+    const parSarah = marquerFaite(nouvelleTache("Ménage", semaine, auj, ctx), "sarah", auj, ctx);
+    const reste = nouvelleTache("Linge", semaine, auj, ctx);
+    const carte = carteDuJour(entree({ taches: [faite, parSarah, reste] }));
+    expect(carte.faites).toBe(1);
+    expect(avanceeDuJour(carte)).toEqual({ faites: 1, total: 2, part: 0.5 });
+    expect(titreCarte(carte)).toBe("1 chose à faire");
+    expect(titreCarte(carteDuJour(entree({ taches: [faite] })))).toBe("Tout est fait");
+    expect(titreCarte(carteDuJour(entree()))).toBe("Journée libre");
   });
 
   it("garde trois choses et compte les autres", () => {

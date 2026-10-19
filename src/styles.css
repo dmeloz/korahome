@@ -359,10 +359,18 @@ h1 {
 .point-etat.calme { background: color-mix(in srgb, var(--discret) 55%, transparent); }
 
 /* La carte « Aujourd'hui » : trois choses, dans l'ordre. */
-.carte-jour { margin: 14px 0; padding: 14px 14px 6px; border-radius: 22px; background: var(--carte-jour); border: 1px solid var(--carte-jour-trait); }
-.carte-jour-entete { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 0 4px 6px; }
-.carte-jour-entete h2 { margin: 0; font-size: var(--t-corps); font-weight: 600; }
-.carte-jour-entete span { font-size: var(--t-legende); color: var(--discret); }
+.carte-jour { margin: 14px 0; padding: 16px 14px 6px; border-radius: 24px; background: var(--carte-jour); border: 1px solid var(--carte-jour-trait); box-shadow: 0 10px 30px -18px color-mix(in srgb, var(--accent) 60%, transparent); }
+.carte-jour-entete { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 4px 10px; }
+.carte-jour-entete h2 { margin: 0; font-size: var(--t-legende); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+.carte-jour-titre { margin: 2px 0 0; font-size: var(--t-section); font-weight: 650; line-height: 1.2; }
+.carte-jour-sous { font-size: var(--t-legende); color: var(--discret); }
+.carte-jour-jauge { position: relative; flex: none; width: 48px; height: 48px; display: grid; place-items: center; }
+.carte-jour-jauge svg { position: absolute; inset: 0; }
+.carte-jour-jauge span { font-size: var(--t-legende); font-weight: 600; font-variant-numeric: tabular-nums; }
+.jauge-fond, .jauge-plein { fill: none; stroke-width: 4.5; }
+.jauge-fond { stroke: color-mix(in srgb, var(--accent) 18%, transparent); }
+.jauge-plein { stroke: var(--accent); stroke-linecap: round; }
+@media (prefers-reduced-motion: no-preference) { .jauge-plein { transition: stroke-dasharray 0.4s ease; } }
 .carte-jour ul { list-style: none; margin: 0; padding: 0; max-height: calc(48px * 3.5); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
 .carte-jour ul::-webkit-scrollbar { display: none; }
 .carte-jour li.avec-coche { display: flex; align-items: center; gap: 2px; }
@@ -375,14 +383,17 @@ h1 {
 .carte-jour-coche:active::before { background: var(--accent-doux); }
 .carte-jour li { border-top: 1px solid color-mix(in srgb, var(--carte-jour-trait) 70%, transparent); }
 .carte-jour-ligne { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 6px 4px; border: none; background: none; text-align: left; }
-.carte-jour-texte { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.carte-jour-quand { flex: none; font-size: var(--t-legende); color: var(--discret); }
-.carte-jour-quand.urgent { color: var(--urgent); }
+.carte-jour-texte { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.carte-jour-quand { flex: none; padding: 3px 9px; border-radius: 999px; font-size: var(--t-legende); color: var(--discret); background: color-mix(in srgb, var(--discret) 12%, transparent); }
+.carte-jour-quand.urgent { color: var(--urgent); background: color-mix(in srgb, var(--urgent) 14%, transparent); font-weight: 600; }
+.carte-jour-quand.jour { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
 .carte-jour-vide { margin: 4px 4px 12px; color: var(--discret); font-size: var(--t-detail); }
 .carte-jour-plus { display: block; padding: 8px 4px 10px; font-size: var(--t-detail); }
 
 /* Les pages de l'accueil : des onglets discrets, et un glissement de côté comme sur l'iPhone. */
-.onglets-accueil { display: flex; gap: 18px; margin: 6px 2px 10px; }
+.onglets-accueil { display: flex; gap: 18px; margin: 6px 2px 10px; overflow-x: auto; scrollbar-width: none; white-space: nowrap; }
+.onglets-accueil::-webkit-scrollbar { display: none; }
+.onglets-accueil button { flex: none; }
 .onglets-accueil button { border: none; background: none; padding: 6px 0; color: var(--discret); font-size: var(--t-detail); position: relative; }
 .onglets-accueil button.actif { color: var(--texte); font-weight: 600; }
 .onglets-accueil button.actif::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; border-radius: 1px; background: var(--accent); }
@@ -433,6 +444,9 @@ h1 {
 .pied-accueil { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 14px; margin: 18px 0 8px; }
 .etat-pied { display: inline-flex; align-items: center; gap: 6px; border: none; background: none; padding: 8px 2px; color: var(--discret); font-size: var(--t-legende); }
 .etat-pied.urgent { color: var(--urgent); }
+.bouton-synchro { padding: 6px 12px; border-radius: 999px; background: var(--surface-haute); color: var(--texte); }
+.bouton-synchro.en-cours svg { animation: tourner 0.9s linear infinite; }
+@keyframes tourner { to { transform: rotate(360deg); } }
 .pied-accueil .modifier { flex-basis: 100%; text-align: center; font-size: var(--t-detail); margin: 0; }
 
 /* Mode modification : les widgets tremblent comme sur l'iPhone et se glissent. */
