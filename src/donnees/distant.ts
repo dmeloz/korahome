@@ -87,6 +87,9 @@ export interface ServeurJarvis {
   /** Un nouveau lien Apple Pay pour cette personne (supabase/functions/paiements) : l'adresse à coller dans le raccourci. L'ancien ne marche plus. */
   lienPaiements(demande: { foyerId: Id; membreId: Id }): Promise<string>;
   retirerLienPaiements(demande: { foyerId: Id; membreId: Id }): Promise<void>;
+  /** Un nouveau lien Siri pour cette personne (supabase/functions/siri), avec le nom à dire : l'adresse à coller dans le raccourci. L'ancien ne marche plus. */
+  lienSiri(demande: { foyerId: Id; membreId: Id; nom: string }): Promise<string>;
+  retirerLienSiri(demande: { foyerId: Id; membreId: Id }): Promise<void>;
 }
 
 /** L'agenda relié à iCloud passe par le serveur du foyer (supabase/functions/agenda), qui garde les mots de passe d'app. */

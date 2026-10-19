@@ -42,8 +42,8 @@ export function configurationSupabase(): { url: string; cle: string } | null {
   return url && cle ? { url, cle } : null;
 }
 
-/** Une fonction serveur (rappels, jarvis, chef, agenda, paiements) ; ses messages d'erreur sont déjà en français. */
-async function appelerFonction(sb: SupabaseClient, nom: "rappels" | "jarvis" | "chef" | "agenda" | "paiements", corps: object): Promise<Record<string, unknown>> {
+/** Une fonction serveur (rappels, jarvis, chef, agenda, paiements, siri) ; ses messages d'erreur sont déjà en français. */
+async function appelerFonction(sb: SupabaseClient, nom: "rappels" | "jarvis" | "chef" | "agenda" | "paiements" | "siri", corps: object): Promise<Record<string, unknown>> {
   const { data, error } = await sb.functions.invoke(nom, { body: corps });
   if (error) {
     const detail = await (error as { context?: Response }).context?.json?.().catch(() => null);
@@ -189,6 +189,15 @@ export function creerServicesSupabase(url: string, cle: string): ServicesDistant
 
     async retirerLienPaiements(demande) {
       await appelerFonction(await supabase(), "paiements", { mode: "retirer", ...demande });
+    },
+
+    async lienSiri(demande) {
+      const { jeton } = (await appelerFonction(await supabase(), "siri", { mode: "lien", ...demande })) as { jeton: string };
+      return `${url.replace(/\/$/, "")}/functions/v1/siri?j=${jeton}`;
+    },
+
+    async retirerLienSiri(demande) {
+      await appelerFonction(await supabase(), "siri", { mode: "retirer", ...demande });
     },
 
     async relierIcloud(demande) {

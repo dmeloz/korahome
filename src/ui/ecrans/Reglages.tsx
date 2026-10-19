@@ -44,6 +44,8 @@ export function Reglages(props: {
   ouvrirAppris: () => void;
   ouvrirSauvegarde: () => void;
   ouvrirCalendrier: () => void;
+  ouvrirSiri: () => void;
+  siri: string;
   revoirVisite: () => void;
   calendrier: string;
   calendrierEnErreur: boolean;
@@ -88,6 +90,7 @@ export function Reglages(props: {
           onClick={props.ouvrirNotifications}
         />
         <Ligne picto="calendrier" titre="Calendrier de l'iPhone" valeur={props.calendrier} alerte={props.calendrierEnErreur} onClick={props.ouvrirCalendrier} />
+        <Ligne picto="micro" titre="Siri" valeur={props.siri} onClick={props.ouvrirSiri} />
         <Ligne picto="appris" titre="Ce que Kora sait de nous" onClick={props.ouvrirAppris} />
       </ul>
 
