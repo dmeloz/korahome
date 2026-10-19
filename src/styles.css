@@ -2058,3 +2058,59 @@ html.avec-barre { --hauteur-barre: 84px; }
 .budget-fichier { position: relative; display: block; text-align: center; overflow: hidden; }
 .budget-fichier input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .budget-releve .ligne { width: 100%; text-align: left; background: none; border: 0; color: inherit; font: inherit; }
+
+/* La visite guidée : un voile percé autour de ce qu'on montre, et une bulle à côté. */
+.visite { position: fixed; inset: 0; z-index: 60; touch-action: none; }
+.visite-voile { position: absolute; inset: 0; background: rgb(0 0 0 / 0.62); animation: visite-apparait 0.3s var(--courbe); }
+.visite-trou {
+  position: fixed;
+  border-radius: 20px;
+  box-shadow: 0 0 0 200vmax rgb(0 0 0 / 0.62), 0 0 0 2px var(--accent);
+  transition: top 0.35s var(--courbe), left 0.35s var(--courbe), width 0.35s var(--courbe), height 0.35s var(--courbe);
+  pointer-events: none;
+}
+.visite-bulle {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 18px 18px 14px;
+  border-radius: 22px;
+  background: var(--surface-haute);
+  border: 1px solid var(--trait);
+  box-shadow: var(--ombre);
+  color: var(--texte);
+  animation: visite-monte 0.35s var(--courbe);
+}
+.visite-bulle.milieu { top: 50%; transform: translateY(-50%); animation-name: visite-apparait; }
+.visite-bulle h2 { margin: 6px 0 6px; font-size: 1.18rem; }
+.visite-texte { margin: 0; font-size: var(--t-corps); line-height: 1.45; }
+.visite-progression { display: flex; gap: 5px; margin: 0; }
+.visite-point { width: 6px; height: 6px; border-radius: 3px; background: var(--trait); transition: width 0.3s var(--courbe), background 0.3s; }
+.visite-point.fait { background: color-mix(in srgb, var(--accent) 45%, var(--trait)); }
+.visite-point.actif { width: 18px; background: var(--accent); }
+.visite-actions { display: flex; align-items: center; gap: 16px; margin-top: 16px; }
+.visite-actions .bouton-principal { margin: 0; padding: 11px 18px; }
+.visite-actions .lien { padding: 6px 0; font-size: var(--t-detail); }
+.visite-passer { opacity: 0.75; }
+.visite-espace { flex: 1; }
+.visite-gestes { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 10px; font-size: var(--t-detail); }
+.visite-gestes li { display: flex; align-items: center; gap: 12px; }
+
+/* Les petits dessins des gestes : un doigt (le point) qui glisse sur une piste. */
+.geste-dessin { position: relative; flex: none; width: 46px; height: 22px; border-radius: 11px; background: var(--surface); border: 1px solid var(--trait); overflow: hidden; }
+.geste-dessin > span { position: absolute; top: 5px; left: 5px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+.geste-dessin.droite > span { animation: geste-droite 1.8s var(--courbe) infinite; }
+.geste-dessin.gauche > span { left: auto; right: 5px; background: var(--urgent); animation: geste-gauche 1.8s var(--courbe) infinite; }
+.geste-dessin.appui > span { left: 17px; animation: geste-appui 1.8s ease-in-out infinite; }
+.geste-dessin.bord { border-left: 3px solid var(--accent); }
+.geste-dessin.bord > span { left: 2px; animation: geste-droite 1.8s var(--courbe) infinite; }
+@keyframes geste-droite { 0%, 15% { transform: translateX(0); opacity: 1; } 70% { transform: translateX(24px); opacity: 1; } 100% { transform: translateX(24px); opacity: 0; } }
+@keyframes geste-gauche { 0%, 15% { transform: translateX(0); opacity: 1; } 70% { transform: translateX(-24px); opacity: 1; } 100% { transform: translateX(-24px); opacity: 0; } }
+@keyframes geste-appui { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent); } 60% { box-shadow: 0 0 0 7px transparent; } }
+@keyframes visite-apparait { from { opacity: 0; } }
+@keyframes visite-monte { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: reduce) {
+  .visite-trou, .visite-bulle, .visite-voile, .geste-dessin > span { animation: none !important; transition: none; }
+}

@@ -44,6 +44,7 @@ export function Reglages(props: {
   ouvrirAppris: () => void;
   ouvrirSauvegarde: () => void;
   ouvrirCalendrier: () => void;
+  revoirVisite: () => void;
   calendrier: string;
   calendrierEnErreur: boolean;
   etatPartage: EtatPartage;
@@ -99,6 +100,7 @@ export function Reglages(props: {
           chevron={false}
           onClick={() => void version()}
         />
+        <Ligne picto="info" titre="Visite guidée" valeur="Revoir" onClick={props.revoirVisite} />
       </ul>
 
       <h2 className="rayon">Développement</h2>

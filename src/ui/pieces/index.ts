@@ -5,3 +5,4 @@ export { CarteAujourdhui } from "./Aujourdhui";
 export { AuDessusDeLaBarre, BarreJarvis, FournisseurSaisie, useGestionnaireBarre, useSaisieBarre } from "./barre";
 export { Feuille } from "../Feuille";
 export { Glissable } from "../Glissable";
+export { Visite } from "./Visite";
