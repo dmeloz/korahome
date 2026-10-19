@@ -42,6 +42,9 @@ l'app native.
   (`claude-sonnet-5-5`) propose qui fait quoi, cinq repas qui finissent d'abord ce qui arrive à sa
   date, et les courses. Chaque proposition se coche ou se décoche, puis **Valider ensemble**
   applique le reste (avec Annuler). Compter quelques centimes par conseil.
+- **Conseiller du Budget** (0.0.37) : mode `budget`, même modèle réfléchi, une seule réponse par
+  l'outil `repondre_budget` (texte, tableau, conseils chiffrés). Consignes `CONSIGNES_BUDGET` dans
+  `src/domaine/jarvisModele.ts`, état préparé par `src/domaine/budgetConseil.ts`. Voir `docs/budget.md`.
 
 ## Comment ça marche
 

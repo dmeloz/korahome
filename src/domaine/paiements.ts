@@ -1,4 +1,4 @@
-import { auCentime, depenses, formaterMontant, planDe, POTS, type DocBudget, type Depense, type PaiementAClasser, type PlanBudget, type Pot } from "./budget";
+import { auCentime, depenses, formaterMontant, planDe, POTS, reglerFacture, type DocBudget, type Depense, type PaiementAClasser, type PlanBudget, type Pot } from "./budget";
 import type { Contexte, Id, Jour } from "./types";
 
 // Les paiements Apple Pay arrivent seuls dans le budget (Kora 0.0.29).
@@ -109,7 +109,7 @@ export function recevoirPaiement(
   if (deja || dejaAClasser) return { genre: "doublon", message: "Déjà noté." };
 
   if (choix && lu.devise === "CHF") {
-    const doc: Depense = {
+    const brut: Depense = {
       id: ctx.nouvelId(),
       genre: "depense",
       jour,
@@ -124,6 +124,9 @@ export function recevoirPaiement(
       par,
       creeLe: ctx.maintenant(),
     };
+    // Le paiement d'une facture attendue la règle (Kora 0.0.37).
+    const doc = reglerFacture(brut, plan, docs);
+    if (doc.posteId) return { genre: "depense", doc, message: `Facture ${doc.libelle} payée.` };
     return { genre: "depense", doc, message: `${formaterMontant(lu.montant)} noté dans ${POTS[choix].nom.toLowerCase()}.` };
   }
   const doc: PaiementAClasser = { id: ctx.nouvelId(), genre: "paiement", jour, montant: lu.montant, devise: lu.devise, marchand: magasin, carte, par, creeLe: ctx.maintenant() };

@@ -23,7 +23,6 @@ import {
   lireDepense,
   lireMontant,
   modifierPlan,
-  moisAConfirmer,
   moisDe,
   nomDuMois,
   nommerMois,
@@ -34,6 +33,7 @@ import {
   planDe,
   POTS,
   POTS_SUIVIS,
+  reglerFacture,
   retirerPoste,
   sansDate,
   type Depense,
@@ -42,6 +42,7 @@ import {
   type Pot,
   type Poste,
 } from "../../domaine/budget";
+import { decaler, ecartJours } from "../../domaine/taches";
 import type { Foyer, Id } from "../../domaine/types";
 import { useAnnoncer } from "../annulation";
 import { contexteReel } from "../contexte";
@@ -49,13 +50,15 @@ import { Glissable } from "../Glissable";
 import { vibrer } from "../haptique";
 import { Icone } from "../Icone";
 import type { PropsPage } from "../modules";
-import { Feuille, Onglets, Page, PointEtat, useGestionnaireBarre } from "../pieces";
+import { Feuille, Onglets, Page, PointEtat, useGestionnaireBarre, useInvitationBarre } from "../pieces";
 import { completerPaiement, paiementsAClasser } from "../../domaine/paiements";
 import { FeuilleReleve } from "./BudgetReleve";
+import { moisACloturer, tableauDesMois } from "../../domaine/budgetConseil";
+import { CarteConseiller, FinDuMois, TableauDesMois, useConseiller } from "./BudgetConseiller";
 import { FeuilleApplePay, InvitationApplePay, PaiementsAClasser } from "./BudgetPaiements";
 import { AnneauDuCommun, CourbeEpargne, CoursesParMois, JaugeRythme, Magasins, MoisLourds, MotDeJarvis, phraseRythme, PrixQuiMontent, TrajetSalaire } from "./BudgetVisuels";
 
-type Onglet = "mois" | "charges" | "courses" | "epargne";
+type Onglet = "mois" | "depenses" | "charges" | "conseiller";
 
 const prenomDe = (foyer: Foyer, id: Id | null) => (id ? (foyer.membres.find((m) => m.id === id)?.prenom ?? "") : "Commun");
 const montant = (n: number) => formaterMontant(n);
@@ -70,10 +73,19 @@ export function Budget(p: PropsPage) {
   const [personne, setPersonne] = useState<Id | null>(null);
   const [projet, setProjet] = useState(false);
   const [applePay, setApplePay] = useState(false);
+  const [filtre, setFiltre] = useState<Pot | null>(null);
+  const conseiller = useConseiller(p);
   const plan = planDe(p.budget);
+  useInvitationBarre(onglet === "conseiller" && p.jarvis ? "Une question, ex. où économiser ?" : null);
 
   useGestionnaireBarre("module:budget", async (texte) => {
     if (!plan) return false;
+    // Dans le Conseiller, la barre pose une question.
+    if (onglet === "conseiller") {
+      if (!p.jarvis) return false;
+      void conseiller.demander(texte.trim());
+      return true;
+    }
     if (onglet === "charges") {
       const m = /^(.+?)\s+(\d[\d’' ]*(?:[.,]\d{1,2})?)(?:\.-)?\s*(?:chf)?\s*(par an|par année|\/an|par mois|\/mois)?$/i.exec(texte.trim());
       const somme = m ? lireMontant(m[2]) : null;
@@ -90,7 +102,7 @@ export function Budget(p: PropsPage) {
     const facture = saisie.posteId ? facturesAPayer(plan, p.budget, aujourdhui, 31).find((f) => f.poste.id === saisie.posteId) : undefined;
     const depense = facture
       ? { ...payerFacture(facture, aujourdhui, p.membreId, contexteReel), montant: saisie.montant }
-      : nouvelleDepense({ ...saisie, jour: aujourdhui }, p.membreId, contexteReel);
+      : reglerFacture(nouvelleDepense({ ...saisie, jour: aujourdhui }, p.membreId, contexteReel), plan, p.budget);
     // Déjà arrivée par Apple Pay, du même montant aujourd'hui : on complète ce paiement.
     const deja = completerPaiement(depense, p.budget);
     if (deja) {
@@ -102,7 +114,10 @@ export function Budget(p: PropsPage) {
     }
     await depot.enregistrerBudget(depense);
     vibrer();
-    annoncer(`${montant(depense.montant)} : ${depense.libelle}, ${POTS[depense.pot].nom.toLowerCase()}.`, () => depot.supprimerBudget(depense.id));
+    annoncer(
+      depense.posteId ? `${depense.libelle} payée (${montant(depense.montant)}).` : `${montant(depense.montant)} : ${depense.libelle}, ${POTS[depense.pot].nom.toLowerCase()}.`,
+      () => depot.supprimerBudget(depense.id),
+    );
     return true;
   });
 
@@ -121,7 +136,9 @@ export function Budget(p: PropsPage) {
 
   const enregistrer = (nouveau: PlanBudget) => depot.enregistrerBudget(nouveau);
   const aide =
-    onglet === "charges"
+    onglet === "conseiller"
+      ? "Pose ta question au conseiller dans la barre : « Où peut-on économiser ? », « Nos courses mois par mois ». Il répond avec des chiffres, un tableau et des conseils."
+      : onglet === "charges"
       ? "Écris une charge dans la barre : « Netflix 20 », « Assurance maison 118 par an ». Touche une ligne pour la régler."
       : "Écris une dépense dans la barre : « Migros 84.30 », « 32 cinéma ». Le ticket de caisse photographié par Jarvis compte aussi dans les courses.";
 
@@ -142,17 +159,54 @@ export function Budget(p: PropsPage) {
         actif={onglet}
         changer={setOnglet}
         onglets={[
-          { id: "mois", libelle: "Ce mois", compte: facturesAPayer(plan, p.budget, aujourdhui, 7).length + paiementsAClasser(p.budget).length },
+          { id: "mois", libelle: "Ce mois", compte: facturesAPayer(plan, p.budget, aujourdhui, 7).length + paiementsAClasser(p.budget).length + (moisACloturer(plan, p.budget, aujourdhui) ? 1 : 0) },
+          { id: "depenses", libelle: "Dépenses" },
           { id: "charges", libelle: "Charges" },
-          { id: "courses", libelle: "Courses" },
-          { id: "epargne", libelle: "Épargne" },
+          { id: "conseiller", libelle: "Conseiller" },
         ]}
       />
 
-      {onglet === "mois" && <CeMois {...p} plan={plan} voirCharges={() => setOnglet("charges")} ouvrirApplePay={() => setApplePay(true)} />}
+      {onglet === "mois" && (
+        <CeMois
+          {...p}
+          plan={plan}
+          voirCharges={() => setOnglet("charges")}
+          voirPot={(pot) => {
+            if (pot === "epargne") setOnglet("conseiller");
+            else {
+              setFiltre(pot);
+              setOnglet("depenses");
+            }
+          }}
+          voirDepenses={() => {
+            setFiltre(null);
+            setOnglet("depenses");
+          }}
+        />
+      )}
+      {onglet === "depenses" && <Depenses {...p} plan={plan} filtre={filtre} filtrer={setFiltre} ouvrirApplePay={() => setApplePay(true)} />}
       {onglet === "charges" && <Charges {...p} plan={plan} ouvrirPoste={setPoste} ouvrirPersonne={setPersonne} />}
-      {onglet === "courses" && <Courses {...p} plan={plan} />}
-      {onglet === "epargne" && <Epargne {...p} plan={plan} reglerProjet={() => setProjet(true)} />}
+      {onglet === "conseiller" && (
+        <>
+          <CarteConseiller conseiller={conseiller} disponible={!!p.jarvis} />
+          <h2 className="rayon">La fin du mois</h2>
+          <FinDuMois {...p} plan={plan} />
+          {tableauDesMois(plan, p.budget, aujourdhui).length > 1 && (
+            <>
+              <h2 className="rayon">Les derniers mois</h2>
+              <TableauDesMois plan={plan} mois={tableauDesMois(plan, p.budget, aujourdhui)} aujourdhui={aujourdhui} />
+            </>
+          )}
+          {previsionFactures(plan, p.budget, aujourdhui).some((m) => m.sorties > 0) && (
+            <>
+              <h2 className="rayon">L'année des factures</h2>
+              <MoisLourds mois={previsionFactures(plan, p.budget, aujourdhui)} aujourdhui={aujourdhui} />
+            </>
+          )}
+          <Epargne {...p} plan={plan} reglerProjet={() => setProjet(true)} />
+          <Courses {...p} plan={plan} />
+        </>
+      )}
 
       <FeuillePoste plan={plan} poste={poste} foyer={foyer} fermer={() => setPoste(null)} enregistrer={enregistrer} />
       <FeuillePersonne plan={plan} membreId={personne} foyer={foyer} fermer={() => setPersonne(null)} enregistrer={enregistrer} />
@@ -174,28 +228,20 @@ export function Budget(p: PropsPage) {
 
 // ----- Ce mois -----
 
-function CeMois(p: PropsPage & { plan: PlanBudget; voirCharges: () => void; ouvrirApplePay: () => void }) {
+const nomDuPot = (plan: PlanBudget, pot: Pot) => plan.comptes[pot] || POTS[pot].nom;
+const leJour = (jour: string) => `${Number(jour.slice(8, 10))} ${nomDuMois(Number(jour.slice(5, 7)))}`;
+
+/** Ce qui demande un geste d'abord (la clôture, les paiements à classer, les factures), puis les pots. */
+function CeMois(p: PropsPage & { plan: PlanBudget; voirCharges: () => void; voirPot: (pot: Pot) => void; voirDepenses: () => void }) {
   const { plan, depot, aujourdhui } = p;
   const annoncer = useAnnoncer();
-  const bilan = bilanDuMois(plan);
   const pots = etatDesPots(plan, p.budget, aujourdhui);
-  const aConfirmer = moisAConfirmer(plan, p.budget, aujourdhui);
-  const [epargne, setEpargne] = useState<number | null>(null);
-  const [releve, setReleve] = useState(false);
   const aPayer = facturesAPayer(plan, p.budget, aujourdhui, 45);
   const datesManquantes = sansDate(plan);
-  const duMois = depenses(p.budget).filter((d) => moisDe(d.jour) === moisDe(aujourdhui));
+  const dernieres = depenses(p.budget).filter((d) => d.jour <= aujourdhui).slice(0, 4);
   const avancee = avanceeProjet(plan, p.budget, aujourdhui);
   const rythme = rythmeCourses(plan, p.budget, aujourdhui);
   const mot = motDuMois(plan, p.budget, aujourdhui);
-  const annee = previsionFactures(plan, p.budget, aujourdhui);
-
-  async function confirmer(mois: string) {
-    const doc = confirmerMois(mois, { ...bilan.versements, epargne: epargne ?? bilan.versements.epargne }, p.membreId, contexteReel);
-    await depot.enregistrerBudget(doc);
-    vibrer();
-    annoncer(`Versements de ${nommerMois(mois)} notés.`, () => depot.supprimerBudget(doc.id));
-  }
 
   async function payer(f: Facture) {
     const d = payerFacture(f, aujourdhui, p.membreId, contexteReel);
@@ -204,54 +250,31 @@ function CeMois(p: PropsPage & { plan: PlanBudget; voirCharges: () => void; ouvr
     annoncer(`${f.poste.libelle} payée.`, () => depot.supprimerBudget(d.id));
   }
 
-  async function retirer(d: Depense) {
-    await depot.supprimerBudget(d.id);
-    annoncer(`${d.libelle} retirée.`, () => depot.enregistrerBudget(d));
-  }
-
   const detail: Record<Pot, string> = {
     commun: "",
     courses: rythme ? phraseRythme(rythme) : `${montant(pots.courses.depenseDuMois)} dépensés ce mois`,
-    plaisir: `${montant(pots.plaisir.budgetDuMois)} versés ce mois`,
+    plaisir: `${montant(pots.plaisir.depenseDuMois)} dépensés sur ${montant(pots.plaisir.budgetDuMois)}`,
     factures: aPayer[0] ? `Prochaine : ${aPayer[0].poste.libelle}, ${decrireEcheanceFacture(aPayer[0].echeance, aujourdhui)}` : "Rien à payer ces prochaines semaines",
     epargne: avancee ? `${Math.round(avancee.part * 100)} % de « ${avancee.projet.nom} »` : `${montant(pots.epargne.budgetDuMois)} prévus ce mois`,
   };
 
   return (
     <>
-      {mot && <MotDeJarvis texte={mot} />}
+      <Cloture {...p} plan={plan} mot={mot} />
+      {mot && !moisACloturer(plan, p.budget, aujourdhui) && <MotDeJarvis texte={mot} />}
       <PaiementsAClasser {...p} plan={plan} />
-      {aConfirmer && (
-        <section className="carte budget-versement">
-          <p className="surtitre">{nommerMois(aConfirmer, aujourdhui)} : les versements du mois</p>
-          <ul className="groupe">
-            {POTS_SUIVIS.map((pot) => (
-              <li key={pot} className="ligne">
-                <span className="ligne-texte">{plan.comptes[pot] || POTS[pot].nom}</span>
-                {pot === "epargne" ? (
-                  <ChampMontant valeur={epargne ?? bilan.versements.epargne} changer={setEpargne} libelle="Versé à l'épargne" />
-                ) : (
-                  <span className="budget-montant">{montant(bilan.versements[pot])}</span>
-                )}
-              </li>
-            ))}
-          </ul>
-          <button type="button" className="bouton-principal" onClick={() => void confirmer(aConfirmer)}>C'est versé</button>
-          <p className="discret">Change l'épargne si vous avez versé un autre montant. Ce qui reste dans chaque pot passe au mois suivant.</p>
-        </section>
-      )}
 
       <div className="budget-pots">
         {POTS_SUIVIS.map((pot) => {
           const e = pots[pot];
           const jauge = pot === "courses" && rythme ? rythme : null;
           return (
-            <section key={pot} className={`carte budget-pot${e.solde < 0 ? " negatif" : ""}`}>
-              <p className="surtitre">{plan.comptes[pot] || POTS[pot].nom}</p>
-              <p className="budget-solde">{montant(e.solde)}</p>
+            <button type="button" key={pot} className={`carte budget-pot${e.solde < 0 ? " negatif" : ""}`} onClick={() => p.voirPot(pot)}>
+              <span className="surtitre">{nomDuPot(plan, pot)}</span>
+              <span className="budget-solde">{montant(e.solde)}</span>
               {jauge && <JaugeRythme rythme={jauge} />}
-              <p className="discret">{detail[pot]}</p>
-            </section>
+              <span className="discret">{detail[pot]}</span>
+            </button>
           );
         })}
       </div>
@@ -264,16 +287,16 @@ function CeMois(p: PropsPage & { plan: PlanBudget; voirCharges: () => void; ouvr
             return (
               <li key={`${f.poste.id}-${f.echeance}`}>
                 <div className="ligne">
-                    <button className="case" onClick={() => void payer(f)} aria-label={`${f.poste.libelle} payée`} />
-                    <span className="ligne-texte">
-                      {f.poste.libelle}
-                      <span className={`tache-details${retard ? " retard" : ""}`}>
-                        {" "}
-                        · {decrireEcheanceFacture(f.echeance, aujourdhui)}
-                      </span>
+                  <button className="case" onClick={() => void payer(f)} aria-label={`${f.poste.libelle} payée`} />
+                  <span className="ligne-texte">
+                    {f.poste.libelle}
+                    <span className={`tache-details${retard ? " retard" : ""}`}>
+                      {" "}
+                      · {decrireEcheanceFacture(f.echeance, aujourdhui)}
                     </span>
-                    <span className="budget-montant">{montant(f.montant)}</span>
-                  </div>
+                  </span>
+                  <span className="budget-montant">{montant(f.montant)}</span>
+                </div>
               </li>
             );
           })}
@@ -281,6 +304,7 @@ function CeMois(p: PropsPage & { plan: PlanBudget; voirCharges: () => void; ouvr
       ) : (
         <p className="discret budget-note">Aucune facture à payer à la main ces prochaines semaines.</p>
       )}
+      {aPayer.length > 0 && <p className="discret budget-note">Payée par Apple Pay ou trouvée dans un relevé, une facture se coche seule.</p>}
       {datesManquantes.length > 0 && (
         <button type="button" className="carte budget-rappel" onClick={p.voirCharges}>
           <PointEtat etat="jour" />
@@ -291,45 +315,248 @@ function CeMois(p: PropsPage & { plan: PlanBudget; voirCharges: () => void; ouvr
         </button>
       )}
 
-      {annee.some((m) => m.sorties > 0) && (
-        <>
-          <h2 className="rayon">L'année des factures</h2>
-          <MoisLourds mois={annee} aujourdhui={aujourdhui} />
-        </>
-      )}
-
-      <h2 className="rayon">Dépenses du mois</h2>
-      {duMois.length ? (
+      <h2 className="rayon">Dernières dépenses</h2>
+      {dernieres.length ? (
         <ul className="carte groupe">
-          {duMois.map((d) => (
+          {dernieres.map((d) => (
             <li key={d.id}>
-              <Glissable onSupprimer={() => void retirer(d)} libelle="Retirer">
-                <div className="ligne">
-                  <span className="ligne-texte">
-                    {d.libelle}
-                    <span className="tache-details">
-                      {" "}
-                      · {POTS[d.pot].nom} · {Number(d.jour.slice(8, 10))} {nomDuMois(Number(d.jour.slice(5, 7)))}
-                      {d.source === "ticket" || d.articles?.length ? " · ticket" : ""}
-                      {d.source === "applepay" ? " · Apple Pay" : ""}
-                      {d.source === "releve" ? " · relevé" : ""}
-                    </span>
+              <button type="button" className="ligne" onClick={p.voirDepenses}>
+                <span className="ligne-texte">
+                  {d.libelle}
+                  <span className="tache-details">
+                    {" "}
+                    · {nomDuPot(plan, d.pot)} · {leJour(d.jour)}
                   </span>
-                  <span className="budget-montant">{montant(d.montant)}</span>
-                </div>
-              </Glissable>
+                </span>
+                <span className="budget-montant">{montant(d.montant)}</span>
+              </button>
             </li>
           ))}
+          <li>
+            <button type="button" className="ligne budget-tout-voir" onClick={p.voirDepenses}>
+              <span className="ligne-texte">Toutes les dépenses</span>
+              <Icone nom="suivant" taille={16} />
+            </button>
+          </li>
         </ul>
       ) : (
-        <p className="discret budget-note">Rien de noté ce mois. Photographie un ticket depuis la barre, ou écris « Migros 84.30 ».</p>
+        <p className="discret budget-note">Rien de noté pour l'instant. Photographie un ticket depuis la barre, ou écris « Migros 84.30 ».</p>
       )}
+    </>
+  );
+}
+
+/**
+ * La clôture du mois : le mois qui vient de finir en bref, pot par pot, puis les versements du
+ * nouveau mois, notés d'un seul geste. Ce qui reste dans chaque pot passe au mois suivant.
+ */
+function Cloture(p: PropsPage & { plan: PlanBudget; mot: string | null }) {
+  const { plan, depot, aujourdhui } = p;
+  const annoncer = useAnnoncer();
+  const [epargne, setEpargne] = useState<number | null>(null);
+  const cloture = moisACloturer(plan, p.budget, aujourdhui);
+  if (!cloture) return null;
+  const bilan = bilanDuMois(plan);
+  const { nouveau, precedent } = cloture;
+
+  async function confirmer() {
+    const doc = confirmerMois(nouveau, { ...bilan.versements, epargne: epargne ?? bilan.versements.epargne }, p.membreId, contexteReel);
+    await depot.enregistrerBudget(doc);
+    vibrer();
+    annoncer(precedent ? `${majuscule(nommerMois(precedent.mois))} clôturé, ${nommerMois(nouveau)} ouvert.` : `Versements de ${nommerMois(nouveau)} notés.`, () => depot.supprimerBudget(doc.id));
+  }
+
+  return (
+    <section className="carte budget-cloture">
+      {precedent && (
+        <>
+          <p className="surtitre">{majuscule(nommerMois(precedent.mois, aujourdhui))} en bref</p>
+          <ul className="groupe">
+            {POTS_SUIVIS.map((pot) => {
+              const x = precedent.pots[pot];
+              return (
+                <li key={pot} className="ligne">
+                  <span className={`budget-pastille pot-${pot}`} aria-hidden />
+                  <span className="ligne-texte">
+                    {nomDuPot(plan, pot)}
+                    <span className="tache-details">
+                      {" "}
+                      · {pot === "epargne" ? `${montant(x.verse)} mis de côté` : `${montant(x.depense)} sortis${x.verse ? ` sur ${montant(x.verse)}` : ""}`}
+                    </span>
+                  </span>
+                  <span className={`budget-montant${x.solde < 0 ? " negatif" : ""}`}>{montant(x.solde)}</span>
+                </li>
+              );
+            })}
+          </ul>
+          {p.mot && <MotDeJarvis texte={p.mot} />}
+          <p className="discret">À droite, ce qui passe à {nommerMois(nouveau)}.</p>
+        </>
+      )}
+      <p className="surtitre">{majuscule(nommerMois(nouveau, aujourdhui))} : les versements</p>
+      <ul className="groupe">
+        {POTS_SUIVIS.map((pot) => (
+          <li key={pot} className="ligne">
+            <span className="ligne-texte">{nomDuPot(plan, pot)}</span>
+            {pot === "epargne" ? (
+              <ChampMontant valeur={epargne ?? bilan.versements.epargne} changer={setEpargne} libelle="Versé à l'épargne" />
+            ) : (
+              <span className="budget-montant">{montant(bilan.versements[pot])}</span>
+            )}
+          </li>
+        ))}
+      </ul>
+      <button type="button" className="bouton-principal" onClick={() => void confirmer()}>
+        {precedent ? `Clôturer ${nommerMois(precedent.mois)}` : "C'est versé"}
+      </button>
+      <p className="discret">Change l'épargne si vous avez versé un autre montant.</p>
+    </section>
+  );
+}
+
+const majuscule = (t: string) => t.replace(/^./, (c) => c.toUpperCase());
+
+// ----- Les dépenses -----
+
+/** Les dépenses mois par mois, jour par jour, avec un filtre par pot ; toucher une dépense la corrige. */
+function Depenses(p: PropsPage & { plan: PlanBudget; filtre: Pot | null; filtrer: (pot: Pot | null) => void; ouvrirApplePay: () => void }) {
+  const { plan, depot, aujourdhui } = p;
+  const annoncer = useAnnoncer();
+  const [mois, setMois] = useState(moisDe(aujourdhui));
+  const [releve, setReleve] = useState(false);
+  const [ouverte, setOuverte] = useState<Depense | null>(null);
+  const toutes = depenses(p.budget);
+  const premier = [plan.depart.mois, ...toutes.map((d) => moisDe(d.jour))].sort()[0];
+  const duMois = toutes.filter((d) => moisDe(d.jour) === mois && (!p.filtre || d.pot === p.filtre));
+  const jours = [...new Set(duMois.map((d) => d.jour))];
+  const total = duMois.reduce((t, d) => t + d.montant, 0);
+  const decaleMois = (n: number) => setMois(decaler(`${mois}-01`, { unite: "mois", tous: n }).slice(0, 7));
+
+  async function retirer(d: Depense) {
+    await depot.supprimerBudget(d.id);
+    annoncer(`${d.libelle} retirée.`, () => depot.enregistrerBudget(d));
+  }
+
+  const nomDuJour = (jour: string) => {
+    const ecart = ecartJours(jour, aujourdhui);
+    return ecart === 0 ? "Aujourd'hui" : ecart === 1 ? "Hier" : majuscule(leJour(jour));
+  };
+
+  return (
+    <>
+      <div className="budget-mois-nav">
+        <button type="button" className="bouton-icone" onClick={() => decaleMois(-1)} disabled={mois <= premier} aria-label="Mois précédent">
+          <Icone nom="retour" taille={18} />
+        </button>
+        <p>
+          <span className="surtitre">{majuscule(nommerMois(mois, aujourdhui))}</span>
+          <span className="budget-solde">{montant(total)}</span>
+        </p>
+        <button type="button" className="bouton-icone" onClick={() => decaleMois(1)} disabled={mois >= moisDe(aujourdhui)} aria-label="Mois suivant">
+          <Icone nom="suivant" taille={18} />
+        </button>
+      </div>
+      <div className="puces budget-filtre" role="group" aria-label="Pot">
+        <button type="button" className={`puce${!p.filtre ? " active" : ""}`} aria-pressed={!p.filtre} onClick={() => p.filtrer(null)}>
+          Tout
+        </button>
+        {(["courses", "plaisir", "factures", "commun", "epargne"] as Pot[]).map((pot) => (
+          <button type="button" key={pot} className={`puce${p.filtre === pot ? " active" : ""}`} aria-pressed={p.filtre === pot} onClick={() => p.filtrer(p.filtre === pot ? null : pot)}>
+            {nomDuPot(plan, pot)}
+          </button>
+        ))}
+      </div>
+
+      {jours.length ? (
+        jours.map((jour) => (
+          <section key={jour}>
+            <h2 className="rayon">{nomDuJour(jour)}</h2>
+            <ul className="carte groupe">
+              {duMois
+                .filter((d) => d.jour === jour)
+                .map((d) => (
+                  <li key={d.id}>
+                    <Glissable onSupprimer={() => void retirer(d)} libelle="Retirer">
+                      <button type="button" className="ligne" onClick={() => setOuverte(d)} aria-haspopup="dialog">
+                        <span className={`budget-pastille pot-${d.pot}`} aria-hidden />
+                        <span className="ligne-texte">
+                          {d.libelle}
+                          <span className="tache-details">
+                            {" "}
+                            · {nomDuPot(plan, d.pot)}
+                            {d.posteId ? " · facture" : ""}
+                            {d.source === "ticket" || d.articles?.length ? " · ticket" : ""}
+                            {d.source === "applepay" ? " · Apple Pay" : ""}
+                            {d.source === "releve" ? " · relevé" : ""}
+                          </span>
+                        </span>
+                        <span className="budget-montant">{montant(d.montant)}</span>
+                      </button>
+                    </Glissable>
+                  </li>
+                ))}
+            </ul>
+          </section>
+        ))
+      ) : (
+        <p className="discret budget-note">
+          {p.filtre ? `Rien dans ${nomDuPot(plan, p.filtre).toLowerCase()} en ${nommerMois(mois)}.` : `Rien de noté en ${nommerMois(mois)}. Écris « Migros 84.30 » dans la barre, ou photographie un ticket.`}
+        </p>
+      )}
+
       <button type="button" className="bouton-secondaire budget-importer" onClick={() => setReleve(true)}>
         Importer un relevé Revolut
       </button>
       <FeuilleReleve plan={plan} budget={p.budget} depot={depot} membreId={p.membreId} ouverte={releve} fermer={() => setReleve(false)} />
       {p.jarvis && !Object.keys(plan.cartes ?? {}).length && <InvitationApplePay ouvrir={p.ouvrirApplePay} />}
+      <FeuilleDepense plan={plan} depense={ouverte} depot={depot} fermer={() => setOuverte(null)} budget={p.budget} />
     </>
+  );
+}
+
+/** Corriger une dépense : son nom, son montant, son pot. */
+function FeuilleDepense(props: { plan: PlanBudget; depense: Depense | null; budget: PropsPage["budget"]; depot: PropsPage["depot"]; fermer: () => void }) {
+  const annoncer = useAnnoncer();
+  const actuelle = props.depense ? (depenses(props.budget).find((d) => d.id === props.depense!.id) ?? props.depense) : null;
+  const changer = (c: Partial<Depense>) => actuelle && void props.depot.enregistrerBudget({ ...actuelle, ...c });
+  return (
+    <Feuille ouverte={!!actuelle} onFermer={props.fermer} titre={actuelle?.libelle}>
+      {actuelle && (
+        <div className="formulaire">
+          <label>
+            Nom
+            <input defaultValue={actuelle.libelle} key={`${actuelle.id}-nom`} onBlur={(e) => e.target.value.trim() && changer({ libelle: e.target.value.trim() })} />
+          </label>
+          <label>
+            Montant en francs
+            <ChampMontant key={`${actuelle.id}-montant`} valeur={actuelle.montant} changer={(m) => changer({ montant: m })} libelle="Montant" />
+          </label>
+          <Puces
+            libelle="Pot"
+            valeur={actuelle.pot}
+            changer={(pot) => changer({ pot })}
+            choix={(["courses", "plaisir", "factures", "commun", "epargne"] as Pot[]).map((v) => ({ v, libelle: nomDuPot(props.plan, v) }))}
+          />
+          <p className="discret">
+            {majuscule(leJour(actuelle.jour))}
+            {actuelle.magasin && actuelle.magasin !== actuelle.libelle ? ` · ${actuelle.magasin}` : ""}
+            {actuelle.carte ? ` · carte ${actuelle.carte}` : ""}
+            {actuelle.articles?.length ? ` · ${actuelle.articles.length} articles sur le ticket` : ""}
+          </p>
+          <button
+            type="button"
+            className="lien danger"
+            onClick={() => {
+              props.fermer();
+              void props.depot.supprimerBudget(actuelle.id);
+              annoncer(`${actuelle.libelle} retirée.`, () => props.depot.enregistrerBudget(actuelle));
+            }}
+          >
+            Retirer cette dépense
+          </button>
+        </div>
+      )}
+    </Feuille>
   );
 }
 
@@ -468,7 +695,7 @@ function Courses(p: PropsPage & { plan: PlanBudget }) {
   }
   return (
     <>
-      <h2 className="rayon">Six derniers mois</h2>
+      <h2 className="rayon">Les courses, six derniers mois</h2>
       <CoursesParMois mois={parMoisCourses} budget={budget} aujourdhui={aujourdhui} />
       {magasins.length > 1 && (
         <>

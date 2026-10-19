@@ -2114,3 +2114,52 @@ html.avec-barre { --hauteur-barre: 84px; }
 @media (prefers-reduced-motion: reduce) {
   .visite-trou, .visite-bulle, .visite-voile, .geste-dessin > span { animation: none !important; transition: none; }
 }
+
+/* Le Budget qui conseille (0.0.37) : tuiles à toucher, clôture du mois, dépenses par jour, conseiller et tableaux. */
+button.budget-pot { width: 100%; text-align: left; font: inherit; color: var(--texte); cursor: pointer; }
+button.budget-pot:active { transform: scale(0.98); }
+.budget-pot .budget-solde { display: block; }
+.budget-cloture { margin-top: 16px; display: flex; flex-direction: column; gap: 6px; }
+.budget-cloture .surtitre { margin: 0; }
+.budget-cloture .groupe { margin: 0 -16px 4px; }
+.budget-cloture .budget-mot { margin: 4px 0; }
+.budget-cloture .bouton-principal { width: 100%; margin-top: 4px; }
+.budget-cloture .discret { margin: 0; font-size: var(--t-legende); }
+.budget-cloture .discret + .surtitre { margin-top: 12px; }
+.budget-montant.negatif { color: var(--urgent); }
+.budget-tout-voir { color: var(--accent); }
+.budget-tout-voir svg { flex: none; }
+.budget-mois-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 16px 0 8px; }
+.budget-mois-nav p { margin: 0; display: flex; flex-direction: column; align-items: center; }
+.budget-mois-nav .surtitre { margin: 0; }
+.budget-mois-nav .bouton-icone:disabled { opacity: 0.3; }
+.budget-filtre { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -16px 4px; padding: 0 16px; }
+.budget-filtre::-webkit-scrollbar { display: none; }
+.budget-filtre .puce { flex: none; }
+.budget-conseiller { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+.budget-conseiller .surtitre { margin: 0; display: flex; align-items: center; gap: 6px; }
+.budget-conseiller .surtitre svg { color: var(--accent); }
+.budget-conseiller .discret { margin: 0; font-size: var(--t-legende); }
+.budget-conseiller .puce:disabled { opacity: 0.5; }
+.budget-conseiller-attente { margin: 0; color: var(--discret); font-size: var(--t-detail); animation: budget-respire 1.6s ease-in-out infinite; }
+@keyframes budget-respire { 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .budget-conseiller-attente { animation: none; } }
+.budget-reponse { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--trait); padding-top: 12px; }
+.budget-reponse > p { margin: 0; }
+.budget-question { color: var(--discret); font-size: var(--t-detail); }
+.budget-conseils { margin: 0; padding: 0 0 0 1.2em; display: flex; flex-direction: column; gap: 10px; }
+.budget-conseils li { display: flex; flex-direction: column; gap: 2px; }
+.budget-conseils li::marker { color: var(--accent); font-weight: 600; }
+.budget-conseil-titre { font-weight: 600; }
+.budget-gain { font-weight: 400; color: var(--pot-epargne); }
+.budget-tableau { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.carte.budget-tableau { padding-left: 0; padding-right: 0; }
+.carte.budget-tableau > figcaption { padding: 0 16px; margin: 0; font-size: var(--t-legende); }
+.budget-tableau-defile { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.budget-tableau table { border-collapse: collapse; width: 100%; font-size: var(--t-detail); font-variant-numeric: tabular-nums; }
+.budget-tableau th, .budget-tableau td { padding: 7px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--trait); }
+.budget-tableau th:first-child { text-align: left; font-weight: 500; position: sticky; left: 0; background: var(--surface); }
+.carte.budget-tableau th:first-child { padding-left: 16px; }
+.budget-tableau thead th { color: var(--discret); font-weight: 500; font-size: var(--t-legende); }
+.budget-tableau tr:last-child th, .budget-tableau tr:last-child td { border-bottom: 0; }
+.budget-tableau-total th, .budget-tableau-total td { font-weight: 600; }

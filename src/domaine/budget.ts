@@ -319,13 +319,13 @@ export const moisDocs = (docs: readonly DocBudget[]) => docs.filter((d): d is Mo
 export const depenses = (docs: readonly DocBudget[]) => docs.filter((d): d is Depense => d.genre === "depense").sort((a, b) => b.jour.localeCompare(a.jour) || b.creeLe.localeCompare(a.creeLe));
 
 /** Le premier jour de paie du mois (le dernier jour du mois si la paie tombe un 31 en février). */
-function jourDuMois(mois: string, jour: number): Jour {
+export function jourDuMois(mois: string, jour: number): Jour {
   const [a, m] = mois.split("-").map(Number);
   const dernier = new Date(Date.UTC(a, m, 0)).getUTCDate();
   return `${mois}-${String(Math.min(Math.max(1, jour), dernier)).padStart(2, "0")}`;
 }
 
-const moisSuivant = (mois: string) => decaler(`${mois}-01`, { unite: "mois", tous: 1 }).slice(0, 7);
+export const moisSuivant = (mois: string) => decaler(`${mois}-01`, { unite: "mois", tous: 1 }).slice(0, 7);
 
 /** Le mois à confirmer : celui en cours, une fois le jour de paie passé, s'il n'est pas encore versé. */
 export function moisAConfirmer(plan: PlanBudget, docs: readonly DocBudget[], aujourdhui: Jour): string | null {
@@ -465,6 +465,44 @@ export function facturesDuJour(docs: readonly DocBudget[], aujourdhui: Jour, jou
 
 /** Les charges de l'année sans mois connu : Kora ne peut pas encore les rappeler. */
 export const sansDate = (plan: PlanBudget) => plan.postes.filter((p) => p.qui === null && p.frequence === "an" && !p.mois);
+
+const motsDe = (t: string) => sansAccents(t).replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((m) => m.length >= 4);
+
+/**
+ * La facture qu'un paiement règle, reconnue seule (Kora 0.0.37) : une facture à payer à la main,
+ * dont l'échéance tombe de 25 jours après à 30 jours avant le paiement, et dont le nom se retrouve
+ * dans le libellé (à 10 % près sur le montant), ou dont le montant est exactement le même quand le
+ * paiement sort du pot de cette facture (ou du pot factures). Null si rien ne correspond.
+ */
+export function factureReglee(
+  paiement: { montant: number; jour: Jour; libelle: string; magasin?: string | null; pot: Pot },
+  plan: PlanBudget,
+  docs: readonly DocBudget[],
+): Facture | null {
+  const mots = new Set(motsDe(`${paiement.libelle} ${paiement.magasin ?? ""}`));
+  const candidates = factures(plan, docs, paiement.jour, 30)
+    .filter((f) => !f.payee && !f.automatique)
+    .map((f) => {
+      const ecart = ecartJours(f.echeance, paiement.jour);
+      const nom = motsDe(f.poste.libelle).some((m) => mots.has(m));
+      const exact = Math.abs(f.montant - paiement.montant) < 0.01;
+      const proche = f.montant > 0 && Math.abs(f.montant - paiement.montant) / f.montant <= 0.1;
+      const memePot = paiement.pot === "factures" || paiement.pot === (f.poste.pot ?? "factures");
+      const retenue = ecart >= -25 && ecart <= 30 && ((nom && proche) || (exact && memePot));
+      return { f, retenue, score: (nom ? 2 : 0) + (exact ? 1 : 0), ecart: Math.abs(ecart) };
+    })
+    .filter((x) => x.retenue)
+    .sort((a, b) => b.score - a.score || a.ecart - b.ecart);
+  return candidates[0]?.f ?? null;
+}
+
+/** La dépense, liée à la facture qu'elle règle si Kora la reconnaît (sinon telle quelle). */
+export function reglerFacture(d: Depense, plan: PlanBudget, docs: readonly DocBudget[]): Depense {
+  if (d.posteId) return d;
+  const f = factureReglee(d, plan, docs);
+  if (!f) return d;
+  return { ...d, posteId: f.poste.id, echeance: f.echeance, pot: f.poste.pot ?? "factures", libelle: f.poste.libelle };
+}
 
 // ----- Les dépenses -----
 

@@ -66,8 +66,8 @@ export interface DemandeJarvis {
   demande: string;
   etat: string;
   historique: TourJarvis[];
-  /** « conseil » : le conseil du dimanche, avec le modèle plus réfléchi. */
-  mode?: "conseil";
+  /** « conseil » : le conseil du dimanche ; « budget » : le conseiller du Budget. Tous deux avec le modèle plus réfléchi. */
+  mode?: "conseil" | "budget";
   /** Une photo à lire (lettre, carte de rendez-vous), en JPEG base64. */
   image?: { type: "image/jpeg" | "image/png" | "image/webp"; donnees: string };
 }
