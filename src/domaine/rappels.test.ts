@@ -13,7 +13,7 @@ import {
   jourDeLaSemaine,
   jourEtHeure,
   minuteValide,
-  CRENEAUX_RAPPEL,
+  lireHeure,
   nettoyerJours,
   PREFERENCES_DE_DEPART,
   rappelDu,
@@ -138,19 +138,20 @@ describe("l'heure du rappel", () => {
     expect(formaterHeure(7)).toBe("7:00");
   });
 
-  it("se règle à la demi-heure, le serveur passant toutes les trente minutes", () => {
-    // 8:30 à Zurich (6:30 UTC en octobre) : pas au passage de 8:00, oui à celui de 8:30.
-    expect(rappelDu(new Date("2026-10-12T06:00:00Z"), 8, null, undefined, undefined, 30)).toBeNull();
-    expect(rappelDu(new Date("2026-10-12T06:30:00Z"), 8, null, undefined, undefined, 30)).toBe("2026-10-12");
-    expect(rappelDu(new Date("2026-10-12T07:00:00Z"), 8, null, undefined, undefined, 30)).toBe("2026-10-12");
-    // 18:30 : rattrapé une heure au plus.
-    expect(rappelDu(new Date("2026-10-12T17:30:00Z"), 18, null, undefined, undefined, 30)).toBeNull();
+  it("se règle à la minute près, le serveur passant chaque minute", () => {
+    // 7:45 à Zurich (5:45 UTC en octobre) : pas avant, oui à 7:45, rattrapé dans l'heure.
+    expect(rappelDu(new Date("2026-10-12T05:44:00Z"), 7, null, undefined, undefined, 45)).toBeNull();
+    expect(rappelDu(new Date("2026-10-12T05:45:00Z"), 7, null, undefined, undefined, 45)).toBe("2026-10-12");
+    expect(rappelDu(new Date("2026-10-12T06:30:00Z"), 7, null, undefined, undefined, 45)).toBe("2026-10-12");
+    expect(rappelDu(new Date("2026-10-12T17:20:00Z"), 18, null, undefined, undefined, 15)).toBeNull();
+    expect(formaterHeure(7, 5)).toBe("7:05");
     expect(formaterHeure(8, 30)).toBe("8:30");
-    expect(minuteValide(30)).toBe(true);
-    expect(minuteValide(15)).toBe(false);
-    expect(CRENEAUX_RAPPEL[0]).toEqual({ heure: 5, minute: 0 });
-    expect(CRENEAUX_RAPPEL[1]).toEqual({ heure: 5, minute: 30 });
-    expect(CRENEAUX_RAPPEL.at(-1)).toEqual({ heure: 22, minute: 30 });
+    expect(minuteValide(45)).toBe(true);
+    expect(minuteValide(60)).toBe(false);
+    expect(lireHeure("07:45")).toEqual({ heure: 7, minute: 45 });
+    expect(lireHeure("03:10")).toEqual({ heure: 5, minute: 0 });
+    expect(lireHeure("23:30")).toEqual({ heure: 22, minute: 59 });
+    expect(lireHeure("")).toBeNull();
   });
 });
 

@@ -1,7 +1,7 @@
 // KoraHome : la fonction qui envoie les rappels du matin (Supabase Edge Function, Deno).
 //
-// - Chaque demi-heure, le serveur l'appelle (pg_cron, voir supabase/schema.sql) avec sa clé
-//   « x-cle-cron » : chaque téléphone abonné reçoit son rappel à son heure (8:00, 8:30…), les jours choisis.
+// - Chaque minute, le serveur l'appelle (pg_cron, voir supabase/schema.sql) avec sa clé
+//   « x-cle-cron » : chaque téléphone abonné reçoit son rappel à son heure (8:00, 7:45…), les jours choisis.
 // - Un téléphone l'appelle avec sa session pour lire la clé publique d'envoi (« cle »)
 //   ou recevoir tout de suite un rappel d'essai (« essai »).
 // - Un mot du couple est annoncé à l'autre téléphone : tout de suite quand le téléphone qui
@@ -191,8 +191,8 @@ Deno.serve(async (req) => {
     if (cleCron) {
       if (cleCron !== cles.cleCron) return repondre({ erreur: "Clé inconnue" }, 401);
       const bilan = await passageDuMatin(cles);
-      // Les mots programmés tombent à l'heure pleine : seul le passage de l'heure les annonce.
-      const mots = new Date().getUTCMinutes() < 30 ? await motsProgrammes(cles).catch((e) => (console.error("Mots programmés", (e as Error).message), 0)) : 0;
+      // Les mots programmés tombent à l'heure pleine : seul le passage de l'heure pleine les annonce.
+      const mots = new Date().getUTCMinutes() === 0 ? await motsProgrammes(cles).catch((e) => (console.error("Mots programmés", (e as Error).message), 0)) : 0;
       return repondre({ ...bilan, mots });
     }
 
