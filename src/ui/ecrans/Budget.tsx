@@ -51,6 +51,7 @@ import { Icone } from "../Icone";
 import type { PropsPage } from "../modules";
 import { Feuille, Onglets, Page, PointEtat, useGestionnaireBarre } from "../pieces";
 import { completerPaiement, paiementsAClasser } from "../../domaine/paiements";
+import { FeuilleReleve } from "./BudgetReleve";
 import { FeuilleApplePay, InvitationApplePay, PaiementsAClasser } from "./BudgetPaiements";
 import { AnneauDuCommun, CourbeEpargne, CoursesParMois, JaugeRythme, Magasins, MoisLourds, MotDeJarvis, phraseRythme, PrixQuiMontent, TrajetSalaire } from "./BudgetVisuels";
 
@@ -180,6 +181,7 @@ function CeMois(p: PropsPage & { plan: PlanBudget; voirCharges: () => void; ouvr
   const pots = etatDesPots(plan, p.budget, aujourdhui);
   const aConfirmer = moisAConfirmer(plan, p.budget, aujourdhui);
   const [epargne, setEpargne] = useState<number | null>(null);
+  const [releve, setReleve] = useState(false);
   const aPayer = facturesAPayer(plan, p.budget, aujourdhui, 45);
   const datesManquantes = sansDate(plan);
   const duMois = depenses(p.budget).filter((d) => moisDe(d.jour) === moisDe(aujourdhui));
@@ -310,6 +312,7 @@ function CeMois(p: PropsPage & { plan: PlanBudget; voirCharges: () => void; ouvr
                       · {POTS[d.pot].nom} · {Number(d.jour.slice(8, 10))} {nomDuMois(Number(d.jour.slice(5, 7)))}
                       {d.source === "ticket" || d.articles?.length ? " · ticket" : ""}
                       {d.source === "applepay" ? " · Apple Pay" : ""}
+                      {d.source === "releve" ? " · relevé" : ""}
                     </span>
                   </span>
                   <span className="budget-montant">{montant(d.montant)}</span>
@@ -321,6 +324,10 @@ function CeMois(p: PropsPage & { plan: PlanBudget; voirCharges: () => void; ouvr
       ) : (
         <p className="discret budget-note">Rien de noté ce mois. Photographie un ticket depuis la barre, ou écris « Migros 84.30 ».</p>
       )}
+      <button type="button" className="bouton-secondaire budget-importer" onClick={() => setReleve(true)}>
+        Importer un relevé Revolut
+      </button>
+      <FeuilleReleve plan={plan} budget={p.budget} depot={depot} membreId={p.membreId} ouverte={releve} fermer={() => setReleve(false)} />
       {p.jarvis && !Object.keys(plan.cartes ?? {}).length && <InvitationApplePay ouvrir={p.ouvrirApplePay} />}
     </>
   );

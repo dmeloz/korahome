@@ -2038,3 +2038,9 @@ html.avec-barre { --hauteur-barre: 84px; }
 /* Nos mots : réglages du bandeau */
 .bandeau-reglage { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .bandeau-reglage-aide { margin: 14px 4px 8px; font-size: var(--t-detail); }
+
+/* ----- Budget : le relevé Revolut (0.0.33) ----- */
+.budget-importer { display: block; width: 100%; margin: 12px 0 0; }
+.budget-fichier { position: relative; display: block; text-align: center; overflow: hidden; }
+.budget-fichier input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.budget-releve .ligne { width: 100%; text-align: left; background: none; border: 0; color: inherit; font: inherit; }
