@@ -4,7 +4,7 @@
 // dessine les bulles est dans ui/pieces/Visite.tsx.
 
 /** Ce que pointe une étape : l'élément de l'écran marqué `data-visite="…"`. */
-export type CibleVisite = "bandeau" | "aujourdhui" | "pages" | "widget" | "barre" | "chercher" | "reglages";
+export type CibleVisite = "bandeau" | "signes" | "aujourdhui" | "widget" | "barre";
 
 export type EtapeVisite = {
   id: string;
@@ -35,22 +35,22 @@ export function parcoursVisite(autre: string | null): EtapeVisite[] {
       texte: `Vos petits mots, vos humeurs et les comptes à rebours défilent ici. Touche-la pour écrire à ${lautre}.`,
     },
     {
-      id: "aujourdhui",
-      cible: "aujourdhui",
-      titre: "Aujourd'hui",
-      texte: "Ce qui compte aujourd'hui, du plus pressé au plus calme. Le rond coche une tâche, la ligne ouvre son module.",
+      id: "signes",
+      cible: "signes",
+      titre: "Les petits signes",
+      texte: "Au bout de la date : vos humeurs, un compte à rebours, le prochain rendez-vous… Touche-les pour en savoir plus. Appui long pour choisir les tiens.",
     },
     {
-      id: "pages",
-      cible: "pages",
-      titre: "Les bulles",
-      texte: "Une bulle par usage : Ménage, Courses, Cuisine, Budget, Agenda. Touche-en une pour ouvrir sa page, avec tout ce qui va avec.",
+      id: "aujourdhui",
+      cible: "aujourdhui",
+      titre: "Le moment présent",
+      texte: "Ce qui compte maintenant, la chose du moment en grand. Glisse-la vers la droite ou touche son rond : c'est fait. Touche l'heure pour la changer.",
     },
     {
       id: "widget",
       cible: "widget",
       titre: "Les widgets",
-      texte: "Chaque widget ouvre son module. Un point rouge veut dire qu'il y a quelque chose à faire. « Modifier l'accueil », tout en bas, pour en ajouter ou les déplacer.",
+      texte: "Chaque widget ouvre son espace. Un point rouge veut dire qu'il y a quelque chose à faire. Appui long pour les ranger, les agrandir ou les retirer.",
     },
     {
       id: "barre",
@@ -70,16 +70,9 @@ export function parcoursVisite(autre: string | null): EtapeVisite[] {
       ],
     },
     {
-      id: "chercher",
-      cible: "chercher",
-      titre: "Chercher et rappels",
-      texte: "La loupe cherche partout (ou tire l'accueil vers le bas). La cloche garde les rappels que Kora t'a envoyés.",
-    },
-    {
-      id: "reglages",
-      cible: "reglages",
-      titre: "Tes réglages",
-      texte: `Partage avec ${lautre}, notifications, calendrier de l'iPhone, thème. La visite se relance ici. Bonne découverte.`,
+      id: "espaces",
+      titre: "Tous les espaces",
+      texte: `Tire l'accueil vers le bas : chaque espace, la recherche, les rappels et tes réglages, où la visite se relance. Glisse un espace sur l'accueil pour en faire un widget.`,
     },
   ];
 }

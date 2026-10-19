@@ -28,6 +28,7 @@ Fiche projet et plan (sur le Mac de la propriétaire) : `~/Atelier-Claude/Cervea
 - Jardin : zones, plantes et calendrier dans `src/domaine/jardin.ts` et `plantes.ts`, météo Open-Meteo (`meteo.ts`, sans clé). Voir `docs/jardin.md`.
 - `serveur/fonctionsServeur.test.ts` : vérifie que les fonctions serveur (`supabase/functions/*/domaine.js`) sont à jour avec leurs règles.
 - `src/ui/` : écrans React. Ils lisent par `useDonnees` et écrivent par le `Depot`, jamais directement dans IndexedDB.
+- Accueil façon iOS 27 (depuis 0.0.42) : grande date seule et petits signes au choix (`src/domaine/signes.ts`), « Ce soir » sans cadre avec l'heure des tâches proposée par Kora (`heureProposee` dans `taches.ts`), widgets en verre, « Tous les espaces » en tirant l'accueil vers le bas (`src/ui/TousLesEspaces.tsx`). Réglages par téléphone dans `src/ui/accueilLocal.ts`. Plan de la refonte : `/mnt/project-files/refonte-ios27/plan-refonte.md` (dossier partagé du projet).
 - `src/ui/pieces/` : les pièces communes depuis Kora 0.0.23 (gabarit `Page`, `Onglets`, carte « Aujourd'hui », barre Jarvis du bas qui remplace tous les « + »). Une page reprend la phrase de la barre avec `useGestionnaireBarre`. Visite guidée de l'accueil (`Visite`, parcours dans `src/domaine/visite.ts`), une fois par téléphone et relançable depuis Réglages. Équivalents SwiftUI dans `docs/pieces-natives.md`.
 
 ## Conventions

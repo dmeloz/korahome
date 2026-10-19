@@ -10,6 +10,7 @@ import { decrireDerniere } from "../../domaine/sauvegarde";
 import { aujourdhuiLocal } from "../contexte";
 import { lireDerniereSauvegarde } from "../sauvegarde";
 import { choisirTheme, lireTheme, THEMES, type Theme } from "../theme";
+import { enregistrerDate, enregistrerVerre, lireDate, lireVerre, TAILLE_DATE } from "../accueilLocal";
 
 const ETATS_PARTAGE = { indisponible: "Bientôt", inactif: "Désactivé", actif: "Activé" } as const;
 
@@ -164,6 +165,7 @@ export function Telephone(props: { foyer: Foyer; membreId: string | null; choisi
           </button>
         ))}
       </div>
+      <ReglagesAccueil theme={theme} />
       <h2 className="rayon">Qui l'utilise</h2>
       {moi && !deverrouille ? (
         <>
@@ -229,5 +231,71 @@ export function Telephone(props: { foyer: Foyer; membreId: string | null; choisi
         </Feuille>
       )}
     </main>
+  );
+}
+
+/** Le verre des widgets et la taille de la date, propres à ce téléphone. */
+function ReglagesAccueil({ theme }: { theme: Theme }) {
+  const sombre = theme === "sombre" || (theme === "auto" && window.matchMedia?.("(prefers-color-scheme: dark)").matches);
+  const [verre, setVerre] = useState<number | null>(lireVerre);
+  const [date, setDate] = useState(lireDate);
+  const valeurVerre = verre ?? (sombre ? 28 : 92);
+  return (
+    <>
+      <h2 className="rayon">Accueil</h2>
+      <div className="carte reglages-curseurs">
+        <label className="curseur-reglage">
+          <span className="curseur-titre">
+            Verre des widgets
+            <span className="discret">{verre === null ? (sombre ? "Transparent, comme le thème sombre" : "Opaque, comme le thème clair") : `${valeurVerre} %`}</span>
+          </span>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={1}
+            value={valeurVerre}
+            aria-label="Verre des widgets, de transparent à opaque"
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              setVerre(v);
+              enregistrerVerre(v);
+            }}
+          />
+        </label>
+        {verre !== null && (
+          <button
+            className="lien"
+            onClick={() => {
+              setVerre(null);
+              enregistrerVerre(null);
+            }}
+          >
+            Suivre le thème
+          </button>
+        )}
+        <label className="curseur-reglage">
+          <span className="curseur-titre">
+            Taille de la date
+            <span className="discret">{date.taille} points</span>
+          </span>
+          <input
+            type="range"
+            min={TAILLE_DATE.min}
+            max={TAILLE_DATE.max}
+            step={1}
+            value={date.taille}
+            aria-label="Taille de la date de l'accueil"
+            onChange={(e) => {
+              const r = { ...date, taille: Number(e.target.value) };
+              setDate(r);
+              enregistrerDate(r);
+              window.dispatchEvent(new Event("korahome:date"));
+            }}
+          />
+        </label>
+        <p className="discret curseur-aide">La date se glisse aussi du doigt sur l'accueil, à gauche ou au centre.</p>
+      </div>
+    </>
   );
 }

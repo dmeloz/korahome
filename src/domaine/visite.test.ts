@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { etapesVisibles, parcoursVisite, placementBulle, progression, type CibleVisite } from "./visite";
 
 describe("la visite guidée", () => {
-  it("commence par la bienvenue et finit sur les réglages, où elle se relance", () => {
+  it("commence par la bienvenue et finit sur tous les espaces, avec les réglages où elle se relance", () => {
     const etapes = parcoursVisite("Sarah");
     expect(etapes[0].id).toBe("bienvenue");
-    expect(etapes.at(-1)?.cible).toBe("reglages");
+    expect(etapes.at(-1)?.id).toBe("espaces");
     expect(etapes.at(-1)?.texte).toContain("se relance");
   });
 
@@ -26,9 +26,9 @@ describe("la visite guidée", () => {
   });
 
   it("saute une étape dont la cible n'est pas à l'écran", () => {
-    const presentes = new Set<CibleVisite>(["bandeau", "aujourdhui", "barre", "chercher", "reglages"]);
+    const presentes = new Set<CibleVisite>(["bandeau", "aujourdhui", "barre"]);
     const ids = etapesVisibles(parcoursVisite(null), presentes).map((e) => e.id);
-    expect(ids).not.toContain("pages");
+    expect(ids).not.toContain("signes");
     expect(ids).not.toContain("widget");
     expect(ids).toContain("bienvenue");
     expect(ids).toContain("gestes");

@@ -23,21 +23,10 @@ import { useAnnoncer } from "../annulation";
 import { contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
 import { vibrer } from "../haptique";
-import { Icone, type NomIcone } from "../Icone";
+import { Icone, PICTO_HUMEUR } from "../Icone";
 import { Page } from "../pieces";
 import { changerReglagesBandeau, useReglagesBandeau } from "../reglagesBandeau";
 
-/** Les humeurs en pictogrammes au trait, dans le style de l'app (pas d'emoji). */
-const PICTO_HUMEUR: Record<string, NomIcone> = {
-  "😊": "sourire",
-  "🥰": "coeur",
-  "😌": "vague",
-  "🎉": "soleil",
-  "😴": "lune",
-  "😤": "eclair",
-  "🤯": "pluie",
-  "🤒": "thermometre",
-};
 import type { DonneesModule } from "../modules";
 
 type Quand = "maintenant" | "soir" | "matin";
