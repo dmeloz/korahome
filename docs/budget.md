@@ -28,6 +28,21 @@ se partage entre le **plaisir** (30 %) et l'**épargne** (70 %).
 
 Aucun identifiant bancaire : un compte ou une carte n'est qu'un nom.
 
+## Les visuels (0.0.28)
+
+Sobres, un chiffre qui compte par visuel ; règles dans `budget.ts`, dessin dans `src/ui/ecrans/BudgetVisuels.tsx`.
+
+- **Ce mois** : le mot de Jarvis sur le mois écoulé (sept premiers jours, `motDuMois`, calculé sans IA) ;
+  la jauge de la carte courses avec le repère du jour et la fin de mois au rythme actuel (`rythmeCourses`) ;
+  l'année des factures, une barre par mois, les mois lourds et le mois où le pot manquerait (`previsionFactures`).
+- **Charges** : ce téléphone montre d'abord ses charges et le commun (« Voir aussi les charges de… » pour
+  l'autre) ; le trajet du salaire (charges, commun, reste) ; l'anneau du compte commun (`repartitionDuCommun`),
+  qu'on touche pour le détail d'un pot ; les abonnements à l'année (`abonnementsALAnnee`).
+- **Courses** : six mois en barres face au budget (`coursesParMois`), la part de chaque magasin
+  (`coursesParMagasin`), les prix qui montent (`prixQuiMontent`) d'après les lignes des tickets
+  (`articles` de la dépense, lues par Jarvis avec leur prix).
+- **Épargne** : la courbe du mis de côté, puis la suite au rythme prévu jusqu'au projet (`courbeEpargne`).
+
 ## Où est quoi
 
 - Règles et tests : `src/domaine/budget.ts`. Page : `src/ui/ecrans/Budget.tsx`, entrée `budget` de
