@@ -1,7 +1,9 @@
-import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { preparerEvenement } from "../../domaine/agenda";
-import { comprendrePhrase, decrireIntention, invitation, type Intention, type LieuBarre } from "../../domaine/barre";
+import { basculerCoeur, nouveauCoeur, nouveauMot } from "../../domaine/bandeau";
+import { comprendrePhrase, decrireIntention, invitation, type Intention, type LieuBarre, type OuOuvrir } from "../../domaine/barre";
+import { arriveesDuCouple, attentesDuCouple, autreMembre, feeDeLAutre, phraseAttente, vuesAGarder, type Attente } from "../../domaine/fee";
 import { ErreurValidation } from "../../domaine/foyer";
 import { nouvelleTache, decrireEcheance, decrireRecurrence } from "../../domaine/taches";
 import type { Liste } from "../../domaine/types";
@@ -11,16 +13,19 @@ import { ajouterArticles } from "../ajouts";
 import { useAnnoncer } from "../annulation";
 import { contexteReel } from "../contexte";
 import { vibrer } from "../haptique";
+import { direFee, enregistrerVues, lireVues, nomFee } from "../fee";
 import { Icone } from "../Icone";
 import { ecouter, voixDisponible } from "../jarvis";
 import type { DonneesModule } from "../modules";
 import { TicketDeCaisse } from "../TicketDeCaisse";
+import { Fee } from "./Fee";
 
-// La barre Jarvis : en bas de chaque page, la seule façon d'ajouter quoi que ce soit.
-// On écrit (ou on dit) une phrase ; Kora la range seule quand c'est simple, sinon la
-// confie à Jarvis. Une page peut prendre la main sur la phrase (Frigo et placards
-// complète la quantité, le lieu et la date pendant qu'on écrit) et lire ce qui est tapé
-// (Courses propose les articles déjà achetés). Équivalent natif : un safeAreaInset du bas.
+// La fée et sa saisie : en bas de chaque page, la seule façon d'ajouter quoi que ce soit.
+// On touche la fée et on parle, ou on garde le doigt et on écrit ; Kora range seule la
+// phrase quand c'est simple, sinon la confie à l'assistant. Une page peut prendre la main sur
+// la phrase (Frigo et placards complète la quantité, le lieu et la date pendant qu'on écrit)
+// et lire ce qui est tapé (Courses propose les articles déjà achetés).
+// Équivalent natif : un safeAreaInset du bas qui apparaît sur demande.
 
 interface Saisie {
   texte: string;
@@ -114,31 +119,124 @@ export function BarreJarvis(props: {
   jarvis: { serveur: ServeurJarvis; foyerId: string } | null;
   /** Ouvre Jarvis avec la demande ; sans demande, ouvre sa conversation. */
   demanderAJarvis: (demande: string) => void;
-  ouvrirJarvis: () => void;
-  /** Le coin « Dev », à gauche de la barre, quand il est affiché. */
-  avant?: ReactNode;
+  /** « Ouvre le budget » : la page, sans passer par l'assistant. */
+  ouvrirPage: (ou: OuOuvrir) => void;
 }) {
   const { texte, changer } = useSaisieBarre();
   const invitationPage = useInvitationDePage();
   const [ecoute, setEcoute] = useState<(() => void) | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [ouverte, setOuverte] = useState(false);
+  /** On répond à un mot de l'autre : la phrase part en mot, pas en courses. */
+  const [reponse, setReponse] = useState<string | null>(null);
+  const [ancre, setAncre] = useState<number | null>(null);
   const champ = useRef<HTMLInputElement>(null);
+  const rang = useRef<HTMLDivElement>(null);
   const annoncer = useAnnoncer();
   const voix = voixDisponible();
   const { donnees, depot } = props;
   const clavier = useClavier();
+  const etat = useRef({ texte, ecoute: false });
+  etat.current = { texte, ecoute: !!ecoute };
 
-  // Les messages (Annuler, nouvelle version) se placent au-dessus de la barre.
+  // Les messages (Annuler, nouvelle version) se placent au-dessus du bas de l'écran.
   useEffect(() => {
-    document.documentElement.classList.add("avec-barre");
-    return () => document.documentElement.classList.remove("avec-barre");
+    document.documentElement.classList.add("avec-barre", "avec-fee");
+    return () => document.documentElement.classList.remove("avec-barre", "avec-fee");
   }, []);
+  useEffect(() => {
+    document.documentElement.classList.toggle("saisie-ouverte", ouverte);
+    return () => document.documentElement.classList.remove("saisie-ouverte");
+  }, [ouverte]);
 
-  // Une autre page : la phrase en cours s'efface, le message aussi.
+  // Une autre page : la phrase en cours s'efface, le message aussi, et la saisie se referme.
   useEffect(() => {
     changer("");
     setMessage(null);
+    setOuverte(false);
+    setReponse(null);
   }, [props.cle]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // La fée se pose juste au-dessus de la saisie ouverte, clavier ou non.
+  useLayoutEffect(() => {
+    if (!ouverte) {
+      setAncre(null);
+      return;
+    }
+    const mesurer = () => setAncre(rang.current ? rang.current.getBoundingClientRect().top : null);
+    mesurer();
+    const id = setTimeout(mesurer, 320);
+    return () => clearTimeout(id);
+  }, [ouverte, clavier, message, texte === ""]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fermer = () => {
+    setOuverte(false);
+    setReponse(null);
+    champ.current?.blur();
+  };
+  /** Ouvre la saisie et le clavier : à appeler dans le geste, sinon l'iPhone garde le clavier fermé. */
+  const ecrire = () => {
+    setOuverte(true);
+    champ.current?.focus();
+  };
+
+  // ----- Ce que l'autre a envoyé : une icône attend au-dessus de la fée -----
+  const moi = donnees.membreId;
+  const maintenant = new Date().toISOString();
+  const [vues, setVues] = useState(lireVues);
+  useEffect(() => {
+    // La toute première fois, ce qui est déjà là compte comme vu : pas d'avalanche à la mise à jour.
+    if (vues !== null) return;
+    const toutes = arriveesDuCouple(donnees.couple, moi, new Date().toISOString()).map((a) => a.cle);
+    enregistrerVues(toutes);
+    setVues(new Set(toutes));
+  }, [vues]); // eslint-disable-line react-hooks/exhaustive-deps
+  const attentes = vues ? attentesDuCouple(donnees.couple, moi, maintenant, vues) : [];
+  const prenomMoi = donnees.foyer.membres.find((m) => m.id === moi)?.prenom ?? null;
+  const autre = autreMembre(donnees.foyer, moi);
+  const prenomAutre = autre?.prenom ?? "L'autre";
+  const teinteAutre = feeDeLAutre(prenomMoi, autre?.prenom).teinte;
+
+  function ouvrirAttente(a: Attente) {
+    const suivantes = new Set(vuesAGarder(vues ?? new Set(), donnees.couple, moi, maintenant));
+    suivantes.add(a.cle);
+    enregistrerVues(suivantes);
+    setVues(suivantes);
+    if (a.sorte === "message") {
+      const aime = !!moi && a.mot.coeurs.includes(moi);
+      direFee({
+        cle: a.cle,
+        de: { prenom: prenomAutre, teinte: teinteAutre },
+        texte: phraseAttente(a, prenomAutre),
+        actions: [
+          {
+            texte: "Répondre",
+            faire: () => {
+              setReponse(prenomAutre);
+              ecrire();
+            },
+          },
+          ...(moi && !aime ? [{ texte: "♥", faire: () => void depot.enregistrerCouple(basculerCoeur(a.mot, moi)).then(vibrer) }] : []),
+          { texte: "Vu" },
+        ],
+      });
+      return;
+    }
+    direFee({
+      cle: a.cle,
+      texte: phraseAttente(a, prenomAutre),
+      actions: [
+        {
+          texte: "Renvoyer un cœur",
+          faire: () => {
+            vibrer();
+            void depot.enregistrerCouple(nouveauCoeur(moi, contexteReel));
+          },
+        },
+        { texte: "Plus tard" },
+      ],
+    });
+  }
   useEffect(() => {
     if (!message) return;
     const id = setTimeout(() => setMessage(null), 5000);
@@ -183,11 +281,16 @@ export function BarreJarvis(props: {
       return;
     }
     if (intention.type === "stock") {
-      // Sans la page du frigo pour la compléter, la phrase part chez Jarvis.
+      // Sans la page du frigo pour la compléter, la phrase part chez l'assistant.
       return props.demanderAJarvis(intention.texte);
     }
+    if (intention.type === "ouvrir") {
+      vibrer();
+      props.ouvrirPage(intention.ou);
+      return;
+    }
     if (!props.jarvis) {
-      setMessage("Jarvis répond quand le partage est activé. Les courses, tâches et rendez-vous s'ajoutent sans lui.");
+      setMessage(`${nomFee()} répond quand le partage est activé. Les courses, tâches et rendez-vous s'ajoutent sans elle.`);
       return;
     }
     props.demanderAJarvis(intention.demande);
@@ -199,6 +302,15 @@ export function BarreJarvis(props: {
     if (!phrase) return;
     setMessage(null);
     try {
+      if (reponse) {
+        const mot = nouveauMot(phrase, moi, contexteReel);
+        await depot.enregistrerCouple(mot);
+        vibrer();
+        annoncer(`Mot envoyé à ${reponse}.`, () => depot.supprimerCouple(mot.id));
+        changer("");
+        fermer();
+        return;
+      }
       const page = gestionnaires.get(props.cle);
       if (page && (await page(phrase))) {
         changer("");
@@ -206,7 +318,7 @@ export function BarreJarvis(props: {
       }
       await executer(comprendrePhrase(phrase, props.lieu, donnees.aujourdhui, donnees.foyer.membres));
       changer("");
-      champ.current?.blur();
+      fermer();
     } catch (err) {
       if (err instanceof ErreurValidation) setMessage(err.message);
       else throw err;
@@ -224,30 +336,70 @@ export function BarreJarvis(props: {
       setEcoute(null);
       if (erreur) setMessage(erreur);
       if (dit) void envoyer(undefined, dit);
+      else if (!erreur && !etat.current.texte.trim()) setOuverte(false);
     });
     if (!fini) setEcoute(() => arreter);
   }
 
+  /** Toucher la fée : elle écoute (ou, sans micro, on lui écrit). Pendant l'écoute : elle s'arrête. */
+  const toucherFee = () => {
+    if (ecoute) {
+      ecoute();
+      return;
+    }
+    vibrer();
+    setMessage(null);
+    if (voix) {
+      setOuverte(true);
+      parler();
+    } else ecrire();
+  };
+
+  const lu = invitationPage ?? invitation(props.lieu);
+  const proposition = ecoute ? `${nomFee()} t'écoute…` : reponse ? `Répondre à ${reponse}…` : lu.replace(/Jarvis/g, nomFee());
+
   return (
-    <div className="barre-zone" style={clavier ? { bottom: clavier } : undefined}>
+    <>
+    <Fee
+      ancre={ancre}
+      ecoute={!!ecoute}
+      toucher={toucherFee}
+      appuiLong={() => {
+        setMessage(null);
+        setOuverte(true);
+      }}
+      lacherApresAppui={() => champ.current?.focus()}
+      attentes={ouverte ? [] : attentes}
+      ouvrirAttente={ouvrirAttente}
+      teinteAutre={teinteAutre}
+    />
+    <div className={`barre-zone${ouverte ? " ouverte" : ""}`} style={clavier ? { bottom: clavier } : undefined} aria-hidden={!ouverte}>
       <div ref={(el) => void (el && el.firstChild !== emplacement() && el.appendChild(emplacement()))} />
       {message && <p className="barre-message" role="status">{message}</p>}
-      <div className="barre-rang">
-        {props.avant}
+      <div className="barre-rang" ref={rang}>
         <form className="barre-jarvis" onSubmit={(e) => void envoyer(e)} role="search">
-          <button type="button" className="barre-etoile" onClick={props.ouvrirJarvis} aria-label="Ouvrir Jarvis">
-            <Icone nom="jarvis" taille={20} />
-          </button>
           <input
             ref={champ}
             value={texte}
             onChange={(e) => changer(e.target.value)}
-            placeholder={ecoute ? "Je t'écoute…" : (invitationPage ?? invitation(props.lieu))}
+            onFocus={() => setOuverte(true)}
+            onBlur={() =>
+              // Un toucher sur Envoyer ou le micro arrive juste après : on attend un instant.
+              setTimeout(() => {
+                if (!etat.current.texte.trim() && !etat.current.ecoute && document.activeElement !== champ.current) {
+                  setOuverte(false);
+                  setReponse(null);
+                }
+              }, 250)
+            }
+            onKeyDown={(e) => e.key === "Escape" && fermer()}
+            placeholder={proposition}
             enterKeyHint="send"
             autoComplete="off"
-            aria-label={invitationPage ?? invitation(props.lieu)}
+            tabIndex={ouverte ? undefined : -1}
+            aria-label={proposition}
           />
-          {(props.lieu === "accueil" || props.lieu === "stock" || props.lieu === "budget") && !texte && (
+          {(props.lieu === "accueil" || props.lieu === "stock" || props.lieu === "budget") && !texte && !reponse && !ecoute && (
             <TicketDeCaisse jarvis={props.jarvis} donnees={donnees} depot={depot} catalogue={donnees.catalogue} classe="barre-bouton" />
           )}
           {texte.trim() && !ecoute ? (
@@ -262,6 +414,7 @@ export function BarreJarvis(props: {
         </form>
       </div>
     </div>
+    </>
   );
 }
 

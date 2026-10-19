@@ -57,6 +57,7 @@ import { moisACloturer, tableauDesMois } from "../../domaine/budgetConseil";
 import { CarteConseiller, FinDuMois, TableauDesMois, useConseiller } from "./BudgetConseiller";
 import { FeuilleApplePay, InvitationApplePay, PaiementsAClasser } from "./BudgetPaiements";
 import { AnneauDuCommun, CourbeEpargne, CoursesParMois, JaugeRythme, Magasins, MoisLourds, MotDeJarvis, phraseRythme, PrixQuiMontent, TrajetSalaire } from "./BudgetVisuels";
+import { nomFee } from "../fee";
 
 type Onglet = "mois" | "depenses" | "charges" | "conseiller";
 
@@ -140,7 +141,7 @@ export function Budget(p: PropsPage) {
       ? "Pose ta question au conseiller dans la barre : « Où peut-on économiser ? », « Nos courses mois par mois ». Il répond avec des chiffres, un tableau et des conseils."
       : onglet === "charges"
       ? "Écris une charge dans la barre : « Netflix 20 », « Assurance maison 118 par an ». Touche une ligne pour la régler."
-      : "Écris une dépense dans la barre : « Migros 84.30 », « 32 cinéma ». Le ticket de caisse photographié par Jarvis compte aussi dans les courses.";
+      : `Écris une dépense dans la barre : « Migros 84.30 », « 32 cinéma ». Le ticket de caisse photographié par ${nomFee()} compte aussi dans les courses.`;
 
   return (
     <Page

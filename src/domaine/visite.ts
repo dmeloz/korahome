@@ -4,7 +4,7 @@
 // dessine les bulles est dans ui/pieces/Visite.tsx.
 
 /** Ce que pointe une étape : l'élément de l'écran marqué `data-visite="…"`. */
-export type CibleVisite = "bandeau" | "signes" | "aujourdhui" | "widget" | "barre";
+export type CibleVisite = "signes" | "aujourdhui" | "widget" | "fee";
 
 export type EtapeVisite = {
   id: string;
@@ -20,19 +20,13 @@ export type EtapeVisite = {
  * Le parcours, avec le prénom de l'autre quand on le connaît. Une étape dont la cible
  * n'est pas à l'écran (une seule page, aucun widget) est sautée par `etapesVisibles`.
  */
-export function parcoursVisite(autre: string | null): EtapeVisite[] {
+export function parcoursVisite(autre: string | null, fee = "Tael"): EtapeVisite[] {
   const lautre = autre ?? "l'autre";
   return [
     {
       id: "bienvenue",
       titre: "Bienvenue dans Kora",
       texte: "Kora tient la maison avec vous : courses, tâches, agenda, Mitsu, budget et le reste. Petite visite en quelques étapes, à passer quand tu veux.",
-    },
-    {
-      id: "bandeau",
-      cible: "bandeau",
-      titre: "La banderole",
-      texte: `Vos petits mots, vos humeurs et les comptes à rebours défilent ici. Touche-la pour écrire à ${lautre}.`,
     },
     {
       id: "signes",
@@ -53,10 +47,10 @@ export function parcoursVisite(autre: string | null): EtapeVisite[] {
       texte: "Chaque widget ouvre son espace. Un point rouge veut dire qu'il y a quelque chose à faire. Appui long pour les ranger, les agrandir ou les retirer.",
     },
     {
-      id: "barre",
-      cible: "barre",
-      titre: "La barre Jarvis",
-      texte: "Elle remplace tous les « + ». Écris ou dicte « lait et pain » ou « dentiste jeudi 14 h » : Kora range au bon endroit. L'étoile ouvre Jarvis pour lui parler.",
+      id: "fee",
+      cible: "fee",
+      titre: `${fee}, ta fée`,
+      texte: `Elle remplace tous les « + ». Touche-la pour lui parler, garde le doigt pour écrire, glisse-la vers un bord. Ce que ${lautre} t'envoie attend au-dessus d'elle.`,
     },
     {
       id: "gestes",

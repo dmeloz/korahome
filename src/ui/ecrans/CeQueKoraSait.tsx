@@ -14,6 +14,7 @@ import {
   useApprentissageLocal,
   type Adaptations,
 } from "../usage";
+import { nomFee } from "../fee";
 
 const estDuChef = (s: Souvenir) => s.cle?.startsWith("chef:") ?? false;
 
@@ -82,7 +83,7 @@ export function CeQueKoraSait(props: { donnees: DonneesModule; depot: Depot; ouv
 
       <h2 className="rayon">Appris sur le foyer</h2>
       {appris.length === 0 ? (
-        <p className="discret appris-vide">Rien encore. Ce que vous garderez au bilan apparaîtra ici, et Jarvis le relira.</p>
+        <p className="discret appris-vide">Rien encore. Ce que vous garderez au bilan apparaîtra ici, et {nomFee()} le relira.</p>
       ) : (
         <ul className="carte groupe">
           {appris.map((s) => (
@@ -135,7 +136,7 @@ export function CeQueKoraSait(props: { donnees: DonneesModule; depot: Depot; ouv
           changer={(accueilVivant) => regler({ accueilVivant })}
         />
         <Interrupteur
-          titre="Le mot du jour de Jarvis"
+          titre={`Le mot du jour de ${nomFee()}`}
           detail="Une remarque utile sur l'accueil, une fois par jour au plus."
           actif={adaptations.remarques}
           changer={(remarques) => regler({ remarques })}
@@ -184,7 +185,7 @@ export function CeQueKoraSait(props: { donnees: DonneesModule; depot: Depot; ouv
           Reproposer les {ecartes.length + persoEcartes.length} apprentissages écartés
         </button>
       )}
-      <button className="lien appris-effacer" onClick={props.ouvrirMemoire}>Toute la mémoire de Jarvis</button>
+      <button className="lien appris-effacer" onClick={props.ouvrirMemoire}>Toute la mémoire de {nomFee()}</button>
     </main>
   );
 }

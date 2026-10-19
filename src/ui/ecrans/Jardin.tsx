@@ -34,6 +34,7 @@ import { Icone } from "../Icone";
 import { annulerModifications, enregistrerModifications, photoPourJarvis } from "../jarvis";
 import type { PropsPage } from "../modules";
 import { Page } from "../pieces";
+import { nomFee } from "../fee";
 
 const enumerer = (mots: string[]) =>
   mots.length <= 1 ? (mots[0] ?? "") : `${mots.slice(0, -1).join(", ")} et ${mots[mots.length - 1]}`;
@@ -439,7 +440,7 @@ function Reconnaitre(p: PropsPage) {
       <div className="carte jardin-photo">
         {p.jarvis ? (
           <>
-            <p className="discret">Prends la plante en photo : Jarvis la reconnaît, l'ajoute à la zone choisie et dit ce qu'il lui faut.</p>
+            <p className="discret">Prends la plante en photo : {nomFee()} la reconnaît, l'ajoute à la zone choisie et dit ce qu'il lui faut.</p>
             {p.zones.length > 1 && (
               <div className="puces" role="group" aria-label="Zone">
                 {p.zones.map((z) => (
@@ -451,7 +452,7 @@ function Reconnaitre(p: PropsPage) {
             )}
             <button className="bouton-principal jardin-bouton-photo" disabled={enCours} onClick={() => choixPhoto.current?.click()}>
               <Icone nom="photo" taille={20} />
-              {enCours ? "Jarvis regarde…" : "Prendre une photo"}
+              {enCours ? `${nomFee()} regarde…` : "Prendre une photo"}
             </button>
             <input
               ref={choixPhoto}
@@ -471,7 +472,7 @@ function Reconnaitre(p: PropsPage) {
             )}
           </>
         ) : (
-          <p className="discret">La reconnaissance passe par Jarvis, qui a besoin du partage du foyer : active-le dans Réglages, Partage.</p>
+          <p className="discret">La reconnaissance passe par {nomFee()}, qui a besoin du partage du foyer : active-le dans Réglages, Partage.</p>
         )}
       </div>
     </Section>

@@ -1,19 +1,19 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { etapesVisibles, parcoursVisite, placementBulle, progression, type CibleVisite } from "../../domaine/visite";
+import { nomFee } from "../fee";
 import { noter } from "../journal";
 
 // La visite guidée : un voile sombre percé autour de l'élément montré, et une bulle
 // juste à côté. Équivalent natif : TipKit (popoverTip) enchaîné, ou une surcouche
 // avec .mask autour du cadre de la cible.
 
-/** Où trouver chaque cible à l'écran ; la barre Jarvis est hors de la page. */
+/** Où trouver chaque cible à l'écran ; la fée est hors de la page. */
 const SELECTEURS: Record<CibleVisite, string> = {
-  bandeau: ".page-dessus .bandeau-couple",
   signes: ".page-dessus .signes-accueil",
   aujourdhui: ".page-dessus .ce-moment",
   widget: ".page-dessus .widgets-accueil .widget",
-  barre: ".barre-zone .barre-jarvis",
+  fee: "body > .fee",
 };
 
 const MARGE = 6;
@@ -33,7 +33,7 @@ export function Visite({ autre, fermer }: { autre: string | null; fermer: () => 
   // Les étapes se choisissent une fois, à l'ouverture : celles dont la cible est là.
   const etapes = useMemo(() => {
     const presentes = new Set((Object.keys(SELECTEURS) as CibleVisite[]).filter((c) => trouver(c)));
-    return etapesVisibles(parcoursVisite(autre), presentes);
+    return etapesVisibles(parcoursVisite(autre, nomFee()), presentes);
   }, [autre]);
   const [index, setIndex] = useState(0);
   const [cadre, setCadre] = useState<Cadre | null>(null);
@@ -48,7 +48,7 @@ export function Visite({ autre, fermer }: { autre: string | null; fermer: () => 
       setCadre(null);
       return;
     }
-    if (!el.closest(".barre-zone")) {
+    if (!el.classList.contains("fee")) {
       const r = el.getBoundingClientRect();
       const libre = window.innerHeight - 260;
       if (r.top < 70 || r.bottom > libre) window.scrollBy({ top: r.top - Math.max(70, (libre - r.height) / 2), behavior: "smooth" });

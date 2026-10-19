@@ -1,4 +1,3 @@
-import { BandeauCouple } from "../BandeauCouple";
 import type { Depot } from "../../donnees/depot";
 import type { ServeurJarvis } from "../../donnees/distant";
 import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent, type ReactNode } from "react";
@@ -12,6 +11,7 @@ import { repartitionDue } from "../../domaine/repartition";
 import { decrireDerniere, sauvegardeDue } from "../../domaine/sauvegarde";
 import { decrireEcheance, marquerFaite } from "../../domaine/taches";
 import { signesDuJour, type Signe, type ValeurSigne } from "../../domaine/signes";
+import { clinDuJour } from "../../domaine/bandeau";
 import type { Tache } from "../../domaine/types";
 import {
   ajouterWidget,
@@ -36,7 +36,9 @@ import { vibrer } from "../haptique";
 import { calculerApprentissages } from "../apprendre";
 import { CarteAujourdhui, Visite } from "../pieces";
 import { FeuilleHeure } from "../pieces/FeuilleHeure";
-import { BulleSigne, DateRepliee, GrandeDate, Signes } from "../pieces/HautAccueil";
+import { DateRepliee, GrandeDate, Signes } from "../pieces/HautAccueil";
+import { clinDejaDit, noterClinDit, useClinDuJour } from "../clinDuJour";
+import { direFee, direSiCalme, taireFee } from "../fee";
 import { lireSignes } from "../accueilLocal";
 import { abonnerVisite, finirVisite, visiteEnAttente } from "../visite";
 import { TousLesEspaces } from "../TousLesEspaces";
@@ -97,7 +99,6 @@ export function Accueil(props: {
   const [ajout, setAjout] = useState<WidgetId | null>(null);
   const fantome = useRef<HTMLDivElement>(null);
   const [signes, setSignes] = useState<Signe[]>(lireSignes);
-  const [signeOuvert, setSigneOuvert] = useState<ValeurSigne | null>(null);
   const [heureDe, setHeureDe] = useState<Tache | null>(null);
   const haut = useRef<HTMLElement>(null);
   const appui = useRef<{ minuterie: ReturnType<typeof setTimeout>; x: number; y: number } | null>(null);
@@ -240,6 +241,27 @@ export function Accueil(props: {
   const remarque = adaptations.remarques ? remarqueDuJour({ ...props.donnees, membreId }) : null;
   const montrerRemarque = remarqueAMontrer(remarque?.cle ?? null, aujourdhui);
 
+  // Le mot du jour, puis le clin d'œil du foyer : la fée les dit une fois, quand l'accueil est calme.
+  useClinDuJour({ donnees: props.donnees, depot: props.depot, jarvis: props.jarvis });
+  const clin = clinDuJour(props.donnees.couple, aujourdhui);
+  const aDire = remarque && montrerRemarque ? `remarque:${remarque.cle}` : clin && !clinDejaDit(aujourdhui) ? `clin:${aujourdhui}` : null;
+  useEffect(() => {
+    if (!aDire || !props.auDessus || edition || espaces || visite) return;
+    // Elle attend un moment calme pour parler, et réessaie tant qu'elle n'a pas pu.
+    const id = setInterval(() => {
+      if (aDire.startsWith("remarque:") && remarque) {
+        const module = remarque.module;
+        const dit = direSiCalme({ cle: aDire, texte: remarque.texte, actions: module ? [{ texte: "Voir", faire: () => props.ouvrirModule(module) }, { texte: "Merci" }] : [{ texte: "Merci" }] });
+        if (dit) fermerRemarque(remarque.cle, aujourdhui);
+      } else if (clin && direSiCalme({ cle: aDire, texte: clin.texte })) noterClinDit(aujourdhui);
+    }, 2500);
+    return () => clearInterval(id);
+  }, [aDire, props.auDessus, edition, espaces, visite]); // eslint-disable-line react-hooks/exhaustive-deps
+  // En quittant l'accueil, ce qu'elle disait d'ici se tait.
+  useEffect(() => {
+    if (!props.auDessus) taireFee();
+  }, [props.auDessus]);
+
   const evenements = evenementsDe(props.donnees.agenda);
   const valeursSignes = signesDuJour(signes, { ...props.donnees, evenements, heure: heureTexte });
   const derniereSauvegarde = lireDerniereSauvegarde();
@@ -275,10 +297,11 @@ export function Accueil(props: {
     return foyer.membres.find((m) => m.id === t.responsable)?.prenom ?? null;
   };
   const ouvrirSigne = (v: ValeurSigne) => {
-    setSigneOuvert(null);
     if (v.destination === "mots") props.ouvrirMots();
     else props.ouvrirModule(v.destination);
   };
+  // Toucher un signe : la fée dit ce qu'il veut dire.
+  const direSigne = (v: ValeurSigne) => direFee({ cle: `signe:${v.id}`, texte: v.phrase, actions: [{ texte: "Ouvrir", faire: () => ouvrirSigne(v) }, { texte: "Merci" }] });
 
   const terminer = () => {
     setEdition(false);
@@ -362,21 +385,18 @@ export function Accueil(props: {
     <main className="tableau accueil">
       <header className="haut-accueil" ref={haut}>
         <GrandeDate date={maintenant} />
-        {!edition && <Signes valeurs={valeursSignes} choisis={signes} changer={setSignes} toucher={setSigneOuvert} />}
+        {!edition && <Signes valeurs={valeursSignes} choisis={signes} changer={setSignes} toucher={direSigne} />}
         {/* La date tient lieu de salutation ; le titre reste pour VoiceOver. */}
         <h1 className="cache-visuel">
           {salutation(heure)}
           {moi ? `, ${moi.prenom}` : ""}
         </h1>
       </header>
-      <BulleSigne valeur={signeOuvert} fermer={() => setSigneOuvert(null)} ouvrir={ouvrirSigne} />
       <DateRepliee date={maintenant} cible={haut} />
 
       {edition && (
         <button className="bouton-termine" onClick={terminer}>OK</button>
       )}
-
-      {!edition && <BandeauCouple donnees={props.donnees} depot={props.depot} jarvis={props.jarvis} ouvrir={props.ouvrirMots} />}
 
       {!edition && bilanPret && (
         <button className="carte proposition bilan-annonce" onClick={props.ouvrirBilan}>
@@ -387,18 +407,6 @@ export function Accueil(props: {
           </span>
           <Icone nom="suivant" taille={18} />
         </button>
-      )}
-
-      {!edition && remarque && montrerRemarque && (
-        <div className="carte remarque-jarvis" role="status">
-          <button className="remarque-texte" onClick={() => remarque.module && props.ouvrirModule(remarque.module)}>
-            <span className="remarque-etoile" aria-hidden><Icone nom="jarvis" taille={16} /></span>
-            <span>{remarque.texte}</span>
-          </button>
-          <button className="bouton-icone remarque-fermer" aria-label="Fermer le mot de Jarvis" onClick={() => fermerRemarque(remarque.cle, aujourdhui)}>
-            <Icone nom="fermer" taille={16} />
-          </button>
-        </div>
       )}
 
       {!edition && (

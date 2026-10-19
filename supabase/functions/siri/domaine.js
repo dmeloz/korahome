@@ -2076,7 +2076,7 @@ const SOURCES_RECETTE = {
 	chef: "Proposée par le Chef",
 	lien: "Lue sur un site",
 	photo: "Lue sur une photo",
-	jarvis: "Dictée à Jarvis",
+	jarvis: "Dictée à la fée",
 	main: "Écrite à la main"
 };
 const INGREDIENTS_MAX = 40;

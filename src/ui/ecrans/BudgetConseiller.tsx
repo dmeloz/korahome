@@ -13,6 +13,7 @@ import { formaterChf } from "../../domaine/jarvis";
 import { Icone } from "../Icone";
 import type { PropsPage } from "../modules";
 import { vibrer } from "../haptique";
+import { nomFee } from "../fee";
 
 // Le conseiller du Budget (Kora 0.0.37) : Jarvis lit tout le budget et répond par quelques
 // phrases, un tableau s'il le faut et des conseils chiffrés. Règles dans src/domaine/budgetConseil.ts.
@@ -77,7 +78,7 @@ export function useConseiller(p: PropsPage): Conseiller {
       const nouveau = { question, reponse: lireConseiller(r.appels, r.texte) };
       setEchange(nouveau);
       garder(nouveau);
-      setAlerte(r.budget.alerte ? `Jarvis a utilisé ${formaterChf(r.budget.depenseChf)} sur ${formaterChf(r.budget.plafondChf)} ce mois-ci.` : null);
+      setAlerte(r.budget.alerte ? `${nomFee()} a utilisé ${formaterChf(r.budget.depenseChf)} sur ${formaterChf(r.budget.plafondChf)} ce mois-ci.` : null);
       vibrer();
     } catch (e) {
       setErreur(e instanceof Error && e.message ? e.message : "Le conseiller ne répond pas, réessaie.");
@@ -96,7 +97,7 @@ export function CarteConseiller(props: { conseiller: Conseiller; disponible: boo
     return (
       <section className="carte budget-conseiller">
         <p className="surtitre">Le conseiller</p>
-        <p className="discret">Le conseiller passe par Jarvis : il arrive avec le partage du foyer.</p>
+        <p className="discret">Le conseiller passe par {nomFee()} : elle arrive avec le partage du foyer.</p>
       </section>
     );
   }
@@ -115,7 +116,7 @@ export function CarteConseiller(props: { conseiller: Conseiller; disponible: boo
       <p className="discret">Ou pose ta question dans la barre : « Combien chez Coop depuis août ? »</p>
       {enCours && (
         <p className="budget-conseiller-attente" aria-live="polite">
-          {enCours} : Jarvis lit le budget…
+          {enCours} : {nomFee()} lit le budget…
         </p>
       )}
       {erreur && <p className="discret">{erreur}</p>}

@@ -1,5 +1,5 @@
 import { analyserPhrase, devinerCategorie, type Brouillon } from "./agenda";
-import type { WidgetId } from "./tableauDeBord";
+import { modulesCherches, type WidgetId } from "./tableauDeBord";
 import { decaler } from "./taches";
 import type { Foyer, Jour, Recurrence } from "./types";
 
@@ -16,7 +16,11 @@ export type Intention =
   | { type: "tache"; titre: string; recurrence: Recurrence | null; echeance: Jour }
   | { type: "agenda"; brouillon: Brouillon }
   | { type: "stock"; texte: string }
+  | { type: "ouvrir"; ou: OuOuvrir }
   | { type: "jarvis"; demande: string };
+
+/** Où « ouvre le budget » emmène : un module, Nos mots ou les réglages. */
+export type OuOuvrir = WidgetId | "mots" | "reglages";
 
 const sansAccents = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[’]/g, "'");
 const majuscule = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
@@ -28,6 +32,24 @@ const COURSES = /^(ajoute[rsz]?|acheter|achete|il faut|il nous faut|faut|prendre
 const VERS_COURSES = /\s+(?:aux|a la liste de|à la liste de|sur la liste de|dans les) courses\s*$|\s+(?:a|à) acheter\s*$/i;
 const RYTHME = /\b(chaque (jour|semaine|mois|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)|tous les (jours|mois|\d+ (jours|semaines|mois))|toutes les (\d+ )?semaines|tous les (lundis|mardis|mercredis|jeudis|vendredis|samedis|dimanches))\b/;
 const VERBES_TACHE = /^(tache|sortir|faire|nettoyer|ranger|laver|passer|arroser|changer|vider|repasser|aspirer|appeler|payer|reserver|envoyer|plier|trier|recycler|detartrer|degivrer|tondre|tailler|preparer|reparer|monter|deposer|rendre|recuperer|chercher|poster|remplir|commander)\b/;
+
+const OUVRIR = /^(?:ouvre|ouvrir|ouvre-moi|montre|montre-moi|affiche|affiche-moi|va|aller|allons|emmene-moi|amene-moi)\s+(?:(?:a|au|aux|dans|sur|voir)\s+)?(.+)$/;
+const DETERMINANTS = /^(?:(?:la page|les|le|la|mon|ma|mes|notre|nos|page|espace|onglet)\s+|l')/;
+
+/**
+ * « Ouvre le budget », « montre-moi le frigo », « va dans l'agenda » : Kora ouvre la page
+ * sur le téléphone, sans passer par Jarvis. Null quand la phrase ne nomme aucune page.
+ */
+export function pageAOuvrir(phrase: string): OuOuvrir | null {
+  const m = OUVRIR.exec(sansAccents(phrase.trim()).replace(/[.!]+$/, ""));
+  if (!m) return null;
+  let nom = m[1].trim();
+  for (let i = 0; i < 2; i++) nom = nom.replace(DETERMINANTS, "");
+  if (!nom) return null;
+  if (/^(reglages?|parametres?)$/.test(nom)) return "reglages";
+  if (/^(mots|petits mots|nos mots)$/.test(nom)) return "mots";
+  return modulesCherches(nom)[0] ?? null;
+}
 
 /** « du lait, des œufs et 2 kg de pommes » → ["Lait", "Œufs", "2 kg de pommes"]. */
 export function decouperArticles(texte: string): string[] {
@@ -99,6 +121,8 @@ export function analyserTache(texte: string, aujourdhui: Jour): { titre: string;
 export function comprendrePhrase(texte: string, lieu: LieuBarre, aujourdhui: Jour, membres: Foyer["membres"] = []): Intention {
   const phrase = texte.trim().replace(/\s+/g, " ");
   const cle = sansAccents(phrase);
+  const ou = pageAOuvrir(phrase);
+  if (ou) return { type: "ouvrir", ou };
   if (phrase.endsWith("?") || QUESTION.test(cle) || POUR_JARVIS.test(cle)) return { type: "jarvis", demande: phrase };
 
   // Sur une page, la page d'abord.
@@ -161,6 +185,7 @@ export function decrireIntention(i: Intention): string {
   if (i.type === "tache") return `Tâche « ${i.titre} » ajoutée.`;
   if (i.type === "agenda") return `« ${i.brouillon.titre} » ajouté à l'agenda.`;
   if (i.type === "stock") return "Ajouté au stock.";
+  if (i.type === "ouvrir") return "J'ouvre la page.";
   return "Je demande à Jarvis.";
 }
 

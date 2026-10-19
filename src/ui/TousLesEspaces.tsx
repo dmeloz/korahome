@@ -6,6 +6,7 @@ import { definition, ESPACES, modulesCherches, modulesDeLEspace, type WidgetId }
 import { vibrer } from "./haptique";
 import { Icone, type NomIcone } from "./Icone";
 import { PICTOS, type DonneesModule } from "./modules";
+import { nomFee } from "./fee";
 
 // « Tous les espaces » : on tire l'accueil vers le bas et une feuille de verre descend, avec la
 // recherche, chaque module rangé par usage du quotidien, les rappels et les réglages. Aucune
@@ -194,7 +195,7 @@ export function TousLesEspaces(props: {
             <div className="grille-espaces">
               {ESPACES.flatMap((e) => modulesDeLEspace(e.id)).map(tuile)}
               {!props.ajouter && lien("Nos mots", "coeur", liens.ouvrirMots)}
-              {!props.ajouter && lien("Jarvis", "jarvis", liens.ouvrirJarvis)}
+              {!props.ajouter && lien(nomFee(), "jarvis", liens.ouvrirJarvis)}
             </div>
           )}
           {cherche && modules.length > 0 && <div className="grille-espaces">{modules.map(tuile)}</div>}

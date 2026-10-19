@@ -34,6 +34,7 @@ import { Icone } from "../Icone";
 import { annulerModifications, enregistrerModifications, photoPourJarvis } from "../jarvis";
 import type { PropsPage } from "../modules";
 import { useGestionnaireBarre, useInvitationBarre } from "../pieces";
+import { nomFee } from "../fee";
 
 // Les recettes du foyer, dans « Menus de la semaine » : la base qui se remplit seule (le Chef,
 // les liens et photos lus par Jarvis, ce qu'on écrit), ce qu'on peut faire ce soir avec le
@@ -85,7 +86,7 @@ export function OngletRecettes(p: PropsPage & { recettes: Recette[]; ouvrir: (id
 
   async function lireParJarvis(demande: string, image: { type: "image/jpeg"; donnees: string } | null, source: Recette["source"]) {
     if (!p.jarvis) return;
-    setLecture(image ? "Jarvis lit la recette sur la photo…" : "Jarvis range la recette…");
+    setLecture(image ? `${nomFee()} lit la recette sur la photo…` : `${nomFee()} range la recette…`);
     try {
       const r = await p.jarvis.serveur.demanderJarvis({ foyerId: p.jarvis.foyerId, demande, etat: decrireFoyer(p, p.membreId, p.aujourdhui), historique: [], ...(image ? { image } : {}) });
       const actions = lireActions(r.appels)
@@ -102,7 +103,7 @@ export function OngletRecettes(p: PropsPage & { recettes: Recette[]; ouvrir: (id
       annoncer(resultat.faits.join(" "), () => annulerModifications(p.depot, resultat.modifications));
       p.ouvrir(rangee.apres.id);
     } catch (e) {
-      annoncer(e instanceof Error && e.message ? e.message : "Jarvis n'a pas pu lire la recette, réessaie.", () => {});
+      annoncer(e instanceof Error && e.message ? e.message : `${nomFee()} n'a pas pu lire la recette, réessaie.`, () => {});
     } finally {
       setLecture(null);
     }
@@ -125,7 +126,7 @@ export function OngletRecettes(p: PropsPage & { recettes: Recette[]; ouvrir: (id
 
       {(p.jarvis || p.recettes.length < 3) && (
       <section className="carte recettes-ajout">
-        {p.recettes.length < 3 && <p className="discret">Le Chef range ici chaque repas qu'il propose, et Jarvis chaque recette que tu lui donnes. Écris un titre dans la barre pour en ajouter une à la main, ou colle une recette entière.</p>}
+        {p.recettes.length < 3 && <p className="discret">Le Chef range ici chaque repas qu'il propose, et {nomFee()} chaque recette que tu lui donnes. Écris un titre dans la barre pour en ajouter une à la main, ou colle une recette entière.</p>}
         {p.jarvis && <PhotoRecette occupe={lecture !== null} lire={(image) => void lireParJarvis("Voici une recette en photo (page de livre, fiche ou écran). Range-la dans nos recettes avec tous ses ingrédients, leurs quantités et ses étapes.", image, "photo")} />}
         {lecture && <p className="discret recettes-lecture">{lecture}</p>}
       </section>
@@ -134,7 +135,7 @@ export function OngletRecettes(p: PropsPage & { recettes: Recette[]; ouvrir: (id
       {liste.length === 0 ? (
         <p className="vide">
           {p.recettes.length === 0
-            ? "Pas encore de recette. Lance le Chef, colle un lien à Jarvis ou photographie une page de livre."
+            ? `Pas encore de recette. Lance le Chef, colle un lien à ${nomFee()} ou photographie une page de livre.`
             : filtre === "ce-soir"
               ? "Aucune recette ne se fait avec le stock ce soir."
               : "Aucune recette aimée pour l'instant : touche le cœur sur une fiche."}

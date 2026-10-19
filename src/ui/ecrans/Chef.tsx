@@ -13,6 +13,7 @@ import type { PropsPage } from "../modules";
 import { Onglets, Page } from "../pieces";
 import { recettesDe, soirsPrevus } from "../../domaine/recettes";
 import { FicheRecette, nomDuSoir, OngletRecettes } from "./Recettes";
+import { nomFee } from "../fee";
 
 const HEURES = Array.from({ length: HEURE_MAX - HEURE_MIN + 1 }, (_, i) => HEURE_MIN + i);
 
@@ -83,7 +84,7 @@ export function Chef(p: PropsPage) {
 
   const ajouts = menu ? etatDesAjouts(menu, p.elements) : [];
   return (
-    <Page titre="Menus de la semaine" className="chef" aide={{ cle: "chef", texte: "Le Chef prépare les repas du soir avec ce qui reste au frigo et ajoute le manquant aux courses, marqué « Chef ». Chaque repas rejoint vos recettes, avec celles que tu donnes à Jarvis." }}>
+    <Page titre="Menus de la semaine" className="chef" aide={{ cle: "chef", texte: `Le Chef prépare les repas du soir avec ce qui reste au frigo et ajoute le manquant aux courses, marqué « Chef ». Chaque repas rejoint vos recettes, avec celles que tu donnes à ${nomFee()}.` }}>
       <Onglets
         libelle="Menus ou recettes"
         onglets={[{ id: "semaine", libelle: "Cette semaine" }, { id: "recettes", libelle: "Nos recettes", compte: recettes.length }]}
@@ -238,7 +239,7 @@ export function Chef(p: PropsPage) {
               </div>
             </>
           )}
-          <p className="discret chef-note">Il ne fait qu'ajouter à la liste de courses, jamais il ne touche au stock. Les croquettes et la litière de Mitsu restent sur zooplus : il prévient seulement. Sa dépense compte dans le plafond de Jarvis.</p>
+          <p className="discret chef-note">Il ne fait qu'ajouter à la liste de courses, jamais il ne touche au stock. Les croquettes et la litière de Mitsu restent sur zooplus : il prévient seulement. Sa dépense compte dans le plafond de {nomFee()}.</p>
         </section>
         </>
       )}
