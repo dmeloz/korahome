@@ -23,7 +23,7 @@ import { nouvelAnimal } from "./mitsu";
 import { nouveauSouvenir } from "./memoire";
 import { nouveauProduit } from "./stock";
 import { nouvelleTache } from "./taches";
-import { enregistrerPoste, nouveauPlan, nouveauPoste } from "./budget";
+import { enregistrerPoste, nouveauPlan, nouveauPoste, nouvelleDepense } from "./budget";
 
 const AUJOURDHUI = "2026-10-12";
 
@@ -481,6 +481,17 @@ describe("Jarvis et le budget", () => {
     const r = appliquerActions(actions, d, null, AUJOURDHUI, ctx());
     expect(r.modifications[0].apres).toMatchObject({ libelle: "Électricité", echeance: "2026-10-25", montant: 61.2 });
     expect(decrireFoyer(d, null, AUJOURDHUI)).toContain("Factures à payer : Électricité 60 le 25 octobre");
+  });
+
+  it("complète le paiement Apple Pay du même jour au lieu de compter le ticket deux fois", () => {
+    const d = avecBudget();
+    const paye = { ...nouvelleDepense({ montant: 84.3, pot: "courses", libelle: "Migros", magasin: "Migros", jour: "2026-10-11", source: "applepay" }, null, ctx()), id: "paye" };
+    const avec = { ...d, budget: [...(d.budget ?? []), paye] };
+    const actions = lireActions([{ nom: "noter_depense", entree: { montant: 84.3, libelle: "Courses Migros", magasin: "Migros Renens", pot: "courses", jour: "2026-10-11", charge: null, articles: [{ nom: "Lait", prix: 1.9 }] } }]);
+    const r = appliquerActions(actions, avec, null, AUJOURDHUI, ctx());
+    expect(r.modifications).toHaveLength(1);
+    expect(r.modifications[0]).toMatchObject({ avant: { id: "paye" }, apres: { id: "paye", source: "applepay", magasin: "Migros Renens", articles: [{ nom: "Lait", prix: 1.9 }] } });
+    expect(annulation(r.modifications)[0].remettre).toBe(paye);
   });
 
   it("refuse un montant illisible", () => {

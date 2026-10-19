@@ -84,6 +84,9 @@ export interface ServeurJarvis {
   demanderJarvis(demande: DemandeJarvis): Promise<ReponseJarvis>;
   /** Lance le Chef de la semaine tout de suite (supabase/functions/chef) : il écrit les menus et les courses. */
   lancerChef(foyerId: Id): Promise<{ menu: MenuSemaine; budget: EtatBudget; sansListe: boolean }>;
+  /** Un nouveau lien Apple Pay pour cette personne (supabase/functions/paiements) : l'adresse à coller dans le raccourci. L'ancien ne marche plus. */
+  lienPaiements(demande: { foyerId: Id; membreId: Id }): Promise<string>;
+  retirerLienPaiements(demande: { foyerId: Id; membreId: Id }): Promise<void>;
 }
 
 /** L'agenda relié à iCloud passe par le serveur du foyer (supabase/functions/agenda), qui garde les mots de passe d'app. */

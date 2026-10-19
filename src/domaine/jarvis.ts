@@ -13,6 +13,7 @@
 
 import { CATEGORIES, decrireAgenda, decrireJour, evenementsDe, preparerEvenement, REPETITIONS, type Categorie, type DocAgenda, type Evenement, type Repetition } from "./agenda";
 import { decrireBudget, facturesAPayer, formaterMontant as formaterMontantCourt, nouvelleDepense, payerFacture, planDe, POTS, type ArticleTicket, type Depense, type DocBudget, type Pot } from "./budget";
+import { completerPaiement } from "./paiements";
 import { proposer, type ProduitHabituel } from "./catalogue";
 import { ajouterPlante, arroser, decrireJardin, nouvellePlante, type Zone } from "./jardin";
 import { analyserSaisie, nouvelElement, trouverDoublon } from "./listes";
@@ -331,7 +332,7 @@ export type Modification =
   | { collection: "memoire"; avant: Souvenir | null; apres: Souvenir; supprime?: true }
   | { collection: "retours"; avant: null; apres: RetourTest }
   | { collection: "agenda"; avant: Evenement | null; apres: Evenement; supprime?: true }
-  | { collection: "budget"; avant: null; apres: Depense };
+  | { collection: "budget"; avant: Depense | null; apres: Depense };
 
 export interface ResultatActions {
   modifications: Modification[];
@@ -654,6 +655,14 @@ export function appliquerActions(
               membreId,
               ctx,
             );
+          }
+          // Déjà payé par Apple Pay ce jour-là, du même montant : le ticket complète ce paiement.
+          const complete = completerPaiement(depense, donnees.budget ?? []);
+          if (complete) {
+            const avant = (donnees.budget ?? []).find((d): d is Depense => d.genre === "depense" && d.id === complete.id) ?? null;
+            modifications.push({ collection: "budget", avant, apres: complete });
+            faits.push(`Ajouté au paiement Apple Pay de ${formaterMontantCourt(complete.montant)} (${(complete.magasin ?? complete.libelle).toLowerCase()}).`);
+            break;
           }
           modifications.push({ collection: "budget", avant: null, apres: depense });
           faits.push(`Noté au budget : ${depense.libelle.toLowerCase()}, ${formaterMontantCourt(depense.montant)} (${POTS[depense.pot].nom.toLowerCase()}).`);

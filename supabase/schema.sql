@@ -471,3 +471,42 @@ begin
 end $$;
 
 revoke all on function prive.programmer_agenda(text) from public, anon, authenticated;
+
+-- ===== Les paiements Apple Pay dans le budget (Kora 0.0.29) =====
+-- L'automatisation « Transaction » de l'app Raccourcis envoie chaque paiement à la fonction
+-- « paiements » avec un jeton propre à une personne. Le serveur ne garde que l'empreinte
+-- (SHA-256) du jeton ; un nouveau lien remplace l'ancien. Voir docs/budget.md.
+
+create table if not exists prive.jetons_paiement (
+  foyer_id text not null references public.foyers (id) on delete cascade,
+  membre_id text not null,
+  empreinte text not null unique,
+  cree_le timestamptz not null default now(),
+  dernier_le timestamptz,
+  primary key (foyer_id, membre_id)
+);
+revoke all on prive.jetons_paiement from public, anon, authenticated;
+
+-- Crée ou remplace le jeton d'une personne ; une empreinte null l'efface. Fonction serveur seulement.
+create or replace function public.paiements_jeton(p_foyer_id text, p_membre_id text, p_empreinte text)
+returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  delete from prive.jetons_paiement where foyer_id = p_foyer_id and membre_id = p_membre_id;
+  if p_empreinte is not null then
+    insert into prive.jetons_paiement (foyer_id, membre_id, empreinte) values (p_foyer_id, p_membre_id, p_empreinte);
+  end if;
+end $$;
+
+-- À qui appartient un jeton (et la date du dernier paiement reçu). Fonction serveur seulement.
+create or replace function public.paiements_qui(p_empreinte text)
+returns table (foyer_id text, membre_id text)
+language sql security definer set search_path = '' as $$
+  update prive.jetons_paiement set dernier_le = now() where empreinte = p_empreinte
+  returning foyer_id, membre_id;
+$$;
+
+revoke all on function public.paiements_jeton(text, text, text) from public, anon, authenticated;
+revoke all on function public.paiements_qui(text) from public, anon, authenticated;
+grant execute on function public.paiements_jeton(text, text, text) to service_role;
+grant execute on function public.paiements_qui(text) to service_role;
