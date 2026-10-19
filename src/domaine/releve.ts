@@ -1,4 +1,4 @@
-import { auCentime, depenses, POTS, type DocBudget, type Depense, type Pot } from "./budget";
+import { auCentime, depenses, factureReglee, POTS, type DocBudget, type Depense, type Facture, type PlanBudget, type Pot } from "./budget";
 import { ecartJours } from "./taches";
 import { nomDeCommercant } from "./paiements";
 import type { Contexte, Id, Jour } from "./types";
@@ -136,20 +136,32 @@ export function preparerReleve(lignes: readonly LigneReleve[], docs: readonly Do
 /** Proposée cochée : une vraie dépense en francs (pas un virement, une recharge ou une autre monnaie). */
 export const aCocher = (l: LigneReleve) => !l.mouvement && l.devise === "CHF";
 
-/** Les lignes choisies deviennent des dépenses du pot de ce relevé. */
-export function importerReleve(lignes: readonly LigneReleve[], pot: Pot, par: Id | null, ctx: Contexte): Depense[] {
-  return lignes.map((l) => ({
-    id: ctx.nouvelId(),
-    genre: "depense",
-    jour: l.jour,
-    montant: l.montant,
-    pot,
-    libelle: l.libelle || POTS[pot].nom,
-    magasin: l.libelle || null,
-    posteId: null,
-    echeance: null,
-    source: "releve",
-    par,
-    creeLe: ctx.maintenant(),
-  }));
+/** La facture qu'une ligne du relevé règle, si Kora la reconnaît (un virement compte comme le pot factures). */
+export function factureDeLigne(l: LigneReleve, pot: Pot, plan: PlanBudget, docs: readonly DocBudget[]): Facture | null {
+  if (l.devise !== "CHF") return null;
+  return factureReglee({ montant: l.montant, jour: l.jour, libelle: l.libelle, pot: l.mouvement ? "factures" : pot }, plan, docs);
+}
+
+/** Les lignes choisies deviennent des dépenses du pot de ce relevé ; celles qui règlent une facture la marquent payée. */
+export function importerReleve(lignes: readonly LigneReleve[], pot: Pot, par: Id | null, ctx: Contexte, plan?: PlanBudget, docs: readonly DocBudget[] = []): Depense[] {
+  const ajouts: Depense[] = [];
+  for (const l of lignes) {
+    const brute: Depense = {
+      id: ctx.nouvelId(),
+      genre: "depense",
+      jour: l.jour,
+      montant: l.montant,
+      pot,
+      libelle: l.libelle || POTS[pot].nom,
+      magasin: l.libelle || null,
+      posteId: null,
+      echeance: null,
+      source: "releve",
+      par,
+      creeLe: ctx.maintenant(),
+    };
+    const f = plan ? factureDeLigne(l, pot, plan, [...docs, ...ajouts]) : null;
+    ajouts.push(f ? { ...brute, pot: f.poste.pot ?? "factures", libelle: f.poste.libelle, posteId: f.poste.id, echeance: f.echeance } : brute);
+  }
+  return ajouts;
 }

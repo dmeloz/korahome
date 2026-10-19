@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { formaterMontant, lireMontant, nomDuMois, POTS, type PaiementAClasser, type PlanBudget, type Pot } from "../../domaine/budget";
+import { formaterMontant, lireMontant, nomDuMois, POTS, reglerFacture, type Depense, type PaiementAClasser, type PlanBudget, type Pot } from "../../domaine/budget";
 import { cartesDuFoyer, choixDeCarte, classerPaiement, demandeRaccourci, paiementsAClasser, POTS_DE_CARTE, retenirCarte, type ChoixCarte } from "../../domaine/paiements";
 import { useAnnoncer } from "../annulation";
 import { contexteReel } from "../contexte";
@@ -57,7 +57,11 @@ export function PaiementsAClasser(p: PropsPage & { plan: PlanBudget }) {
     }
     const montantChf = paiement.devise === "CHF" ? paiement.montant : lireMontant(francs[paiement.id] ?? "");
     if (montantChf === null) return;
-    const classes = (paiement.devise === "CHF" ? autres : [paiement]).map((x) => classerPaiement(x, choix, x.id === paiement.id ? montantChf : x.montant, contexteReel));
+    // Un paiement qui règle une facture attendue la marque payée (Kora 0.0.36).
+    const classes: Depense[] = [];
+    for (const x of paiement.devise === "CHF" ? autres : [paiement]) {
+      classes.push(reglerFacture(classerPaiement(x, choix, x.id === paiement.id ? montantChf : x.montant, contexteReel), plan, [...p.budget, ...classes]));
+    }
     for (const d of classes) await depot.enregistrerBudget(d);
     vibrer();
     annoncer(classes.length > 1 ? `${classes.length} paiements dans ${nomDuPot(plan, choix).toLowerCase()}.` : `${formaterMontant(montantChf)} dans ${nomDuPot(plan, choix).toLowerCase()}.`, async () => {

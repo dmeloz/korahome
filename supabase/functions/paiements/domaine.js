@@ -1,4 +1,36 @@
 // Généré par `npm run fonction` depuis src/domaine/paiements.ts : ne pas modifier à la main.
+//#region src/domaine/foyer.ts
+var ErreurValidation = class extends Error {};
+//#endregion
+//#region src/domaine/taches.ts
+const RE_JOUR = /^\d{4}-\d{2}-\d{2}$/;
+function versDate(jour) {
+	if (!RE_JOUR.test(jour)) throw new ErreurValidation(`Date invalide : « ${jour} ».`);
+	const [a, m, j] = jour.split("-").map(Number);
+	return new Date(Date.UTC(a, m - 1, j));
+}
+function versJour(d) {
+	return d.toISOString().slice(0, 10);
+}
+/** Ajoute des jours, des semaines ou des mois à une date du jour. */
+function decaler(jour, recurrence) {
+	const d = versDate(jour);
+	if (recurrence.unite === "jour") d.setUTCDate(d.getUTCDate() + recurrence.tous);
+	else if (recurrence.unite === "semaine") d.setUTCDate(d.getUTCDate() + 7 * recurrence.tous);
+	else {
+		const jourDuMois = d.getUTCDate();
+		d.setUTCDate(1);
+		d.setUTCMonth(d.getUTCMonth() + recurrence.tous);
+		const dernier = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+		d.setUTCDate(Math.min(jourDuMois, dernier));
+	}
+	return versJour(d);
+}
+/** Nombre de jours entre deux dates (positif si « b » est après « a »). */
+function ecartJours(a, b) {
+	return Math.round((versDate(b).getTime() - versDate(a).getTime()) / 864e5);
+}
+//#endregion
 //#region src/domaine/budget.ts
 const POTS = {
 	commun: {
@@ -35,7 +67,108 @@ function formaterMontant(n, avecDevise = true) {
 function planDe(docs) {
 	return docs.find((d) => d.genre === "plan") ?? null;
 }
+function moisDe(jour) {
+	return jour.slice(0, 7);
+}
 const depenses = (docs) => docs.filter((d) => d.genre === "depense").sort((a, b) => b.jour.localeCompare(a.jour) || b.creeLe.localeCompare(a.creeLe));
+/** Le premier jour de paie du mois (le dernier jour du mois si la paie tombe un 31 en février). */
+function jourDuMois(mois, jour) {
+	const [a, m] = mois.split("-").map(Number);
+	const dernier = new Date(Date.UTC(a, m, 0)).getUTCDate();
+	return `${mois}-${String(Math.min(Math.max(1, jour), dernier)).padStart(2, "0")}`;
+}
+const moisSuivant = (mois) => decaler(`${mois}-01`, {
+	unite: "mois",
+	tous: 1
+}).slice(0, 7);
+/** Les échéances d'une charge commune entre deux jours (compris). */
+function echeancesDe(poste, de, a) {
+	const jours = [];
+	if (poste.frequence === "an") {
+		if (!poste.mois) return jours;
+		for (let annee = Number(de.slice(0, 4)); annee <= Number(a.slice(0, 4)); annee++) {
+			const j = jourDuMois(`${annee}-${String(poste.mois).padStart(2, "0")}`, poste.jour ?? 1);
+			if (j >= de && j <= a) jours.push(j);
+		}
+		return jours;
+	}
+	if (!poste.jour) return jours;
+	for (let mois = moisDe(de); mois <= moisDe(a); mois = moisSuivant(mois)) {
+		const j = jourDuMois(mois, poste.jour);
+		if (j >= de && j <= a) jours.push(j);
+	}
+	return jours;
+}
+/** Une dépense règle une échéance quand elle la nomme, ou qu'elle paie la même charge dans le même mois (le même mois de l'année pour une charge annuelle, à un mois près). */
+function regle(d, poste, echeance) {
+	if (d.posteId !== poste.id) return false;
+	if (d.echeance) return d.echeance === echeance;
+	const ecart = ecartJours(echeance, d.jour);
+	return poste.frequence === "an" ? ecart >= -45 && ecart <= 45 : moisDe(d.jour) === moisDe(echeance);
+}
+/** Les factures communes dont on connaît la date, des 30 derniers jours aux `jours` prochains. */
+function factures(plan, docs, aujourdhui, jours = 60) {
+	const de = decaler(aujourdhui, {
+		unite: "jour",
+		tous: -30
+	});
+	const a = decaler(aujourdhui, {
+		unite: "jour",
+		tous: jours
+	});
+	const toutes = depenses(docs);
+	const resultat = [];
+	for (const poste of plan.postes.filter((p) => p.qui === null && p.pot !== "courses")) for (const echeance of echeancesDe(poste, de, a)) {
+		const automatique = poste.prelevement && poste.frequence === "mois";
+		const payee = automatique ? echeance <= aujourdhui : toutes.some((d) => regle(d, poste, echeance));
+		if (echeance < plan.depart.mois && !payee) continue;
+		resultat.push({
+			poste,
+			echeance,
+			montant: poste.montant,
+			payee,
+			automatique
+		});
+	}
+	return resultat.sort((x, y) => x.echeance.localeCompare(y.echeance) || x.poste.libelle.localeCompare(y.poste.libelle, "fr"));
+}
+const motsDe = (t) => sansAccents(t).replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((m) => m.length >= 4);
+/**
+* La facture qu'un paiement règle, reconnue seule (Kora 0.0.36) : une facture à payer à la main,
+* dont l'échéance tombe de 25 jours après à 30 jours avant le paiement, et dont le nom se retrouve
+* dans le libellé (à 10 % près sur le montant), ou dont le montant est exactement le même quand le
+* paiement sort du pot de cette facture (ou du pot factures). Null si rien ne correspond.
+*/
+function factureReglee(paiement, plan, docs) {
+	const mots = new Set(motsDe(`${paiement.libelle} ${paiement.magasin ?? ""}`));
+	return factures(plan, docs, paiement.jour, 30).filter((f) => !f.payee && !f.automatique).map((f) => {
+		const ecart = ecartJours(f.echeance, paiement.jour);
+		const nom = motsDe(f.poste.libelle).some((m) => mots.has(m));
+		const exact = Math.abs(f.montant - paiement.montant) < .01;
+		const proche = f.montant > 0 && Math.abs(f.montant - paiement.montant) / f.montant <= .1;
+		const memePot = paiement.pot === "factures" || paiement.pot === (f.poste.pot ?? "factures");
+		return {
+			f,
+			retenue: ecart >= -25 && ecart <= 30 && (nom && proche || exact && memePot),
+			score: (nom ? 2 : 0) + (exact ? 1 : 0),
+			ecart: Math.abs(ecart)
+		};
+	}).filter((x) => x.retenue).sort((a, b) => b.score - a.score || a.ecart - b.ecart)[0]?.f ?? null;
+}
+/** La dépense, liée à la facture qu'elle règle si Kora la reconnaît (sinon telle quelle). */
+function reglerFacture(d, plan, docs) {
+	if (d.posteId) return d;
+	const f = factureReglee(d, plan, docs);
+	if (!f) return d;
+	return {
+		...d,
+		posteId: f.poste.id,
+		echeance: f.echeance,
+		pot: f.poste.pot ?? "factures",
+		libelle: f.poste.libelle
+	};
+}
+const sansAccents = (t) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 //#endregion
 //#region src/domaine/paiements.ts
 /** Les pots qu'on peut donner à une carte, dans l'ordre des puces. */
@@ -121,9 +254,8 @@ function recevoirPaiement(entree, docs, par, jour, ctx) {
 		genre: "doublon",
 		message: "Déjà noté."
 	};
-	if (choix && lu.devise === "CHF") return {
-		genre: "depense",
-		doc: {
+	if (choix && lu.devise === "CHF") {
+		const doc = reglerFacture({
 			id: ctx.nouvelId(),
 			genre: "depense",
 			jour,
@@ -137,9 +269,18 @@ function recevoirPaiement(entree, docs, par, jour, ctx) {
 			carte,
 			par,
 			creeLe: ctx.maintenant()
-		},
-		message: `${formaterMontant(lu.montant)} noté dans ${POTS[choix].nom.toLowerCase()}.`
-	};
+		}, plan, docs);
+		if (doc.posteId) return {
+			genre: "depense",
+			doc,
+			message: `Facture ${doc.libelle} payée.`
+		};
+		return {
+			genre: "depense",
+			doc,
+			message: `${formaterMontant(lu.montant)} noté dans ${POTS[choix].nom.toLowerCase()}.`
+		};
+	}
 	return {
 		genre: "paiement",
 		doc: {

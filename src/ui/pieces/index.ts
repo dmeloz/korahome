@@ -2,7 +2,7 @@
 // native les reprenne une à une (voir docs/pieces-natives.md).
 export { Page, AideUneFois, Onglets, PointEtat } from "./Page";
 export { CarteAujourdhui } from "./Aujourdhui";
-export { AuDessusDeLaBarre, BarreJarvis, FournisseurSaisie, useGestionnaireBarre, useSaisieBarre } from "./barre";
+export { AuDessusDeLaBarre, BarreJarvis, FournisseurSaisie, useGestionnaireBarre, useInvitationBarre, useSaisieBarre } from "./barre";
 export { Feuille } from "../Feuille";
 export { Glissable } from "../Glissable";
 export { Visite } from "./Visite";

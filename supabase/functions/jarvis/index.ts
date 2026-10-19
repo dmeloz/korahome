@@ -5,7 +5,8 @@
 // mois (5 CHF) n'est pas atteint, interroge Claude, compte la dépense, puis renvoie la
 // réponse et les actions demandées. C'est le téléphone qui les applique (avec Annuler).
 // Il lit aussi une photo jointe (lettre, rendez-vous), la recette derrière un lien, et prépare
-// le conseil du dimanche (mode « conseil », modèle plus réfléchi, proposition validée ensemble).
+// le conseil du dimanche (mode « conseil », modèle plus réfléchi, proposition validée ensemble)
+// et répond au conseiller du Budget (mode « budget » : texte, tableau et conseils, par l'outil repondre_budget).
 //
 // La clé de l'API Claude reste ici, dans le secret ANTHROPIC_API_KEY : jamais dans l'app.
 // Les consignes et les outils viennent de src/domaine/jarvisModele.ts, copié dans domaine.js par
@@ -14,6 +15,7 @@
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import {
+  CONSIGNES_BUDGET,
   CONSIGNES_CONSEIL,
   CONSIGNES_JARVIS,
   coutMicroChf,
@@ -26,6 +28,7 @@ import {
   MODELE_CONSEIL,
   MODELE_JARVIS,
   moisDe,
+  OUTIL_BUDGET,
   OUTILS_JARVIS,
 } from "./domaine.js";
 
@@ -121,21 +124,25 @@ Deno.serve(async (req) => {
       .filter((t: { role?: unknown }) => t?.role === "personne" || t?.role === "jarvis")
       .map((t: { role: "personne" | "jarvis"; texte?: unknown }) => ({ role: t.role, texte: texte(t.texte, 500) }));
 
-    // Le conseil du dimanche prend le modèle plus réfléchi ; le reste, le modèle léger.
+    // Le conseil du dimanche et le conseiller budget prennent le modèle plus réfléchi ; le reste, le modèle léger.
     const conseil = corps.mode === "conseil";
-    const modele = conseil ? MODELE_CONSEIL : MODELE_JARVIS;
-    const lien = conseil ? null : lienDans(demande);
+    const budgetFoyer = corps.mode === "budget";
+    const reflechi = conseil || budgetFoyer;
+    const modele = reflechi ? MODELE_CONSEIL : MODELE_JARVIS;
+    const lien = reflechi ? null : lienDans(demande);
     const page = lien ? await ouvrirLien(lien).catch(() => null) : null;
-    const image = conseil ? null : lireImage(corps.image);
-    const message = messageDemande(texte(corps.etat, 20000), demande, historique, lien ? (page ?? "(page illisible : dis-le et propose de coller les ingrédients)") : null);
+    const image = reflechi ? null : lireImage(corps.image);
+    // Le conseiller lit les dépenses détaillées : son état peut être plus long.
+    const message = messageDemande(texte(corps.etat, budgetFoyer ? 40000 : 20000), demande, historique, lien ? (page ?? "(page illisible : dis-le et propose de coller les ingrédients)") : null);
 
     const client = new Anthropic({ apiKey: cle });
     const reponse = await client.messages.create({
       model: modele,
-      max_tokens: conseil ? 4000 : 2000,
-      system: conseil ? CONSIGNES_CONSEIL : CONSIGNES_JARVIS,
-      tools: OUTILS_JARVIS,
-      output_config: { effort: conseil ? "medium" : "low" },
+      max_tokens: reflechi ? 4000 : 2000,
+      system: budgetFoyer ? CONSIGNES_BUDGET : conseil ? CONSIGNES_CONSEIL : CONSIGNES_JARVIS,
+      tools: budgetFoyer ? [OUTIL_BUDGET] : OUTILS_JARVIS,
+      ...(budgetFoyer ? { tool_choice: { type: "tool", name: OUTIL_BUDGET.name } } : {}),
+      output_config: { effort: reflechi ? "medium" : "low" },
       messages: [
         {
           role: "user",

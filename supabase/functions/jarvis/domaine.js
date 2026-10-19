@@ -528,6 +528,67 @@ Utilise les outils pour proposer :
 - les courses de la semaine (ajouter_courses) : les ingrédients de cinq repas simples de saison qui utilisent d'abord ce qui arrive à sa date dans le stock, et ce qui manque pour la maison ;
 - les tâches qui manquent pour la semaine (ajouter_tache), seulement si l'état du foyer le justifie.
 En plus des outils, écris en français, en tutoyant, un court résumé : la répartition proposée, les cinq repas (un par ligne, « Lundi : … »), et ce qui demande de l'attention. Pas plus de dix lignes.`;
+/** Le conseiller budget répond toujours par cet outil : un texte, un tableau s'il le faut, des conseils. */
+const OUTIL_BUDGET = {
+	name: "repondre_budget",
+	description: "La réponse au foyer sur son budget : quelques phrases, un tableau si la question en appelle un, et des conseils concrets.",
+	input_schema: {
+		type: "object",
+		required: ["texte", "conseils"],
+		properties: {
+			texte: texte("La réponse en deux à quatre phrases, la réponse d'abord, avec les chiffres qui comptent."),
+			tableau: {
+				type: "object",
+				description: "Seulement si la question appelle une comparaison ou des chiffres sur plusieurs lignes ; sinon, ne pas le mettre.",
+				required: [
+					"titre",
+					"colonnes",
+					"lignes"
+				],
+				properties: {
+					titre: texte("Le titre du tableau, avec l'unité : « Courses par magasin (CHF) »."),
+					colonnes: {
+						type: "array",
+						items: { type: "string" },
+						description: "Deux à cinq en-têtes de colonnes."
+					},
+					lignes: {
+						type: "array",
+						description: "Quinze lignes au plus ; chaque ligne a autant de cases que de colonnes. Les montants sans « CHF » : « 84.30 ».",
+						items: {
+							type: "array",
+							items: { type: "string" }
+						}
+					}
+				}
+			},
+			conseils: {
+				type: "array",
+				description: "Zéro à quatre conseils, du plus utile au moins utile.",
+				items: {
+					type: "object",
+					required: ["titre", "detail"],
+					properties: {
+						titre: texte("Le conseil en quelques mots : « Courses en dessous de 650 »."),
+						detail: texte("Une ou deux phrases : quoi faire concrètement et pourquoi, chiffres à l'appui."),
+						gain_par_mois: {
+							type: "number",
+							description: "Ce que le conseil fait gagner par mois en francs, si on peut l'estimer."
+						}
+					}
+				}
+			}
+		}
+	}
+};
+const CONSIGNES_BUDGET = `Tu es Jarvis, le conseiller budget d'un couple en Suisse romande, dans l'app KoraHome sur iPhone. Les montants sont en francs suisses.
+Tu reçois l'état de leur budget, préparé par l'app : le plan (salaires, charges, versements au compte commun, pots courses, plaisir, factures, épargne), les soldes, les projections de fin de mois, les factures des douze mois à venir, le tableau des mois passés et les dépenses détaillées. Puis une question.
+Réponds toujours avec l'outil repondre_budget, en français, en tutoyant la personne qui demande ; parle de « vous deux » pour ce qui est commun.
+N'utilise que les chiffres fournis, et fais les calculs avec soin ; si une donnée manque pour répondre, dis-le simplement. N'invente aucune dépense.
+« Fais le point » : où en est le mois face au budget, comment il finira à ce rythme, les mois lourds de factures à venir et le pot qui pourrait manquer, l'avancée de l'épargne ou du projet.
+Ajoute un tableau seulement si la question appelle une comparaison ou une liste de chiffres (« par magasin », « mois par mois », « nos abonnements »).
+Les conseils sont concrets, chiffrés et faits pour ce foyer : un magasin moins cher pour ce qu'ils achètent souvent, un abonnement à revoir, un montant à mettre de côté avant un mois lourd, la part plaisir à ajuster. Jamais de conseil général (« faites un budget »), jamais de produit financier ni de placement, jamais de crédit.
+Si tout va bien, dis-le en une phrase et ne force pas les conseils.`;
 const decoder = (t) => t.replace(/&amp;/g, "&").replace(/&quot;/g, "\"").replace(/&#0?39;|&apos;/g, "'").replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/\s+/g, " ").trim();
 /** Cherche une recette dans les données structurées (JSON-LD) d'une page : Betty Bossi, Marmiton, Fooby… */
 function extraireRecette(html) {
@@ -604,4 +665,4 @@ function lienAutorise(adresse) {
 	return !/^[\d.]+$/.test(hote) && !hote.includes(":") && !hote.startsWith("[");
 }
 //#endregion
-export { CONSIGNES_CONSEIL, CONSIGNES_JARVIS, MODELE_CONSEIL, MODELE_JARVIS, OUTILS_JARVIS, PLAFOND_CHF, TOURS_RETENUS, coutMicroChf, decrireRecette, etatBudget, extraireRecette, formaterChf, lienAutorise, lienDans, lirePage, messageDemande, moisDe, texteDePage };
+export { CONSIGNES_BUDGET, CONSIGNES_CONSEIL, CONSIGNES_JARVIS, MODELE_CONSEIL, MODELE_JARVIS, OUTILS_JARVIS, OUTIL_BUDGET, PLAFOND_CHF, TOURS_RETENUS, coutMicroChf, decrireRecette, etatBudget, extraireRecette, formaterChf, lienAutorise, lienDans, lirePage, messageDemande, moisDe, texteDePage };

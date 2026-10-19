@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { preparerEvenement } from "../../domaine/agenda";
 import { comprendrePhrase, decrireIntention, invitation, type Intention, type LieuBarre } from "../../domaine/barre";
@@ -52,6 +52,33 @@ export function useGestionnaireBarre(cle: string, gestionnaire: Gestionnaire | n
   }, [cle, gestionnaire === null]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
+// Une page peut changer ce que la barre propose d'écrire (le Conseiller du Budget : une question).
+let invitationDePage: string | null = null;
+const abonnesInvitation = new Set<() => void>();
+const prevenirInvitation = () => abonnesInvitation.forEach((f) => f());
+
+export function useInvitationBarre(texte: string | null): void {
+  useEffect(() => {
+    if (!texte) return;
+    invitationDePage = texte;
+    prevenirInvitation();
+    return () => {
+      if (invitationDePage === texte) invitationDePage = null;
+      prevenirInvitation();
+    };
+  }, [texte]);
+}
+
+function useInvitationDePage(): string | null {
+  return useSyncExternalStore(
+    (f) => {
+      abonnesInvitation.add(f);
+      return () => abonnesInvitation.delete(f);
+    },
+    () => invitationDePage,
+  );
+}
+
 // Un seul emplacement, créé une fois : la barre l'accroche au-dessus de son champ, et il
 // reste le même quand la barre disparaît puis revient.
 let complement: HTMLDivElement | null = null;
@@ -92,6 +119,7 @@ export function BarreJarvis(props: {
   avant?: ReactNode;
 }) {
   const { texte, changer } = useSaisieBarre();
+  const invitationPage = useInvitationDePage();
   const [ecoute, setEcoute] = useState<(() => void) | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const champ = useRef<HTMLInputElement>(null);
@@ -214,10 +242,10 @@ export function BarreJarvis(props: {
             ref={champ}
             value={texte}
             onChange={(e) => changer(e.target.value)}
-            placeholder={ecoute ? "Je t'écoute…" : invitation(props.lieu)}
+            placeholder={ecoute ? "Je t'écoute…" : (invitationPage ?? invitation(props.lieu))}
             enterKeyHint="send"
             autoComplete="off"
-            aria-label={invitation(props.lieu)}
+            aria-label={invitationPage ?? invitation(props.lieu)}
           />
           {(props.lieu === "accueil" || props.lieu === "stock" || props.lieu === "budget") && !texte && (
             <TicketDeCaisse jarvis={props.jarvis} donnees={donnees} depot={depot} catalogue={donnees.catalogue} classe="barre-bouton" />

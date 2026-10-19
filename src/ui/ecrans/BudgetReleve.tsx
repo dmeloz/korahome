@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { formaterMontant, nomDuMois, POTS, type DocBudget, type PlanBudget, type Pot } from "../../domaine/budget";
 import { POTS_DE_CARTE } from "../../domaine/paiements";
-import { aCocher, importerReleve, lireReleve, preparerReleve, type LigneReleve } from "../../domaine/releve";
+import { aCocher, factureDeLigne, importerReleve, lireReleve, preparerReleve, type LigneReleve } from "../../domaine/releve";
 import { useAnnoncer } from "../annulation";
 import { contexteReel } from "../contexte";
 import { vibrer } from "../haptique";
@@ -39,14 +39,15 @@ export function FeuilleReleve(props: { plan: PlanBudget; budget: DocBudget[]; de
     }
     const { nouvelles, deja: notees } = preparerReleve(lu, props.budget);
     setLignes(nouvelles);
-    setCochees(nouvelles.map(aCocher));
+    // Un virement qui paie une facture attendue est proposé coché : il la règle.
+    setCochees(nouvelles.map((l) => aCocher(l) || !!factureDeLigne(l, pot, plan, props.budget)));
     setDeja(notees.length);
   }
 
   async function importer() {
     if (!lignes) return;
     const choisies = lignes.filter((_, i) => cochees[i]);
-    const ajouts = importerReleve(choisies, pot, props.membreId, contexteReel);
+    const ajouts = importerReleve(choisies, pot, props.membreId, contexteReel, plan, props.budget);
     for (const d of ajouts) await props.depot.enregistrerBudget(d);
     vibrer();
     annoncer(`${ajouts.length} dépense${ajouts.length > 1 ? "s" : ""} ajoutée${ajouts.length > 1 ? "s" : ""} (${(plan.comptes[pot] || POTS[pot].nom).toLowerCase()}).`, async () => {
@@ -104,7 +105,7 @@ export function FeuilleReleve(props: { plan: PlanBudget; budget: DocBudget[]; de
                         <span className="tache-details">
                           {" "}
                           · {quand(l.jour)}
-                          {l.mouvement ? " · virement" : ""}
+                          {factureDeLigne(l, pot, plan, props.budget) ? ` · facture ${factureDeLigne(l, pot, plan, props.budget)!.poste.libelle}` : l.mouvement ? " · virement" : ""}
                         </span>
                       </span>
                       <span className="budget-montant">{l.devise === "CHF" ? formaterMontant(l.montant) : `${formaterMontant(l.montant, false)} ${l.devise}`}</span>
@@ -118,7 +119,7 @@ export function FeuilleReleve(props: { plan: PlanBudget; budget: DocBudget[]; de
                 Ajouter {nombre} dépense{nombre > 1 ? "s" : ""} · {formaterMontant(total)}
               </button>
             )}
-            <p className="discret">Les virements, recharges et autres monnaies sont décochés : touche une ligne pour la changer.</p>
+            <p className="discret">Les virements, recharges et autres monnaies sont décochés, sauf un virement qui paie une facture attendue : touche une ligne pour la changer.</p>
           </>
         )}
       </div>

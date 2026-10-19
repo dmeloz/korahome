@@ -13,7 +13,7 @@ import { choseAFaire, decrireAge, formaterPoids, poidsActuel, rationDuJour, type
 import type { WidgetId } from "../domaine/tableauDeBord";
 import type { ProduitHabituel } from "../domaine/catalogue";
 import { decrirePeremption, resumeStock, type Produit } from "../domaine/stock";
-import { compterDues, decrireEcheance, organiserTaches } from "../domaine/taches";
+import { compterDues, decaler, decrireEcheance, organiserTaches } from "../domaine/taches";
 import type { Element, Foyer, Jour, Liste, Tache } from "../domaine/types";
 import type { Depot } from "../donnees/depot";
 import type { ServeurAgenda, ServeurJarvis } from "../donnees/distant";
@@ -307,7 +307,7 @@ export const MODULES: Partial<Record<WidgetId, ModuleUI>> = {
       const aClasser = paiementsAClasser(d.budget).length;
       return {
         chiffre: Math.max(0, Math.floor(courses.solde)),
-        legende: aNoter ? `Versements de ${nommerMois(aNoter)} à noter` : courses.solde < 1 ? "Carte courses vide" : "CHF sur la carte courses",
+        legende: aNoter ? (aNoter > plan.depart.mois ? `${nommerMois(decaler(`${aNoter}-01`, { unite: "mois", tous: -1 }).slice(0, 7)).replace(/^./, (c) => c.toUpperCase())} à clôturer` : `Versements de ${nommerMois(aNoter)} à noter`) : courses.solde < 1 ? "Carte courses vide" : "CHF sur la carte courses",
         lignes: [
           ...(aClasser ? [aClasser === 1 ? "Un paiement à classer" : `${aClasser} paiements à classer`] : []),
           `Plaisir : ${formaterMontant(pots.plaisir.solde)}`,
