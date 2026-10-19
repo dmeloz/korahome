@@ -16,7 +16,7 @@ import {
   type ActionJarvis,
   type DonneesFoyer,
 } from "./jarvis";
-import { extraireRecette, lienAutorise, lienDans, lirePage, messageDemande, texteDePage } from "./jarvisModele";
+import { extraireRecette, lienAutorise, lienDans, lirePage, MAX_UNIONS_STRICTES, messageDemande, texteDePage } from "./jarvisModele";
 import { nouvelElement, nouvelleListe } from "./listes";
 import { ajouterPlante, nouvellePlante, nouvelleZone } from "./jardin";
 import { nouvelAnimal } from "./mitsu";
@@ -88,12 +88,21 @@ describe("les demandes d'outils", () => {
     ]);
   });
 
-  it("chaque outil a un schéma strict", () => {
+  it("chaque outil a un schéma fermé", () => {
     for (const outil of OUTILS_JARVIS) {
-      expect(outil.strict).toBe(true);
       expect(outil.input_schema.additionalProperties).toBe(false);
       expect([...outil.input_schema.required].sort()).toEqual(Object.keys(outil.input_schema.properties).sort());
     }
+  });
+  it("les outils stricts restent sous la limite de champs « ou null » de l'API", () => {
+    const unions = (s: unknown): number => {
+      if (!s || typeof s !== "object") return 0;
+      const o = s as { type?: unknown; anyOf?: unknown; properties?: Record<string, unknown>; items?: unknown };
+      const ici = Array.isArray(o.type) || o.anyOf ? 1 : 0;
+      return ici + Object.values(o.properties ?? {}).reduce<number>((n, v) => n + unions(v), 0) + unions(o.items);
+    };
+    const total = OUTILS_JARVIS.filter((o) => o.strict).reduce((n, o) => n + unions(o.input_schema), 0);
+    expect(total).toBeLessThanOrEqual(MAX_UNIONS_STRICTES);
   });
 });
 

@@ -73,7 +73,14 @@ export function moisDe(jour: Jour): string {
 const texte = (description: string) => ({ type: "string", description });
 const ouNul = (description: string) => ({ type: ["string", "null"], description });
 
-/** Les outils proposés au modèle (format de l'API Claude, schémas stricts). */
+/**
+ * L'API refuse toute la demande au-delà de 16 champs « ou null » dans l'ensemble des outils
+ * stricts. Les outils qui en ont le plus (agenda, dépense, recette) ne sont donc pas stricts :
+ * lireActions vérifie de toute façon chaque action avant de l'appliquer.
+ */
+export const MAX_UNIONS_STRICTES = 16;
+
+/** Les outils proposés au modèle (format de l'API Claude). */
 export const OUTILS_JARVIS = [
   {
     name: "ajouter_courses",
@@ -314,7 +321,7 @@ export const OUTILS_JARVIS = [
     name: "ajouter_evenement",
     description:
       "Ajoute un événement à l'agenda commun : rendez-vous (médecin, véto), anniversaire, vacances, sortie, horaire de travail. Il apparaît aussi dans le calendrier de l'iPhone.",
-    strict: true,
+    strict: false, // Beaucoup de champs facultatifs : voir MAX_UNIONS_STRICTES.
     input_schema: {
       type: "object",
       additionalProperties: false,
@@ -350,7 +357,7 @@ export const OUTILS_JARVIS = [
     name: "noter_depense",
     description:
       "Note une dépense au budget du foyer : un ticket de caisse (son total), une sortie, une facture payée (« j'ai payé Sunrise »), un versement à l'épargne.",
-    strict: true,
+    strict: false, // Beaucoup de champs facultatifs : voir MAX_UNIONS_STRICTES.
     input_schema: {
       type: "object",
       additionalProperties: false,
@@ -379,7 +386,7 @@ export const OUTILS_JARVIS = [
     name: "enregistrer_recette",
     description:
       "Range une recette dans les recettes du foyer : lue derrière un lien, sur une photo (page de livre, fiche, écran) ou dictée. Une recette déjà enregistrée sous ce titre n'est pas copiée.",
-    strict: true,
+    strict: false, // Beaucoup de champs facultatifs : voir MAX_UNIONS_STRICTES.
     input_schema: {
       type: "object",
       additionalProperties: false,
