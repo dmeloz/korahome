@@ -99,7 +99,9 @@ export function Agenda(p: PropsPage) {
 
   async function retirer(e: Evenement) {
     setOuvert(null);
-    await depot.supprimerAgenda(e.id);
+    // Venu d'un calendrier iCloud : le serveur doit d'abord l'y effacer, sinon il reviendrait.
+    if (e.icloud) await depot.enregistrerAgenda({ ...e, aRetirer: true, modifieLe: contexteReel.maintenant() });
+    else await depot.supprimerAgenda(e.id);
     synchroniserBientot(p.agendaDistant);
     annoncer(`« ${e.titre} » retiré de l'agenda.`, async () => {
       await depot.enregistrerAgenda(e);
@@ -228,8 +230,8 @@ export function Agenda(p: PropsPage) {
             </p>
             {ouvert.evenement.lieu && <p>{ouvert.evenement.lieu}</p>}
             {ouvert.evenement.note && <p className="discret agenda-note">{ouvert.evenement.note}</p>}
-            {ouvert.lectureSeule ? (
-              <p className="discret">Vient de : {ouvert.evenement.source}. Il se modifie là-bas.</p>
+            {ouvert.lectureSeule || (ouvert.evenement.icloud && ouvert.evenement.creePar !== p.membreId) ? (
+              <p className="discret">Vient de : {ouvert.evenement.source}. {ouvert.lectureSeule ? "Il se modifie là-bas." : "Seul son propriétaire peut le modifier depuis Kora."}</p>
             ) : (
               <>
                 <button type="button" className="bouton-principal" onClick={() => { const e = ouvert.evenement; setOuvert(null); setEdition({ avant: e, jour: e.jour }); }}>
@@ -238,6 +240,7 @@ export function Agenda(p: PropsPage) {
                 <button type="button" className="lien danger" onClick={() => void retirer(ouvert.evenement)}>
                   {ouvert.evenement.repetition === "aucune" ? "Retirer" : "Retirer toute la série"}
                 </button>
+                {ouvert.evenement.icloud && <p className="discret">Vient de : {ouvert.evenement.source}. Ce que tu changes ici y retourne aussi.</p>}
               </>
             )}
           </div>

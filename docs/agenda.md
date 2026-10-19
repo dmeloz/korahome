@@ -26,7 +26,10 @@ ou à chaque modification :
 - y écrit tout l'agenda du foyer (avec le prénom devant ce qui concerne l'autre : « Sarah · Dentiste ») ;
 - reprend dans Kora ce qui y est ajouté, modifié ou supprimé sur l'iPhone (le plus récent gagne) ;
 - lit les autres calendriers choisis (« Travail », « Famille »…) et les montre dans Kora, marqués
-  « iCloud de … », en lecture seule. Ils se règlent dans « Régler ».
+  « iCloud de … ». Ils se règlent dans « Régler ». Leur propriétaire peut les modifier ou les retirer
+  dans Kora : le changement retourne dans le même calendrier iCloud (alertes, invités et exceptions
+  gardés ; si l'iPhone l'a changé plus récemment, l'iPhone gagne). Un retrait attend le serveur
+  (`aRetirer`) pour être effacé d'iCloud avant de quitter Kora.
 
 Sécurité : le mot de passe d'app va dans le coffre du serveur (Supabase Vault, table
 `prive.comptes_icloud`) et ne revient jamais aux téléphones. Il ne donne accès qu'aux calendriers et se

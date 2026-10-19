@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  aRetirerDe,
   analyserPhrase,
   decrireAgenda,
   decrireHoraire,
   decrireJour,
   dispositionDuJour,
   duJour,
+  evenementsDe,
   evenementsDuMatin,
   filtrer,
   grilleDuMois,
@@ -269,5 +271,28 @@ describe("une date sans mois", () => {
   });
   it("ne prend pas une heure pour un jour", () => {
     expect(lire("Réunion le 21 de 8h à 9h")).toMatchObject({ jour: "2026-10-21", heure: "08:00", heureFin: "09:00" });
+  });
+});
+
+describe("un événement lu dans un autre calendrier iCloud", () => {
+  const icloud = { href: "https://x/t.ics", etag: '"1"', importeLe: "2000-01-01T00:00:00.000Z" };
+  const lu = { ...ev({ titre: "Réunion", jour: "2026-10-20", heure: "08:00" }), source: "iCloud de Melo", icloud };
+
+  it("se modifie dans Kora, en gardant d'où il vient", () => {
+    expect(occurrences([lu], "2026-10-20", "2026-10-20")[0].lectureSeule).toBe(false);
+    const apres = preparerEvenement({ titre: "Réunion d'équipe", jour: "2026-10-20", heure: "09:00" }, "melo", contexteTest(), lu);
+    expect(apres).toMatchObject({ id: lu.id, source: "iCloud de Melo", icloud });
+    expect(apres.modifieLe! > icloud.importeLe).toBe(true);
+  });
+
+  it("retiré, il disparaît de Kora en attendant d'être effacé d'iCloud", () => {
+    const retire = { ...lu, aRetirer: true };
+    expect(evenementsDe([retire])).toEqual([]);
+    expect(aRetirerDe([retire, ev({ titre: "A", jour: "2026-10-20" })])).toEqual([retire]);
+  });
+
+  it("le carnet de Mitsu reste en lecture seule", () => {
+    const carnet = { ...ev({ titre: "Vaccin", jour: "2026-10-20" }), source: "Carnet de Mitsu" };
+    expect(occurrences([carnet], "2026-10-20", "2026-10-20")[0].lectureSeule).toBe(true);
   });
 });

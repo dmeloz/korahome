@@ -14,6 +14,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import {
+  aRetirerDe,
   aujourdhuiAZurich,
   COULEUR_KORA,
   CORPS_CALENDRIERS,
@@ -162,7 +163,7 @@ async function ecrireDocuments(foyerId: string, documents: { id: string; donnees
 }
 
 /** Synchronise un compte ; renvoie les événements du foyer tels qu'ils sont après. */
-async function synchroniserCompte(c: Compte, evenements: any[], foyer: any, animaux: any[]): Promise<any[]> {
+async function synchroniserCompte(c: Compte, evenements: any[], foyer: any, animaux: any[], aRetirer: any[]): Promise<any[]> {
   const acces = { appleId: c.apple_id, motDePasse: c.mot_de_passe };
   const maintenant = new Date().toISOString();
   const aujourdhui = aujourdhuiAZurich(new Date());
@@ -188,7 +189,21 @@ async function synchroniserCompte(c: Compte, evenements: any[], foyer: any, anim
     autres = null;
   }
 
-  const plan = planSynchro({ membre: c.membre_id, foyer, evenements, animaux, liens, calendrierKora: kora, kora: contenuKora, autres, maintenant, aujourdhui });
+  const plan = planSynchro({ membre: c.membre_id, foyer, evenements, animaux, liens, calendrierKora: kora, kora: contenuKora, autres, aRetirer, maintenant, aujourdhui });
+
+  // Ce qui a été changé ou retiré dans Kora retourne dans son calendrier iCloud.
+  for (const href of plan.retirerIcloud) {
+    const r = await dav(acces, "DELETE", href);
+    await r.body?.cancel();
+    if (!r.ok && r.status !== 404) console.error("DELETE", r.status);
+  }
+  for (const m of plan.modifierIcloud) {
+    // If-Match : si l'iPhone l'a changé entre-temps, iCloud refuse (412) et le passage suivant départage.
+    const r = await dav(acces, "PUT", m.href, m.ics, m.etag ? { "If-Match": m.etag } : {});
+    await r.body?.cancel();
+    if (r.ok) plan.ecrire.push({ ...m.evenement, icloud: { href: m.href, etag: r.headers.get("ETag"), importeLe: m.evenement.modifieLe } });
+    else console.error("PUT iCloud", r.status);
+  }
 
   for (const href of plan.effacer) {
     const r = await dav(acces, "DELETE", href);
@@ -227,12 +242,13 @@ async function synchroniserCompte(c: Compte, evenements: any[], foyer: any, anim
 async function synchroniserFoyer(foyerId: string, comptes: Compte[]): Promise<{ ok: number; erreurs: number }> {
   const d = await donneesDuFoyer(foyerId);
   let evenements = evenementsDe(d.agenda);
+  const aRetirer = aRetirerDe(d.agenda);
   const bilan = { ok: 0, erreurs: 0 };
   for (const c of comptes) {
     const pris = await echec(serveur.rpc("icloud_verrou", { p_foyer_id: foyerId, p_membre_id: c.membre_id, p_prendre: true }));
     if (!pris) continue;
     try {
-      evenements = await synchroniserCompte(c, evenements, d.foyer, d.animaux);
+      evenements = await synchroniserCompte(c, evenements, d.foyer, d.animaux, aRetirer);
       bilan.ok++;
     } catch (e) {
       bilan.erreurs++;

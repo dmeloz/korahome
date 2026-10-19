@@ -36,7 +36,11 @@ export async function enregistrerModifications(depot: Ecritures, modifications: 
     else if (m.collection === "stock") await (m.supprime ? depot.supprimerProduit(m.apres.id) : depot.enregistrerProduit(m.apres));
     else if (m.collection === "memoire") await (m.supprime ? depot.supprimerSouvenir(m.apres.id) : depot.enregistrerSouvenir(m.apres));
     else if (m.collection === "retours") await depot.enregistrerRetour(m.apres);
-    else if (m.collection === "agenda") await (m.supprime ? depot.supprimerAgenda(m.apres.id) : depot.enregistrerAgenda(m.apres));
+    else if (m.collection === "agenda") {
+      // Venu d'un calendrier iCloud : marqué pour que le serveur l'y efface aussi.
+      if (m.supprime && m.apres.icloud) await depot.enregistrerAgenda({ ...m.apres, aRetirer: true });
+      else await (m.supprime ? depot.supprimerAgenda(m.apres.id) : depot.enregistrerAgenda(m.apres));
+    }
     else if (m.collection === "jardin") await depot.enregistrerZone(m.apres);
     else await depot.enregistrerAnimal(m.apres);
   }
