@@ -11,6 +11,7 @@ import { decrireTemps, meteoDu } from "../../domaine/meteo";
 import type { OuRecherche } from "../../domaine/recherche";
 import { repartitionDue } from "../../domaine/repartition";
 import { decrireDerniere, sauvegardeDue } from "../../domaine/sauvegarde";
+import { decrireEcheance, marquerFaite } from "../../domaine/taches";
 import {
   ajouterWidget,
   basculerTaille,
@@ -34,7 +35,8 @@ import {
   type Tailles,
   type WidgetId,
 } from "../../domaine/tableauDeBord";
-import { enregistrerDisposition, enregistrerPages, enregistrerTailles, lireDisposition, lirePages, lireTailles } from "../contexte";
+import { useAnnoncer } from "../annulation";
+import { contexteReel, enregistrerDisposition, enregistrerPages, enregistrerTailles, lireDisposition, lirePages, lireTailles } from "../contexte";
 import { Icone } from "../Icone";
 import { MODULES, PICTOS, type ApercuWidget, type DonneesModule } from "../modules";
 import { vibrer } from "../haptique";
@@ -44,6 +46,9 @@ import { Recherche } from "../Recherche";
 import { lireDerniereSauvegarde } from "../sauvegarde";
 import { fermerRemarque, lireAdaptations, lireDernierBilan, lireUsages, noterUsage, remarqueAMontrer, useApprentissageLocal } from "../usage";
 import { lireDerniereRepartition } from "./Taches";
+
+/** Combien de choses du jour la carte garde ; trois se voient, les autres se font défiler. */
+const CHOSES_CARTE = 12;
 
 function salutation(heure: number): string {
   if (heure < 5) return "Bonne nuit";
@@ -95,6 +100,7 @@ export function Accueil(props: {
   const ignorerClic = useRef(false);
   const { foyer, membreId, aujourdhui } = props.donnees;
   const moi = foyer.membres.find((m) => m.id === membreId);
+  const annoncer = useAnnoncer();
   const date = new Date().toLocaleDateString("fr-CH", { weekday: "long", day: "numeric", month: "long" });
   const jourMeteo = meteoDu(props.donnees.meteo, aujourdhui);
   const temps = jourMeteo ? `${Math.round(jourMeteo.max)}°, ${decrireTemps(jourMeteo.code).toLowerCase()}` : null;
@@ -185,7 +191,17 @@ export function Accueil(props: {
     factures: facturesDuJour(props.donnees.budget, aujourdhui, 1),
     sauvegardeDue: sauvegardeDue(derniereSauvegarde, aujourdhui) && new Date().getDay() === 0,
     repartitionDue: repartitionDue(foyer, props.donnees.taches, aujourdhui, lireDerniereRepartition()),
-  });
+  }, CHOSES_CARTE);
+  const cocherChose = async (c: ChoseDuJour) => {
+    const avant = props.donnees.taches.find((t) => t.id === c.tacheId);
+    if (!avant) return;
+    vibrer();
+    const apres = marquerFaite(avant, membreId, aujourdhui, contexteReel);
+    await props.depot.enregistrerTache(apres);
+    noterUsage("tache", avant.id);
+    const suite = apres.recurrence ? ` Prochaine fois ${decrireEcheance(apres.echeance, aujourdhui)}.` : "";
+    annoncer(`« ${avant.titre} » faite.${suite}`, () => props.depot.enregistrerTache(avant));
+  };
   const toucherChose = (c: ChoseDuJour) => {
     if (c.destination === "sauvegarde") props.ouvrirSauvegarde();
     else if (c.destination === "repartition") props.ouvrirRepartition();
@@ -305,7 +321,8 @@ export function Accueil(props: {
             {date}
             {temps ? ` · ${temps}` : ""}
           </p>
-          <h1>
+          {/* Le bandeau du couple tient lieu de salutation ; le titre reste pour VoiceOver. */}
+          <h1 className="cache-visuel">
             {salutation(heure)}
             {moi ? `, ${moi.prenom}` : ""}
           </h1>
@@ -359,7 +376,7 @@ export function Accueil(props: {
         </div>
       )}
 
-      {!edition && <CarteAujourdhui carte={carte} toucher={toucherChose} voirTout={() => props.ouvrirModule("taches")} />}
+      {!edition && <CarteAujourdhui carte={carte} toucher={toucherChose} cocher={(c) => void cocherChose(c)} voirTout={() => props.ouvrirModule("taches")} />}
 
       {lesPages.length > 1 && (
         <nav className="onglets-accueil" aria-label="Pages de l'accueil">

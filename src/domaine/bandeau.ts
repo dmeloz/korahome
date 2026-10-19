@@ -1,4 +1,4 @@
-// Le bandeau du couple, sous « Bonjour, Melo » : il défile de droite à gauche (et au doigt) avec les mots
+// Le bandeau du couple, en tête de l'accueil : il défile de droite à gauche (et au doigt) avec les mots
 // que l'un écrit à l'autre, l'humeur du jour de chacun, les comptes à rebours, le clin d'œil
 // du jour de Jarvis et quelques infos utiles (météo, rendez-vous, frigo, Mitsu).
 // Tout se partage entre les deux iPhone dans la collection « couple ».
@@ -237,6 +237,38 @@ export function elementsBandeau(d: {
   elements.push(...(d.infos ?? []).map((i) => ({ ...i, texte: abreger(i.texte) })));
   return elements;
 }
+
+/** Ce que chacun peut choisir de voir passer dans son bandeau (réglé dans « Nos mots », par téléphone). */
+export type SorteBandeau = "mot" | "humeur" | "compte" | "clin" | "meteo" | "rdv" | "frigo" | "animal";
+
+export const SORTES_BANDEAU: { sorte: SorteBandeau; nom: string; detail: string }[] = [
+  { sorte: "mot", nom: "Mots reçus", detail: "Les mots de l'autre, trois jours" },
+  { sorte: "humeur", nom: "Humeurs du jour", detail: "La tienne et celle de l'autre" },
+  { sorte: "compte", nom: "Comptes à rebours", detail: "Les moments attendus du mois" },
+  { sorte: "clin", nom: "Clin d'œil de Jarvis", detail: "Une phrase par jour pour vous deux" },
+  { sorte: "meteo", nom: "Météo", detail: "Le temps du jour à Renens" },
+  { sorte: "rdv", nom: "Prochain rendez-vous", detail: "Dans les sept jours" },
+  { sorte: "frigo", nom: "Frigo", detail: "Ce qu'il faut finir" },
+  { sorte: "animal", nom: "Animaux", detail: "Ce qui est à faire pour eux" },
+];
+
+/** La sorte d'un élément : son genre, ou pour une info, ce qu'elle annonce. */
+export function sorteDe(el: ElementBandeau): SorteBandeau {
+  if (el.genre !== "info") return el.genre;
+  if (el.cle === "meteo") return "meteo";
+  if (el.cle === "frigo") return "frigo";
+  if (el.cle.startsWith("rdv-")) return "rdv";
+  return "animal";
+}
+
+/** Retire du bandeau les sortes qu'on a choisi de ne plus voir ; tout passe par défaut. */
+export function filtrerBandeau(elements: readonly ElementBandeau[], masquees: readonly SorteBandeau[]): ElementBandeau[] {
+  return elements.filter((el) => !masquees.includes(sorteDe(el)));
+}
+
+/** Les vitesses du défilement, en points par seconde. */
+export const VITESSES_BANDEAU = { lente: 20, normale: 32, rapide: 48 } as const;
+export type VitesseBandeau = keyof typeof VITESSES_BANDEAU;
 
 /**
  * Les mots programmés que le passage de l'heure doit annoncer : ceux devenus visibles depuis

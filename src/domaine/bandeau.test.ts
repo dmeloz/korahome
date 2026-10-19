@@ -5,6 +5,8 @@ import {
   basculerCoeur,
   decrireCompte,
   elementsBandeau,
+  filtrerBandeau,
+  sorteDe,
   infosUtiles,
   nosMots,
   notificationMot,
@@ -141,5 +143,25 @@ describe("fenetreMotsProgrammes", () => {
   it("couvre l'heure écoulée jusqu'à l'heure pleine, même si le passage est en retard", () => {
     expect(fenetreMotsProgrammes(new Date("2026-10-15T18:00:07Z"))).toEqual({ apres: "2026-10-15T17:00:00.000Z", jusqua: "2026-10-15T18:00:00.000Z" });
     expect(fenetreMotsProgrammes(new Date("2026-10-15T18:59:59Z")).jusqua).toBe("2026-10-15T18:00:00.000Z");
+  });
+});
+
+describe("filtrerBandeau", () => {
+  it("reconnaît la sorte de chaque élément, infos comprises", () => {
+    expect(sorteDe({ cle: "meteo", genre: "info", texte: "" })).toBe("meteo");
+    expect(sorteDe({ cle: "rdv-1", genre: "info", texte: "" })).toBe("rdv");
+    expect(sorteDe({ cle: "frigo", genre: "info", texte: "" })).toBe("frigo");
+    expect(sorteDe({ cle: "animal-m", genre: "info", texte: "" })).toBe("animal");
+    expect(sorteDe({ cle: "humeurs", genre: "humeur", texte: "" })).toBe("humeur");
+  });
+
+  it("retire seulement les sortes masquées", () => {
+    const els = [
+      { cle: "m1", genre: "mot" as const, texte: "Coucou" },
+      { cle: "meteo", genre: "info" as const, texte: "Soleil" },
+      { cle: "frigo", genre: "info" as const, texte: "À finir : lait" },
+    ];
+    expect(filtrerBandeau(els, []).length).toBe(3);
+    expect(filtrerBandeau(els, ["meteo", "frigo"]).map((e) => e.cle)).toEqual(["m1"]);
   });
 });

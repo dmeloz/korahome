@@ -32,6 +32,8 @@ export interface ChoseDuJour {
   quand: string;
   etat: EtatChose;
   destination: DestinationChose;
+  /** Pour une tâche : de quoi la cocher sans ouvrir la page. */
+  tacheId?: Id;
 }
 
 export interface CarteDuJour {
@@ -74,8 +76,8 @@ export function chosesDuJour(e: EntreeDuJour): ChoseDuJour[] {
   const { aujourdhui } = e;
 
   const t = tachesDuMatin([...e.taches], e.membreId, aujourdhui);
-  for (const x of t.enRetard) choses.push({ cle: `tache-${x.id}`, texte: x.titre, quand: "en retard", etat: "urgent", destination: "taches" });
-  for (const x of t.aujourdhui) choses.push({ cle: `tache-${x.id}`, texte: x.titre, quand: "aujourd'hui", etat: "jour", destination: "taches" });
+  for (const x of t.enRetard) choses.push({ cle: `tache-${x.id}`, texte: x.titre, quand: "en retard", etat: "urgent", destination: "taches", tacheId: x.id });
+  for (const x of t.aujourdhui) choses.push({ cle: `tache-${x.id}`, texte: x.titre, quand: "aujourd'hui", etat: "jour", destination: "taches", tacheId: x.id });
 
   for (const f of e.factures ?? []) {
     const ecart = ecartJours(aujourdhui, f.echeance);

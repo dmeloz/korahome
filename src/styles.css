@@ -318,9 +318,10 @@ h1 {
 /* La date et les boutons sur la première ligne, la salutation en entier dessous. */
 .entete-titres { display: contents; }
 .entete-accueil .entete-date { grid-column: 1; grid-row: 1; margin: 0; }
-.entete-accueil h1 { grid-column: 1 / -1; grid-row: 2; }
 .entete-accueil > .entete-boutons, .entete-accueil > .bouton-termine { grid-column: 2; grid-row: 1; }
 .entete-date { margin: 0 0 2px; font-size: var(--t-legende); color: var(--discret); letter-spacing: 0.02em; }
+.entete-accueil .entete-date { font-size: var(--t-corps); font-weight: 600; color: var(--texte); letter-spacing: 0; }
+.cache-visuel { position: absolute !important; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .entete-date::first-letter { text-transform: uppercase; }
 .entete-accueil h1 { margin: 0; }
 .entete-boutons { display: flex; gap: 8px; align-items: center; }
@@ -362,7 +363,16 @@ h1 {
 .carte-jour-entete { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 0 4px 6px; }
 .carte-jour-entete h2 { margin: 0; font-size: var(--t-corps); font-weight: 600; }
 .carte-jour-entete span { font-size: var(--t-legende); color: var(--discret); }
-.carte-jour ul { list-style: none; margin: 0; padding: 0; }
+.carte-jour ul { list-style: none; margin: 0; padding: 0; max-height: calc(48px * 3.5); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+.carte-jour ul::-webkit-scrollbar { display: none; }
+.carte-jour li.avec-coche { display: flex; align-items: center; gap: 2px; }
+.carte-jour-coche { display: grid; place-items: center; flex: none; width: 36px; height: 44px; margin-left: -6px; padding: 0; border: none; background: none; color: transparent; }
+.carte-jour-coche::before { content: ""; position: absolute; width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid color-mix(in srgb, var(--discret) 70%, transparent); }
+.carte-jour-coche { position: relative; }
+.carte-jour-coche.urgent::before { border-color: var(--urgent); }
+.carte-jour-coche.jour::before { border-color: var(--accent); }
+.carte-jour-coche:active { color: var(--accent); }
+.carte-jour-coche:active::before { background: var(--accent-doux); }
 .carte-jour li { border-top: 1px solid color-mix(in srgb, var(--carte-jour-trait) 70%, transparent); }
 .carte-jour-ligne { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 6px 4px; border: none; background: none; text-align: left; }
 .carte-jour-texte { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -2024,3 +2034,7 @@ html.avec-barre { --hauteur-barre: 84px; }
 .budget-etapes li::marker { color: var(--accent); font-weight: 600; }
 .budget-a-la-main summary { cursor: pointer; color: var(--accent); font-size: var(--t-detail); font-weight: 600; padding: 4px 0; }
 .budget-a-la-main .budget-etapes { margin-top: 8px; }
+
+/* Nos mots : réglages du bandeau */
+.bandeau-reglage { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.bandeau-reglage-aide { margin: 14px 4px 8px; font-size: var(--t-detail); }
