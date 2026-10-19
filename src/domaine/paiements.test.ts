@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { nouveauPlan, nouvelleDepense, type DocBudget, type PlanBudget } from "./budget";
 import { contexteTest } from "./contexteTest";
-import { cartesDuFoyer, choixDeCarte, classerPaiement, completerPaiement, lireMontantPaye, nomDeCarte, nomDeCommercant, paiementsAClasser, recevoirPaiement, retenirCarte } from "./paiements";
+import { cartesDuFoyer, choixDeCarte, classerPaiement, completerPaiement, demandeRaccourci, lireMontantPaye, nomDeCarte, nomDeCommercant, paiementsAClasser, recevoirPaiement, retenirCarte } from "./paiements";
 
 const JOUR = "2026-10-19";
 
@@ -96,5 +96,12 @@ describe("les paiements Apple Pay", () => {
     if (recu.genre !== "depense") throw new Error("attendu : une dépense");
     expect(cartesDuFoyer(avecCarte, [avecCarte, recu.doc])).toEqual([{ carte: "Courses", choix: "courses", dernier: JOUR }]);
     expect(paiementsAClasser([avecCarte, recu.doc])).toEqual([]);
+  });
+
+  it("prépare la demande pour l'IA de Raccourcis avec l'adresse de cet iPhone", () => {
+    const demande = demandeRaccourci("https://exemple.supabase.co/functions/v1/paiements?j=abc");
+    expect(demande).toContain("URL : https://exemple.supabase.co/functions/v1/paiements?j=abc");
+    expect(demande).toContain("POST");
+    expect(demande).toMatch(/montant[\s\S]*marchand[\s\S]*carte/);
   });
 });

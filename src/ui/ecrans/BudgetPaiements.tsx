@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { formaterMontant, lireMontant, nomDuMois, POTS, type PaiementAClasser, type PlanBudget, type Pot } from "../../domaine/budget";
-import { cartesDuFoyer, choixDeCarte, classerPaiement, paiementsAClasser, POTS_DE_CARTE, retenirCarte, type ChoixCarte } from "../../domaine/paiements";
+import { cartesDuFoyer, choixDeCarte, classerPaiement, demandeRaccourci, paiementsAClasser, POTS_DE_CARTE, retenirCarte, type ChoixCarte } from "../../domaine/paiements";
 import { useAnnoncer } from "../annulation";
 import { contexteReel } from "../contexte";
 import { vibrer } from "../haptique";
@@ -154,13 +154,18 @@ export function InvitationApplePay(props: { ouvrir: () => void }) {
   );
 }
 
+/** Avec l'IA de Raccourcis : la phrase copiée crée le raccourci, il reste à le brancher. */
 const ETAPES = [
-  "Ouvre l'app Raccourcis, onglet Automatisation, puis + et « Transaction ».",
-  "Coche les cartes du foyer (Revolut courses, plaisir…), garde toutes les catégories, choisis « Exécuter immédiatement », puis Suivant.",
-  "Nouveau raccourci vide, puis l'action « Obtenir le contenu de l'URL ».",
-  "Colle l'adresse copiée. Dans les options, Méthode POST, Corps de la requête JSON.",
-  "Ajoute trois champs Texte : montant, marchand, carte. Pour chacun, choisis la variable de la transaction : Montant, Commerçant, Carte.",
-  "Touche OK. Au premier paiement de chaque carte, Kora demande une fois son pot ; ensuite tout se range seul.",
+  "Dans Raccourcis, crée un nouveau raccourci, touche « Décrire un raccourci » et colle la demande copiée. Vérifie qu'il contient bien l'action « Obtenir le contenu de l'URL », puis OK.",
+  "Onglet Automatisation, + puis « Transaction ». Coche les cartes du foyer (Revolut courses, plaisir…), garde toutes les catégories, choisis « Exécuter immédiatement », puis Suivant.",
+  "Choisis le raccourci « Kora paiement ». Au premier paiement de chaque carte, Kora demande une fois son pot ; ensuite tout se range seul.",
+];
+
+/** Sans l'IA : le même raccourci, fait à la main. */
+const A_LA_MAIN = [
+  "Nouveau raccourci, action « Obtenir le contenu de l'URL », colle l'adresse (bouton Copier l'adresse).",
+  "Dans les options : Méthode POST, Corps de la requête JSON.",
+  "Trois champs Texte : montant, marchand, carte, avec les variables Montant, Commerçant et Carte de l'entrée du raccourci.",
 ];
 
 /** La mise en route sur cet iPhone, et les cartes que Kora connaît. */
@@ -171,10 +176,10 @@ export function FeuilleApplePay(p: PropsPage & { plan: PlanBudget; ouverte: bool
   const [occupe, setOccupe] = useState(false);
   const cartes = cartesDuFoyer(plan, p.budget);
 
-  async function copier(texte: string) {
+  async function copier(texte: string, quoi = "Adresse copiée.") {
     try {
       await navigator.clipboard.writeText(texte);
-      setEtat("Adresse copiée.");
+      setEtat(quoi);
     } catch {
       setEtat("Copie impossible : touche longuement l'adresse pour la copier.");
     }
@@ -192,7 +197,7 @@ export function FeuilleApplePay(p: PropsPage & { plan: PlanBudget; ouverte: bool
       const nouvelle = await p.jarvis.serveur.lienPaiements({ foyerId: p.jarvis.foyerId, membreId: p.membreId! });
       garderLien(nouvelle);
       setAdresse(nouvelle);
-      await copier(nouvelle);
+      await copier(demandeRaccourci(nouvelle), "Demande copiée : colle-la dans Raccourcis.");
     } catch (e) {
       setEtat(e instanceof Error ? e.message : "Le lien n'a pas pu être créé.");
     } finally {
@@ -230,7 +235,10 @@ export function FeuilleApplePay(p: PropsPage & { plan: PlanBudget; ouverte: bool
             <p className="surtitre">Cet iPhone est relié</p>
             <p className="budget-adresse">{adresse}</p>
             <div className="budget-actions">
-              <button type="button" className="bouton-principal" onClick={() => void copier(adresse)}>
+              <button type="button" className="bouton-principal" onClick={() => void copier(demandeRaccourci(adresse), "Demande copiée : colle-la dans Raccourcis.")}>
+                Copier la demande
+              </button>
+              <button type="button" className="bouton-secondaire" onClick={() => void copier(adresse)}>
                 Copier l'adresse
               </button>
               <button type="button" className="bouton-secondaire" disabled={occupe} onClick={() => void retirer()}>
@@ -253,6 +261,14 @@ export function FeuilleApplePay(p: PropsPage & { plan: PlanBudget; ouverte: bool
                 <li key={e}>{e}</li>
               ))}
             </ol>
+            <details className="budget-a-la-main">
+              <summary>Sans l'IA de Raccourcis</summary>
+              <ol className="budget-etapes">
+                {A_LA_MAIN.map((e) => (
+                  <li key={e}>{e}</li>
+                ))}
+              </ol>
+            </details>
             <p className="discret">À faire sur chaque iPhone qui paie avec les cartes du foyer, chacun avec son propre lien. Les paiements par numéro de carte (en ligne) n'y passent pas : écris-les dans la barre.</p>
           </>
         )}
