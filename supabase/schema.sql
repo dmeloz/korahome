@@ -510,3 +510,54 @@ revoke all on function public.paiements_jeton(text, text, text) from public, ano
 revoke all on function public.paiements_qui(text) from public, anon, authenticated;
 grant execute on function public.paiements_jeton(text, text, text) to service_role;
 grant execute on function public.paiements_qui(text) to service_role;
+
+-- ===== Jarvis dans Siri (Kora 0.0.41) =====
+-- Le raccourci « Dis Siri, Tael » envoie la phrase à la fonction « siri » avec un jeton propre à
+-- une personne. Le serveur ne garde que l'empreinte (SHA-256) du jeton, le nom choisi pour
+-- l'assistant et, quelques minutes, la suite de la conversation (question en attente, dernier
+-- tour pour « annule »). Un nouveau lien remplace l'ancien. Voir docs/siri.md.
+
+create table if not exists prive.jetons_siri (
+  foyer_id text not null references public.foyers (id) on delete cascade,
+  membre_id text not null,
+  empreinte text not null unique,
+  nom text not null default 'Jarvis',
+  suite jsonb,
+  cree_le timestamptz not null default now(),
+  dernier_le timestamptz,
+  primary key (foyer_id, membre_id)
+);
+revoke all on prive.jetons_siri from public, anon, authenticated;
+
+-- Crée ou remplace le jeton d'une personne ; une empreinte null l'efface. Fonction serveur seulement.
+create or replace function public.siri_jeton(p_foyer_id text, p_membre_id text, p_empreinte text, p_nom text)
+returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  delete from prive.jetons_siri where foyer_id = p_foyer_id and membre_id = p_membre_id;
+  if p_empreinte is not null then
+    insert into prive.jetons_siri (foyer_id, membre_id, empreinte, nom) values (p_foyer_id, p_membre_id, p_empreinte, coalesce(p_nom, 'Jarvis'));
+  end if;
+end $$;
+
+-- À qui appartient un jeton, avec son nom et la suite de la conversation. Fonction serveur seulement.
+create or replace function public.siri_qui(p_empreinte text)
+returns table (foyer_id text, membre_id text, nom text, suite jsonb)
+language sql security definer set search_path = '' as $$
+  update prive.jetons_siri set dernier_le = now() where empreinte = p_empreinte
+  returning foyer_id, membre_id, nom, suite;
+$$;
+
+-- Garde la suite de la conversation d'une personne. Fonction serveur seulement.
+create or replace function public.siri_suite(p_foyer_id text, p_membre_id text, p_suite jsonb)
+returns void
+language sql security definer set search_path = '' as $$
+  update prive.jetons_siri set suite = p_suite where foyer_id = p_foyer_id and membre_id = p_membre_id;
+$$;
+
+revoke all on function public.siri_jeton(text, text, text, text) from public, anon, authenticated;
+revoke all on function public.siri_qui(text) from public, anon, authenticated;
+revoke all on function public.siri_suite(text, text, jsonb) from public, anon, authenticated;
+grant execute on function public.siri_jeton(text, text, text, text) to service_role;
+grant execute on function public.siri_qui(text) to service_role;
+grant execute on function public.siri_suite(text, text, jsonb) to service_role;

@@ -17,6 +17,7 @@ import { Conseil } from "./ecrans/Conseil";
 import { Bilan } from "./ecrans/Bilan";
 import { CeQueKoraSait } from "./ecrans/CeQueKoraSait";
 import { CalendrierIphone, icloudEnErreur } from "./ecrans/CalendrierIphone";
+import { Siri, siriRelie } from "./ecrans/Siri";
 import { MemoireJarvis } from "./ecrans/MemoireJarvis";
 import { NosMots } from "./ecrans/NosMots";
 import { Jarvis } from "./ecrans/Jarvis";
@@ -67,7 +68,8 @@ type Page =
   | { nom: "appris" }
   | { nom: "rappels" }
   | { nom: "sauvegarde" }
-  | { nom: "calendrier" };
+  | { nom: "calendrier" }
+  | { nom: "siri" };
 
 /** Une page de la pile, avec l'endroit où elle était défilée quand on en est parti. */
 type Entree = Page & { defilement?: number };
@@ -152,6 +154,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     if (p.nom === "rappels") return "Rappels";
     if (p.nom === "sauvegarde") return "Sauvegarde";
     if (p.nom === "calendrier") return "Calendrier de l'iPhone";
+    if (p.nom === "siri") return "Siri";
     if (p.nom === "module") return MODULES[p.id]?.libelle ?? "Retour";
     if (p.nom === "espace") return espace(p.id).titre;
     return listes.find((l) => l.id === p.id)?.nom ?? "Liste";
@@ -314,6 +317,8 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     ecran = <Sauvegarde depot={depot} aujourdhui={donnees.aujourdhui} contenu={{ foyer: leFoyer, listes, elements, taches, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda, budget, retours }} />;
   } else if (page.nom === "calendrier") {
     ecran = <CalendrierIphone foyer={leFoyer} membreId={membre} comptes={comptesIcloudDe(agenda)} distant={agendaPartage} />;
+  } else if (page.nom === "siri") {
+    ecran = <Siri foyer={leFoyer} membreId={membre} distant={jarvisPartage} />;
   } else if (page.nom === "retours") {
     ecran = <RetoursTest depot={depot} foyer={leFoyer} retours={retours} partageActif={partageActif} />;
   } else {
@@ -332,6 +337,8 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         ouvrirAppris={() => ouvrir({ nom: "appris" })}
         ouvrirSauvegarde={() => ouvrir({ nom: "sauvegarde" })}
         ouvrirCalendrier={() => ouvrir({ nom: "calendrier" })}
+        ouvrirSiri={() => ouvrir({ nom: "siri" })}
+        siri={siriRelie() ? "Relié" : "Pas relié"}
         revoirVisite={() => {
           demanderVisite();
           avecTransition("arriere", () => setPile((avant) => avant.slice(0, 1)));
