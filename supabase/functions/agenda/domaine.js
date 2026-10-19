@@ -422,7 +422,7 @@ function lireMultistatus(xml) {
 }
 /** Les calendriers d'événements trouvés dans le dossier des calendriers. */
 function lireCalendriers(xml, base) {
-	return lireMultistatus(xml).filter((r) => /<(?:[\w-]+:)?calendar\b/.test(r.props.resourcetype ?? "") && /name="VEVENT"/i.test(r.props["supported-calendar-component-set"] ?? "name=\"VEVENT\"")).map((r) => ({
+	return lireMultistatus(xml).filter((r) => /<(?:[\w-]+:)?calendar\b/.test(r.props.resourcetype ?? "") && /name=["']VEVENT["']/i.test(r.props["supported-calendar-component-set"] || "name=\"VEVENT\"")).map((r) => ({
 		url: new URL(r.href, base).href,
 		nom: decoderXml(r.props.displayname ?? "").trim() || "Calendrier"
 	}));

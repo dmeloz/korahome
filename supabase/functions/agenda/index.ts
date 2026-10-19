@@ -111,7 +111,12 @@ async function trouverMaison(acces: Acces): Promise<string> {
 
 async function listerCalendriers(acces: Acces, maison: string) {
   const r = await multistatus(acces, "PROPFIND", maison, CORPS_CALENDRIERS, "1");
-  return lireCalendriers(r.xml, r.base);
+  const trouves = lireCalendriers(r.xml, r.base);
+  // Un compte iCloud a presque toujours plusieurs calendriers ; sinon, la forme de la réponse va dans les journaux.
+  if (trouves.length <= 1) {
+    console.log("agenda: calendriers introuvables", JSON.stringify(lireMultistatus(r.xml).map((x) => ({ href: x.href.replace(/^\/\d+\//, "/…/"), props: Object.keys(x.props), type: (x.props.resourcetype ?? "").slice(0, 200), comp: (x.props["supported-calendar-component-set"] ?? "").slice(0, 200) }))), r.xml.length, r.xml.slice(0, 300).replace(/\d{6,}/g, "…"));
+  }
+  return trouves;
 }
 
 async function creerCalendrierKora(acces: Acces, maison: string): Promise<string> {

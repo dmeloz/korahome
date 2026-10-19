@@ -431,11 +431,12 @@ create or replace function public.icloud_retirer(p_foyer_id text, p_membre_id te
 returns void
 language plpgsql security definer set search_path = '' as $$
 declare
-  secret uuid;
+  -- Pas « secret » : c'est aussi le nom d'une colonne de vault.secrets.
+  v_secret uuid;
 begin
-  delete from prive.comptes_icloud where foyer_id = p_foyer_id and membre_id = p_membre_id returning secret_id into secret;
-  if secret is not null then
-    delete from vault.secrets where id = secret;
+  delete from prive.comptes_icloud where foyer_id = p_foyer_id and membre_id = p_membre_id returning secret_id into v_secret;
+  if v_secret is not null then
+    delete from vault.secrets s where s.id = v_secret;
   end if;
 end $$;
 

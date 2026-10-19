@@ -393,7 +393,7 @@ export function lireMultistatus(xml: string): ReponseDav[] {
 /** Les calendriers d'événements trouvés dans le dossier des calendriers. */
 export function lireCalendriers(xml: string, base: string): { url: string; nom: string }[] {
   return lireMultistatus(xml)
-    .filter((r) => /<(?:[\w-]+:)?calendar\b/.test(r.props.resourcetype ?? "") && /name="VEVENT"/i.test(r.props["supported-calendar-component-set"] ?? 'name="VEVENT"'))
+    .filter((r) => /<(?:[\w-]+:)?calendar\b/.test(r.props.resourcetype ?? "") && /name=["']VEVENT["']/i.test(r.props["supported-calendar-component-set"] || 'name="VEVENT"'))
     .map((r) => ({ url: new URL(r.href, base).href, nom: decoderXml(r.props.displayname ?? "").trim() || "Calendrier" }));
 }
 

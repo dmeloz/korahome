@@ -145,6 +145,11 @@ describe("les réponses CalDAV", () => {
     expect(lireCalendriers(xml, "https://p63-caldav.icloud.com:443/123/calendars/")).toEqual([{ url: "https://p63-caldav.icloud.com/123/calendars/home/", nom: "Maison" }]);
   });
 
+  it("lit aussi les attributs entre apostrophes, comme les renvoie iCloud", () => {
+    const icloud = `<?xml version='1.0' encoding='UTF-8'?><multistatus xmlns='DAV:'><response><href>/123/calendars/A1/</href><propstat><prop><displayname>Travail</displayname><resourcetype><collection/><calendar xmlns='urn:ietf:params:xml:ns:caldav'/></resourcetype><supported-calendar-component-set xmlns='urn:ietf:params:xml:ns:caldav'><comp name='VEVENT'/></supported-calendar-component-set></prop><status>HTTP/1.1 200 OK</status></propstat></response><response><href>/123/calendars/tasks/</href><propstat><prop><displayname>Rappels</displayname><resourcetype><collection/><calendar xmlns='urn:ietf:params:xml:ns:caldav'/></resourcetype><supported-calendar-component-set xmlns='urn:ietf:params:xml:ns:caldav'><comp name='VTODO'/></supported-calendar-component-set></prop><status>HTTP/1.1 200 OK</status></propstat></response></multistatus>`;
+    expect(lireCalendriers(icloud, "https://p63-caldav.icloud.com/123/calendars/")).toEqual([{ url: "https://p63-caldav.icloud.com/123/calendars/A1/", nom: "Travail" }]);
+  });
+
   it("garde seulement les propriétés trouvées", () => {
     const r = lireMultistatus(xml).find((x) => x.href === "/123/calendars/")!;
     expect(r.props.displayname).toBeUndefined();
