@@ -46,6 +46,7 @@ import { planifierSynchro, synchroEnDirect } from "./synchroAuto";
 import { avecTransition } from "./transitions";
 import { useDonnees } from "./useDonnees";
 import { demanderVisite } from "./visite";
+import { definirFee, nomFee } from "./fee";
 
 // Pas de barre d'onglets : tout part du tableau de bord, chaque widget ouvre la
 // page de son module, et chaque page a son retour vers la précédente.
@@ -143,9 +144,9 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     if (p.nom === "partage") return "Partage";
     if (p.nom === "notifications") return "Notifications";
     if (p.nom === "telephone") return "Ce téléphone";
-    if (p.nom === "jarvis") return "Jarvis";
+    if (p.nom === "jarvis") return nomFee();
     if (p.nom === "conseil") return "Conseil";
-    if (p.nom === "memoire") return "Mémoire de Jarvis";
+    if (p.nom === "memoire") return `Mémoire de ${nomFee()}`;
     if (p.nom === "mots") return "Nos mots";
     if (p.nom === "bilan") return "Bilan";
     if (p.nom === "appris") return "Ce que Kora sait";
@@ -192,6 +193,8 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       />
     );
   }
+  // Tael ou Navi : la fée suit la personne de ce téléphone.
+  definirFee(foyer.membres.find((m) => m.id === membre)?.prenom);
   const donnees: DonneesModule = { foyer, membreId: membre, listes, elements, taches, animaux, produits, catalogue, zones, meteo, aujourdhui: aujourdhuiLocal(), souvenirs, retours, couple, menus, agenda, budget };
 
   const ouvrir = (p: Page) =>
@@ -351,12 +354,12 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   return ecran;
   }
 
-  // La barre Jarvis, en bas de l'accueil et de chaque module : là où l'on ajoute quelque chose.
-  // Les autres pages (Réglages, Nos mots, Jarvis lui-même) ont leurs propres champs.
+  // La fée, en bas de l'accueil et de chaque module : là où l'on ajoute quelque chose.
+  // Les autres pages (Réglages, Nos mots, la conversation) ont leurs propres champs.
   const lieuBarre: LieuBarre | null = page.nom === "accueil" ? "accueil" : page.nom === "module" ? page.id : page.nom === "liste" ? "liste" : null;
   const cleBarre = page.nom === "module" ? `module:${page.id}` : page.nom === "liste" ? `liste:${page.id}` : page.nom;
   const coinDev = pastille && !nouvelleVersion && page.nom !== "retours" && (
-    <CoinDev depot={depot} ecran={nomEcran} membreId={membre} ouvertes={ouvertes} voirRetours={() => ouvrir({ nom: "retours" })} dansLaBarre={lieuBarre !== null} />
+    <CoinDev depot={depot} ecran={nomEcran} membreId={membre} ouvertes={ouvertes} voirRetours={() => ouvrir({ nom: "retours" })} />
   );
 
   // Toutes les pages de la pile restent montées, comme sur l'iPhone : celle d'en dessous
@@ -411,12 +414,10 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
           preparerDemande(demande);
           ouvrir({ nom: "jarvis" });
         }}
-        ouvrirJarvis={() => ouvrir({ nom: "jarvis" })}
-        avant={coinDev}
+        ouvrirPage={(ou) => ouvrir(ou === "mots" ? { nom: "mots" } : ou === "reglages" ? { nom: "reglages" } : { nom: "module", id: ou })}
       />
-    ) : (
-      coinDev
-    )}
+    ) : null}
+    {coinDev}
     </FournisseurSaisie>
     </FournisseurAnnulation>
   );
@@ -429,7 +430,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
  * qui défile de côté ou un champ gardent leur geste, sauf depuis le bord.
  */
 /** Ce qui a déjà son propre geste de côté. */
-const ZONES_A_GESTE = ".glissable.ouverte, .defilant, .bandeau-couple, input, textarea, select, [data-geste-propre]";
+const ZONES_A_GESTE = ".glissable.ouverte, .defilant, input, textarea, select, [data-geste-propre]";
 
 function useGlissementRetour(actif: boolean, revenir: () => void) {
   // Pendant le geste, la page suit le doigt sans repasser par React : seules l'entrée et la

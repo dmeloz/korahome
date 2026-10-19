@@ -29,7 +29,7 @@ export const SOURCES_RECETTE: Record<SourceRecette, string> = {
   chef: "Proposée par le Chef",
   lien: "Lue sur un site",
   photo: "Lue sur une photo",
-  jarvis: "Dictée à Jarvis",
+  jarvis: "Dictée à la fée",
   main: "Écrite à la main",
 };
 

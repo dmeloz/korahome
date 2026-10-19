@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { analyserTache, comprendrePhrase, decouperArticles, decrireIntention, invitation, lirePesee } from "./barre";
+import { analyserTache, comprendrePhrase, decouperArticles, decrireIntention, invitation, lirePesee, pageAOuvrir } from "./barre";
 
 const auj = "2026-10-19"; // un lundi
 const membres = [{ id: "melo", prenom: "Melo", couleur: "#d3a14a" }, { id: "sarah", prenom: "Sarah", couleur: "#8fc1bd" }];
@@ -79,5 +79,30 @@ describe("une pesée dans la barre de Mitsu", () => {
     expect(lirePesee("litière faite")).toBeNull();
     expect(lirePesee("40 kg")).toBeNull();
     expect(lirePesee("vaccin jeudi")).toBeNull();
+  });
+});
+
+describe("« ouvre le budget » : Kora ouvre la page elle-même", () => {
+  const auj = "2026-10-19";
+  it("reconnaît les pages par leur nom ou un mot proche", () => {
+    expect(pageAOuvrir("Ouvre le budget")).toBe("budget");
+    expect(pageAOuvrir("montre-moi le frigo")).toBe("stock");
+    expect(pageAOuvrir("Va dans l'agenda.")).toBe("agenda");
+    expect(pageAOuvrir("affiche les tâches")).toBe("taches");
+    expect(pageAOuvrir("ouvre Mitsu")).toBe("mitsu");
+    expect(pageAOuvrir("ouvre les réglages")).toBe("reglages");
+    expect(pageAOuvrir("montre nos mots")).toBe("mots");
+  });
+
+  it("une phrase qui ne nomme pas de page reste une phrase", () => {
+    expect(pageAOuvrir("ouvre la fenêtre")).toBeNull();
+    expect(pageAOuvrir("va acheter du pain")).toBeNull();
+    expect(pageAOuvrir("budget")).toBeNull();
+    expect(comprendrePhrase("ouvre la fenêtre de la chambre", "accueil", auj).type).not.toBe("ouvrir");
+  });
+
+  it("passe avant tout le reste, sur n'importe quelle page", () => {
+    expect(comprendrePhrase("ouvre le budget", "courses", auj)).toEqual({ type: "ouvrir", ou: "budget" });
+    expect(comprendrePhrase("Montre-moi l'agenda", "accueil", auj)).toEqual({ type: "ouvrir", ou: "agenda" });
   });
 });

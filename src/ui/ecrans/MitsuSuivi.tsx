@@ -25,6 +25,7 @@ import { contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
 import { vibrer } from "../haptique";
 import { copierRapport } from "../rapport";
+import { nomFee } from "../fee";
 
 // Les ajouts de la 0.0.14 au suivi de Mitsu : journal du quotidien, courbe de poids,
 // carnet prérempli, fiches à partager (vétérinaire, garde) et informations pratiques.
@@ -213,7 +214,7 @@ export function CarnetPropose({ animal, aujourdhui, modifier }: Commun) {
     <>
       {aVenir.length > 0 && (
         <div className="carte mitsu-carnet">
-          <p className="discret">Le calendrier habituel. Coche ce que dit son carnet, ou photographie la page dans Jarvis : il recopie les dates.</p>
+          <p className="discret">Le calendrier habituel. Coche ce que dit son carnet, ou photographie la page dans {nomFee()} : elle recopie les dates.</p>
           <ul className="groupe">{aVenir.map(ligne)}</ul>
         </div>
       )}

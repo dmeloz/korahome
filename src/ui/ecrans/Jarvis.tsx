@@ -18,6 +18,7 @@ import { Icone } from "../Icone";
 import { annulerModifications, direAVoixHaute, ecouter, enregistrerModifications, photoPourJarvis, voixDisponible } from "../jarvis";
 import type { DonneesModule } from "../modules";
 import { vibrer } from "../haptique";
+import { nomFee } from "../fee";
 
 interface Echange extends TourJarvis {
   n: number;
@@ -110,7 +111,7 @@ export function Jarvis(props: {
       }
       setAlerte(
         reponse.budget.alerte
-          ? `Jarvis a utilisé ${formaterChf(reponse.budget.depenseChf)} sur ${formaterChf(reponse.budget.plafondChf)} ce mois-ci.`
+          ? `${nomFee()} a utilisé ${formaterChf(reponse.budget.depenseChf)} sur ${formaterChf(reponse.budget.plafondChf)} ce mois-ci.`
           : null,
       );
       if (parVoix) direAVoixHaute([dit, ...enAttente.map((a) => questionPour(a).question)].filter(Boolean).join(" "));
@@ -177,9 +178,9 @@ export function Jarvis(props: {
   if (!serveur || !foyerPartage) {
     return (
       <main>
-        <h1>Jarvis</h1>
+        <h1>{nomFee()}</h1>
         <div className="carte bientot">
-          <p>Jarvis passe par le serveur du foyer, qui garde sa clé à l'abri.</p>
+          <p>{nomFee()} passe par le serveur du foyer, qui garde sa clé à l'abri.</p>
           {serveur && <button className="bouton-principal" onClick={props.ouvrirPartage}>Activer le partage</button>}
         </div>
       </main>
@@ -189,12 +190,12 @@ export function Jarvis(props: {
   return (
     <main className="jarvis">
       <header className="entete-coches">
-        <h1>Jarvis</h1>
+        <h1>{nomFee()}</h1>
         <button className="lien" onClick={props.ouvrirMemoire}>Sa mémoire</button>
       </header>
       {echanges.length === 0 ? (
         <div className="jarvis-accueil">
-          <p className="discret">Écris ou parle : Jarvis ajoute aux courses, crée, décale ou coche les tâches, range ou retire du stock, note les pesées et répond sur la maison. Photographie une lettre, un rendez-vous ou un ticket de caisse, colle le lien d'une recette : il s'en occupe. Il retient ce que tu lui confies, et note pour Claude ce qu'il ne sait pas encore faire. Il demande avant de supprimer, et tout se défait avec Annuler.</p>
+          <p className="discret">Écris ou parle : {nomFee()} ajoute aux courses, crée, décale ou coche les tâches, range ou retire du stock, note les pesées et répond sur la maison. Photographie une lettre, un rendez-vous ou un ticket de caisse, colle le lien d'une recette : elle s'en occupe. Elle retient ce que tu lui confies, et note pour Claude ce qu'il ne sait pas encore faire. Elle demande avant de supprimer, et tout se défait avec Annuler.</p>
           <button className="carte jarvis-conseil" onClick={props.ouvrirConseil}>
             <Icone nom="calendrier" taille={24} />
             <span className="ligne-texte">
@@ -206,7 +207,7 @@ export function Jarvis(props: {
           <button className="carte jarvis-conseil" onClick={props.ouvrirMemoire}>
             <Icone nom="jarvis" taille={24} />
             <span className="ligne-texte">
-              <strong>Ce que Jarvis sait</strong>
+              <strong>Ce que {nomFee()} sait</strong>
               <span className="discret">
                 {donnees.souvenirs.length === 0
                   ? "Rien encore : dis-lui « retiens que… »"
@@ -225,7 +226,7 @@ export function Jarvis(props: {
         <div className="jarvis-fil" aria-live="polite">
           {echanges.map((e) => (
             <div key={e.n} className={`bulle ${e.role}${e.erreur ? " en-erreur" : ""}${e.annule ? " annulee" : ""}`}>
-              {e.photo && <img className="jarvis-photo" src={e.photo} alt="Photo envoyée à Jarvis" />}
+              {e.photo && <img className="jarvis-photo" src={e.photo} alt={`Photo envoyée à ${nomFee()}`} />}
               <p>{e.texte}</p>
               {e.confirmation && !e.confirmation.reponse && (
                 <div className="bulle-choix">
@@ -243,13 +244,13 @@ export function Jarvis(props: {
               )}
             </div>
           ))}
-          {enCours && <div className="bulle jarvis attente" aria-label="Jarvis réfléchit"><span /><span /><span /></div>}
+          {enCours && <div className="bulle jarvis attente" aria-label={`${nomFee()} réfléchit`}><span /><span /><span /></div>}
         </div>
       )}
       {alerte && <p className="discret jarvis-alerte">{alerte}</p>}
       <div ref={bas} />
       <form className="ajout jarvis-saisie" onSubmit={envoyer}>
-        <button type="button" className="secondaire" disabled={enCours} onClick={() => choixPhoto.current?.click()} aria-label="Envoyer une photo à Jarvis">
+        <button type="button" className="secondaire" disabled={enCours} onClick={() => choixPhoto.current?.click()} aria-label={`Envoyer une photo à ${nomFee()}`}>
           <Icone nom="photo" taille={22} />
         </button>
         <input
@@ -265,12 +266,12 @@ export function Jarvis(props: {
         <input
           value={saisie}
           onChange={(e) => setSaisie(e.target.value)}
-          placeholder={ecoute ? "Je t'écoute…" : "Demande à Jarvis"}
+          placeholder={ecoute ? `${nomFee()} t'écoute…` : `Demande à ${nomFee()}`}
           enterKeyHint="send"
-          aria-label="Demande à Jarvis"
+          aria-label={`Demande à ${nomFee()}`}
         />
         {voix && (ecoute || !saisie.trim()) ? (
-          <button type="button" className={ecoute ? "ecoute" : undefined} onClick={parler} aria-label={ecoute ? "Arrêter d'écouter" : "Parler à Jarvis"}>
+          <button type="button" className={ecoute ? "ecoute" : undefined} onClick={parler} aria-label={ecoute ? "Arrêter d'écouter" : `Parler à ${nomFee()}`}>
             <Icone nom={ecoute ? "arreter" : "micro"} taille={22} />
           </button>
         ) : (

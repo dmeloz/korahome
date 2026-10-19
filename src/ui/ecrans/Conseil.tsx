@@ -14,6 +14,7 @@ import { contexteReel } from "../contexte";
 import { annulerModifications, enregistrerModifications } from "../jarvis";
 import type { DonneesModule } from "../modules";
 import { vibrer } from "../haptique";
+import { nomFee } from "../fee";
 
 interface Proposition {
   resume: string;
@@ -52,9 +53,9 @@ export function Conseil(props: { donnees: DonneesModule; depot: Depot; serveur: 
       });
       const actions = lireActions(reponse.appels);
       garder({ resume: reponse.texte, actions, retenues: actions.map(() => true) });
-      setAlerte(reponse.budget.alerte ? `Jarvis a utilisé ${formaterChf(reponse.budget.depenseChf)} sur ${formaterChf(reponse.budget.plafondChf)} ce mois-ci.` : null);
+      setAlerte(reponse.budget.alerte ? `${nomFee()} a utilisé ${formaterChf(reponse.budget.depenseChf)} sur ${formaterChf(reponse.budget.plafondChf)} ce mois-ci.` : null);
     } catch (e) {
-      setErreur(e instanceof Error && e.message ? e.message : "Jarvis n'a pas pu préparer la semaine, réessaie.");
+      setErreur(e instanceof Error && e.message ? e.message : `${nomFee()} n'a pas pu préparer la semaine, réessaie.`);
     } finally {
       setEnCours(false);
     }
@@ -104,15 +105,15 @@ export function Conseil(props: { donnees: DonneesModule; depot: Depot; serveur: 
 
       {!proposition && !enCours && (
         <div className="carte conseil-depart">
-          <p>Asseyez-vous ensemble : Jarvis propose qui fait quoi cette semaine, cinq repas qui finissent d'abord ce qui arrive à sa date, et les courses qui vont avec.</p>
-          <p className="discret">Vous cochez ce que vous gardez, puis vous validez. Quelques centimes du budget de Jarvis.</p>
+          <p>Asseyez-vous ensemble : {nomFee()} propose qui fait quoi cette semaine, cinq repas qui finissent d'abord ce qui arrive à sa date, et les courses qui vont avec.</p>
+          <p className="discret">Vous cochez ce que vous gardez, puis vous validez. Quelques centimes du budget de {nomFee()}.</p>
           <button className="bouton-principal" onClick={() => void preparer()}>Préparer la semaine</button>
         </div>
       )}
 
       {enCours && (
         <div className="carte conseil-depart" aria-live="polite">
-          <p>Jarvis prépare votre semaine…</p>
+          <p>{nomFee()} prépare votre semaine…</p>
           <div className="bulle jarvis attente" aria-hidden><span /><span /><span /></div>
         </div>
       )}
@@ -140,7 +141,7 @@ export function Conseil(props: { donnees: DonneesModule; depot: Depot; serveur: 
               </ul>
             </section>
           ) : (
-            <p className="discret">Jarvis ne propose rien à changer cette semaine.</p>
+            <p className="discret">{nomFee()} ne propose rien à changer cette semaine.</p>
           )}
           <div className="conseil-boutons">
             {proposition.actions.length > 0 && (

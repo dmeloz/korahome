@@ -6,16 +6,13 @@ import {
   estVisible,
   HUMEURS,
   humeurDu,
-  LONGUEUR_BANDEAU,
   LONGUEUR_MOT,
   nomHumeur,
   nosMots,
   noterHumeur,
   nouveauCompte,
   nouveauMot,
-  SORTES_BANDEAU,
   type Mot,
-  type VitesseBandeau,
 } from "../../domaine/bandeau";
 import { ErreurValidation } from "../../domaine/foyer";
 import type { Depot } from "../../donnees/depot";
@@ -25,17 +22,11 @@ import { Glissable } from "../Glissable";
 import { vibrer } from "../haptique";
 import { Icone, PICTO_HUMEUR } from "../Icone";
 import { Page } from "../pieces";
-import { changerReglagesBandeau, useReglagesBandeau } from "../reglagesBandeau";
 
 import type { DonneesModule } from "../modules";
 
 type Quand = "maintenant" | "soir" | "matin";
 
-const VITESSES: { cle: VitesseBandeau; nom: string }[] = [
-  { cle: "lente", nom: "Lente" },
-  { cle: "normale", nom: "Normale" },
-  { cle: "rapide", nom: "Rapide" },
-];
 
 /** L'heure d'un mot programmé : ce soir à 20 h, ou demain matin à 7 h. */
 function heureDe(quand: Quand, maintenant = new Date()): string | undefined {
@@ -75,11 +66,6 @@ export function NosMots(props: {
   const monHumeur = moi ? humeurDu(couple, moi, aujourdhui) : undefined;
   const sonHumeur = autre ? humeurDu(couple, autre.id, aujourdhui) : undefined;
   const soirPasse = new Date().getHours() >= 20;
-  const reglages = useReglagesBandeau();
-  const montrer = (sorte: (typeof SORTES_BANDEAU)[number]["sorte"], actif: boolean) => {
-    vibrer();
-    changerReglagesBandeau({ masquees: actif ? reglages.masquees.filter((s) => s !== sorte) : [...reglages.masquees, sorte] });
-  };
 
   async function envoyer(e: FormEvent) {
     e.preventDefault();
@@ -124,8 +110,8 @@ export function NosMots(props: {
   return (
     <Page
       titre="Nos mots"
-      sousTitre={`Ce que tu écris ici défile dans le bandeau de l'accueil${autre ? ` de ${autre.prenom}` : ""}.`}
-      aide={{ cle: "mots", texte: `Le bandeau en montre ${LONGUEUR_BANDEAU} caractères : le compteur te le dit. Touche un mot dans le bandeau pour renvoyer un cœur.` }}
+      sousTitre={`Ce que tu écris ici attend au-dessus de la fée${autre ? ` de ${autre.prenom}` : " de l'autre"}, jusqu'à ce qu'elle le touche.`}
+      aide={{ cle: "mots", texte: "Un mot ou un cœur de l'autre t'attend en petite icône au-dessus de ta fée. Touche-la pour le lire, répondre ou renvoyer un cœur." }}
       className="nos-mots"
     >
 
@@ -146,9 +132,7 @@ export function NosMots(props: {
             )}
             <button type="button" className={`puce petite${quand === "matin" ? " active" : ""}`} onClick={() => setQuand("matin")}>Demain 7 h</button>
           </div>
-          <span className={`discret compteur${texte.length > LONGUEUR_BANDEAU ? " depasse" : ""}`} aria-live="polite">
-            {texte.length > LONGUEUR_BANDEAU ? "Abrégé dans le bandeau" : `${LONGUEUR_BANDEAU - texte.length}`}
-          </span>
+          <span className="discret compteur" aria-live="polite">{LONGUEUR_MOT - texte.length}</span>
         </div>
         <button type="submit" className="bouton-principal" disabled={!texte.trim()}>
           {quand === "maintenant" ? "Envoyer" : "Programmer"}
@@ -232,34 +216,6 @@ export function NosMots(props: {
         </ul>
       )}
 
-      <h2 className="rayon">Le bandeau</h2>
-      <div className="carte bandeau-reglage">
-        <span className="discret">Vitesse</span>
-        <div className="puces" role="radiogroup" aria-label="Vitesse du bandeau">
-          {VITESSES.map((v) => (
-            <button key={v.cle} type="button" role="radio" aria-checked={reglages.vitesse === v.cle} className={`puce petite${reglages.vitesse === v.cle ? " active" : ""}`} onClick={() => changerReglagesBandeau({ vitesse: v.cle })}>
-              {v.nom}
-            </button>
-          ))}
-        </div>
-      </div>
-      <p className="discret bandeau-reglage-aide">Ce qui défile sur ce téléphone :</p>
-      <ul className="carte groupe">
-        {SORTES_BANDEAU.map((s) => {
-          const actif = !reglages.masquees.includes(s.sorte);
-          return (
-            <li key={s.sorte}>
-              <button className="ligne appris-interrupteur" role="switch" aria-checked={actif} onClick={() => montrer(s.sorte, !actif)}>
-                <span className="ligne-texte">
-                  {s.nom}
-                  <span className="bulle-note">{s.detail}</span>
-                </span>
-                <span className={`interrupteur${actif ? " actif" : ""}`} aria-hidden />
-              </button>
-            </li>
-          );
-        })}
-      </ul>
     </Page>
   );
 }

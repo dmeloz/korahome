@@ -135,7 +135,7 @@ export function rechercher(d: DonneesRecherche, recherche: string): Trouvaille[]
   sections.push(
     d.souvenirs
       .filter((s) => !s.refuse && correspond(s.texte, recherche))
-      .map((s) => ({ cle: `souvenir-${s.id}`, titre: s.texte, detail: "Retenu par Jarvis", section: "Ce que Kora sait", ou: { type: "memoire" } as const })),
+      .map((s) => ({ cle: `souvenir-${s.id}`, titre: s.texte, detail: "Retenu par ta fée", section: "Ce que Kora sait", ou: { type: "memoire" } as const })),
   );
 
   return sections.flatMap((s) => s.slice(0, PAR_SECTION));

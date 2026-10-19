@@ -1346,72 +1346,27 @@ html[data-sens="fondu"]::view-transition-old(root), html[data-sens="fondu"]::vie
 .ticket-lignes .ligne { gap: 10px; }
 .ticket-lignes .ligne.coche .ligne-texte { color: var(--discret); text-decoration: line-through; }
 
-/* ===== Le bandeau du couple et « Nos mots » ===== */
-.bandeau-couple {
-  display: block;
-  width: 100%;
-  margin: -8px 0 16px;
-  padding: 10px 0;
-  overflow-x: auto;
-  overflow-y: hidden;
-  overscroll-behavior-x: contain;
-  scrollbar-width: none;
-  touch-action: pan-x pan-y;
-  border-radius: 14px;
-  background: var(--verre);
-  box-shadow: var(--reflet);
-  border: 1px solid var(--trait);
-  cursor: pointer;
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
-  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
-  -webkit-user-select: none;
-  user-select: none;
-}
-.bandeau-couple.vide {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  color: var(--discret);
-  font: inherit;
-  font-size: var(--t-detail);
-  -webkit-mask-image: none;
-  mask-image: none;
-}
-.bandeau-couple.vide svg { color: var(--accent); }
+
+
+
 .bandeau-fil {
   display: flex;
   align-items: center;
   width: max-content;
 }
 .bandeau-copie { display: inline-flex; align-items: center; gap: 28px; padding-right: 28px; }
-.bandeau-element {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-  font-size: var(--t-detail);
-  color: var(--discret);
-}
-.bandeau-couple::-webkit-scrollbar { display: none; }
-.bandeau-element.genre-mot {
-  color: var(--texte);
-  font-weight: 500;
-  padding: 1px 11px 1px 9px;
-  border-radius: 999px;
-  background: var(--accent-doux);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
-}
-.bandeau-auteur { color: var(--accent); font-weight: 650; }
-.bandeau-element.genre-mot + .bandeau-element::before,
-.bandeau-element + .bandeau-element.genre-mot::before { content: none; }
-.bandeau-element.genre-mot svg { color: var(--accent); opacity: 0.7; transition: opacity 0.2s, transform 0.2s; }
-.bandeau-element.genre-mot.aime svg { opacity: 1; fill: currentColor; transform: scale(1.12); }
-.bandeau-element.genre-clin { color: var(--accent); font-style: italic; }
-.bandeau-element.genre-compte { color: var(--texte); }
-.bandeau-element + .bandeau-element::before { content: "·"; margin-right: 22px; color: var(--trait); }
+
+
+
+
+
+
+
+
+
+
 @media (prefers-reduced-motion: reduce) {
-  .bandeau-couple { -webkit-mask-image: none; mask-image: none; padding-inline: 14px; }
+
   .bandeau-copie + .bandeau-copie { display: none; }
 }
 
@@ -1526,10 +1481,10 @@ html[data-sens="fondu"]::view-transition-old(root), html[data-sens="fondu"]::vie
 .gout { display: grid; place-items: center; width: 26px; height: 26px; flex: none; border-radius: 50%; background: var(--surface-haute); color: var(--discret); }
 .gout.aime { color: var(--accent); background: var(--accent-doux); }
 .gout.aime svg { fill: currentColor; }
-.remarque-jarvis { display: flex; align-items: center; gap: 4px; margin: -4px 0 16px; padding: 10px 6px 10px 14px; background: var(--verre); }
-.remarque-texte { flex: 1; display: flex; align-items: flex-start; gap: 10px; border: 0; background: none; color: var(--texte); font: inherit; font-size: var(--t-detail); line-height: 1.4; text-align: left; padding: 0; }
-.remarque-etoile { color: var(--accent); display: grid; padding-top: 1px; }
-.remarque-fermer { color: var(--discret); }
+
+
+
+
 .saisie-devinee { margin: -4px 0 10px; }
 .equilibre { display: grid; gap: 8px; margin-top: 4px; }
 .equilibre .surtitre, .equilibre p { margin: 0; }
@@ -1705,7 +1660,7 @@ html[data-sens="fondu"]::view-transition-old(root), html[data-sens="fondu"]::vie
   padding: 0 4px;
 }
 .barre-jarvis input::placeholder { color: var(--discret); }
-.barre-etoile, .barre-bouton, .barre-action {
+.barre-bouton, .barre-action {
   width: 44px;
   height: 44px;
   flex: none;
@@ -1998,9 +1953,8 @@ html.avec-barre { --hauteur-barre: 84px; }
 .budget-a-la-main summary { cursor: pointer; color: var(--accent); font-size: var(--t-detail); font-weight: 600; padding: 4px 0; }
 .budget-a-la-main .budget-etapes { margin-top: 8px; }
 
-/* Nos mots : réglages du bandeau */
-.bandeau-reglage { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.bandeau-reglage-aide { margin: 14px 4px 8px; font-size: var(--t-detail); }
+
+
 
 /* ----- Budget : le relevé Revolut (0.0.33) ----- */
 .budget-importer { display: block; width: 100%; margin: 12px 0 0; }
@@ -2225,15 +2179,9 @@ button.budget-pot:active { transform: scale(0.98); }
 .signe-humeur { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); color: var(--accent); }
 .signe-humeur + .signe-humeur { margin-left: -6px; background: var(--fond); }
 .signe-humeur.sans { border-style: dashed; border-color: var(--discret); opacity: 0.6; }
-.bulle-signe {
-  position: absolute; right: 16px; z-index: 12; max-width: min(280px, calc(100vw - 32px)); margin-top: -10px;
-  padding: 9px 12px 8px; border-radius: 16px 4px 16px 16px; font-size: var(--t-detail); line-height: 1.35;
-  background: var(--verre); -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4);
-  box-shadow: var(--reflet), 0 0 0 0.5px var(--verre-trait), 0 10px 26px -16px rgb(0 0 0 / 0.6);
-}
-.bulle-signe p { margin: 0; }
-.bulle-signe .lien { padding: 4px 0 0; font-size: var(--t-legende); font-weight: 600; }
-@media (prefers-reduced-motion: no-preference) { .bulle-signe { animation: bulle-arrive 0.22s var(--courbe); } }
+
+
+
 
 /* La date repliée dans une barre de verre quand on fait défiler. */
 .date-repliee {
@@ -2360,3 +2308,100 @@ html[data-leger] .widget { background: var(--surface); -webkit-backdrop-filter: 
 .curseur-reglage input[type="range"] { width: 100%; accent-color: var(--accent); }
 .reglages-curseurs .lien { justify-self: start; padding: 0; font-size: var(--t-detail); }
 .curseur-aide { margin: 0; font-size: var(--t-legende); }
+
+/* ---------- Kora 0.0.43 : la fée remplace la barre ---------- */
+/* Tael (violette, ailes pointues) et Navi (bleue, ailes rondes), comme les fées de Zelda. */
+html, .fee-violette { --fee-teinte: #8a5cf6; --fee-lueur: #b48cff; --fee-clair: #efe6ff; --fee-milieu: #8a5cf6; --fee-profond: #2a1552; --fee-aile: #e4d8ff; --fee-nervure: #c7aeff; }
+html[data-fee="bleue"], .fee-bleue { --fee-teinte: #1e96d4; --fee-lueur: #8fe3ff; --fee-clair: #e6f9ff; --fee-milieu: #4fc6f5; --fee-profond: #0b4a73; --fee-aile: #dcf6ff; --fee-nervure: #a6e8ff; }
+.fee-violette { --fee-teinte: #8a5cf6; --fee-lueur: #b48cff; --fee-clair: #efe6ff; --fee-milieu: #8a5cf6; --fee-profond: #2a1552; --fee-aile: #e4d8ff; --fee-nervure: #c7aeff; }
+
+.fee {
+  position: fixed; left: 0; top: 0; z-index: 9; width: 60px; height: 60px;
+  touch-action: none; cursor: grab; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  transition: transform .55s cubic-bezier(.2, .9, .3, 1.15), opacity .4s;
+  outline: none;
+}
+.fee svg { width: 100%; height: 100%; overflow: visible; display: block; transition: transform .4s cubic-bezier(.2, .9, .3, 1.2); }
+.fee .halo { transform-box: fill-box; transform-origin: center; animation: fee-respire 3.2s ease-in-out infinite; }
+.fee .coeur { transform-box: fill-box; transform-origin: center; animation: fee-pouls 3.2s ease-in-out infinite; }
+.fee .aile { transform-box: view-box; transform-origin: 60px 58px; }
+.fee.fee-violette .ailes-rondes, .fee.fee-bleue .ailes-pointues { display: none; }
+.fee .aile-hg { animation: fee-battre-g .34s ease-in-out infinite alternate; }
+.fee .aile-hd { animation: fee-battre-d .34s ease-in-out infinite alternate; }
+.fee .aile-bg { animation: fee-battre-g .34s ease-in-out infinite alternate-reverse; }
+.fee .aile-bd { animation: fee-battre-d .34s ease-in-out infinite alternate-reverse; }
+.fee.fee-bleue .aile { animation-duration: .42s; }
+.fee .flotte { animation: fee-flotter 3.8s ease-in-out infinite; transform-box: view-box; }
+.fee.vole { transition: opacity .4s; cursor: grabbing; }
+.fee.vole svg { transform: scale(1.1); }
+.fee.vole .aile, .fee.ecoute .aile { animation-duration: .09s; }
+.fee.appuie svg { transform: scale(.9); }
+.fee.rangee { opacity: .55; }
+.fee.discrete { opacity: .28; }
+.fee:focus-visible svg { filter: drop-shadow(0 0 4px var(--fee-lueur)); }
+.fee .ondes { position: absolute; inset: 0; pointer-events: none; }
+.fee .ondes i { position: absolute; inset: 14px; border-radius: 50%; border: 1.5px solid var(--fee-lueur); opacity: 0; }
+.fee.ecoute .ondes i { animation: fee-onde 1.6s ease-out infinite; }
+.fee .ondes i:nth-child(2) { animation-delay: .53s; }
+.fee .ondes i:nth-child(3) { animation-delay: 1.06s; }
+@keyframes fee-respire { 0%, 100% { transform: scale(.9); opacity: .6; } 50% { transform: scale(1.08); opacity: .95; } }
+@keyframes fee-pouls { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+@keyframes fee-battre-g { from { transform: rotate(6deg) scaleX(1); } to { transform: rotate(-4deg) scaleX(.55); } }
+@keyframes fee-battre-d { from { transform: rotate(-6deg) scaleX(1); } to { transform: rotate(4deg) scaleX(.55); } }
+@keyframes fee-flotter { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes fee-onde { 0% { transform: scale(.7); opacity: .8; } 100% { transform: scale(2.3); opacity: 0; } }
+
+/* Ce que l'autre envoie : une petite icône au-dessus d'elle, qui la suit. */
+.attend {
+  position: fixed; left: 0; top: 0; z-index: 10; width: 18px; height: 18px; padding: 0; border: 0; background: none; cursor: pointer;
+  transition: transform .55s cubic-bezier(.2, .9, .3, 1.15), opacity .4s; animation: attend-apparait .45s cubic-bezier(.2, .9, .3, 1.3);
+}
+.attend svg { width: 100%; height: 100%; display: block; animation: attend-flotte 1.6s ease-in-out infinite; }
+.attend::after { content: ""; position: absolute; inset: -12px; }
+.attend.coeur { color: #ff7a9a; filter: drop-shadow(0 0 5px rgb(255 122 154 / .55)); }
+.attend.message { color: var(--fee-milieu); filter: drop-shadow(0 0 5px color-mix(in srgb, var(--fee-lueur) 60%, transparent)); }
+.attend.message svg { animation-delay: -.8s; }
+@keyframes attend-flotte { 0%, 100% { translate: 0 0; } 50% { translate: 0 -3px; } }
+@keyframes attend-apparait { from { opacity: 0; scale: .3; } }
+
+/* La bulle : petite, discrète, des boutons en simple texte. */
+.hey {
+  position: fixed; z-index: 12; max-width: min(220px, calc(100vw - 96px)); padding: 7px 11px 8px;
+  border-radius: 14px 14px 14px 4px; transform-origin: bottom left;
+  background: color-mix(in srgb, var(--surface-haute) 95%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .08), 0 0 0 .5px color-mix(in srgb, var(--texte) 12%, transparent), 0 10px 26px -16px rgb(0 0 0 / .6);
+  font-size: 14px; line-height: 1.32; color: var(--texte);
+}
+.hey.gauche { border-radius: 14px 14px 4px 14px; transform-origin: bottom right; }
+.hey.dessous { border-radius: 4px 14px 14px 14px; transform-origin: top left; }
+.hey.dessous.gauche { border-radius: 14px 4px 14px 14px; transform-origin: top right; }
+.hey { --fee-texte: color-mix(in srgb, var(--fee-teinte) 62%, var(--texte)); }
+.hey .de { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; color: var(--fee-texte); margin-bottom: 2px; opacity: .9; }
+.hey .de::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--fee-teinte); }
+.hey-texte { display: block; overflow-wrap: anywhere; }
+.hey .actions-hey { display: flex; gap: 14px; margin-top: 5px; flex-wrap: wrap; }
+.hey button { border: 0; padding: 3px 0; background: none; color: var(--fee-texte); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.hey button + button { color: var(--discret); font-weight: 500; }
+
+/* La saisie n'apparaît que quand on parle ou écrit à la fée. */
+.barre-zone .barre-rang, .barre-zone .barre-complement, .barre-zone .barre-message { transition: opacity .25s, transform .35s cubic-bezier(.2, .9, .3, 1.1); }
+.barre-zone:not(.ouverte) .barre-rang, .barre-zone:not(.ouverte) .barre-complement { opacity: 0; transform: translateY(14px) scale(.97); pointer-events: none; }
+.barre-zone:not(.ouverte)::before { opacity: 0; }
+.barre-zone::before { transition: opacity .3s; }
+.barre-jarvis { padding-left: 16px; }
+html.saisie-ouverte .pastille-dev { opacity: 0; pointer-events: none; }
+/* En clair, ses ailes blanches ont besoin d'un trait plus soutenu pour se voir sur le fond. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="sombre"]) .fee { --fee-nervure: var(--fee-milieu); }
+  :root:not([data-theme="sombre"]) .fee svg { filter: drop-shadow(0 1px 2px color-mix(in srgb, var(--fee-profond) 40%, transparent)); }
+}
+:root[data-theme="clair"] .fee { --fee-nervure: var(--fee-milieu); }
+:root[data-theme="clair"] .fee svg { filter: drop-shadow(0 1px 2px color-mix(in srgb, var(--fee-profond) 40%, transparent)); }
+/* Une feuille ou la visite par-dessus : la fée se retire. */
+html.feuille-ouverte .fee, html.feuille-ouverte .attend, html.feuille-ouverte .hey { opacity: 0; pointer-events: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fee .aile, .fee .flotte, .fee .halo, .fee .coeur, .attend svg { animation: none; }
+  .fee, .attend { transition: opacity .3s; }
+}

@@ -22,6 +22,8 @@ export interface Mot {
   programme: boolean;
   /** Ceux qui ont envoyé un cœur en retour. */
   coeurs: Id[];
+  /** Un cœur envoyé seul, sans mot, depuis la fée. */
+  coeur?: boolean;
 }
 
 /** L'humeur d'une personne pour un jour : une seule par personne et par jour. */
@@ -84,6 +86,11 @@ export function nouveauMot(texte: string, de: Id | null, ctx: Contexte, visibleD
   const creeLe = ctx.maintenant();
   const plusTard = !!visibleDes && visibleDes > creeLe;
   return { type: "mot", id: ctx.nouvelId(), de, texte: propre, creeLe, visibleDes: plusTard ? visibleDes : creeLe, programme: plusTard, coeurs: [] };
+}
+
+/** Un cœur seul, envoyé d'un toucher à l'autre. */
+export function nouveauCoeur(de: Id | null, ctx: Contexte): Mot {
+  return { ...nouveauMot("♥", de, ctx), coeur: true };
 }
 
 export const estVisible = (m: Mot, maintenant: string) => m.visibleDes <= maintenant;

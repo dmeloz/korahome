@@ -10,8 +10,13 @@ describe("la visite guidée", () => {
   });
 
   it("parle de l'autre par son prénom, ou de « l'autre » sans prénom", () => {
-    expect(parcoursVisite("Sarah").find((e) => e.id === "bandeau")?.texte).toContain("écrire à Sarah");
-    expect(parcoursVisite(null).find((e) => e.id === "bandeau")?.texte).toContain("écrire à l'autre");
+    expect(parcoursVisite("Sarah").find((e) => e.id === "fee")?.texte).toContain("Sarah t'envoie");
+    expect(parcoursVisite(null).find((e) => e.id === "fee")?.texte).toContain("l'autre t'envoie");
+  });
+
+  it("présente la fée par son nom", () => {
+    expect(parcoursVisite("Dany", "Navi").find((e) => e.id === "fee")?.titre).toBe("Navi, ta fée");
+    expect(parcoursVisite(null).find((e) => e.id === "fee")?.titre).toBe("Tael, ta fée");
   });
 
   it("chaque étape a un identifiant unique et un texte court", () => {
@@ -26,7 +31,7 @@ describe("la visite guidée", () => {
   });
 
   it("saute une étape dont la cible n'est pas à l'écran", () => {
-    const presentes = new Set<CibleVisite>(["bandeau", "aujourdhui", "barre"]);
+    const presentes = new Set<CibleVisite>(["aujourdhui", "fee"]);
     const ids = etapesVisibles(parcoursVisite(null), presentes).map((e) => e.id);
     expect(ids).not.toContain("signes");
     expect(ids).not.toContain("widget");

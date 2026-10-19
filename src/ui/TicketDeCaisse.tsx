@@ -11,6 +11,7 @@ import { Feuille } from "./Feuille";
 import { vibrer } from "./haptique";
 import { Icone } from "./Icone";
 import { annulerModifications, enregistrerModifications, photoPourJarvis } from "./jarvis";
+import { nomFee } from "./fee";
 
 // Le ticket de caisse en entier, depuis Frigo et placards : une photo, Jarvis lit chaque
 // ligne, on vérifie la liste (décocher, changer le lieu), puis tout se range d'un coup,
@@ -142,8 +143,8 @@ export function TicketDeCaisse(props: {
       >
         {etat === "lecture" && (
           <div className="ticket-lecture">
-            <div className="bulle jarvis attente" aria-label="Jarvis lit le ticket"><span /><span /><span /></div>
-            <p className="discret">Jarvis lit chaque ligne du ticket…</p>
+            <div className="bulle jarvis attente" aria-label={`${nomFee()} lit le ticket`}><span /><span /><span /></div>
+            <p className="discret">{nomFee()} lit chaque ligne du ticket…</p>
           </div>
         )}
         {etat === "erreur" && <p className="discret">{erreur}</p>}

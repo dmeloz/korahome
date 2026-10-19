@@ -49,6 +49,7 @@ import { Glissable } from "../Glissable";
 import { CarnetPropose, CourbePoids, Fiches, Infos, Journal } from "./MitsuSuivi";
 import { Onglets, Page, useGestionnaireBarre } from "../pieces";
 import { lirePesee } from "../../domaine/barre";
+import { nomFee } from "../fee";
 
 type OngletMitsu = "jour" | "sante" | "provisions";
 
@@ -300,7 +301,7 @@ function Suivi(props: Props & { animal: Animal }) {
     <Page
       titre={animal.nom}
       sousTitre={`${decrireAge(animal.naissance, aujourdhui)}${pesee[0] ? ` · ${formaterPoids(pesee[0].grammes)}` : ""}${animal.sterilise ? (animal.sexe === "male" ? " · castré" : " · stérilisée") : ""}`}
-      aide={{ cle: "mitsu", texte: "Trois onglets : la journée (repas, litière, poids), sa santé (vaccins, vermifuge, fiche) et ses provisions (commande zooplus, croquettes, litière). Écris son poids dans la barre du bas (« 2,45 kg ») pour noter une pesée ; le reste, demande-le à Jarvis." }}
+      aide={{ cle: "mitsu", texte: `Trois onglets : la journée (repas, litière, poids), sa santé (vaccins, vermifuge, fiche) et ses provisions (commande zooplus, croquettes, litière). Écris son poids dans la barre du bas (« 2,45 kg ») pour noter une pesée ; le reste, demande-le à ${nomFee()}.` }}
       className="mitsu"
     >
       <Onglets
