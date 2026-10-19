@@ -117,19 +117,25 @@ export function versHeure(minutes: number): string {
   return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 }
 
-/** L'heure du téléphone à un instant ISO, en minutes depuis minuit. */
-export function minutesLocales(instant: string): number | null {
+/**
+ * L'heure à un instant ISO, en minutes depuis minuit : celle du téléphone, ou celle d'un fuseau
+ * (le serveur, réglé en UTC, demande celle du foyer).
+ */
+export function minutesLocales(instant: string, fuseau?: string): number | null {
   const d = new Date(instant);
-  return Number.isNaN(d.getTime()) ? null : d.getHours() * 60 + d.getMinutes();
+  if (Number.isNaN(d.getTime())) return null;
+  if (!fuseau) return d.getHours() * 60 + d.getMinutes();
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-GB", { timeZone: fuseau, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(d).map((x) => [x.type, x.value]));
+  return Number(p.hour) * 60 + Number(p.minute);
 }
 
 /**
  * L'heure où la tâche est faite d'habitude : la médiane des heures de ses coches, arrondie
  * au quart d'heure, dès trois coches. Avant, aucune.
  */
-export function heureProposee(tache: Tache): string | null {
+export function heureProposee(tache: Tache, fuseau?: string): string | null {
   const minutes = (tache.historique ?? [])
-    .map((f) => (f.a ? minutesLocales(f.a) : null))
+    .map((f) => (f.a ? minutesLocales(f.a, fuseau) : null))
     .filter((m): m is number => m !== null)
     .sort((a, b) => a - b);
   if (minutes.length < COCHES_POUR_HEURE) return null;
@@ -139,8 +145,8 @@ export function heureProposee(tache: Tache): string | null {
 }
 
 /** L'heure affichée : celle choisie à la main, sinon celle que propose Kora. */
-export function heureDe(tache: Tache): string | null {
-  return tache.heure !== undefined ? tache.heure : heureProposee(tache);
+export function heureDe(tache: Tache, fuseau?: string): string | null {
+  return tache.heure !== undefined ? tache.heure : heureProposee(tache, fuseau);
 }
 
 /** L'heure vient-elle de Kora (et non d'un choix) ? */

@@ -4,6 +4,8 @@
 //   « x-cle-cron » : chaque téléphone abonné reçoit son rappel à son heure (8:00, 7:45…), les jours choisis.
 // - Un téléphone l'appelle avec sa session pour lire la clé publique d'envoi (« cle »)
 //   ou recevoir tout de suite un rappel d'essai (« essai »).
+// - À chaque minute, une tâche qui a une heure (choisie, ou proposée par Kora) est rappelée à
+//   cette heure-là aux téléphones de sa personne (ou de tout le monde si elle est libre).
 // - Un mot du couple est annoncé à l'autre téléphone : tout de suite quand le téléphone qui
 //   l'écrit appelle avec « mot », ou au passage de l'heure prévue pour un mot programmé.
 //
@@ -12,7 +14,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
-import { adresseMeteo, evenementsDe, facturesDuJour, fenetreMotsProgrammes, formaterHeure, FUSEAU_DU_FOYER, jourEtHeure, lireMeteo, notificationMot, PREFERENCES_DE_DEPART, rappelDu, rappelDuMatin } from "./domaine.js";
+import { adresseMeteo, evenementsDe, facturesDuJour, fenetreMotsProgrammes, formaterHeure, FUSEAU_DU_FOYER, jourEtHeure, lireMeteo, notificationHeure, notificationMot, PREFERENCES_DE_DEPART, rappelDu, rappelDuMatin, tachesALHeure } from "./domaine.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -168,6 +170,28 @@ async function passageDuMatin(cles: { publique: string; privee: string }) {
   return bilan;
 }
 
+/** L'heure des tâches : à la minute près, aux téléphones qui gardent les rappels de tâches. */
+async function passageDesHeures(cles: { publique: string; privee: string }) {
+  const { jour, heure, minute } = jourEtHeure(new Date(), FUSEAU_DU_FOYER);
+  const hhmm = formaterHeure(heure, minute).padStart(5, "0");
+  const abonnements = ((await echec(serveur.from("abonnements_push").select("*"))) as Abonnement[]).filter((a) => a.preferences?.taches !== false);
+  const tachesParFoyer = new Map<string, Promise<any[]>>();
+  let envoyes = 0;
+  for (const a of abonnements) {
+    if (!tachesParFoyer.has(a.foyer_id)) {
+      tachesParFoyer.set(
+        a.foyer_id,
+        echec(serveur.from("documents").select("donnees").eq("foyer_id", a.foyer_id).eq("collection", "taches").not("donnees", "is", null)).then((l) =>
+          (l as { donnees: any }[]).map((x) => x.donnees),
+        ),
+      );
+    }
+    const message = notificationHeure(tachesALHeure(await tachesParFoyer.get(a.foyer_id)!, a.membre_id, jour, hhmm, FUSEAU_DU_FOYER));
+    if (message && (await envoyer(a, message, cles)) === "envoye") envoyes++;
+  }
+  return envoyes;
+}
+
 async function essai(utilisateur: string, endpoint: string, cles: { publique: string; privee: string }) {
   const [a] = (await echec(serveur.from("abonnements_push").select("*").eq("endpoint", endpoint).eq("user_id", utilisateur))) as Abonnement[];
   if (!a) return repondre({ erreur: "Ce téléphone n'est pas inscrit aux rappels." }, 404);
@@ -191,9 +215,10 @@ Deno.serve(async (req) => {
     if (cleCron) {
       if (cleCron !== cles.cleCron) return repondre({ erreur: "Clé inconnue" }, 401);
       const bilan = await passageDuMatin(cles);
+      const heures = await passageDesHeures(cles).catch((e) => (console.error("Heure des tâches", (e as Error).message), 0));
       // Les mots programmés tombent à l'heure pleine : seul le passage de l'heure pleine les annonce.
       const mots = new Date().getUTCMinutes() === 0 ? await motsProgrammes(cles).catch((e) => (console.error("Mots programmés", (e as Error).message), 0)) : 0;
-      return repondre({ ...bilan, mots });
+      return repondre({ ...bilan, mots, heures });
     }
 
     if (corps.mode === "cle") return repondre({ cle: cles.publique });

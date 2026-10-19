@@ -199,3 +199,30 @@ describe("le rappel du matin et les factures", () => {
     expect(rappelDuMatin({ ...entree, preferences: { ...PREFERENCES_DE_DEPART, budget: false } })).toBeNull();
   });
 });
+
+describe("l'heure des tâches, envoyée par le serveur", () => {
+  it("rappelle à la minute près les tâches du jour et en retard, à moi ou libres", async () => {
+    const { tachesALHeure, notificationHeure } = await import("./rappels");
+    const { nouvelleTache, changerHeure } = await import("./taches");
+    const { contexteTest } = await import("./contexteTest");
+    const ctx = contexteTest("2026-10-19T08:00:00.000Z");
+    const litiere = { ...changerHeure(nouvelleTache("Litière de Mitsu", null, "2026-10-19", ctx), "19:00"), responsable: "moi" };
+    const retard = changerHeure(nouvelleTache("Recyclage", null, "2026-10-17", ctx), "19:00");
+    const autre = { ...changerHeure(nouvelleTache("Arroser", null, "2026-10-19", ctx), "19:00"), responsable: "elle" };
+    const demain = changerHeure(nouvelleTache("Lessive", null, "2026-10-20", ctx), "19:00");
+    const t = tachesALHeure([litiere, retard, autre, demain], "moi", "2026-10-19", "19:00");
+    expect(t.map((x) => x.titre)).toEqual(["Recyclage", "Litière de Mitsu"]);
+    expect(tachesALHeure([litiere], "moi", "2026-10-19", "19:01")).toEqual([]);
+    expect(notificationHeure(t)).toEqual({ titre: "C'est l'heure", corps: "Recyclage, Litière de Mitsu.", nombre: 2 });
+    expect(notificationHeure([])).toBeNull();
+  });
+
+  it("l'heure proposée par Kora se lit dans le fuseau du foyer, pas celui du serveur", async () => {
+    const { heureProposee } = await import("./taches");
+    const { nouvelleTache } = await import("./taches");
+    const { contexteTest } = await import("./contexteTest");
+    const t = nouvelleTache("Litière", null, "2026-10-19", contexteTest("2026-10-19T08:00:00.000Z"));
+    const coches = ["2026-10-14T17:00:00.000Z", "2026-10-15T17:00:00.000Z", "2026-10-16T17:00:00.000Z"].map((a, i) => ({ le: `2026-10-1${4 + i}`, par: null, retard: 0, a }));
+    expect(heureProposee({ ...t, historique: coches }, "Europe/Zurich")).toBe("19:00");
+  });
+});

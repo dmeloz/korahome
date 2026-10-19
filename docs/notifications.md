@@ -27,6 +27,14 @@ que la personne est membre du foyer), ou à l'heure prévue pour un mot programm
 chaque heure annonce les mots devenus visibles depuis l'heure précédente, `fenetreMotsProgrammes`).
 Chacun peut les couper dans Réglages > Notifications > « Mots du couple » (`preferences.mots`).
 
+## L'heure des tâches
+
+Depuis Kora 0.0.44, une tâche qui a une heure (choisie, ou proposée par Kora d'après l'heure où elle
+se fait d'habitude) envoie aussi « C'est l'heure » à cette minute, à la personne qui la fait et à
+tous pour une tâche libre (`tachesALHeure`, `notificationHeure`). Le passage de chaque minute s'en
+charge ; « Tâches » coupé dans le contenu du rappel la coupe aussi. App ouverte, c'est la fée qui le
+dit sur l'accueil, avec « C'est fait » et « Dans 15 min » (`src/ui/vieFee.ts`).
+
 ## Comment ça marche
 
 - `src/domaine/rappels.ts` : quoi rappeler et quand (testé). C'est la règle que reprendra l'app native.

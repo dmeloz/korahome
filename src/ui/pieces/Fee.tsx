@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent } from "react";
 import { createPortal } from "react-dom";
 import type { Attente, TeinteFee } from "../../domaine/fee";
-import { enregistrerPlace, lirePlace, taireFee, useFee, useParoleFee, type Parole, type PlaceFee } from "../fee";
+import { decrireMinute, estCaressee, estSecouee } from "../../domaine/vieFee";
+import { changerEtatFee, direFee, enregistrerPlace, lirePlace, noterRenvoi, reveillerFee, taireFee, useEtatFee, useFee, useParoleFee, type Parole, type PlaceFee } from "../fee";
 import { vibrer } from "../haptique";
 
 // La fée, en bas de chaque page où l'on ajoute quelque chose : une boule de lumière à quatre
@@ -18,10 +19,26 @@ const SEUIL_GLISSE = 7;
 /** Pas plus bas, pour laisser la pastille Dev et la barre de l'iPhone. */
 const BAS_MIN = 64;
 const HAUT_MIN = 80;
+/** Deux touchers aussi rapprochés : elle se cache un moment. */
+const DOUBLE_TOUCHER_MS = 320;
+const CACHEE_MS = 8000;
+/** La colère reste une surprise : une fois toutes les dix minutes au plus. */
+const ENTRE_COLERES_MS = 10 * 60_000;
+let derniereColere = 0;
 
 interface Position {
   x: number;
   y: number;
+}
+
+/** Sa place près d'un élément de l'écran : posée sur la date la nuit, au coin d'un widget sinon. */
+function lieuPres(selecteur: string, nuit: boolean): Position | null {
+  const cible = document.querySelector(selecteur);
+  if (!cible) return null;
+  const r = cible.getBoundingClientRect();
+  if (r.bottom < 0 || r.top > window.innerHeight) return null;
+  if (nuit) return { x: r.left + r.width / 2 - TAILLE / 2, y: Math.max(4, r.top - TAILLE + 22) };
+  return { x: Math.min(window.innerWidth - TAILLE, r.right - TAILLE + 10), y: Math.max(HAUT_MIN - 30, r.top - TAILLE / 2 + 4) };
 }
 
 function lieu(place: PlaceFee, ancre: number | null): Position {
@@ -46,24 +63,51 @@ export function Fee(props: {
   ouvrirAttente: (a: Attente) => void;
   /** La teinte de la fée de l'autre, pour l'icône de son message. */
   teinteAutre: TeinteFee;
+  /** Deux touchers rapides : elle arrête d'écouter et se cache. */
+  cacher: () => void;
 }) {
   const fee = useFee();
   const parole = useParoleFee();
+  const vie = useEtatFee();
+  const [cachee, setCachee] = useState(false);
+  const [humeur, setHumeur] = useState<"fachee" | "ronronne" | null>(null);
+  const dernierToucher = useRef(0);
   const [place, setPlace] = useState<PlaceFee>(lirePlace);
   const [, setTaille] = useState(0);
   const [glisse, setGlisse] = useState(false);
   const [appuie, setAppuie] = useState(false);
   const [discrete, setDiscrete] = useState(false);
   const el = useRef<HTMLDivElement>(null);
-  const geste = useRef<{ x0: number; y0: number; depart: Position; long: boolean; glisse: boolean; minuterie: ReturnType<typeof setTimeout>; histo: [number, number][] } | null>(null);
+  const geste = useRef<{
+    x0: number;
+    y0: number;
+    depart: Position;
+    long: boolean;
+    glisse: boolean;
+    minuterie: ReturnType<typeof setTimeout>;
+    histo: [number, number][];
+    debut: number;
+    inversions: number[];
+    sens: number;
+    dernierX: number;
+  } | null>(null);
 
-  const pos = lieu(place, props.ancre);
+  // Saisie ouverte, elle se pose au-dessus ; la nuit, sur la date ; en alerte, au coin du widget.
+  const ailleurs = props.ancre === null && vie.cible ? lieuPres(vie.cible, vie.nuit) : null;
+  const pos = ailleurs ?? lieu(cachee ? { ...place, rangee: true } : place, props.ancre);
 
   useEffect(() => {
-    const suivre = () => setTaille(window.innerWidth * 10_000 + window.innerHeight);
+    const suivre = () => setTaille(window.innerWidth * 10_000 + window.innerHeight + window.scrollY / 1e6);
     window.addEventListener("resize", suivre);
-    return () => window.removeEventListener("resize", suivre);
-  }, []);
+    // Posée près d'un élément, elle le suit quand la page défile.
+    if (vie.cible) window.addEventListener("scroll", suivre, { passive: true });
+    const id = vie.cible ? setTimeout(suivre, 60) : undefined;
+    return () => {
+      clearTimeout(id);
+      window.removeEventListener("resize", suivre);
+      window.removeEventListener("scroll", suivre);
+    };
+  }, [vie.cible]);
 
   // Pendant qu'on fait défiler, elle s'efface ; elle revient un instant après.
   useEffect(() => {
@@ -95,6 +139,10 @@ export function Fee(props: {
       long: false,
       glisse: false,
       histo: [] as [number, number][],
+      debut: performance.now(),
+      inversions: [] as number[],
+      sens: 0,
+      dernierX: e.clientX,
       minuterie: setTimeout(() => {
         g.long = true;
         setAppuie(false);
@@ -122,6 +170,13 @@ export function Fee(props: {
     const y = g.depart.y + dy;
     g.histo.push([performance.now(), x]);
     if (g.histo.length > 5) g.histo.shift();
+    // Les changements de sens : secouée vite, elle se fâche ; caressée lentement, elle ronronne.
+    if (Math.abs(e.clientX - g.dernierX) > 3) {
+      const sens = Math.sign(e.clientX - g.dernierX);
+      if (g.sens && sens !== g.sens) g.inversions.push(performance.now());
+      g.sens = sens;
+      g.dernierX = e.clientX;
+    }
     if (el.current) el.current.style.transform = `translate(${x}px, ${y}px)`;
   };
   const fin = (e: PointerEvent<HTMLDivElement>, annule = false) => {
@@ -136,6 +191,39 @@ export function Fee(props: {
     }
     if (!g.glisse) {
       if (annule) return;
+      const maintenant = performance.now();
+      const double = maintenant - dernierToucher.current < DOUBLE_TOUCHER_MS;
+      dernierToucher.current = double ? 0 : maintenant;
+      if (double) {
+        // Deux touchers : elle se cache un moment (le premier l'avait fait écouter).
+        props.cacher();
+        vibrer();
+        setCachee(true);
+        setTimeout(() => setCachee(false), CACHEE_MS);
+        return;
+      }
+      if (cachee) {
+        setCachee(false);
+        return;
+      }
+      if (vie.nuit) {
+        vibrer();
+        changerEtatFee({ etire: true });
+        setTimeout(() => changerEtatFee({ etire: false }), 1200);
+        reveillerFee();
+        return;
+      }
+      if (vie.alerte) {
+        vibrer();
+        const dite = vie.alerte;
+        changerEtatFee({ alerte: null });
+        direFee({ ...dite, sansSuite: () => changerEtatFee({ cible: null }) });
+        return;
+      }
+      if (parole) {
+        taireFee();
+        if (parole.spontanee) noterRenvoi();
+      }
       if (place.rangee && props.ancre === null) {
         vibrer();
         changerPlace({ ...place, rangee: false });
@@ -158,7 +246,20 @@ export function Fee(props: {
     const cote = x + TAILLE / 2 + vx * 180 < w / 2 ? "gauche" : "droite";
     const rangee = x < -TAILLE * 0.35 || x > w - TAILLE * 0.65;
     vibrer();
+    changerEtatFee({ cible: null, alerte: null });
     changerPlace({ cote, rangee, bas: Math.max(BAS_MIN, window.innerHeight - y - TAILLE) });
+    const maintenant = performance.now();
+    if (estSecouee(g.inversions, maintenant) && Date.now() - derniereColere > ENTRE_COLERES_MS) {
+      derniereColere = Date.now();
+      setHumeur("fachee");
+      [0, 120, 240].forEach((t) => setTimeout(vibrer, t));
+      direFee({ cle: "colere", crie: true, texte: "Hey ! Listen ! Arrête de me secouer…", actions: [{ texte: "Pardon", faire: () => setHumeur(null) }], sansSuite: () => setHumeur(null) });
+      setTimeout(() => setHumeur((h) => (h === "fachee" ? null : h)), 6000);
+    } else if (estCaressee(g.inversions, g.debut, maintenant)) {
+      setHumeur("ronronne");
+      [0, 350, 700].forEach((t) => setTimeout(vibrer, t));
+      setTimeout(() => setHumeur((h) => (h === "ronronne" ? null : h)), 2600);
+    }
   };
 
   const classes = [
@@ -167,8 +268,15 @@ export function Fee(props: {
     glisse && "vole",
     appuie && "appuie",
     props.ecoute && "ecoute",
-    place.rangee && props.ancre === null && "rangee",
-    discrete && !glisse && props.ancre === null && !parole && "discrete",
+    (place.rangee || cachee) && props.ancre === null && !ailleurs && "rangee",
+    cachee && "cachee",
+    discrete && !glisse && props.ancre === null && !parole && !vie.nuit && "discrete",
+    vie.nuit && props.ancre === null && "nuit",
+    vie.alerte && "en-alerte scintille",
+    vie.joie && "joie scintille",
+    vie.etire && "etire",
+    vie.allure,
+    humeur,
   ].filter(Boolean).join(" ");
 
   return createPortal(
@@ -195,6 +303,7 @@ export function Fee(props: {
         tabIndex={0}
         aria-label={`${fee.nom} : touche pour parler, garde le doigt pour écrire`}
         data-journal="fee"
+        data-eclat={vie.nuit ? undefined : vie.eclat}
         onPointerDown={debut}
         onPointerMove={mouvement}
         onPointerUp={(e) => fin(e)}
@@ -208,6 +317,7 @@ export function Fee(props: {
         }}
       >
         <div className="ondes" aria-hidden><i /><i /><i /></div>
+        <div className="etincelles" aria-hidden><i /><i /><i /><i /><i /></div>
         <DessinFee />
       </div>
       {parole && !glisse && <Bulle parole={parole} pos={pos} />}
@@ -227,7 +337,11 @@ function Bulle({ parole, pos }: { parole: Parole; pos: Position }) {
     };
     const id = setTimeout(fermer, actions.length ? 10_000 : 7000);
     const ailleurs = (e: globalThis.PointerEvent) => {
-      if (!(e.target as Element).closest?.(".hey, .fee, .attend")) fermer();
+      if ((e.target as Element).closest?.(".hey, .fee, .attend")) return;
+      fermer();
+      // Renvoyée d'un toucher ailleurs : elle apprend l'heure où on préfère qu'elle se taise.
+      const heure = parole.spontanee ? noterRenvoi() : null;
+      if (heure !== null) setTimeout(() => direFee({ cle: "discrete", texte: `Tu me renvoies souvent vers ${decrireMinute(heure * 60)}. À cette heure-là, je garderai mes nouvelles pour plus tard.` }), 400);
     };
     window.addEventListener("pointerdown", ailleurs, true);
     return () => {
@@ -252,7 +366,7 @@ function Bulle({ parole, pos }: { parole: Parole; pos: Position }) {
   }, [parole]);
 
   return (
-    <div ref={ref} className={`hey${aGauche ? " gauche" : ""}${dessous ? " dessous" : ""}${parole.de ? ` fee-${parole.de.teinte}` : ""}`} style={style} role="status">
+    <div ref={ref} className={`hey${aGauche ? " gauche" : ""}${dessous ? " dessous" : ""}${parole.crie ? " crie" : ""}${parole.de ? ` fee-${parole.de.teinte}` : ""}`} style={style} role="status">
       {parole.de && <span className="de">{parole.de.prenom}</span>}
       <span className="hey-texte">{parole.texte}</span>
       {actions.length > 0 && (

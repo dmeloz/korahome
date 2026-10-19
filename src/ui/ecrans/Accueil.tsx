@@ -4,12 +4,12 @@ import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent, t
 import { bilanAOuvrir, bilanDeLaSemaine, ordreVivant, remarqueDuJour } from "../../domaine/apprentissage";
 import { carteDuJour, titreMoment, type ChoseDuJour } from "../../domaine/aujourdhui";
 import { facturesDuJour } from "../../domaine/budget";
-import { evenementsDe } from "../../domaine/agenda";
+import { evenementsDe, ligneWidget, resumeAgenda } from "../../domaine/agenda";
 import type { EtatPartage } from "../../domaine/etatPartage";
 import type { OuRecherche } from "../../domaine/recherche";
 import { repartitionDue } from "../../domaine/repartition";
 import { decrireDerniere, sauvegardeDue } from "../../domaine/sauvegarde";
-import { decrireEcheance, marquerFaite } from "../../domaine/taches";
+import { decaler, decrireEcheance, marquerFaite } from "../../domaine/taches";
 import { signesDuJour, type Signe, type ValeurSigne } from "../../domaine/signes";
 import { clinDuJour } from "../../domaine/bandeau";
 import type { Tache } from "../../domaine/types";
@@ -38,7 +38,8 @@ import { CarteAujourdhui, Visite } from "../pieces";
 import { FeuilleHeure } from "../pieces/FeuilleHeure";
 import { DateRepliee, GrandeDate, Signes } from "../pieces/HautAccueil";
 import { clinDejaDit, noterClinDit, useClinDuJour } from "../clinDuJour";
-import { direFee, direSiCalme, taireFee } from "../fee";
+import { direFee, direSiCalme, feteFee, taireFee } from "../fee";
+import { nuitDeCeTelephone, useVieFee } from "../vieFee";
 import { lireSignes } from "../accueilLocal";
 import { abonnerVisite, finirVisite, visiteEnAttente } from "../visite";
 import { TousLesEspaces } from "../TousLesEspaces";
@@ -265,8 +266,12 @@ export function Accueil(props: {
   const evenements = evenementsDe(props.donnees.agenda);
   const valeursSignes = signesDuJour(signes, { ...props.donnees, evenements, heure: heureTexte });
   const derniereSauvegarde = lireDerniereSauvegarde();
+  // La nuit tombée le soir, la carte montre déjà demain.
+  const { montrer } = nuitDeCeTelephone(aujourdhui, maintenant);
+  const jourCarte = montrer === "demain" ? decaler(aujourdhui, { unite: "jour", tous: 1 }) : aujourdhui;
   const carte = carteDuJour({
     ...props.donnees,
+    aujourdhui: jourCarte,
     evenements,
     factures: facturesDuJour(props.donnees.budget, aujourdhui, 1),
     sauvegardeDue: sauvegardeDue(derniereSauvegarde, aujourdhui) && maintenant.getDay() === 0,
@@ -278,6 +283,7 @@ export function Accueil(props: {
     vibrer();
     const apres = marquerFaite(avant, membreId, aujourdhui, contexteReel);
     await props.depot.enregistrerTache(apres);
+    feteFee();
     noterUsage("tache", avant.id);
     const suite = apres.recurrence ? ` Prochaine fois ${decrireEcheance(apres.echeance, aujourdhui)}.` : "";
     annoncer(`« ${avant.titre} » faite.${suite}`, () => props.depot.enregistrerTache(avant));
@@ -290,6 +296,31 @@ export function Accueil(props: {
       props.ouvrirModule(c.destination);
     }
   };
+  // La vie de la fée : sommeil, alertes, l'heure des tâches, le réveil, le jour J.
+  const agenda = resumeAgenda(evenements, props.donnees.animaux, aujourdhui);
+  const prochainRdv = agenda.aujourdhui.find((o) => !o.evenement.heure || o.evenement.heure >= heureTexte) ?? agenda.semaine[0];
+  useVieFee({
+    actif: props.auDessus && !edition && !espaces && !visite,
+    aujourdhui,
+    carte,
+    taches: props.donnees.taches,
+    membreId,
+    autre,
+    couple: props.donnees.couple,
+    meteo: props.donnees.meteo,
+    listes: props.donnees.listes,
+    elements: props.donnees.elements,
+    rdv: prochainRdv ? ligneWidget(prochainRdv, aujourdhui).replace(" · ", ", ") : null,
+    ouvrir: (destination) => toucherChose({ destination } as unknown as ChoseDuJour),
+    cocher: (c) => void cocherChose(c),
+    repousser: (c) => {
+      const t = props.donnees.taches.find((x) => x.id === c.tacheId);
+      if (!t) return;
+      const dans = new Date(Date.now() + 15 * 60_000);
+      const heure = `${String(dans.getHours()).padStart(2, "0")}:${String(dans.getMinutes()).padStart(2, "0")}`;
+      void props.depot.enregistrerTache({ ...t, heure });
+    },
+  });
   const quiFait = (c: ChoseDuJour) => {
     const t = props.donnees.taches.find((x) => x.id === c.tacheId);
     if (!t) return null;
@@ -412,7 +443,7 @@ export function Accueil(props: {
       {!edition && (
         <CarteAujourdhui
           carte={carte}
-          titre={titreMoment(heure)}
+          titre={montrer === "demain" ? "Demain" : titreMoment(heure)}
           maintenant={heureTexte}
           toucher={toucherChose}
           cocher={(c) => void cocherChose(c)}

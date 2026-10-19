@@ -30,6 +30,41 @@ function decaler(jour, recurrence) {
 function ecartJours(a, b) {
 	return Math.round((versDate(b).getTime() - versDate(a).getTime()) / 864e5);
 }
+function versHeure(minutes) {
+	const m = (Math.round(minutes) % 1440 + 1440) % 1440;
+	return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+}
+/**
+* L'heure à un instant ISO, en minutes depuis minuit : celle du téléphone, ou celle d'un fuseau
+* (le serveur, réglé en UTC, demande celle du foyer).
+*/
+function minutesLocales(instant, fuseau) {
+	const d = new Date(instant);
+	if (Number.isNaN(d.getTime())) return null;
+	if (!fuseau) return d.getHours() * 60 + d.getMinutes();
+	const p = Object.fromEntries(new Intl.DateTimeFormat("en-GB", {
+		timeZone: fuseau,
+		hour: "2-digit",
+		minute: "2-digit",
+		hourCycle: "h23"
+	}).formatToParts(d).map((x) => [x.type, x.value]));
+	return Number(p.hour) * 60 + Number(p.minute);
+}
+/**
+* L'heure où la tâche est faite d'habitude : la médiane des heures de ses coches, arrondie
+* au quart d'heure, dès trois coches. Avant, aucune.
+*/
+function heureProposee(tache, fuseau) {
+	const minutes = (tache.historique ?? []).map((f) => f.a ? minutesLocales(f.a, fuseau) : null).filter((m) => m !== null).sort((a, b) => a - b);
+	if (minutes.length < 3) return null;
+	const milieu = Math.floor(minutes.length / 2);
+	const mediane = minutes.length % 2 ? minutes[milieu] : (minutes[milieu - 1] + minutes[milieu]) / 2;
+	return versHeure(Math.round(mediane / 15) * 15);
+}
+/** L'heure affichée : celle choisie à la main, sinon celle que propose Kora. */
+function heureDe(tache, fuseau) {
+	return tache.heure !== void 0 ? tache.heure : heureProposee(tache, fuseau);
+}
 /** Une tâche unique faite est terminée ; une tâche qui revient ne l'est jamais. */
 function estTerminee(tache) {
 	return !tache.recurrence && tache.faiteLe !== null;
@@ -1389,6 +1424,23 @@ function tachesDuMatin(taches, membreId, aujourdhui) {
 		enRetard: miennes.filter((t) => ecartJours(aujourdhui, t.echeance) < 0)
 	};
 }
+/**
+* Les tâches de cette personne (et les libres) dont c'est l'heure à cette minute : celles du jour
+* et celles en retard, avec une heure choisie ou proposée par Kora.
+*/
+function tachesALHeure(taches, membreId, aujourdhui, hhmm, fuseau = FUSEAU_DU_FOYER) {
+	const { aujourdhui: duJour, enRetard } = tachesDuMatin(taches, membreId, aujourdhui);
+	return [...enRetard, ...duJour].filter((t) => heureDe(t, fuseau) === hhmm);
+}
+/** « C'est l'heure : Litière de Mitsu. » */
+function notificationHeure(taches) {
+	if (!taches.length) return null;
+	return {
+		titre: "C'est l'heure",
+		corps: `${enumerer(taches.map((t) => t.titre))}.`,
+		nombre: taches.length
+	};
+}
 function rappelDuMatin(entree) {
 	const { preferences, aujourdhui } = entree;
 	const lignes = [];
@@ -1464,4 +1516,4 @@ function rappelDu(instant, heure, dernierEnvoi, fuseau = FUSEAU_DU_FOYER, jours 
 	return dernierEnvoi === local.jour ? null : local.jour;
 }
 //#endregion
-export { FUSEAU_DU_FOYER, HEURE_DU_RAPPEL, HEURE_MAX, HEURE_MIN, JOURS_SEMAINE, PREFERENCES_DE_DEPART, RACCOURCIS_JOURS, TOUS_LES_JOURS, adresseMeteo, basculerJour, decalerHeure, decrireJours, evenementsDe, facturesDuJour, fenetreMotsProgrammes, formaterHeure, heureValide, jourDeLaSemaine, jourEtHeure, lireHeure, lireMeteo, minuteValide, nettoyerJours, notificationMot, rappelDu, rappelDuMatin, tachesDuMatin };
+export { FUSEAU_DU_FOYER, HEURE_DU_RAPPEL, HEURE_MAX, HEURE_MIN, JOURS_SEMAINE, PREFERENCES_DE_DEPART, RACCOURCIS_JOURS, TOUS_LES_JOURS, adresseMeteo, basculerJour, decalerHeure, decrireJours, evenementsDe, facturesDuJour, fenetreMotsProgrammes, formaterHeure, heureValide, jourDeLaSemaine, jourEtHeure, lireHeure, lireMeteo, minuteValide, nettoyerJours, notificationHeure, notificationMot, rappelDu, rappelDuMatin, tachesALHeure, tachesDuMatin };

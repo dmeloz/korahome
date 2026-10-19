@@ -1,3 +1,4 @@
+import { feteFee } from "../fee";
 import { useState } from "react";
 import { entretiensAProposer, nouvelEntretien, organiserEntretien } from "../../domaine/entretien";
 import { decrireEcheance, decrireRecurrence, marquerFaite } from "../../domaine/taches";
@@ -24,6 +25,7 @@ export function Entretien(props: { depot: Depot; membreId: string | null; taches
     const apres = marquerFaite(t, props.membreId, aujourdhui, contexteReel);
     noterUsage("tache", t.id);
     await depot.enregistrerTache(apres);
+    feteFee();
     annoncer(`« ${t.titre} » fait.`, () => depot.enregistrerTache(t));
   }
 
