@@ -68,6 +68,16 @@ Déploiement : appliquer la fin de `supabase/schema.sql` (jetons), puis déploye
 `supabase/functions/paiements` (index.ts et domaine.js) **sans vérification du JWT** : le raccourci
 n'a pas de session, il s'identifie par son lien.
 
+## Le relevé Revolut (0.0.33)
+
+Pour ce qu'Apple Pay ne voit pas (achats en ligne, carte en plastique, prélèvements) : Budget › Ce
+mois › « Importer un relevé Revolut », un export CSV de l'app Revolut (en anglais ou en français).
+Kora lit les sorties terminées, propose décochés les virements, recharges et autres monnaies, et
+laisse de côté ce qui est déjà noté (même montant à un jour près, une dépense pour une ligne). On
+choisit la carte (le pot) du relevé, puis « Ajouter ». Les dépenses sont marquées « relevé ». Règles :
+`src/domaine/releve.ts`, écran `src/ui/ecrans/BudgetReleve.tsx`. Rien n'est gardé du relevé que
+la date, le montant et le libellé.
+
 ## Où est quoi
 
 - Règles et tests : `src/domaine/budget.ts`, paiements Apple Pay dans `src/domaine/paiements.ts`

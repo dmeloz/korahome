@@ -118,7 +118,7 @@ export interface Depense {
   /** La charge que cette dépense paie, et l'échéance réglée. */
   posteId: Id | null;
   echeance: Jour | null;
-  source: "main" | "ticket" | "jarvis" | "applepay";
+  source: "main" | "ticket" | "jarvis" | "applepay" | "releve";
   /** La carte de Wallet qui a payé (son nom seul, sans chiffres), pour un paiement Apple Pay. */
   carte?: string;
   /** Les lignes d'un ticket de caisse, avec leur prix : Kora y voit les prix qui montent. */
