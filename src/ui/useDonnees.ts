@@ -3,6 +3,7 @@ import type { ProduitHabituel } from "../domaine/catalogue";
 import type { Zone } from "../domaine/jardin";
 import type { DocCouple } from "../domaine/bandeau";
 import type { DocAgenda } from "../domaine/agenda";
+import type { DocBudget } from "../domaine/budget";
 import type { DocChef } from "../domaine/chef";
 import type { Souvenir } from "../domaine/memoire";
 import type { Animal } from "../domaine/mitsu";
@@ -26,14 +27,15 @@ export interface Donnees {
   couple: DocCouple[];
   menus: DocChef[];
   agenda: DocAgenda[];
+  budget: DocBudget[];
 }
 
 /** Charge toutes les données et les recharge à chaque changement du dépôt. */
 export function useDonnees(depot: Depot): Donnees {
-  const [donnees, setDonnees] = useState<Donnees>({ pret: false, foyer: null, listes: [], elements: [], taches: [], retours: [], animaux: [], produits: [], catalogue: [], zones: [], souvenirs: [], couple: [], menus: [], agenda: [] });
+  const [donnees, setDonnees] = useState<Donnees>({ pret: false, foyer: null, listes: [], elements: [], taches: [], retours: [], animaux: [], produits: [], catalogue: [], zones: [], souvenirs: [], couple: [], menus: [], agenda: [], budget: [] });
 
   const charger = useCallback(async () => {
-    const [foyer, listes, elements, taches, retours, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda] = await Promise.all([
+    const [foyer, listes, elements, taches, retours, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda, budget] = await Promise.all([
       depot.lireFoyer(),
       depot.lireListes(),
       depot.lireElements(),
@@ -47,11 +49,12 @@ export function useDonnees(depot: Depot): Donnees {
       depot.lireCouple(),
       depot.lireMenus(),
       depot.lireAgenda(),
+      depot.lireBudget(),
     ]);
     listes.sort((a, b) => a.creeLe.localeCompare(b.creeLe));
     animaux.sort((a, b) => a.creeLe.localeCompare(b.creeLe));
     zones.sort((a, b) => a.creeLe.localeCompare(b.creeLe));
-    setDonnees({ pret: true, foyer, listes, elements, taches, retours, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda });
+    setDonnees({ pret: true, foyer, listes, elements, taches, retours, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda, budget });
   }, [depot]);
 
   useEffect(() => {

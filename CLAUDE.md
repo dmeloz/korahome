@@ -22,6 +22,7 @@ Fiche projet et plan (sur le Mac de la propriétaire) : `~/Atelier-Claude/Cervea
 - Agenda commun : `src/domaine/agenda.ts`, page « Agenda ». Synchro avec l'iCloud de chacun (calendrier « Kora », mot de passe d'app dans Supabase Vault) par `supabase/functions/agenda/`, règles dans `src/domaine/icloud.ts`. Voir `docs/agenda.md`.
 - Bandeau du couple (mots, humeurs, comptes à rebours, clin d'œil de Jarvis, infos) : `src/domaine/bandeau.ts`, page « Nos mots ». Voir `docs/bandeau-couple.md`.
 - Kora apprend de votre usage (bilan du dimanche, accueil vivant, « comme d'habitude », mot du jour) : `src/domaine/apprentissage.ts`, page « Ce que Kora sait de nous ». Ce qui est personnel reste dans le `localStorage` du téléphone. Voir `docs/apprentissage.md`.
+- Budget du foyer (repris de l'Excel : pots courses, plaisir, factures, épargne, report d'un mois à l'autre, factures, tickets de caisse) : `src/domaine/budget.ts`, page « Budget ». Voir `docs/budget.md`.
 - Jardin : zones, plantes et calendrier dans `src/domaine/jardin.ts` et `plantes.ts`, météo Open-Meteo (`meteo.ts`, sans clé). Voir `docs/jardin.md`.
 - `serveur/fonctionsServeur.test.ts` : vérifie que les fonctions serveur (`supabase/functions/*/domaine.js`) sont à jour avec leurs règles.
 - `src/ui/` : écrans React. Ils lisent par `useDonnees` et écrivent par le `Depot`, jamais directement dans IndexedDB.

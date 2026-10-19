@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { evenementsDe, ligneWidget, resumeAgenda, type DocAgenda } from "../domaine/agenda";
 import type { DocCouple } from "../domaine/bandeau";
+import { decrireEcheanceFacture, etatDesPots, facturesAPayer, formaterMontant, moisAConfirmer, nommerMois, planDe, type DocBudget } from "../domaine/budget";
 import { menuDeLaSemaine, prochainPassage, reglageChef, type DocChef } from "../domaine/chef";
 import type { Souvenir } from "../domaine/memoire";
 import type { RetourTest } from "../domaine/retours";
@@ -17,6 +18,7 @@ import type { Depot } from "../donnees/depot";
 import type { ServeurAgenda, ServeurJarvis } from "../donnees/distant";
 import { organiserEntretien } from "../domaine/entretien";
 import { Agenda } from "./ecrans/Agenda";
+import { Budget } from "./ecrans/Budget";
 import { DetailListe } from "./ecrans/DetailListe";
 import { Chef } from "./ecrans/Chef";
 import { Entretien } from "./ecrans/Entretien";
@@ -55,6 +57,8 @@ export interface DonneesModule {
   menus: DocChef[];
   /** L'agenda commun et l'état des comptes iCloud reliés. */
   agenda: DocAgenda[];
+  /** Le budget du foyer : son plan, les mois versés, les dépenses. */
+  budget: DocBudget[];
 }
 
 export interface PropsPage extends DonneesModule {
@@ -286,6 +290,32 @@ export const MODULES: Partial<Record<WidgetId, ModuleUI>> = {
       };
     },
     page: (p) => <Chef {...p} />,
+  },
+
+  budget: {
+    id: "budget",
+    picto: "portefeuille",
+    libelle: "Budget",
+    widget: (d) => {
+      const plan = planDe(d.budget);
+      if (!plan) return { chiffre: 0, legende: "Le budget du foyer, à commencer", lignes: [], urgent: false };
+      const pots = etatDesPots(plan, d.budget, d.aujourdhui);
+      const aPayer = facturesAPayer(plan, d.budget, d.aujourdhui, 14);
+      const courses = pots.courses;
+      const aNoter = moisAConfirmer(plan, d.budget, d.aujourdhui);
+      return {
+        chiffre: Math.max(0, Math.floor(courses.solde)),
+        legende: aNoter ? `Versements de ${nommerMois(aNoter)} à noter` : courses.solde < 1 ? "Carte courses vide" : "CHF sur la carte courses",
+        lignes: [
+          `Plaisir : ${formaterMontant(pots.plaisir.solde)}`,
+          ...aPayer.slice(0, 1).map((f) => `${f.poste.libelle} · ${decrireEcheanceFacture(f.echeance, d.aujourdhui)}`),
+          `Épargne : ${formaterMontant(pots.epargne.solde)}`,
+        ].slice(0, 3),
+        urgent: aPayer.some((f) => f.echeance <= d.aujourdhui),
+        jauge: courses.budgetDuMois > 0 ? Math.min(1, courses.depenseDuMois / courses.budgetDuMois) : undefined,
+      };
+    },
+    page: (p) => <Budget {...p} />,
   },
 };
 

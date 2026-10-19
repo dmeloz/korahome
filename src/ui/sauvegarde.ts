@@ -69,5 +69,6 @@ export async function reprendreSauvegarde(depot: Depot, s: Sauvegarde, foyerActu
   for (const c of s.couple) await depot.enregistrerCouple(c);
   for (const m of s.menus) await depot.enregistrerMenu(m);
   for (const d of s.agenda as DocAgenda[]) await depot.enregistrerAgenda(d);
+  for (const b of s.budget) await depot.enregistrerBudget(b);
   for (const r of s.retours) await depot.enregistrerRetour(r);
 }

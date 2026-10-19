@@ -172,3 +172,12 @@ describe("les jours du rappel", () => {
     expect(rappelDu(samedi, 8, null)).toBe("2026-10-17");
   });
 });
+
+describe("le rappel du matin et les factures", () => {
+  it("annonce les factures à payer, sauf si on n'en veut pas", () => {
+    const factures = [{ libelle: "Électricité (60 CHF)", echeance: "2026-10-20" }];
+    const entree = { foyer: null, membreId: null, taches: [], animaux: [], factures, aujourdhui: "2026-10-19", preferences: PREFERENCES_DE_DEPART };
+    expect(rappelDuMatin(entree)?.corps).toBe("Factures : Électricité (60 CHF) demain");
+    expect(rappelDuMatin({ ...entree, preferences: { ...PREFERENCES_DE_DEPART, budget: false } })).toBeNull();
+  });
+});

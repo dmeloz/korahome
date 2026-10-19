@@ -12,6 +12,7 @@
 // comme souhait pour Claude (une note « Idée » des retours de test).
 
 import { CATEGORIES, decrireAgenda, decrireJour, evenementsDe, preparerEvenement, REPETITIONS, type Categorie, type DocAgenda, type Evenement, type Repetition } from "./agenda";
+import { decrireBudget, facturesAPayer, formaterMontant as formaterMontantCourt, nouvelleDepense, payerFacture, planDe, POTS, type Depense, type DocBudget, type Pot } from "./budget";
 import { proposer, type ProduitHabituel } from "./catalogue";
 import { ajouterPlante, arroser, decrireJardin, nouvellePlante, type Zone } from "./jardin";
 import { analyserSaisie, nouvelElement, trouverDoublon } from "./listes";
@@ -72,6 +73,8 @@ export interface DonneesFoyer {
   version?: string;
   /** L'agenda commun. */
   agenda?: readonly DocAgenda[];
+  /** Le budget du foyer. */
+  budget?: readonly DocBudget[];
 }
 
 const listeCourses = (d: DonneesFoyer) => d.listes.find((l) => l.type === "courses") ?? null;
@@ -140,6 +143,7 @@ export function decrireFoyer(d: DonneesFoyer, membreId: Id | null, aujourdhui: J
   }
   if (d.zones?.length) lignes.push(...decrireJardin(d.zones, d.meteo ?? null, aujourdhui));
   if (d.agenda) lignes.push(...decrireAgenda(evenementsDe(d.agenda), d.foyer, aujourdhui));
+  if (d.budget) lignes.push(...decrireBudget(d.budget, (id) => prenomDe(d.foyer, id) ?? "", aujourdhui));
   return lignes.join("\n");
 }
 
@@ -175,7 +179,8 @@ export type ActionJarvis =
       repetition: Repetition;
       lieu: string | null;
     }
-  | { outil: "supprimer_evenement"; titre: string; jour: Jour | null };
+  | { outil: "supprimer_evenement"; titre: string; jour: Jour | null }
+  | { outil: "noter_depense"; montant: number; libelle: string; magasin: string | null; pot: Pot; jour: Jour | null; charge: string | null };
 
 /** Ce qui attend le oui de la personne avant de se faire : supprimer, ou retenir ce que Jarvis a remarqué seul. */
 export function aConfirmer(action: ActionJarvis): boolean {
@@ -289,6 +294,19 @@ export function lireActions(appels: readonly { nom: string; entree: unknown }[])
       });
     } else if (nom === "supprimer_evenement") {
       if (estTexte(e.titre)) actions.push({ outil: nom, titre: e.titre, jour: jourOuNul(e.jour) });
+    } else if (nom === "noter_depense") {
+      const montant = typeof e.montant === "number" ? e.montant : NaN;
+      if (!(montant > 0) || montant > 100_000) continue;
+      const pot = typeof e.pot === "string" && e.pot in POTS ? (e.pot as Pot) : "courses";
+      actions.push({
+        outil: nom,
+        montant,
+        libelle: estTexte(e.libelle) ? e.libelle.trim() : "",
+        magasin: estTexte(e.magasin) ? e.magasin.trim() : null,
+        pot,
+        jour: jourOuNul(e.jour),
+        charge: estTexte(e.charge) ? e.charge.trim() : null,
+      });
     } else if (nom === "noter_souhait") {
       if (estTexte(e.demande)) actions.push({ outil: nom, demande: e.demande.trim(), manque: estTexte(e.manque) ? e.manque.trim() : "" });
     }
@@ -308,7 +326,8 @@ export type Modification =
   | { collection: "jardin"; avant: Zone; apres: Zone }
   | { collection: "memoire"; avant: Souvenir | null; apres: Souvenir; supprime?: true }
   | { collection: "retours"; avant: null; apres: RetourTest }
-  | { collection: "agenda"; avant: Evenement | null; apres: Evenement; supprime?: true };
+  | { collection: "agenda"; avant: Evenement | null; apres: Evenement; supprime?: true }
+  | { collection: "budget"; avant: null; apres: Depense };
 
 export interface ResultatActions {
   modifications: Modification[];
@@ -611,6 +630,27 @@ export function appliquerActions(
           faits.push(`Retiré de l'agenda : ${evenement.titre.toLowerCase()}.`);
           break;
         }
+        case "noter_depense": {
+          const plan = planDe(donnees.budget ?? []);
+          if (!plan) {
+            echecs.push("Le budget n'est pas encore en place : ouvre la page Budget.");
+            break;
+          }
+          const jour = action.jour ?? aujourdhui;
+          const poste = action.charge ? trouverParNom(plan.postes.filter((p) => p.qui === null), action.charge, (p) => p.libelle) : undefined;
+          let depense: Depense;
+          if (poste) {
+            const facture = facturesAPayer(plan, donnees.budget ?? [], jour, 45).find((f) => f.poste.id === poste.id);
+            depense = facture
+              ? { ...payerFacture(facture, jour, membreId, ctx, "jarvis"), montant: Math.round(action.montant * 100) / 100 }
+              : nouvelleDepense({ montant: action.montant, pot: poste.pot && poste.pot !== "commun" ? poste.pot : "factures", libelle: poste.libelle, jour, posteId: poste.id, source: "jarvis" }, membreId, ctx);
+          } else {
+            depense = nouvelleDepense({ montant: action.montant, pot: action.pot, libelle: action.libelle || action.magasin || POTS[action.pot].nom, magasin: action.magasin, jour, source: "jarvis" }, membreId, ctx);
+          }
+          modifications.push({ collection: "budget", avant: null, apres: depense });
+          faits.push(`Noté au budget : ${depense.libelle.toLowerCase()}, ${formaterMontantCourt(depense.montant)} (${POTS[depense.pot].nom.toLowerCase()}).`);
+          break;
+        }
         case "noter_souhait": {
           const texte = `Souhait pour Jarvis : ${action.demande}${action.manque ? ` (il faudrait : ${action.manque})` : ""}`;
           const deja = (donnees.retours ?? []).some((r) => !r.regleLe && normaliser(r.texte) === normaliser(texte));
@@ -672,6 +712,8 @@ export function decrireAction(action: ActionJarvis): string {
       return `Agenda : ${action.titre}, le ${action.jour}${action.heure ? ` à ${action.heure}` : ""}${action.pour ? `, pour ${action.pour}` : ""}`;
     case "supprimer_evenement":
       return `Retirer de l'agenda : ${action.titre}`;
+    case "noter_depense":
+      return `Budget : ${action.charge ?? action.libelle ?? action.magasin ?? ""} ${formaterMontantCourt(action.montant)}`;
   }
 }
 

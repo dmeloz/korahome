@@ -142,6 +142,8 @@ export function invitation(lieu: LieuBarre): string {
       return "Ex. dentiste jeudi 14h30";
     case "stock":
       return "Ex. 2 yaourts au frigo jusqu'au 25";
+    case "budget":
+      return "Une dépense, ex. Migros 84.30";
     case "accueil":
       return "Ajouter, demander à Jarvis…";
     default:

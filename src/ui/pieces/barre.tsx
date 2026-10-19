@@ -219,7 +219,7 @@ export function BarreJarvis(props: {
             autoComplete="off"
             aria-label={invitation(props.lieu)}
           />
-          {(props.lieu === "accueil" || props.lieu === "stock") && !texte && (
+          {(props.lieu === "accueil" || props.lieu === "stock" || props.lieu === "budget") && !texte && (
             <TicketDeCaisse jarvis={props.jarvis} donnees={donnees} depot={depot} catalogue={donnees.catalogue} classe="barre-bouton" />
           )}
           {texte.trim() && !ecoute ? (

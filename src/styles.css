@@ -1889,3 +1889,37 @@ html.avec-barre { --hauteur-barre: 84px; }
 .mitsu-classes .mitsu-carnet > p { margin: 12px 0 0; }
 .mitsu-classes .bouton-secondaire { justify-self: start; min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--accent); background: none; color: var(--accent); font: inherit; font-weight: 600; }
 .mot-bas .compteur.depasse { font-family: inherit; text-align: right; max-width: 9em; }
+
+/* Le Budget (0.0.27) : quatre pots en tuiles, les montants alignés en chiffres tabulaires. */
+.budget-pots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 16px 0 4px; }
+.budget-pots .carte { margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.budget-pot .surtitre { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.budget-pot .discret { margin: 0; font-size: var(--t-legende); }
+.budget-solde { font-family: var(--police-titre); font-size: var(--t-section); font-weight: 700; letter-spacing: -0.01em; margin: 2px 0; font-variant-numeric: tabular-nums; }
+.budget-pot.negatif .budget-solde { color: var(--urgent); }
+.budget-montant { font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--texte); }
+.budget-total .ligne-texte, .budget-total .budget-montant { font-weight: 600; }
+.budget-versement { margin-top: 16px; }
+.budget-versement .groupe { margin: 8px -16px; }
+.budget-versement .bouton-principal { width: 100%; }
+.budget-champ {
+  width: 7.5em;
+  text-align: right;
+  border: 1px solid var(--trait);
+  background: var(--surface-haute);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
+.budget-champ:focus { border-color: var(--accent); }
+.formulaire .budget-champ { width: 100%; text-align: left; padding: 12px 14px; font-size: var(--t-corps); background: var(--surface); color: var(--texte); }
+.budget-note { margin: 4px 4px 12px; }
+.budget-rappel { display: flex; gap: 10px; align-items: flex-start; width: 100%; text-align: left; font-size: var(--t-detail); color: var(--texte); }
+.budget-rappel .point-etat { margin-top: 6px; }
+.budget-projet { margin-top: 16px; }
+.budget-projet .surtitre { margin: 0; }
+.budget-projet .budget-solde .discret { font-family: var(--police); font-weight: 400; }
+.budget-projet .bouton-principal { width: 100%; margin-top: 8px; }
+.budget-total .tache-details { font-weight: 400; }
+.budget-choix { display: flex; flex-direction: column; gap: 8px; }

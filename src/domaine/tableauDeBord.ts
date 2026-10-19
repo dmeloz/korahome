@@ -23,7 +23,7 @@ export const CATALOGUE: readonly DefinitionWidget[] = [
   { id: "entretien", titre: "Entretien", description: "Détartrer, changer les filtres, tester le détecteur : rien ne s'oublie.", disponible: true },
   { id: "jardin", titre: "Jardin", description: "Arrosage selon la pluie, alerte gel, calendrier du mois et plantes reconnues en photo.", disponible: true },
   { id: "chef", titre: "Menus de la semaine", description: "Cinq repas du soir qui finissent le frigo, et les courses qui manquent.", disponible: true },
-  { id: "budget", titre: "Budget", description: "Ce qui reste ce mois, et les factures du jour dans « Aujourd'hui ».", disponible: false },
+  { id: "budget", titre: "Budget", description: "La carte courses, le plaisir, l'épargne et les factures à payer, calculés comme dans votre Excel.", disponible: true },
   { id: "infos", titre: "Infos de la maison", description: "Contrats, garanties et numéros utiles ; une photo d'un document et Jarvis note l'échéance.", disponible: false },
 ];
 

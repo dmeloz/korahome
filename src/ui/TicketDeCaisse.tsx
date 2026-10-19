@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { apprendre, type ProduitHabituel } from "../domaine/catalogue";
+import { formaterMontant, planDe } from "../domaine/budget";
 import { appliquerActions, decrireFoyer, lireActions, type ActionJarvis, type DonneesFoyer } from "../domaine/jarvis";
 import { LIEUX, ORDRE_LIEUX, type Lieu } from "../domaine/stock";
 import type { Depot } from "../donnees/depot";
@@ -13,10 +14,11 @@ import { annulerModifications, enregistrerModifications, photoPourJarvis } from 
 
 // Le ticket de caisse en entier, depuis Frigo et placards : une photo, Jarvis lit chaque
 // ligne, on vérifie la liste (décocher, changer le lieu), puis tout se range d'un coup,
-// la Base apprend chaque produit et les courses correspondantes se cochent.
+// la Base apprend chaque produit et les courses correspondantes se cochent. Le total
+// du ticket compte dans la carte courses du Budget.
 
 const DEMANDE =
-  "Voici un ticket de caisse. Range au stock tous les produits alimentaires et d'hygiène achetés (ajouter_au_stock), un par ligne du ticket, avec leur quantité dans le nom et le lieu où on les range d'habitude. Coche aussi les courses correspondantes (cocher_courses).";
+  "Voici un ticket de caisse. Range au stock tous les produits alimentaires et d'hygiène achetés (ajouter_au_stock), un par ligne du ticket, avec leur quantité dans le nom et le lieu où on les range d'habitude. Coche aussi les courses correspondantes (cocher_courses), et note le total payé au budget (noter_depense, pot courses, avec le magasin et la date du ticket).";
 
 interface LigneTicket {
   nom: string;
@@ -39,6 +41,8 @@ export function TicketDeCaisse(props: {
   const [etat, setEtat] = useState<"ferme" | "lecture" | "verification" | "erreur">("ferme");
   const [lignes, setLignes] = useState<LigneTicket[]>([]);
   const [courses, setCourses] = useState<string[]>([]);
+  const [total, setTotal] = useState<Extract<ActionJarvis, { outil: "noter_depense" }> | null>(null);
+  const [compterTotal, setCompterTotal] = useState(true);
   const [erreur, setErreur] = useState<string | null>(null);
 
   if (!props.jarvis) return null;
@@ -59,7 +63,10 @@ export function TicketDeCaisse(props: {
       });
       const actions = lireActions(reponse.appels);
       const produits = actions.flatMap((a) => (a.outil === "ajouter_au_stock" ? a.produits : []));
-      if (!produits.length) {
+      const depense = actions.find((a): a is Extract<ActionJarvis, { outil: "noter_depense" }> => a.outil === "noter_depense") ?? null;
+      setTotal(depense && planDe(donnees.budget ?? []) ? depense : null);
+      setCompterTotal(true);
+      if (!produits.length && !depense) {
         setErreur(reponse.texte || "Je n'ai pas trouvé de produits sur cette photo. Essaie avec le ticket bien à plat et éclairé.");
         setEtat("erreur");
         return;
@@ -75,9 +82,12 @@ export function TicketDeCaisse(props: {
 
   async function ranger() {
     const gardees = lignes.filter((l) => l.garder);
-    const actions: ActionJarvis[] = [{ outil: "ajouter_au_stock", produits: gardees.map(({ nom, lieu, peremption }) => ({ nom, lieu, peremption })) }];
+    const actions: ActionJarvis[] = gardees.length ? [{ outil: "ajouter_au_stock", produits: gardees.map(({ nom, lieu, peremption }) => ({ nom, lieu, peremption })) }] : [];
     if (courses.length) actions.push({ outil: "cocher_courses", articles: courses });
-    const resultat = appliquerActions(actions, donnees, donnees.membreId, donnees.aujourdhui, contexteReel);
+    if (total && compterTotal) actions.push({ ...total, pot: "courses", charge: null });
+    const applique = appliquerActions(actions, donnees, donnees.membreId, donnees.aujourdhui, contexteReel);
+    // Le total vient d'un ticket : marqué comme tel dans les dépenses du mois.
+    const resultat = { ...applique, modifications: applique.modifications.map((m) => (m.collection === "budget" ? { ...m, apres: { ...m.apres, source: "ticket" as const } } : m)) };
     await enregistrerModifications(depot, resultat.modifications);
     // La Base apprend chaque produit, comme pour un ajout à la main.
     let catalogue = [...props.catalogue];
@@ -94,7 +104,8 @@ export function TicketDeCaisse(props: {
     vibrer();
     setEtat("ferme");
     const n = gardees.length;
-    annoncer(`${n} produit${n > 1 ? "s" : ""} rangé${n > 1 ? "s" : ""} depuis le ticket.`, async () => {
+    const compte = total && compterTotal ? ` ${formaterMontant(total.montant)} comptés dans les courses.` : "";
+    annoncer(n ? `${n} produit${n > 1 ? "s" : ""} rangé${n > 1 ? "s" : ""} depuis le ticket.${compte}` : compte.trim(), async () => {
       await annulerModifications(depot, resultat.modifications);
       for (let i = appris.length - 1; i >= 0; i--) {
         const avant = avantBase[i];
@@ -151,8 +162,17 @@ export function TicketDeCaisse(props: {
               ))}
             </ul>
             {courses.length > 0 && <p className="discret">Coché aussi sur la liste : {courses.join(", ")}.</p>}
-            <button type="button" className="bouton-principal" disabled={nombre === 0} onClick={() => void ranger()}>
-              Tout ranger ({nombre})
+            {total && (
+              <button type="button" className="ligne chef-interrupteur" onClick={() => setCompterTotal(!compterTotal)} aria-pressed={compterTotal}>
+                <span className="ligne-texte">
+                  Total {formaterMontant(total.montant)}
+                  {total.magasin ? ` chez ${total.magasin}` : ""}, compté dans la carte courses
+                </span>
+                <span className={`interrupteur${compterTotal ? " actif" : ""}`} aria-hidden />
+              </button>
+            )}
+            <button type="button" className="bouton-principal" disabled={nombre === 0 && !(total && compterTotal)} onClick={() => void ranger()}>
+              {nombre ? `Tout ranger (${nombre})` : "Compter le total"}
             </button>
           </>
         )}
