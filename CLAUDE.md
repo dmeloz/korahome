@@ -26,7 +26,7 @@ Fiche projet et plan (sur le Mac de la propriétaire) : `~/Atelier-Claude/Cervea
 - Jardin : zones, plantes et calendrier dans `src/domaine/jardin.ts` et `plantes.ts`, météo Open-Meteo (`meteo.ts`, sans clé). Voir `docs/jardin.md`.
 - `serveur/fonctionsServeur.test.ts` : vérifie que les fonctions serveur (`supabase/functions/*/domaine.js`) sont à jour avec leurs règles.
 - `src/ui/` : écrans React. Ils lisent par `useDonnees` et écrivent par le `Depot`, jamais directement dans IndexedDB.
-- `src/ui/pieces/` : les pièces communes depuis Kora 0.0.23 (gabarit `Page`, `Onglets`, carte « Aujourd'hui », barre Jarvis du bas qui remplace tous les « + »). Une page reprend la phrase de la barre avec `useGestionnaireBarre`. Équivalents SwiftUI dans `docs/pieces-natives.md`.
+- `src/ui/pieces/` : les pièces communes depuis Kora 0.0.23 (gabarit `Page`, `Onglets`, carte « Aujourd'hui », barre Jarvis du bas qui remplace tous les « + »). Une page reprend la phrase de la barre avec `useGestionnaireBarre`. Visite guidée de l'accueil (`Visite`, parcours dans `src/domaine/visite.ts`), une fois par téléphone et relançable depuis Réglages. Équivalents SwiftUI dans `docs/pieces-natives.md`.
 
 ## Conventions
 - Interface, code métier et messages de commit en français.
