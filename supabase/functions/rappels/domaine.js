@@ -1254,13 +1254,28 @@ function heureValide(heure) {
 	return Number.isInteger(heure) && heure >= 5 && heure <= 22;
 }
 function minuteValide(minute) {
-	return minute === 0 || minute === 30;
+	return Number.isInteger(minute) && minute >= 0 && minute <= 59;
 }
-/** Les moments proposés pour le rappel, de demi-heure en demi-heure : 5:00, 5:30… 22:30. */
-const CRENEAUX_RAPPEL = Array.from({ length: 36 }, (_, i) => ({
-	heure: 5 + Math.floor(i / 2),
-	minute: i % 2 ? 30 : 0
-}));
+/** Relit « 07:45 » (la roue de l'iPhone) en heure et minute, ramenée entre 5:00 et 22:59. */
+function lireHeure(texte) {
+	const m = /^(\d{1,2}):(\d{2})/.exec(texte);
+	if (!m) return null;
+	const heure = Number(m[1]);
+	const minute = Number(m[2]);
+	if (heure > 23 || minute > 59) return null;
+	if (heure < 5) return {
+		heure: 5,
+		minute: 0
+	};
+	if (heure > 22) return {
+		heure: 22,
+		minute: 59
+	};
+	return {
+		heure,
+		minute
+	};
+}
 /** Une heure plus tôt (-1) ou plus tard (+1), sans sortir des heures possibles. */
 function decalerHeure(heure, sens) {
 	return Math.min(22, Math.max(5, heure + sens));
@@ -1355,9 +1370,9 @@ function decrireJours(jours) {
 function jourDeLaSemaine(jour) {
 	return (/* @__PURE__ */ new Date(`${jour}T12:00:00Z`)).getUTCDay();
 }
-/** « 8:00 », « 18:30 ». */
+/** « 8:00 », « 7:45 ». */
 function formaterHeure(heure, minute = 0) {
-	return `${heure}:${minute === 30 ? "30" : "00"}`;
+	return `${heure}:${String(minuteValide(minute) ? minute : 0).padStart(2, "0")}`;
 }
 /** Au plus trois noms par ligne, puis « et 2 autres ». */
 const MAX_PAR_LIGNE = 3;
@@ -1436,8 +1451,8 @@ function jourEtHeure(instant, fuseau = FUSEAU_DU_FOYER) {
 	};
 }
 /**
-* Le serveur passe chaque demi-heure : un téléphone reçoit son rappel au premier passage
-* à partir de son heure (et de sa demi-heure), une seule fois par jour (un passage manqué est rattrapé
+* Le serveur passe chaque minute : un téléphone reçoit son rappel au premier passage
+* à partir de son heure et de sa minute, une seule fois par jour (un passage manqué est rattrapé
 * dans la matinée, jamais l'après-midi), et seulement les jours choisis.
 */
 function rappelDu(instant, heure, dernierEnvoi, fuseau = FUSEAU_DU_FOYER, jours = TOUS_LES_JOURS, minute = 0) {
@@ -1449,4 +1464,4 @@ function rappelDu(instant, heure, dernierEnvoi, fuseau = FUSEAU_DU_FOYER, jours 
 	return dernierEnvoi === local.jour ? null : local.jour;
 }
 //#endregion
-export { CRENEAUX_RAPPEL, FUSEAU_DU_FOYER, HEURE_DU_RAPPEL, HEURE_MAX, HEURE_MIN, JOURS_SEMAINE, PREFERENCES_DE_DEPART, RACCOURCIS_JOURS, TOUS_LES_JOURS, adresseMeteo, basculerJour, decalerHeure, decrireJours, evenementsDe, facturesDuJour, fenetreMotsProgrammes, formaterHeure, heureValide, jourDeLaSemaine, jourEtHeure, lireMeteo, minuteValide, nettoyerJours, notificationMot, rappelDu, rappelDuMatin, tachesDuMatin };
+export { FUSEAU_DU_FOYER, HEURE_DU_RAPPEL, HEURE_MAX, HEURE_MIN, JOURS_SEMAINE, PREFERENCES_DE_DEPART, RACCOURCIS_JOURS, TOUS_LES_JOURS, adresseMeteo, basculerJour, decalerHeure, decrireJours, evenementsDe, facturesDuJour, fenetreMotsProgrammes, formaterHeure, heureValide, jourDeLaSemaine, jourEtHeure, lireHeure, lireMeteo, minuteValide, nettoyerJours, notificationMot, rappelDu, rappelDuMatin, tachesDuMatin };

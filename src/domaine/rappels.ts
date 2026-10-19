@@ -40,8 +40,8 @@ export interface PreferencesRappels {
   budget: boolean;
   /** L'heure du rappel, à Zurich. */
   heure: number;
-  /** Et sa demi-heure : 0 pour « 8:00 », 30 pour « 8:30 » (idée de Sarah). Absente : heure pleine. */
-  minute?: 0 | 30;
+  /** Et sa minute, de 0 à 59 : l'heure exacte que l'on veut (« 8:00 », « 7:45 »). Absente : heure pleine. */
+  minute?: number;
   /** Les jours où le rappel arrive : 0 dimanche, 1 lundi… 6 samedi. */
   jours: number[];
 }
@@ -60,15 +60,21 @@ export function heureValide(heure: unknown): heure is number {
   return Number.isInteger(heure) && (heure as number) >= HEURE_MIN && (heure as number) <= HEURE_MAX;
 }
 
-export function minuteValide(minute: unknown): minute is 0 | 30 {
-  return minute === 0 || minute === 30;
+export function minuteValide(minute: unknown): minute is number {
+  return Number.isInteger(minute) && (minute as number) >= 0 && (minute as number) <= 59;
 }
 
-/** Les moments proposés pour le rappel, de demi-heure en demi-heure : 5:00, 5:30… 22:30. */
-export const CRENEAUX_RAPPEL: readonly { heure: number; minute: 0 | 30 }[] = Array.from({ length: (HEURE_MAX - HEURE_MIN + 1) * 2 }, (_, i) => ({
-  heure: HEURE_MIN + Math.floor(i / 2),
-  minute: i % 2 ? 30 : 0,
-}));
+/** Relit « 07:45 » (la roue de l'iPhone) en heure et minute, ramenée entre 5:00 et 22:59. */
+export function lireHeure(texte: string): { heure: number; minute: number } | null {
+  const m = /^(\d{1,2}):(\d{2})/.exec(texte);
+  if (!m) return null;
+  const heure = Number(m[1]);
+  const minute = Number(m[2]);
+  if (heure > 23 || minute > 59) return null;
+  if (heure < HEURE_MIN) return { heure: HEURE_MIN, minute: 0 };
+  if (heure > HEURE_MAX) return { heure: HEURE_MAX, minute: 59 };
+  return { heure, minute };
+}
 
 /** Une heure plus tôt (-1) ou plus tard (+1), sans sortir des heures possibles. */
 export function decalerHeure(heure: number, sens: -1 | 1): number {
@@ -122,9 +128,9 @@ export function jourDeLaSemaine(jour: Jour): number {
   return new Date(`${jour}T12:00:00Z`).getUTCDay();
 }
 
-/** « 8:00 », « 18:30 ». */
+/** « 8:00 », « 7:45 ». */
 export function formaterHeure(heure: number, minute = 0): string {
-  return `${heure}:${minute === 30 ? "30" : "00"}`;
+  return `${heure}:${String(minuteValide(minute) ? minute : 0).padStart(2, "0")}`;
 }
 
 export interface RappelDuMatin {
@@ -233,8 +239,8 @@ export function jourEtHeure(instant: Date, fuseau: string = FUSEAU_DU_FOYER): { 
 }
 
 /**
- * Le serveur passe chaque demi-heure : un téléphone reçoit son rappel au premier passage
- * à partir de son heure (et de sa demi-heure), une seule fois par jour (un passage manqué est rattrapé
+ * Le serveur passe chaque minute : un téléphone reçoit son rappel au premier passage
+ * à partir de son heure et de sa minute, une seule fois par jour (un passage manqué est rattrapé
  * dans la matinée, jamais l'après-midi), et seulement les jours choisis.
  */
 export function rappelDu(

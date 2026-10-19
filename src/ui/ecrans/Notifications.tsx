@@ -6,9 +6,9 @@ import type { Animal } from "../../domaine/mitsu";
 import type { Produit } from "../../domaine/stock";
 import {
   basculerJour,
-  CRENEAUX_RAPPEL,
   decrireJours,
   formaterHeure,
+  lireHeure,
   JOURS_SEMAINE,
   RACCOURCIS_JOURS,
   rappelDuMatin,
@@ -98,21 +98,20 @@ export function Notifications(props: {
       <label className="rappels-horloge">
         <span className="rappels-heure" aria-hidden>{heure}</span>
         <span className="discret">{decrireJours(preferences.jours)}</span>
-        <select
+        {/* La roue de l'heure de l'iPhone, comme pour une alarme : heure et minute au choix. */}
+        <input
+          type="time"
           className="rappels-roue"
           aria-label="Heure du rappel"
-          value={formaterHeure(preferences.heure, preferences.minute)}
+          min="05:00"
+          max="22:59"
+          value={`${String(preferences.heure).padStart(2, "0")}:${String(preferences.minute ?? 0).padStart(2, "0")}`}
           disabled={occupe}
           onChange={(e) => {
-            const [h, m] = e.target.value.split(":").map(Number);
-            changer({ ...preferences, heure: h, minute: m === 30 ? 30 : 0 });
+            const lue = lireHeure(e.target.value);
+            if (lue && (lue.heure !== preferences.heure || lue.minute !== (preferences.minute ?? 0))) changer({ ...preferences, ...lue });
           }}
-        >
-          {CRENEAUX_RAPPEL.map((c) => {
-            const texte = formaterHeure(c.heure, c.minute);
-            return <option key={texte} value={texte}>{texte}</option>;
-          })}
-        </select>
+        />
       </label>
       <div className="rappels-jours" role="group" aria-label="Jours du rappel">
         {JOURS_SEMAINE.map((j) => {

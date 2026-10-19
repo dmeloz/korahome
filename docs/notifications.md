@@ -1,6 +1,6 @@
 # Notifications : les rappels du matin
 
-Aux jours et à l'heure choisis sur l'iPhone (tous les jours à 8 h au départ, de 5:00 à 22:30 de demi-heure en demi-heure, heure de Zurich), chaque iPhone inscrit reçoit **une seule** notification qui
+Aux jours et à l'heure choisis sur l'iPhone (tous les jours à 8 h au départ, de 5:00 à 22:59, à la minute près, heure de Zurich), chaque iPhone inscrit reçoit **une seule** notification qui
 résume sa journée : ses tâches et les tâches libres (du jour et en retard), ce qui presse pour Mitsu
 (commande, provisions, soins) et ce qui arrive à sa date au frigo ou au placard dans les trois jours. Rien à faire : pas de notification. La pastille de l'icône affiche le
 nombre de choses qui pressent, comme celle de Messages : depuis Kora 0.1.0, l'app la tient à jour
@@ -34,9 +34,9 @@ Chacun peut les couper dans Réglages > Notifications > « Mots du couple » (`p
 - `src/ui/rappels.ts` et `src/ui/ecrans/Notifications.tsx` : permission, inscription, choix.
 - `supabase/schema.sql`, section « Rappels du matin » : la table `abonnements_push` (une ligne par
   iPhone), les clés d'envoi dans `prive.reglages_push` (créées par le serveur lui-même, jamais dans
-  le dépôt) et le passage de chaque demi-heure (`pg_cron`, `0,30 * * * *`).
-- `supabase/functions/rappels/` : la fonction serveur. Appelée chaque demi-heure par `pg_cron`, elle envoie
-  le rappel à chaque iPhone au premier passage à partir de son heure (la demi-heure est dans `preferences.minute`), une fois par jour, et oublie les
+  le dépôt) et le passage de chaque minute (`pg_cron`, `* * * * *`).
+- `supabase/functions/rappels/` : la fonction serveur. Appelée chaque minute par `pg_cron`, elle envoie
+  le rappel à chaque iPhone au premier passage à partir de son heure (la minute est dans `preferences.minute`), une fois par jour, et oublie les
   iPhone qui ont retiré l'autorisation.
 
 ## Modifier les règles
