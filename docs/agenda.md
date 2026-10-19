@@ -15,7 +15,7 @@ vacances, sorties et horaires de travail, pour nous deux ou pour l'un de nous.
 
 ## Relié à iCloud
 
-Chacun peut relier son compte iCloud depuis la page (section « Calendrier de l'iPhone ») :
+Chacun peut relier son compte iCloud depuis Réglages > « Calendrier de l'iPhone » (la page Agenda garde toute sa place pour l'agenda) :
 
 1. sur https://account.apple.com : Connexion et sécurité, Mots de passe pour app, « + », nommé « Kora » ;
 2. dans Kora : identifiant Apple et ce mot de passe d'app.

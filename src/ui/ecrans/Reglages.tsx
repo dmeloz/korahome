@@ -43,6 +43,9 @@ export function Reglages(props: {
   ouvrirNotifications: () => void;
   ouvrirAppris: () => void;
   ouvrirSauvegarde: () => void;
+  ouvrirCalendrier: () => void;
+  calendrier: string;
+  calendrierEnErreur: boolean;
   etatPartage: EtatPartage;
   partage: "indisponible" | "inactif" | "actif";
   pastilleVisible: boolean;
@@ -83,6 +86,7 @@ export function Reglages(props: {
           valeur={`${formaterHeure(rappels.heure)} · ${decrireJours(rappels.jours)}`}
           onClick={props.ouvrirNotifications}
         />
+        <Ligne picto="calendrier" titre="Calendrier de l'iPhone" valeur={props.calendrier} alerte={props.calendrierEnErreur} onClick={props.ouvrirCalendrier} />
         <Ligne picto="appris" titre="Ce que Kora sait de nous" onClick={props.ouvrirAppris} />
       </ul>
 
