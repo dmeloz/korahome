@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { avanceeDuJour, carteDuJour, chosesDuJour, phraseDuJour, repasDuSoir, sousTitreCarte, titreCarte, type EntreeDuJour } from "./aujourdhui";
+import { avanceeDuJour, carteDuJour, choseDuMoment, chosesDuJour, phraseDuJour, repasDuSoir, resteAFaire, sousTitreCarte, titreCarte, titreMoment, type EntreeDuJour } from "./aujourdhui";
 import { preparerEvenement } from "./agenda";
 import type { MenuSemaine } from "./chef";
 import { contexteTest } from "./contexteTest";
 import { nouveauProduit } from "./stock";
-import { marquerFaite, nouvelleTache } from "./taches";
+import { changerHeure, marquerFaite, nouvelleTache } from "./taches";
 
 const ctx = contexteTest();
 const auj = "2026-10-19";
@@ -110,5 +110,34 @@ describe("la carte Aujourd'hui", () => {
   it("propose la sauvegarde et la répartition au calme, en dernier", () => {
     const choses = chosesDuJour(entree({ taches: [nouvelleTache("Linge", semaine, auj, ctx)], sauvegardeDue: true, repartitionDue: true }));
     expect(choses.map((c) => c.destination)).toEqual(["taches", "repartition", "sauvegarde"]);
+  });
+});
+
+describe("l'heure dans « Ce soir »", () => {
+  it("donne l'heure d'une tâche qui en a une, et rien sinon", () => {
+    const litiere = changerHeure(nouvelleTache("Litière", semaine, auj, ctx), "19:00");
+    const linge = nouvelleTache("Linge", semaine, auj, ctx);
+    const choses = chosesDuJour(entree({ taches: [linge, litiere] }));
+    expect(choses.map((c) => [c.texte, c.heure])).toEqual([
+      ["Litière", "19:00"],
+      ["Linge", undefined],
+    ]);
+  });
+
+  it("garde l'urgent d'abord, puis ce qui a une heure, du plus tôt au plus tard", () => {
+    const retard = nouvelleTache("Poubelles", semaine, "2026-10-17", ctx);
+    const arroser = changerHeure(nouvelleTache("Arroser", semaine, auj, ctx), "20:00");
+    const linge = nouvelleTache("Linge", semaine, auj, ctx);
+    const dentiste = preparerEvenement({ titre: "Dentiste", jour: auj, heure: "14:30" }, "melo", ctx);
+    const carte = carteDuJour(entree({ taches: [linge, arroser, retard], evenements: [dentiste] }), 12);
+    expect(carte.choses.map((c) => c.texte)).toEqual(["Poubelles", "Dentiste", "Arroser", "Linge"]);
+    expect(choseDuMoment(carte)?.texte).toBe("Poubelles");
+    expect(resteAFaire(carte)).toBe(4);
+  });
+
+  it("nomme le moment de la journée", () => {
+    expect(titreMoment(8)).toBe("Ce matin");
+    expect(titreMoment(14)).toBe("Cet après-midi");
+    expect(titreMoment(19)).toBe("Ce soir");
   });
 });

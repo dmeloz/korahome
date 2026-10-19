@@ -97,15 +97,17 @@ function nouvelleTache(titre, recurrence, echeance, ctx, responsable = null) {
 * une tâche unique reste faite.
 */
 function marquerFaite(tache, par, aujourdhui, ctx) {
+	const maintenant = ctx.maintenant();
 	const fois = {
 		le: aujourdhui,
 		par,
-		retard: Math.max(0, ecartJours(tache.echeance, aujourdhui))
+		retard: Math.max(0, ecartJours(tache.echeance, aujourdhui)),
+		a: maintenant
 	};
 	const historique = [...tache.historique ?? [], fois].slice(-12);
 	const faite = {
 		...tache,
-		faiteLe: ctx.maintenant(),
+		faiteLe: maintenant,
 		faitePar: par,
 		historique
 	};

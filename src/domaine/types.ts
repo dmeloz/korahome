@@ -98,6 +98,11 @@ export interface Tache {
   categorie?: "entretien";
   /** Les dernières fois où elle a été faite : par qui, et avec combien de jours de retard. */
   historique?: FoisFaite[];
+  /**
+   * L'heure de la tâche, « HH:MM ». Absente : Kora propose l'heure où elle est faite d'habitude.
+   * Choisie à la main : gardée telle quelle. null : choisie « sans heure ».
+   */
+  heure?: string | null;
 }
 
 export interface FoisFaite {
@@ -105,6 +110,8 @@ export interface FoisFaite {
   par: Id | null;
   /** Jours après l'échéance (0 : à l'heure ou en avance). */
   retard: number;
+  /** L'instant de la coche (ISO), pour apprendre l'heure où la tâche se fait. */
+  a?: string;
 }
 
 /** Horloge et générateur d'identifiants injectés, pour des tests déterministes. */

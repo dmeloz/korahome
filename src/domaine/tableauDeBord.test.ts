@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   CATALOGUE,
-  destinationBulle,
   ESPACES,
+  modulesCherches,
   modulesDeLEspace,
+  poserWidget,
   DISPOSITION_DE_DEPART,
   ajouterWidget,
   deplacerWidget,
@@ -80,18 +81,29 @@ describe("taille et glisser des widgets", () => {
   });
 });
 
-describe("les bulles des espaces", () => {
+describe("tous les espaces", () => {
   it("range chaque module dans un seul espace", () => {
     const ranges = ESPACES.flatMap((e) => e.widgets);
     expect(new Set(ranges).size).toBe(ranges.length);
     expect([...ranges].sort()).toEqual(CATALOGUE.map((w) => w.id).sort());
   });
 
-  it("ouvre la page de l'espace, ou directement le module quand il est seul", () => {
-    expect(destinationBulle("menage")).toEqual({ type: "espace", id: "menage" });
+  it("ne garde que les modules prêts de chaque espace", () => {
     expect(modulesDeLEspace("cuisine")).toEqual(["chef", "stock"]);
-    // Les infos de la maison ne sont pas encore prêtes : le Budget est seul dans son espace.
-    expect(destinationBulle("budget")).toEqual({ type: "module", id: "budget" });
-    expect(destinationBulle("agenda")).toEqual({ type: "module", id: "agenda" });
+    expect(modulesDeLEspace("budget")).toEqual(["budget"]);
+  });
+
+  it("retrouve un module par son nom ou par un mot de tous les jours", () => {
+    expect(modulesCherches("chat")).toEqual(["mitsu"]);
+    expect(modulesCherches("argent")).toEqual(["budget"]);
+    expect(modulesCherches("placard")).toEqual(["stock"]);
+    expect(modulesCherches("véto")).toEqual(["mitsu"]);
+    expect(modulesCherches("a")).toEqual([]);
+  });
+
+  it("pose un widget glissé à la place d'un autre, sans le dédoubler", () => {
+    expect(poserWidget(["taches", "courses"], "budget", "courses")).toEqual(["taches", "budget", "courses"]);
+    expect(poserWidget(["taches", "courses"], "budget", null)).toEqual(["taches", "courses", "budget"]);
+    expect(poserWidget(["taches", "courses", "budget"], "budget", "taches")).toEqual(["budget", "taches", "courses"]);
   });
 });

@@ -89,12 +89,71 @@ export const HISTORIQUE_GARDE = 12;
  * une tâche unique reste faite.
  */
 export function marquerFaite(tache: Tache, par: Id | null, aujourdhui: Jour, ctx: Contexte): Tache {
-  const fois = { le: aujourdhui, par, retard: Math.max(0, ecartJours(tache.echeance, aujourdhui)) };
+  const maintenant = ctx.maintenant();
+  const fois = { le: aujourdhui, par, retard: Math.max(0, ecartJours(tache.echeance, aujourdhui)), a: maintenant };
   const historique = [...(tache.historique ?? []), fois].slice(-HISTORIQUE_GARDE);
-  const faite = { ...tache, faiteLe: ctx.maintenant(), faitePar: par, historique };
+  const faite = { ...tache, faiteLe: maintenant, faitePar: par, historique };
   if (!tache.recurrence) return faite;
   const depart = ecartJours(tache.echeance, aujourdhui) < 0 ? tache.echeance : aujourdhui;
   return { ...faite, echeance: decaler(depart, tache.recurrence) };
+}
+
+// ----- L'heure d'une tâche -----
+// Facultative. Kora la propose : l'heure où la tâche est vraiment cochée d'habitude. Une heure
+// choisie à la main (ou « sans heure ») n'est plus jamais remplacée par la proposition.
+
+const RE_HEURE = /^([01]\d|2[0-3]):[0-5]\d$/;
+/** Assez de coches pour parler d'une habitude. */
+export const COCHES_POUR_HEURE = 3;
+
+/** « 20:05 » → 1205 minutes ; null si ce n'est pas une heure. */
+export function enMinutes(heure: string): number | null {
+  if (!RE_HEURE.test(heure)) return null;
+  return Number(heure.slice(0, 2)) * 60 + Number(heure.slice(3, 5));
+}
+
+export function versHeure(minutes: number): string {
+  const m = ((Math.round(minutes) % 1440) + 1440) % 1440;
+  return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+}
+
+/** L'heure du téléphone à un instant ISO, en minutes depuis minuit. */
+export function minutesLocales(instant: string): number | null {
+  const d = new Date(instant);
+  return Number.isNaN(d.getTime()) ? null : d.getHours() * 60 + d.getMinutes();
+}
+
+/**
+ * L'heure où la tâche est faite d'habitude : la médiane des heures de ses coches, arrondie
+ * au quart d'heure, dès trois coches. Avant, aucune.
+ */
+export function heureProposee(tache: Tache): string | null {
+  const minutes = (tache.historique ?? [])
+    .map((f) => (f.a ? minutesLocales(f.a) : null))
+    .filter((m): m is number => m !== null)
+    .sort((a, b) => a - b);
+  if (minutes.length < COCHES_POUR_HEURE) return null;
+  const milieu = Math.floor(minutes.length / 2);
+  const mediane = minutes.length % 2 ? minutes[milieu] : (minutes[milieu - 1] + minutes[milieu]) / 2;
+  return versHeure(Math.round(mediane / 15) * 15);
+}
+
+/** L'heure affichée : celle choisie à la main, sinon celle que propose Kora. */
+export function heureDe(tache: Tache): string | null {
+  return tache.heure !== undefined ? tache.heure : heureProposee(tache);
+}
+
+/** L'heure vient-elle de Kora (et non d'un choix) ? */
+export const heureApprise = (tache: Tache) => tache.heure === undefined && heureProposee(tache) !== null;
+
+/**
+ * Change l'heure : « HH:MM » la fixe, null la retire (« sans heure »), undefined rend la main
+ * à Kora, qui propose de nouveau l'heure habituelle.
+ */
+export function changerHeure(tache: Tache, heure: string | null | undefined): Tache {
+  if (typeof heure === "string" && enMinutes(heure) === null) throw new ErreurValidation(`Heure invalide : « ${heure} ».`);
+  const { heure: _avant, ...reste } = tache;
+  return heure === undefined ? reste : { ...reste, heure };
 }
 
 /** Une tâche unique faite est terminée ; une tâche qui revient ne l'est jamais. */

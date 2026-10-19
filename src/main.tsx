@@ -7,6 +7,7 @@ import { creerSynchro } from "./donnees/synchro";
 import { App, ecranAffiche } from "./ui/App";
 import { installerJournal } from "./ui/journal";
 import { creerMiseAJour, surveillerMisesAJour } from "./ui/miseAJour";
+import { appliquerVerre } from "./ui/accueilLocal";
 import { appliquerTheme, lireTheme } from "./ui/theme";
 import "./styles.css";
 
@@ -16,8 +17,9 @@ const miseAJour = creerMiseAJour(
   () => window.location.reload(),
 );
 
-// Le thème de ce téléphone, avant le premier affichage.
+// Le thème et le verre de ce téléphone, avant le premier affichage.
 appliquerTheme(lireTheme());
+appliquerVerre();
 
 installerJournal(ecranAffiche);
 

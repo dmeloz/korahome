@@ -10,12 +10,10 @@ import { noter } from "../journal";
 /** Où trouver chaque cible à l'écran ; la barre Jarvis est hors de la page. */
 const SELECTEURS: Record<CibleVisite, string> = {
   bandeau: ".page-dessus .bandeau-couple",
-  aujourdhui: ".page-dessus .carte-jour",
-  pages: ".page-dessus .bulles-espaces",
+  signes: ".page-dessus .signes-accueil",
+  aujourdhui: ".page-dessus .ce-moment",
   widget: ".page-dessus .widgets-accueil .widget",
   barre: ".barre-zone .barre-jarvis",
-  chercher: ".page-dessus .entete-boutons",
-  reglages: ".page-dessus .avatar-reglages",
 };
 
 const MARGE = 6;

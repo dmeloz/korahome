@@ -1,13 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { contexteTest } from "./contexteTest";
 import { ErreurValidation } from "./foyer";
+import type { FoisFaite } from "./types";
 import {
   compterDues,
   decaler,
   decrireEcheance,
   decrireRecurrence,
+  changerHeure,
   ecartJours,
+  enMinutes,
   estTerminee,
+  heureApprise,
+  heureDe,
+  heureProposee,
   liberer,
   marquerFaite,
   nouvelleTache,
@@ -144,5 +150,57 @@ describe("organiser l'écran", () => {
 
   it("compte ce qui est dû pour l'accueil", () => {
     expect(compterDues(toutes, aujourdhui)).toEqual({ aujourdhui: 1, enRetard: 1 });
+  });
+});
+
+describe("l'heure d'une tâche", () => {
+  // Les coches sont des instants ; l'heure retenue est celle du téléphone.
+  const a = (h: number, m: number, jour = 7) => new Date(2026, 9, jour, h, m).toISOString();
+  const avecCoches = (...instants: string[]) => ({
+    ...nouvelleTache("Litière", semaine, "2026-10-07", contexteTest()),
+    historique: instants.map((x): FoisFaite => ({ le: "2026-10-07", par: null, retard: 0, a: x })),
+  });
+
+  it("note l'instant de chaque coche", () => {
+    const ctx = contexteTest();
+    const faite = marquerFaite(nouvelleTache("Litière", semaine, "2026-10-07", ctx), "dany", "2026-10-07", ctx);
+    expect(faite.historique?.[0].a).toBe(faite.faiteLe);
+  });
+
+  it("ne propose rien avant trois coches", () => {
+    expect(heureProposee(avecCoches(a(20, 0), a(20, 10)))).toBeNull();
+    expect(heureDe(avecCoches(a(20, 0), a(20, 10)))).toBeNull();
+  });
+
+  it("propose la médiane des heures de coche, au quart d'heure", () => {
+    expect(heureProposee(avecCoches(a(19, 50), a(20, 5), a(21, 40)))).toBe("20:00");
+    expect(heureProposee(avecCoches(a(7, 10), a(7, 20), a(8, 0), a(7, 30)))).toBe("07:30");
+  });
+
+  it("ignore les coches plus anciennes sans instant", () => {
+    const t = avecCoches(a(20, 0), a(20, 0), a(20, 0));
+    t.historique = [{ le: "2026-10-01", par: null, retard: 0 }, ...(t.historique ?? [])];
+    expect(heureProposee(t)).toBe("20:00");
+  });
+
+  it("garde une heure choisie à la main, même quand Kora en apprend une autre", () => {
+    const t = changerHeure(avecCoches(a(20, 0), a(20, 0), a(20, 0)), "18:30");
+    expect(heureDe(t)).toBe("18:30");
+    expect(heureApprise(t)).toBe(false);
+  });
+
+  it("« sans heure » retire l'heure, et rendre la main à Kora la repropose", () => {
+    const t = avecCoches(a(20, 0), a(20, 0), a(20, 0));
+    expect(heureApprise(t)).toBe(true);
+    const sans = changerHeure(t, null);
+    expect(heureDe(sans)).toBeNull();
+    const rendue = changerHeure(sans, undefined);
+    expect("heure" in rendue).toBe(false);
+    expect(heureDe(rendue)).toBe("20:00");
+  });
+
+  it("refuse une heure mal écrite", () => {
+    expect(() => changerHeure(avecCoches(), "25:00")).toThrow(ErreurValidation);
+    expect(enMinutes("08:05")).toBe(485);
   });
 });

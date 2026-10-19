@@ -48,6 +48,7 @@ const TRACES = {
   vague: "M3 10c2-2 4-2 6 0s4 2 6 0 4-2 6 0M3 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0",
   thermometre: "M14 14.8V4.5a2 2 0 0 0-4 0v10.3a4 4 0 1 0 4 0zM12 17.5v-6",
   sourire: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM8.5 14a4.5 4.5 0 0 0 7 0M9 9.5h.01M15 9.5h.01",
+  sablier: "M7 3h10M7 21h10M8 3c0 4.5 8 5 8 9s-8 4.5-8 9M16 3c0 4.5-8 5-8 9s8 4.5 8 9",
 } as const;
 
 export type NomIcone = keyof typeof TRACES;
@@ -68,4 +69,24 @@ export function Icone({ nom, taille }: { nom: NomIcone; taille?: number }) {
       <path d={TRACES[nom]} />
     </svg>
   );
+}
+
+/** Les humeurs en pictogrammes au trait, dans le style de l'app (pas d'emoji). */
+export const PICTO_HUMEUR: Record<string, NomIcone> = {
+  "😊": "sourire",
+  "🥰": "coeur",
+  "😌": "vague",
+  "🎉": "soleil",
+  "😴": "lune",
+  "😤": "eclair",
+  "🤯": "pluie",
+  "🤒": "thermometre",
+};
+
+/** Le petit dessin d'un temps (code WMO d'Open-Meteo). */
+export function pictoMeteo(code: number): NomIcone {
+  if (code >= 95) return "eclair";
+  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return "pluie";
+  if (code <= 1) return "soleil";
+  return "nuage";
 }

@@ -358,52 +358,7 @@ h1 {
 .point-etat.jour { background: var(--accent); }
 .point-etat.calme { background: color-mix(in srgb, var(--discret) 55%, transparent); }
 
-/* La carte « Aujourd'hui » : trois choses, dans l'ordre. */
-.carte-jour { margin: 14px 0; padding: 16px 14px 6px; border-radius: 24px; background: var(--carte-jour); border: 1px solid var(--carte-jour-trait); box-shadow: 0 10px 30px -18px color-mix(in srgb, var(--accent) 60%, transparent); }
-.carte-jour-entete { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 4px 10px; }
-.carte-jour-entete h2 { margin: 0; font-size: var(--t-legende); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
-.carte-jour-titre { margin: 2px 0 0; font-size: var(--t-section); font-weight: 650; line-height: 1.2; }
-.carte-jour-sous { font-size: var(--t-legende); color: var(--discret); }
-.carte-jour-jauge { position: relative; flex: none; width: 48px; height: 48px; display: grid; place-items: center; }
-.carte-jour-jauge svg { position: absolute; inset: 0; }
-.carte-jour-jauge span { font-size: var(--t-legende); font-weight: 600; font-variant-numeric: tabular-nums; }
-.jauge-fond, .jauge-plein { fill: none; stroke-width: 4.5; }
-.jauge-fond { stroke: color-mix(in srgb, var(--accent) 18%, transparent); }
-.jauge-plein { stroke: var(--accent); stroke-linecap: round; }
-@media (prefers-reduced-motion: no-preference) { .jauge-plein { transition: stroke-dasharray 0.4s ease; } }
-.carte-jour ul { list-style: none; margin: 0; padding: 0; max-height: calc(48px * 3.5); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
-.carte-jour ul::-webkit-scrollbar { display: none; }
-.carte-jour li.avec-coche { display: flex; align-items: center; gap: 2px; }
-.carte-jour-coche { display: grid; place-items: center; flex: none; width: 36px; height: 44px; margin-left: -6px; padding: 0; border: none; background: none; color: transparent; }
-.carte-jour-coche::before { content: ""; position: absolute; width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid color-mix(in srgb, var(--discret) 70%, transparent); }
-.carte-jour-coche { position: relative; }
-.carte-jour-coche.urgent::before { border-color: var(--urgent); }
-.carte-jour-coche.jour::before { border-color: var(--accent); }
-.carte-jour-coche:active { color: var(--accent); }
-.carte-jour-coche:active::before { background: var(--accent-doux); }
-.carte-jour li { border-top: 1px solid color-mix(in srgb, var(--carte-jour-trait) 70%, transparent); }
-.carte-jour-ligne { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 6px 4px; border: none; background: none; text-align: left; }
-.carte-jour-texte { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
-.carte-jour-quand { flex: none; padding: 3px 9px; border-radius: 999px; font-size: var(--t-legende); color: var(--discret); background: color-mix(in srgb, var(--discret) 12%, transparent); }
-.carte-jour-quand.urgent { color: var(--urgent); background: color-mix(in srgb, var(--urgent) 14%, transparent); font-weight: 600; }
-.carte-jour-quand.jour { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
-.carte-jour-vide { margin: 4px 4px 12px; color: var(--discret); font-size: var(--t-detail); }
-.carte-jour-plus { display: block; padding: 8px 4px 10px; font-size: var(--t-detail); }
-
-/* Les bulles de l'accueil : une par usage du quotidien, chacune ouvre sa page. */
-.bulles-espaces { display: flex; justify-content: space-between; gap: 8px; margin: 14px 0 12px; overflow-x: auto; scrollbar-width: none; }
-.bulles-espaces::-webkit-scrollbar { display: none; }
-.bulle-espace { flex: 1 0 58px; display: flex; flex-direction: column; align-items: center; gap: 6px; border: none; background: none; padding: 0; color: var(--texte); }
-.bulle-rond {
-  display: grid; place-items: center; width: 54px; height: 54px; border-radius: 50%;
-  color: var(--accent); background: var(--surface);
-  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
-  transition: transform 0.15s ease, background 0.15s ease;
-}
-.bulle-espace:active .bulle-rond { transform: scale(0.92); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
-.bulle-nom { font-size: var(--t-legende); color: var(--discret); white-space: nowrap; }
 .widgets-accueil { margin-bottom: 4px; }
-.espace .widgets { margin-top: 6px; }
 
 /* Deux colonnes : un petit widget prend une case, un grand toute la largeur avec le détail. */
 .widgets { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: row dense; }
@@ -2240,3 +2195,168 @@ button.budget-pot:active { transform: scale(0.98); }
 .mode-cuisine-bas { display: grid; grid-template-columns: 1fr 1.6fr; gap: 10px; }
 .mode-cuisine-bas .bouton-principal { margin: 0; }
 @media (prefers-reduced-motion: reduce) { .mode-cuisine { animation: none; } }
+
+/* ===== Kora 0.0.42 : l'accueil façon iOS 27 ===== */
+/* Le verre des widgets : de 0 (transparent) à 100 (plein). Le thème choisit si personne ne l'a
+   réglé : le plus transparent en sombre, le plus opaque en clair. */
+:root { --verre-defaut: 28%; --verre-widget: var(--verre-choisi, var(--verre-defaut)); --flou-widget: 22px; }
+@media (prefers-color-scheme: light) { :root:not([data-theme="sombre"]) { --verre-defaut: 92%; } }
+:root[data-theme="clair"] { --verre-defaut: 92%; }
+:root[data-theme="sombre"] { --verre-defaut: 28%; }
+
+/* La grande date, seule, comme l'écran verrouillé. */
+.haut-accueil { position: relative; display: flex; align-items: center; min-height: 64px; margin: 10px 0 18px; }
+.grande-date { flex: 1; display: flex; align-items: center; gap: 10px; min-width: 0; touch-action: pan-y; -webkit-user-select: none; user-select: none; }
+.grande-date.centre { justify-content: center; }
+.date-chiffre { font-family: var(--police-titre); font-size: var(--taille-date, 28px); font-weight: 300; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--texte); }
+.date-mots { display: flex; flex-direction: column; line-height: 1.15; }
+.date-mots b { font-size: max(calc(var(--taille-date, 28px) * 0.5), 15px); font-weight: 600; }
+.date-mots span { font-size: max(calc(var(--taille-date, 28px) * 0.42), 13px); color: var(--discret); }
+@media (prefers-reduced-motion: no-preference) { .grande-date { transition: justify-content 0.3s var(--courbe); } }
+
+/* Les petits signes au bout de la ligne de la date. */
+.signes-accueil { position: absolute; right: 0; top: 50%; transform: translateY(-50%); display: flex; gap: 4px; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.signe { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; padding: 4px 8px; border: none; border-radius: 999px; background: none; color: var(--accent); font-size: var(--t-legende); font-variant-numeric: tabular-nums; }
+.signe:active { background: var(--accent-doux); }
+.signe.urgent { color: var(--urgent); }
+.signe.vide { color: var(--discret); opacity: 0.6; }
+.signe-court { color: var(--texte); font-weight: 500; }
+.signe.urgent .signe-court { color: var(--urgent); }
+.signe-humeur { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); color: var(--accent); }
+.signe-humeur + .signe-humeur { margin-left: -6px; background: var(--fond); }
+.signe-humeur.sans { border-style: dashed; border-color: var(--discret); opacity: 0.6; }
+.bulle-signe {
+  position: absolute; right: 16px; z-index: 12; max-width: min(280px, calc(100vw - 32px)); margin-top: -10px;
+  padding: 9px 12px 8px; border-radius: 16px 4px 16px 16px; font-size: var(--t-detail); line-height: 1.35;
+  background: var(--verre); -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4);
+  box-shadow: var(--reflet), 0 0 0 0.5px var(--verre-trait), 0 10px 26px -16px rgb(0 0 0 / 0.6);
+}
+.bulle-signe p { margin: 0; }
+.bulle-signe .lien { padding: 4px 0 0; font-size: var(--t-legende); font-weight: 600; }
+@media (prefers-reduced-motion: no-preference) { .bulle-signe { animation: bulle-arrive 0.22s var(--courbe); } }
+
+/* La date repliée dans une barre de verre quand on fait défiler. */
+.date-repliee {
+  position: fixed; top: calc(env(safe-area-inset-top) + 6px); left: 50%; z-index: 9; transform: translate(-50%, -140%);
+  padding: 6px 14px; border-radius: 999px; font-size: var(--t-detail); font-weight: 600; pointer-events: none; opacity: 0;
+  background: var(--verre); -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4);
+  box-shadow: var(--reflet), 0 0 0 0.5px var(--verre-trait);
+}
+.date-repliee.visible { transform: translate(-50%, 0); opacity: 1; }
+@media (prefers-reduced-motion: no-preference) { .date-repliee { transition: transform 0.35s var(--courbe), opacity 0.2s ease; } }
+
+/* « Ce soir », sans cadre : un fil relie les ronds, l'heure à gauche quand il y en a une. */
+.ce-moment { margin: 6px 0 22px; --col-heure: 0px; }
+.ce-moment.avec-heures { --col-heure: 44px; }
+.ce-moment-entete { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+.ce-moment-entete h2 { margin: 0; font-family: var(--police-titre); font-size: var(--t-section); font-weight: 650; }
+.ce-moment-entete .discret { font-size: var(--t-legende); }
+.ce-moment-vide { margin: 4px 0; color: var(--discret); font-size: var(--t-detail); }
+.fil { position: relative; list-style: none; margin: 0; padding: 0; max-height: calc(64px + 46px * 3.5); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+.fil::-webkit-scrollbar { display: none; }
+.fil > li { position: relative; display: grid; grid-template-columns: var(--col-heure) 34px minmax(0, 1fr); align-items: center; }
+/* Le fil : un trait fin d'un rond au suivant. */
+.fil > li + li::before { content: ""; position: absolute; left: calc(var(--col-heure) + 16.5px); top: -14px; height: 28px; width: 1px; background: color-mix(in srgb, var(--discret) 35%, transparent); }
+.fil > li.phare + li::before { top: -18px; height: 36px; }
+.moment-heure { justify-self: start; padding: 0; border: none; background: none; min-height: 44px; min-width: 40px; text-align: left; font-size: var(--t-legende); color: var(--discret); font-variant-numeric: tabular-nums; }
+.moment-heure.passee { color: var(--urgent); }
+.moment-rond { position: relative; z-index: 1; display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 1.5px solid color-mix(in srgb, var(--discret) 70%, transparent); background: var(--fond); color: transparent; }
+.moment-rond::after { content: ""; position: absolute; inset: -11px; }
+.moment-rond.urgent { border-color: var(--urgent); }
+.moment-rond.jour { border-color: var(--accent); }
+.moment-rond:active { background: var(--accent); border-color: var(--accent); color: var(--sur-accent); }
+.moment-rond.point { width: 9px; height: 9px; margin-left: 6.5px; border: none; background: color-mix(in srgb, var(--discret) 55%, transparent); }
+.moment-rond.point.urgent { background: var(--urgent); }
+.moment-rond.point.jour { background: var(--accent); }
+.moment-corps { display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 46px; padding: 6px 0; border: none; background: none; text-align: left; color: var(--texte); }
+.moment-texte { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.suivante .moment-texte { color: color-mix(in srgb, var(--texte) 78%, transparent); }
+.moment-quand { flex: none; font-size: var(--t-legende); color: var(--discret); }
+.moment-quand.urgent { color: var(--urgent); }
+/* La chose du moment, en grand. */
+.phare { min-height: 64px; touch-action: pan-y; }
+.phare .moment-rond { width: 26px; height: 26px; margin-left: -2px; border-width: 2px; }
+.phare .moment-corps { flex-direction: column; align-items: flex-start; gap: 2px; min-height: 64px; }
+.phare .moment-texte { font-family: var(--police-titre); font-size: var(--t-section); font-weight: 600; width: 100%; }
+.moment-sous { font-size: var(--t-legende); color: var(--discret); }
+.moment-sous.urgent { color: var(--urgent); }
+.moment-geste { color: var(--discret); }
+.phare.glisse .moment-corps, .phare.glisse .moment-rond { transform: translateX(var(--glisse)); }
+.phare.glisse .moment-rond { background: color-mix(in srgb, var(--accent) calc(min(var(--glisse) / 84px, 1) * 100%), var(--fond)); }
+.phare:not(.glisse) .moment-corps, .phare:not(.glisse) .moment-rond { transition: transform 0.3s var(--courbe); }
+.ce-moment-plus { display: block; padding: 6px 0 0 calc(var(--col-heure) + 34px); font-size: var(--t-detail); }
+@media (prefers-reduced-motion: no-preference) { .fil > li { animation: bulle-arrive 0.3s var(--courbe) both; } }
+
+/* L'heure d'une tâche, comme une alarme. */
+.feuille-heure { display: grid; gap: 8px; }
+.rappels-heure.sans { color: var(--discret); }
+.feuille-heure-note { margin: 0; text-align: center; font-size: var(--t-legende); }
+.feuille-heure-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 22px; }
+
+/* Les widgets en verre, réglés par « Verre » dans Ce téléphone. */
+.widget {
+  background: color-mix(in srgb, var(--surface) var(--verre-widget), transparent);
+  -webkit-backdrop-filter: blur(var(--flou-widget)) saturate(1.5);
+  backdrop-filter: blur(var(--flou-widget)) saturate(1.5);
+  border: 0.5px solid var(--verre-trait);
+  box-shadow: var(--reflet), 0 0 0 0.5px color-mix(in srgb, #000 22%, transparent), var(--ombre);
+}
+html[data-leger] .widget { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.widget-picto { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: var(--accent-doux); color: var(--accent); flex: none; }
+
+/* Rangement : OK flotte en haut à droite, comme sur l'iPhone. */
+.accueil .bouton-termine {
+  position: fixed; top: calc(env(safe-area-inset-top) + 10px); right: 16px; z-index: 10; margin: 0; padding: 8px 18px;
+  box-shadow: 0 8px 22px -12px rgb(0 0 0 / 0.6);
+}
+.ajout-widgets { display: grid; gap: 12px; margin-top: 14px; }
+.ajout-widgets .bouton-principal { width: 100%; margin: 0; }
+
+/* « Tous les espaces » : la feuille de verre qui descend du haut. */
+.voile-espaces { z-index: 24; }
+.tous-espaces {
+  position: fixed; left: 0; right: 0; top: 0; z-index: 25; max-width: 640px; margin: 0 auto;
+  display: flex; flex-direction: column; max-height: 88dvh;
+  padding: calc(env(safe-area-inset-top) + 10px) 16px 0; border-radius: 0 0 30px 30px;
+  background: var(--verre); -webkit-backdrop-filter: blur(28px) saturate(1.6); backdrop-filter: blur(28px) saturate(1.6);
+  box-shadow: var(--reflet), 0 0 0 0.5px var(--verre-trait), 0 24px 60px -24px rgb(0 0 0 / 0.7);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .tous-espaces { animation: espaces-descend 0.45s var(--courbe); transition: transform 0.32s var(--courbe), opacity 0.25s ease; }
+  .tous-espaces.tiree { transition: none; }
+}
+@keyframes espaces-descend { from { transform: translateY(-100%); } }
+.tous-espaces.sortie { transform: translateY(-100%); opacity: 0; pointer-events: none; }
+.espaces-haut { display: flex; align-items: center; gap: 8px; }
+.espaces-haut .champ-recherche { flex: 1; min-width: 0; margin: 0; background: color-mix(in srgb, var(--surface-haute) 80%, transparent); }
+.espaces-corps { overflow-y: auto; overscroll-behavior: contain; padding: 6px 2px 4px; }
+.espaces-corps .rayon { margin: 14px 0 8px; }
+.grille-espaces { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 8px; }
+.tuile-espace { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 4px 0; border: none; background: none; color: var(--texte); -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.tuile-picto { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 16px; color: var(--accent); background: color-mix(in srgb, var(--surface-haute) 85%, transparent); box-shadow: var(--reflet), 0 0 0 0.5px var(--verre-trait); }
+.tuile-espace:active .tuile-picto { transform: scale(0.93); }
+.tuile-nom { font-size: var(--t-legende); text-align: center; line-height: 1.2; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.espaces-pied { text-align: center; font-size: var(--t-legende); margin: 16px 0 4px; }
+.espaces-poignee { display: grid; place-items: center; height: 26px; touch-action: none; cursor: grab; }
+.espaces-poignee .poignee { margin: 0; }
+/* La tuile qui part vers l'accueil, sous le doigt. */
+.fantome-widget {
+  position: fixed; left: 0; top: 0; z-index: 30; width: 88px; display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none;
+  filter: drop-shadow(0 14px 22px rgb(0 0 0 / 0.5));
+}
+.fantome-widget .tuile-picto { transform: scale(1.12); background: var(--surface-haute); }
+.fantome-widget .tuile-nom { color: var(--texte); }
+/* L'étiquette qui descend quand on tire l'accueil vers le bas. */
+.tirer-espaces {
+  position: fixed; top: calc(env(safe-area-inset-top) + 6px); left: 50%; z-index: 9; transform: translate(-50%, 0); opacity: 0; pointer-events: none;
+  padding: 5px 12px; border-radius: 999px; font-size: var(--t-legende); color: var(--accent);
+  background: var(--verre); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-shadow: var(--reflet), 0 0 0 0.5px var(--verre-trait);
+}
+/* Ce téléphone › Accueil : le verre et la taille de la date. */
+.reglages-curseurs { display: grid; gap: 14px; padding: 14px 16px; margin-bottom: 20px; }
+.curseur-reglage { display: grid; gap: 8px; }
+.curseur-titre { display: flex; justify-content: space-between; gap: 12px; font-size: var(--t-corps); }
+.curseur-titre .discret { font-size: var(--t-legende); }
+.curseur-reglage input[type="range"] { width: 100%; accent-color: var(--accent); }
+.reglages-curseurs .lien { justify-self: start; padding: 0; font-size: var(--t-detail); }
+.curseur-aide { margin: 0; font-size: var(--t-legende); }

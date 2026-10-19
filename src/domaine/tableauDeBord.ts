@@ -110,10 +110,10 @@ export function basculerTaille(tailles: Tailles, id: WidgetId): Tailles {
   return suivantes;
 }
 
-// ----- Les espaces -----
-// Le tableau de bord reste une seule page : la vue d'ensemble et les infos rapides.
-// Au-dessus, une bulle par usage du quotidien (idée de Sarah) ouvre la page de cet
-// usage, avec tous ses modules, qu'ils soient posés sur l'accueil ou non.
+// ----- Tous les espaces -----
+// Tirer l'accueil vers le bas ouvre « Tous les espaces » : chaque module, rangé par usage du
+// quotidien, avec la recherche. Aucune catégorie ne disparaît : un widget retiré de l'accueil
+// reste ici. On glisse une tuile sur l'accueil pour en faire un widget.
 
 export type EspaceId = "menage" | "courses" | "cuisine" | "budget" | "agenda";
 
@@ -141,10 +141,39 @@ export function modulesDeLEspace(id: EspaceId): WidgetId[] {
   return espace(id).widgets.filter((w) => definition(w).disponible);
 }
 
-/** Toucher une bulle : un espace d'un seul module ouvre directement ce module. */
-export function destinationBulle(id: EspaceId): { type: "module"; id: WidgetId } | { type: "espace"; id: EspaceId } {
-  const modules = modulesDeLEspace(id);
-  return modules.length === 1 ? { type: "module", id: modules[0] } : { type: "espace", id };
+/** Les autres mots qu'on emploie pour chaque module, pour le retrouver dans « Tous les espaces ». */
+export const MOTS_DES_MODULES: Record<WidgetId, readonly string[]> = {
+  taches: ["ménage", "corvées", "à faire", "litière", "poubelles", "linge"],
+  courses: ["acheter", "supermarché", "coop", "migros", "panier"],
+  listes: ["cadeaux", "bricolage", "idées"],
+  agenda: ["calendrier", "rendez-vous", "rdv", "anniversaire", "vacances", "icloud"],
+  mitsu: ["chat", "croquettes", "vétérinaire", "véto", "litière", "zooplus"],
+  stock: ["frigo", "placards", "congélateur", "date", "périmé", "réserve"],
+  entretien: ["maison", "filtre", "détartrer", "réparer"],
+  jardin: ["plantes", "balcon", "arroser", "météo", "potager", "herbes"],
+  chef: ["repas", "menus", "recettes", "cuisine", "manger", "dîner", "souper"],
+  budget: ["argent", "dépenses", "factures", "épargne", "compte", "carte", "revolut"],
+  infos: ["papiers", "contrats", "garanties", "documents"],
+};
+
+const sansAccents = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+/** Les modules prêts dont le nom, la description ou un mot habituel commence comme la recherche. */
+export function modulesCherches(recherche: string): WidgetId[] {
+  const q = sansAccents(recherche);
+  if (q.length < 2) return [];
+  return CATALOGUE.filter((w) => w.disponible)
+    .filter((w) => [w.titre, w.description, ...MOTS_DES_MODULES[w.id]].some((t) => ` ${sansAccents(t).replace(/[^a-z0-9]+/g, " ")}`.includes(` ${q}`)))
+    .map((w) => w.id);
+}
+
+/**
+ * Pose un widget venu de « Tous les espaces » à la place d'un autre (ou au bout). Déjà sur
+ * l'accueil, il se déplace au lieu de se dédoubler.
+ */
+export function poserWidget(d: Disposition, id: WidgetId, cible: WidgetId | null): Disposition {
+  const avec = ajouterWidget(d, id);
+  return cible ? deplacerVers(avec, id, cible) : avec;
 }
 
 /** Glisse un widget à la place d'un autre, comme sur l'écran d'accueil de l'iPhone. */

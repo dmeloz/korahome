@@ -5,7 +5,7 @@ import type { Meteo } from "./meteo";
 import { choseAFaire, type Animal } from "./mitsu";
 import { tachesDuMatin } from "./rappels";
 import { etatProduit, resumeStock, type Produit } from "./stock";
-import { ecartJours } from "./taches";
+import { ecartJours, enMinutes, heureDe } from "./taches";
 import type { Id, Jour, Tache } from "./types";
 
 // La carte « Aujourd'hui » : les trois choses qui comptent, dans l'ordre. Une seule
@@ -34,6 +34,8 @@ export interface ChoseDuJour {
   destination: DestinationChose;
   /** Pour une tâche : de quoi la cocher sans ouvrir la page. */
   tacheId?: Id;
+  /** L'heure, « HH:MM », quand la chose en a une (tâche avec heure, rendez-vous du jour). */
+  heure?: string;
 }
 
 export interface CarteDuJour {
@@ -78,8 +80,12 @@ export function chosesDuJour(e: EntreeDuJour): ChoseDuJour[] {
   const { aujourdhui } = e;
 
   const t = tachesDuMatin([...e.taches], e.membreId, aujourdhui);
-  for (const x of t.enRetard) choses.push({ cle: `tache-${x.id}`, texte: x.titre, quand: "en retard", etat: "urgent", destination: "taches", tacheId: x.id });
-  for (const x of t.aujourdhui) choses.push({ cle: `tache-${x.id}`, texte: x.titre, quand: "aujourd'hui", etat: "jour", destination: "taches", tacheId: x.id });
+  const avecHeure = (x: Tache) => {
+    const h = heureDe(x);
+    return h ? { heure: h } : {};
+  };
+  for (const x of t.enRetard) choses.push({ cle: `tache-${x.id}`, texte: x.titre, quand: "en retard", etat: "urgent", destination: "taches", tacheId: x.id, ...avecHeure(x) });
+  for (const x of t.aujourdhui) choses.push({ cle: `tache-${x.id}`, texte: x.titre, quand: "aujourd'hui", etat: "jour", destination: "taches", tacheId: x.id, ...avecHeure(x) });
 
   for (const f of e.factures ?? []) {
     const ecart = ecartJours(aujourdhui, f.echeance);
@@ -103,7 +109,8 @@ export function chosesDuJour(e: EntreeDuJour): ChoseDuJour[] {
   const agenda = resumeAgenda(e.evenements, e.animaux, aujourdhui);
   const concerne = (ev: Evenement) => e.membreId === null || ev.pour === null || ev.pour === e.membreId;
   for (const o of agenda.aujourdhui.filter((o) => concerne(o.evenement))) {
-    choses.push({ cle: `agenda-${o.cle}`, texte: titreDe(o), quand: o.evenement.heure && o.debut === aujourdhui ? o.evenement.heure : "aujourd'hui", etat: "jour", destination: "agenda" });
+    const heure = o.evenement.heure && o.debut === aujourdhui ? o.evenement.heure : undefined;
+    choses.push({ cle: `agenda-${o.cle}`, texte: titreDe(o), quand: heure ?? "aujourd'hui", etat: "jour", destination: "agenda", ...(heure ? { heure } : {}) });
   }
   const demain = agenda.semaine.filter((o) => ecartJours(aujourdhui, o.debut) === 1 && concerne(o.evenement));
   for (const o of demain) {
@@ -129,8 +136,10 @@ export function chosesDuJour(e: EntreeDuJour): ChoseDuJour[] {
   if (e.repartitionDue) choses.push({ cle: "repartition", texte: "On se répartit la semaine ?", quand: "dimanche", etat: "calme", destination: "repartition" });
   if (e.sauvegardeDue) choses.push({ cle: "sauvegarde", texte: "Sauvegarde de la semaine", quand: "un toucher", etat: "calme", destination: "sauvegarde" });
 
-  // Le tri est stable : à état égal, l'ordre des sources ci-dessus décide.
-  return choses.sort((a, b) => ORDRE[a.etat] - ORDRE[b.etat]);
+  // Le tri est stable : à état égal, ce qui a une heure passe d'abord, de la plus tôt à la plus
+  // tard, puis le reste dans l'ordre des sources ci-dessus.
+  const minutes = (c: ChoseDuJour) => (c.heure ? (enMinutes(c.heure) ?? Infinity) : Infinity);
+  return choses.sort((a, b) => ORDRE[a.etat] - ORDRE[b.etat] || (minutes(a) === minutes(b) ? 0 : minutes(a) < minutes(b) ? -1 : 1));
 }
 
 /** Le repas prévu ce soir par le Chef : un repas par soir depuis le jour où il a préparé la semaine. */
@@ -168,6 +177,26 @@ export function phraseDuJour(carte: CarteDuJour): string {
   const liste = morceaux.length === 1 ? morceaux[0] : `${morceaux.slice(0, -1).join(", ")} et ${morceaux[morceaux.length - 1]}`;
   const suite = carte.autres > 0 ? ` Et ${carte.autres === 1 ? "une autre chose" : `${carte.autres} autres choses`} dans l'app.` : "";
   return `Aujourd'hui : ${liste}.${suite}`;
+}
+
+/** Le titre de « Aujourd'hui » sur l'accueil, selon le moment de la journée. */
+export function titreMoment(heure: number): string {
+  if (heure < 12) return "Ce matin";
+  if (heure < 17) return "Cet après-midi";
+  return "Ce soir";
+}
+
+/** Combien de choses attendent, en tout : « 3 à faire ». */
+export function resteAFaire(carte: CarteDuJour): number {
+  return carte.choses.length + carte.autres;
+}
+
+/**
+ * La chose du moment, mise en grand : la première de la carte (la plus urgente, sinon celle
+ * qui a l'heure la plus proche), pour peu qu'il y en ait une.
+ */
+export function choseDuMoment(carte: CarteDuJour): ChoseDuJour | null {
+  return carte.choses[0] ?? null;
 }
 
 /** Le titre de la carte selon ce qu'elle contient. */
