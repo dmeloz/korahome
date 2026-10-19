@@ -44,7 +44,7 @@ export function parcoursVisite(autre: string | null): EtapeVisite[] {
       id: "pages",
       cible: "pages",
       titre: "Les pages de l'accueil",
-      texte: "Les widgets se rangent en pages : Maison, Nous deux, Mitsu et jardin. Glisse de côté, ou touche un nom, pour changer de page.",
+      texte: "Les widgets se rangent en pages par usage : Ménage, Courses, Cuisine, Budget, Agenda. Glisse de côté, ou touche un nom, pour changer de page.",
     },
     {
       id: "widget",
