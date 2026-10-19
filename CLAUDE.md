@@ -8,7 +8,7 @@ Fiche projet et plan (sur le Mac de la propriétaire) : `~/Atelier-Claude/Cervea
 - `npm run dev` : serveur de développement (accessible depuis l'iPhone sur le même wifi).
 - `npm test` : tests (Vitest).
 - `npm run typecheck` puis `npm run build` : vérification des types et build de production dans `dist/`.
-- En ligne : https://korahome-cassa.netlify.app, publiée sur Netlify par l'action GitHub `Publier` à chaque fusion dans `main` (voir `docs/en-ligne.md`).
+- En ligne : https://kora-cassa.netlify.app, publiée sur Netlify par l'action GitHub `Publier` à chaque fusion dans `main` (voir `docs/en-ligne.md`).
 - `npm run fonction` : régénère les fonctions serveur (rappels, Jarvis, Chef, agenda, paiements, Siri) après une modification de leurs règles (voir `docs/notifications.md`, `docs/jarvis.md`).
 - `npm run serveur` : sert l'app en https sur le wifi depuis le Mac (certificat local dans `.certificats/`, voir `docs/installer-sur-iphone.md`).
 

@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-      NETLIFY_SITE_ID: c8c2133f-c5cd-4184-abc4-955b2e9844dd
+      NETLIFY_SITE_ID: f5378d03-6120-4afd-ad96-f7eb73e91347
     steps:
       - name: Vérifier le jeton Netlify
         run: |
