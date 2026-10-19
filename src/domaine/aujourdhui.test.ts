@@ -66,6 +66,20 @@ describe("la carte Aujourd'hui", () => {
     ]);
   });
 
+  it("donne aux tâches de quoi les cocher sur place, pas aux autres choses", () => {
+    const linge = nouvelleTache("Linge", semaine, auj, ctx);
+    const choses = chosesDuJour(entree({ taches: [linge], sauvegardeDue: true }));
+    expect(choses[0].tacheId).toBe(linge.id);
+    expect(choses[1].tacheId).toBeUndefined();
+  });
+
+  it("en garde davantage à faire défiler quand on le demande", () => {
+    const taches = ["A", "B", "C", "D", "E"].map((t) => nouvelleTache(t, semaine, auj, ctx));
+    const carte = carteDuJour(entree({ taches }), 12);
+    expect(carte.choses).toHaveLength(5);
+    expect(carte.autres).toBe(0);
+  });
+
   it("garde trois choses et compte les autres", () => {
     const taches = ["A", "B", "C", "D", "E"].map((t) => nouvelleTache(t, semaine, auj, ctx));
     const carte = carteDuJour(entree({ taches, sauvegardeDue: true }));

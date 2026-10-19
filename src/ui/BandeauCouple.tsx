@@ -1,24 +1,24 @@
 import { useEffect, useRef } from "react";
-import { basculerCoeur, clinDuJour, DEMANDE_CLIN, elementsBandeau, infosUtiles, nouveauClin, type ElementBandeau } from "../domaine/bandeau";
+import { basculerCoeur, clinDuJour, DEMANDE_CLIN, elementsBandeau, filtrerBandeau, infosUtiles, nouveauClin, VITESSES_BANDEAU, type ElementBandeau } from "../domaine/bandeau";
 import { decrireFoyer } from "../domaine/jarvis";
 import type { Depot } from "../donnees/depot";
 import type { ServeurJarvis } from "../donnees/distant";
 import { vibrer } from "./haptique";
 import { Icone } from "./Icone";
 import type { DonneesModule } from "./modules";
+import { useReglagesBandeau } from "./reglagesBandeau";
 
-// Le bandeau du couple, sous « Bonjour, Melo » : il défile doucement de droite à gauche,
+// Le bandeau du couple, en tête de l'accueil : il défile doucement de droite à gauche,
 // comme un fil d'infos, et se fait défiler au doigt pour relire un passage ; il repart seul
 // peu après. Les mots de l'autre ressortent avec son prénom. Toucher un mot lui renvoie un
-// cœur ; toucher ailleurs ouvre « Nos mots ».
+// cœur ; toucher ailleurs ouvre « Nos mots ». Chacun choisit dans « Nos mots » ce qui y passe
+// et à quelle vitesse.
 
 const CLE_CLIN = "korahome.clinDemande";
 /** Le temps de laisser la synchro apporter le clin d'œil déjà demandé par l'autre téléphone. */
 const ATTENTE_CLIN_MS = 8000;
 /** Le clin d'œil se demande à partir de 6 h. */
 const HEURE_CLIN = 6;
-/** Vitesse du défilement tout seul, en points par seconde. */
-const VITESSE = 32;
 /** Après un passage au doigt, le bandeau repart seul au bout de ce temps. */
 const REPRISE_MS = 3500;
 
@@ -31,11 +31,17 @@ export function BandeauCouple(props: {
   const { donnees, depot } = props;
   const maintenant = new Date().toISOString();
   const infos = infosUtiles({ meteo: donnees.meteo, taches: donnees.taches, produits: donnees.produits, animaux: donnees.animaux, aujourdhui: donnees.aujourdhui });
-  const elements = elementsBandeau({ docs: donnees.couple, foyer: donnees.foyer, moi: donnees.membreId, maintenant, aujourdhui: donnees.aujourdhui, infos });
+  const reglages = useReglagesBandeau();
+  const elements = filtrerBandeau(
+    elementsBandeau({ docs: donnees.couple, foyer: donnees.foyer, moi: donnees.membreId, maintenant, aujourdhui: donnees.aujourdhui, infos }),
+    reglages.masquees,
+  );
   useClinDuJour(props);
   const zone = useRef<HTMLDivElement>(null);
   const copie = useRef<HTMLSpanElement>(null);
-  useDefilement(zone, copie, elements.length);
+  const vitesse = useRef<number>(VITESSES_BANDEAU.normale);
+  vitesse.current = VITESSES_BANDEAU[reglages.vitesse];
+  useDefilement(zone, copie, elements.length, vitesse);
 
   if (!elements.length) {
     return (
@@ -89,7 +95,12 @@ export function BandeauCouple(props: {
  * avance seule d'un petit pas à chaque image. Arrivée au bout de la première copie, elle revient
  * d'une copie en arrière, ce qui ne se voit pas puisque les deux sont identiques.
  */
-function useDefilement(zone: React.RefObject<HTMLDivElement | null>, copie: React.RefObject<HTMLSpanElement | null>, nombre: number) {
+function useDefilement(
+  zone: React.RefObject<HTMLDivElement | null>,
+  copie: React.RefObject<HTMLSpanElement | null>,
+  nombre: number,
+  vitesse: React.RefObject<number>,
+) {
   useEffect(() => {
     const el = zone.current;
     if (!el || !nombre) return;
@@ -134,7 +145,7 @@ function useDefilement(zone: React.RefObject<HTMLDivElement | null>, copie: Reac
           boucler();
           repriseA = 0;
         }
-        position += (VITESSE * dt) / 1000;
+        position += (vitesse.current * dt) / 1000;
         const l = largeur();
         if (l > 0 && position >= l) position -= l;
         el.scrollLeft = position;
@@ -160,7 +171,7 @@ function useDefilement(zone: React.RefObject<HTMLDivElement | null>, copie: Reac
       el.removeEventListener("wheel", pause);
       el.removeEventListener("scroll", defile);
     };
-  }, [zone, copie, nombre]);
+  }, [zone, copie, nombre, vitesse]);
 }
 
 /** Une fois par jour, Jarvis écrit le clin d'œil du foyer ; le premier téléphone ouvert s'en charge. */

@@ -1,10 +1,18 @@
 import { sousTitreCarte, type CarteDuJour, type ChoseDuJour } from "../../domaine/aujourdhui";
+import { Icone } from "../Icone";
 import { PointEtat } from "./Page";
 
-// La carte « Aujourd'hui » en haut de l'accueil : trois choses, dans l'ordre. Ses données
+// La carte « Aujourd'hui » en haut de l'accueil : les choses du jour, dans l'ordre, trois en vue
+// et les suivantes au doigt. Une tâche se coche d'un toucher sur son rond. Ses données
 // (domaine/aujourdhui.ts) sont celles que reprendront le widget de l'iPhone et Siri.
 
-export function CarteAujourdhui(props: { carte: CarteDuJour; toucher: (chose: ChoseDuJour) => void; voirTout?: () => void }) {
+export function CarteAujourdhui(props: {
+  carte: CarteDuJour;
+  toucher: (chose: ChoseDuJour) => void;
+  /** Coche une tâche sur place ; sans elle, la carte ne montre que des points. */
+  cocher?: (chose: ChoseDuJour) => void;
+  voirTout?: () => void;
+}) {
   const { carte } = props;
   return (
     <section className="carte-jour" aria-label="Aujourd'hui">
@@ -17,9 +25,14 @@ export function CarteAujourdhui(props: { carte: CarteDuJour; toucher: (chose: Ch
       ) : (
         <ul>
           {carte.choses.map((c) => (
-            <li key={c.cle}>
+            <li key={c.cle} className={c.tacheId && props.cocher ? "avec-coche" : undefined}>
+              {c.tacheId && props.cocher && (
+                <button className={`carte-jour-coche ${c.etat}`} onClick={() => props.cocher?.(c)} aria-label={`Cocher « ${c.texte} »`}>
+                  <Icone nom="coche" taille={14} />
+                </button>
+              )}
               <button className="carte-jour-ligne" onClick={() => props.toucher(c)}>
-                <PointEtat etat={c.etat} />
+                {!(c.tacheId && props.cocher) && <PointEtat etat={c.etat} />}
                 <span className="carte-jour-texte">{c.texte}</span>
                 <span className={`carte-jour-quand ${c.etat}`}>{c.quand}</span>
               </button>
