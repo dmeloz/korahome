@@ -188,26 +188,3 @@ export function Signes(props: {
     </>
   );
 }
-
-/** Ce que dit un signe, en petite bulle sous la ligne de la date (en attendant la fée). */
-export function BulleSigne({ valeur, fermer, ouvrir }: { valeur: ValeurSigne | null; fermer: () => void; ouvrir: (v: ValeurSigne) => void }) {
-  useEffect(() => {
-    if (!valeur) return;
-    const id = setTimeout(fermer, 7000);
-    const ailleurs = (e: globalThis.PointerEvent) => {
-      if (!(e.target as Element).closest(".bulle-signe, .signes-accueil")) fermer();
-    };
-    window.addEventListener("pointerdown", ailleurs, true);
-    return () => {
-      clearTimeout(id);
-      window.removeEventListener("pointerdown", ailleurs, true);
-    };
-  }, [valeur, fermer]);
-  if (!valeur) return null;
-  return (
-    <div className="bulle-signe" role="status">
-      <p>{valeur.phrase}</p>
-      <button className="lien" onClick={() => ouvrir(valeur)}>Ouvrir</button>
-    </div>
-  );
-}

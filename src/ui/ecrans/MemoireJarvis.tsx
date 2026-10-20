@@ -6,13 +6,14 @@ import type { Depot } from "../../donnees/depot";
 import { useAnnoncer } from "../annulation";
 import { contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
+import { nomFee } from "../fee";
 import { vibrer } from "../haptique";
 
-/** Les souhaits que Jarvis a notés pour Claude, parmi les notes de test. */
+/** Les souhaits que la fée a notés pour Claude, parmi les notes de test (le texte enregistré garde « Jarvis »). */
 const estSouhait = (r: RetourTest) => r.ecran === "Jarvis" && r.texte.startsWith("Souhait pour Jarvis : ");
 
-// Ce que Jarvis sait du foyer : on le relit, on le corrige d'un toucher, on l'efface d'un
-// glissement. Et les souhaits qu'il a notés pour Claude, avec leur état.
+// Ce que la fée sait du foyer : on le relit, on le corrige d'un toucher, on l'efface d'un
+// glissement. Et les souhaits qu'elle a notés pour Claude, avec leur état.
 export function MemoireJarvis(props: { depot: Depot; foyer: Foyer; membreId: string | null; souvenirs: Souvenir[]; retours: RetourTest[] }) {
   const { depot } = props;
   const annoncer = useAnnoncer();
@@ -39,29 +40,29 @@ export function MemoireJarvis(props: { depot: Depot; foyer: Foyer; membreId: str
 
   async function oublier(s: Souvenir) {
     await depot.supprimerSouvenir(s.id);
-    annoncer("Jarvis l'a oublié.", () => depot.enregistrerSouvenir(s));
+    annoncer(`${nomFee()} l'a oublié.`, () => depot.enregistrerSouvenir(s));
   }
 
   const origine = (s: Souvenir) => {
     const qui = prenom(s.auteur);
-    if (s.source === "remarque") return qui ? `Remarqué par Jarvis, validé par ${qui}` : "Remarqué par Jarvis";
+    if (s.source === "remarque") return qui ? `Remarqué par ${nomFee()}, validé par ${qui}` : `Remarqué par ${nomFee()}`;
     if (s.source === "bilan") return qui ? `Appris par Kora, gardé par ${qui}` : "Appris par Kora";
-    return qui ? `Confié par ${qui}` : "Confié à Jarvis";
+    return qui ? `Confié par ${qui}` : `Confié à ${nomFee()}`;
   };
 
   return (
     <main>
-      <h1>Ce que Jarvis sait</h1>
+      <h1>Ce que {nomFee()} sait</h1>
       <p className="discret">
-        Jarvis relit tout ceci à chaque demande. Dis-lui « retiens que… », ou écris-le ici. Quand il remarque une habitude, il demande avant de la retenir.
+        {nomFee()} relit tout ceci à chaque demande. Dis-lui « retiens que… », ou écris-le ici. Quand elle remarque une habitude, elle demande avant de la retenir.
       </p>
       <form className="ajout" onSubmit={(e) => void ajouter(e)}>
-        <input value={saisie} onChange={(e) => setSaisie(e.target.value)} placeholder="Ex. Sarah n'aime pas la coriandre" enterKeyHint="done" aria-label="Apprendre quelque chose à Jarvis" />
+        <input value={saisie} onChange={(e) => setSaisie(e.target.value)} placeholder="Ex. Sarah n'aime pas la coriandre" enterKeyHint="done" aria-label={`Apprendre quelque chose à ${nomFee()}`} />
         <button type="submit" disabled={!saisie.trim()} aria-label="Retenir">+</button>
       </form>
 
       {souvenirs.length === 0 ? (
-        <p className="vide">Jarvis ne sait encore rien de particulier sur le foyer.</p>
+        <p className="vide">{nomFee()} ne sait encore rien de particulier sur le foyer.</p>
       ) : (
         <ul className="carte groupe memoire">
           {souvenirs.map((s) => (
@@ -87,7 +88,7 @@ export function MemoireJarvis(props: { depot: Depot; foyer: Foyer; membreId: str
 
       <h2 className="rayon">Souhaits notés pour Claude</h2>
       {souhaits.length === 0 ? (
-        <p className="discret">Quand tu demandes à Jarvis une chose qu'il ne sait pas encore faire, il la note ici. Claude les lit et en fait de nouvelles versions, que tu valides.</p>
+        <p className="discret">Quand tu demandes à {nomFee()} une chose qu'elle ne sait pas encore faire, elle la note ici. Claude les lit et en fait de nouvelles versions, que tu valides.</p>
       ) : (
         <ul className="carte groupe">
           {souhaits.map((r) => (

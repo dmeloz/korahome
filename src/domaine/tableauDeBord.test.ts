@@ -7,11 +7,9 @@ import {
   poserWidget,
   DISPOSITION_DE_DEPART,
   ajouterWidget,
-  deplacerWidget,
   nettoyerDisposition,
   ordreAffichage,
   retirerWidget,
-  widgetsAAjouter,
   basculerTaille,
   deplacerVers,
   nettoyerTailles,
@@ -39,18 +37,6 @@ describe("tableau de bord", () => {
 
   it("ajoute l'agenda commun, désormais prêt", () => {
     expect(ajouterWidget(["taches"], "agenda")).toEqual(["taches", "agenda"]);
-  });
-
-  it("monte et descend un widget, sans sortir du tableau", () => {
-    expect(deplacerWidget(["taches", "courses", "listes"], "listes", -1)).toEqual(["taches", "listes", "courses"]);
-    expect(deplacerWidget(["taches", "courses"], "taches", 1)).toEqual(["courses", "taches"]);
-    expect(deplacerWidget(["taches", "courses"], "taches", -1)).toEqual(["taches", "courses"]);
-  });
-
-  it("sépare ce qu'on peut ajouter de ce qui arrive bientôt", () => {
-    const { prets, bientot } = widgetsAAjouter(["taches"]);
-    expect(prets.map((w) => w.id)).toEqual(["courses", "listes", "agenda", "mitsu", "stock", "entretien", "jardin", "chef", "budget"]);
-    expect(bientot.map((w) => w.id)).toEqual(["infos"]);
   });
 
   it("fait remonter l'urgent en gardant l'ordre choisi pour le reste", () => {

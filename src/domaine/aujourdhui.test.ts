@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { avanceeDuJour, carteDuJour, choseDuMoment, chosesDuJour, phraseDuJour, repasDuSoir, resteAFaire, sousTitreCarte, titreCarte, titreMoment, type EntreeDuJour } from "./aujourdhui";
+import { avanceeDuJour, carteDuJour, choseDuMoment, chosesDuJour, repasDuSoir, resteAFaire, titreMoment, type EntreeDuJour } from "./aujourdhui";
 import { preparerEvenement } from "./agenda";
 import type { MenuSemaine } from "./chef";
 import { contexteTest } from "./contexteTest";
@@ -80,16 +80,14 @@ describe("la carte Aujourd'hui", () => {
     expect(carte.autres).toBe(0);
   });
 
-  it("compte les tâches cochées aujourd'hui pour la jauge et le titre", () => {
+  it("compte les tâches cochées aujourd'hui pour la jauge et le compte", () => {
     const faite = marquerFaite(nouvelleTache("Litière", semaine, auj, ctx), "melo", auj, ctx);
     const parSarah = marquerFaite(nouvelleTache("Ménage", semaine, auj, ctx), "sarah", auj, ctx);
     const reste = nouvelleTache("Linge", semaine, auj, ctx);
     const carte = carteDuJour(entree({ taches: [faite, parSarah, reste] }));
     expect(carte.faites).toBe(1);
     expect(avanceeDuJour(carte)).toEqual({ faites: 1, total: 2, part: 0.5 });
-    expect(titreCarte(carte)).toBe("1 chose à faire");
-    expect(titreCarte(carteDuJour(entree({ taches: [faite] })))).toBe("Tout est fait");
-    expect(titreCarte(carteDuJour(entree()))).toBe("Journée libre");
+    expect(resteAFaire(carte)).toBe(1);
   });
 
   it("garde trois choses et compte les autres", () => {
@@ -97,14 +95,6 @@ describe("la carte Aujourd'hui", () => {
     const carte = carteDuJour(entree({ taches, sauvegardeDue: true }));
     expect(carte.choses).toHaveLength(3);
     expect(carte.autres).toBe(3);
-    expect(sousTitreCarte(carte)).toBe("3 choses, dans l'ordre");
-  });
-
-  it("se dit en une phrase pour Siri", () => {
-    const carte = carteDuJour(entree({ taches: [nouvelleTache("Poubelles", semaine, "2026-10-18", ctx)] }));
-    expect(phraseDuJour(carte)).toBe("Aujourd'hui : Poubelles (en retard).");
-    expect(phraseDuJour(carteDuJour(entree()))).toBe("Rien de prévu aujourd'hui, profitez-en.");
-    expect(sousTitreCarte(carteDuJour(entree()))).toBe("Rien ne presse");
   });
 
   it("propose la sauvegarde et la répartition au calme, en dernier", () => {

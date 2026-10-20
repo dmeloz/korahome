@@ -259,6 +259,7 @@ export function Agenda(p: PropsPage) {
         }}
       />
 
+      <button className="lien agenda-lien-iphone" onClick={p.ouvrirCalendrier}>Calendrier de l'iPhone</button>
     </Page>
   );
 }

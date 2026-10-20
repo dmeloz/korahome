@@ -37,7 +37,7 @@ const ETAPES = [
   "Dis « Dis Siri » suivi du nom du raccourci, puis ta demande : « ajoute du lait », « qu'est-ce qu'on a demain ? ». Pour supprimer, il te demande oui ou non ; « annule » défait ce qu'il vient de faire.",
 ];
 
-export function Siri(props: { foyer: Foyer; membreId: Id | null; distant: { serveur: ServeurJarvis; foyerId: string } | null }) {
+export function Siri(props: { foyer: Foyer; membreId: Id | null; distant: { serveur: ServeurJarvis; foyerId: string } | null; ouvrirPartage: () => void }) {
   const moi = props.foyer.membres.find((m) => m.id === props.membreId);
   const [relie, setRelie] = useState(lire);
   const [nom, setNom] = useState(() => relie?.nom ?? nomPropose(moi?.prenom));
@@ -100,7 +100,10 @@ export function Siri(props: { foyer: Foyer; membreId: Id | null; distant: { serv
           « Dis Siri, {relie?.nom ?? (nom.trim() || "Tael")} » : tu parles à l'assistant de Kora sans ouvrir l'app, même l'iPhone verrouillé. Il agit comme dans l'app et répond à voix haute ; ce qui supprime attend ton oui.
         </p>
         {!d ? (
-          <p className="discret">Il faut d'abord partager le foyer (Réglages) : Siri passe par son serveur.</p>
+          <>
+            <p className="discret">Siri passe par le serveur du foyer : il faut d'abord activer le partage.</p>
+            <button className="bouton-principal" onClick={props.ouvrirPartage}>Activer le partage</button>
+          </>
         ) : relie ? (
           <>
             <p className="surtitre">Cet iPhone est relié · « {relie.nom} »</p>

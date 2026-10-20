@@ -16,7 +16,6 @@
   --accent-doux: #3a2f1a;
   --sur-accent: #15120b;
   --urgent: #e2916a;
-  --urgent-doux: #3a231a;
   --coche: #6f746f;
   --ombre: 0 18px 40px -24px rgb(0 0 0 / 0.8);
   --verre: rgb(24 28 26 / 0.72);
@@ -56,7 +55,6 @@
     --accent-doux: #f3e4c4;
     --sur-accent: #fffaf0;
     --urgent: #b4532f;
-    --urgent-doux: #f6e1d6;
     --coche: #9a9488;
     --ombre: 0 10px 24px -18px rgb(90 70 40 / 0.35);
     --verre: rgb(255 252 246 / 0.78);
@@ -78,7 +76,6 @@
   --accent-doux: #f3e4c4;
   --sur-accent: #fffaf0;
   --urgent: #b4532f;
-  --urgent-doux: #f6e1d6;
   --coche: #9a9488;
   --ombre: 0 10px 24px -18px rgb(90 70 40 / 0.35);
   --verre: rgb(255 252 246 / 0.78);
@@ -136,7 +133,6 @@ h1 {
 .discret { color: var(--discret); font-size: var(--t-detail); }
 .erreur { color: var(--urgent); font-size: var(--t-detail); margin: 0; }
 .vide { color: var(--discret); text-align: center; margin-top: 48px; }
-.pied { margin-top: 32px; line-height: 1.45; }
 
 .carte {
   background: var(--surface);
@@ -314,17 +310,8 @@ h1 {
 
 /* Tableau de bord : un en-tête compact, le bandeau du couple, « Aujourd'hui », puis des
    pages de widgets en deux colonnes qu'on feuillette au doigt. */
-.entete-accueil { display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: 12px; margin: 12px 0 14px; }
 /* La date et les boutons sur la première ligne, la salutation en entier dessous. */
-.entete-titres { display: contents; }
-.entete-accueil .entete-date { grid-column: 1; grid-row: 1; margin: 0; }
-.entete-accueil > .entete-boutons, .entete-accueil > .bouton-termine { grid-column: 2; grid-row: 1; }
-.entete-date { margin: 0 0 2px; font-size: var(--t-legende); color: var(--discret); letter-spacing: 0.02em; }
-.entete-accueil .entete-date { font-size: var(--t-corps); font-weight: 600; color: var(--texte); letter-spacing: 0; }
 .cache-visuel { position: absolute !important; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-.entete-date::first-letter { text-transform: uppercase; }
-.entete-accueil h1 { margin: 0; }
-.entete-boutons { display: flex; gap: 8px; align-items: center; }
 .avatar-reglages {
   width: 44px;
   height: 44px;
@@ -397,7 +384,6 @@ h1 {
 .bouton-synchro { padding: 6px 12px; border-radius: 999px; background: var(--surface-haute); color: var(--texte); }
 .bouton-synchro.en-cours svg { animation: tourner 0.9s linear infinite; }
 @keyframes tourner { to { transform: rotate(360deg); } }
-.pied-accueil .modifier { flex-basis: 100%; text-align: center; font-size: var(--t-detail); margin: 0; }
 
 /* Mode modification : les widgets tremblent comme sur l'iPhone et se glissent. */
 .widget.en-edition { touch-action: none; cursor: grab; }
@@ -436,15 +422,11 @@ h1 {
 .ajout-widgets { margin-top: 8px; }
 .proposition { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; color: var(--accent); }
 .proposition-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; color: var(--texte); }
-.proposition.inactive { opacity: 0.5; }
 
-.modifier { display: block; margin: 20px auto 0; font-size: var(--t-detail); }
 .vide-tableau { display: grid; gap: 12px; justify-items: start; }
 .vide-tableau p { margin: 0; }
 
 /* Tâches */
-.ajout-tache { margin-bottom: 8px; }
-.options-tache { display: flex; flex-direction: column; gap: 10px; margin: 4px 0 12px; }
 .puces { display: flex; flex-wrap: wrap; gap: 6px; }
 .puce {
   border: 1px solid var(--trait);
@@ -1014,10 +996,7 @@ html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
 .pas-a-pas.grand .pas-valeur { min-width: 54px; font-size: var(--t-detail); }
 
 /* La saisie en une phrase. */
-.page-stock .sous-titre { margin: -6px 0 6px; font-size: var(--t-legende); }
 .composer { padding: 12px; margin: 10px 0 8px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
-.composer-ligne { margin: 0; }
-.composer-ligne input { min-width: 0; }
 .bouton-scan.bouton-scan { display: grid; place-items: center; background: var(--surface-haute); color: var(--accent); border: 1px solid var(--trait); }
 .composer-aide { margin: 0; font-size: var(--t-legende); }
 .suggestions .puce { font-size: var(--t-legende); padding: 5px 11px; }
@@ -1130,8 +1109,6 @@ html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
 .toast { z-index: 11; }
 
 /* Jarvis : une conversation sobre, la saisie collée en bas de l'écran. */
-.entete-boutons { display: flex; gap: 8px; }
-.jarvis-bouton { color: var(--accent); }
 .jarvis { padding-bottom: calc(env(safe-area-inset-bottom) + 96px); }
 .jarvis-accueil { display: grid; gap: 14px; }
 .jarvis-fil { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
@@ -1346,30 +1323,6 @@ html[data-sens="fondu"]::view-transition-old(root), html[data-sens="fondu"]::vie
 .ticket-lignes .ligne { gap: 10px; }
 .ticket-lignes .ligne.coche .ligne-texte { color: var(--discret); text-decoration: line-through; }
 
-
-
-
-.bandeau-fil {
-  display: flex;
-  align-items: center;
-  width: max-content;
-}
-.bandeau-copie { display: inline-flex; align-items: center; gap: 28px; padding-right: 28px; }
-
-
-
-
-
-
-
-
-
-
-@media (prefers-reduced-motion: reduce) {
-
-  .bandeau-copie + .bandeau-copie { display: none; }
-}
-
 .mot-nouveau { display: flex; flex-direction: column; gap: 10px; padding: 14px; }
 .mot-nouveau textarea {
   width: 100%;
@@ -1481,9 +1434,6 @@ html[data-sens="fondu"]::view-transition-old(root), html[data-sens="fondu"]::vie
 .gout { display: grid; place-items: center; width: 26px; height: 26px; flex: none; border-radius: 50%; background: var(--surface-haute); color: var(--discret); }
 .gout.aime { color: var(--accent); background: var(--accent-doux); }
 .gout.aime svg { fill: currentColor; }
-
-
-
 
 .saisie-devinee { margin: -4px 0 10px; }
 .equilibre { display: grid; gap: 8px; margin-top: 4px; }
@@ -1714,7 +1664,6 @@ html[data-sens="fondu"]::view-transition-old(root), html[data-sens="fondu"]::vie
 /* La recherche. */
 .champ-recherche { display: flex; align-items: center; gap: 8px; padding: 0 12px; height: 44px; border-radius: 12px; background: var(--surface-haute); color: var(--discret); margin-bottom: 8px; }
 .champ-recherche input { flex: 1; min-width: 0; border: none; background: none; outline: none; color: var(--texte); font-size: max(16px, var(--t-corps)); }
-.feuille-recherche .feuille-corps { min-height: 50dvh; }
 
 /* Le centre des rappels. */
 .rappel-recu { align-items: flex-start; }
@@ -1767,7 +1716,6 @@ html[data-sens="fondu"]::view-transition-old(root), html[data-sens="fondu"]::vie
 
 /* Quand la barre Jarvis est là, les messages passent juste au-dessus. */
 html.avec-barre { --hauteur-barre: 84px; }
-.feuille-recherche .ligne-texte { display: flex; flex-direction: column; gap: 2px; text-align: left; }
 .mitsu-classes { padding: 0; margin-top: 12px; }
 .mitsu-classes summary { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; list-style: none; }
 .mitsu-classes summary::-webkit-details-marker { display: none; }
@@ -1812,11 +1760,9 @@ html.avec-barre { --hauteur-barre: 84px; }
 }
 .humeur-bouton.active { color: var(--accent); transform: none; }
 .humeur-nom { font-size: var(--t-legende); line-height: 1.15; text-align: center; }
-.mot-bas .compteur.depasse { color: var(--accent); }
 .mitsu-classes .mitsu-carnet { padding: 0 16px 12px; display: grid; gap: 10px; border-top: 1px solid var(--trait); }
 .mitsu-classes .mitsu-carnet > p { margin: 12px 0 0; }
 .mitsu-classes .bouton-secondaire { justify-self: start; min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--accent); background: none; color: var(--accent); font: inherit; font-weight: 600; }
-.mot-bas .compteur.depasse { font-family: inherit; text-align: right; max-width: 9em; }
 
 /* Le Budget (0.0.27) : quatre pots en tuiles, les montants alignés en chiffres tabulaires. */
 .budget-pots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 16px 0 4px; }
@@ -1827,9 +1773,6 @@ html.avec-barre { --hauteur-barre: 84px; }
 .budget-pot.negatif .budget-solde { color: var(--urgent); }
 .budget-montant { font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--texte); }
 .budget-total .ligne-texte, .budget-total .budget-montant { font-weight: 600; }
-.budget-versement { margin-top: 16px; }
-.budget-versement .groupe { margin: 8px -16px; }
-.budget-versement .bouton-principal { width: 100%; }
 .budget-champ {
   width: 7.5em;
   text-align: right;
@@ -1952,9 +1895,6 @@ html.avec-barre { --hauteur-barre: 84px; }
 .budget-etapes li::marker { color: var(--accent); font-weight: 600; }
 .budget-a-la-main summary { cursor: pointer; color: var(--accent); font-size: var(--t-detail); font-weight: 600; padding: 4px 0; }
 .budget-a-la-main .budget-etapes { margin-top: 8px; }
-
-
-
 
 /* ----- Budget : le relevé Revolut (0.0.33) ----- */
 .budget-importer { display: block; width: 100%; margin: 12px 0 0; }
@@ -2179,9 +2119,6 @@ button.budget-pot:active { transform: scale(0.98); }
 .signe-humeur { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); color: var(--accent); }
 .signe-humeur + .signe-humeur { margin-left: -6px; background: var(--fond); }
 .signe-humeur.sans { border-style: dashed; border-color: var(--discret); opacity: 0.6; }
-
-
-
 
 /* La date repliée dans une barre de verre quand on fait défiler. */
 .date-repliee {
@@ -2475,3 +2412,4 @@ main.page .phare-ligne .ligne { min-height: 64px; }
 main.page .glissable-contenu { background: transparent; }
 main.page .glissable-contenu.glisse, main.page .glissable.ouverte .glissable-contenu { background: var(--fond); }
 main.page .glissable:not(.ouverte):not(:has(.glisse)) :is(.glissable-action, .glissable-fait) { opacity: 0; }
+.agenda-lien-iphone { display: block; margin: 20px auto 0; font-size: var(--t-detail); }

@@ -11,7 +11,7 @@ import { gestesDuJardin, type Zone } from "../domaine/jardin";
 import { compterAPrendre } from "../domaine/listes";
 import { decrireTemps, formaterTemperatures, meteoDu, type Meteo } from "../domaine/meteo";
 import { choseAFaire, decrireAge, formaterPoids, poidsActuel, rationDuJour, type Animal } from "../domaine/mitsu";
-import type { EspaceId, WidgetId } from "../domaine/tableauDeBord";
+import type { WidgetId } from "../domaine/tableauDeBord";
 import type { ProduitHabituel } from "../domaine/catalogue";
 import { decrirePeremption, resumeStock, type Produit } from "../domaine/stock";
 import { compterDues, decaler, decrireEcheance, organiserTaches } from "../domaine/taches";
@@ -71,6 +71,10 @@ export interface PropsPage extends DonneesModule {
   jarvis: { serveur: ServeurJarvis; foyerId: string } | null;
   /** La synchro de l'agenda avec iCloud, quand le foyer est partagé. */
   agendaDistant: { serveur: ServeurAgenda; foyerId: string } | null;
+  /** Ouvre Réglages › Partage, quand une page a besoin du serveur du foyer. */
+  ouvrirPartage: () => void;
+  /** Ouvre Réglages › Calendrier de l'iPhone. */
+  ouvrirCalendrier: () => void;
 }
 
 /** Ce qu'un widget montre sur le tableau de bord. */
@@ -219,7 +223,7 @@ export const MODULES: Partial<Record<WidgetId, ModuleUI>> = {
   stock: {
     id: "stock",
     picto: "frigo",
-    libelle: "Frigo",
+    libelle: "Frigo et placards",
     widget: (d) => {
       const { aConsommer, urgent } = resumeStock(d.produits, d.aujourdhui);
       return {
@@ -279,7 +283,7 @@ export const MODULES: Partial<Record<WidgetId, ModuleUI>> = {
   chef: {
     id: "chef",
     picto: "toque",
-    libelle: "Menus",
+    libelle: "Menus de la semaine",
     widget: (d) => {
       const menu = menuDeLaSemaine(d.menus, d.aujourdhui);
       const passage = prochainPassage(reglageChef(d.menus), new Date());
@@ -338,13 +342,4 @@ export const PICTOS: Record<WidgetId, NomIcone> = {
   chef: "toque",
   budget: "portefeuille",
   infos: "dossier",
-};
-
-/** Le pictogramme de chaque bulle de l'accueil. */
-export const PICTOS_ESPACES: Record<EspaceId, NomIcone> = {
-  menage: "maison",
-  courses: "panier",
-  cuisine: "toque",
-  budget: "portefeuille",
-  agenda: "calendrier",
 };

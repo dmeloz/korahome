@@ -61,22 +61,6 @@ export function retirerWidget(d: Disposition, id: WidgetId): Disposition {
   return d.filter((x) => x !== id);
 }
 
-/** Monte (-1) ou descend (+1) un widget d'une place. */
-export function deplacerWidget(d: Disposition, id: WidgetId, sens: -1 | 1): Disposition {
-  const i = d.indexOf(id);
-  const j = i + sens;
-  if (i < 0 || j < 0 || j >= d.length) return d;
-  const copie = [...d];
-  [copie[i], copie[j]] = [copie[j], copie[i]];
-  return copie;
-}
-
-/** Ce qu'on peut encore ajouter, et ce qui arrive bientôt. */
-export function widgetsAAjouter(d: Disposition): { prets: DefinitionWidget[]; bientot: DefinitionWidget[] } {
-  const absents = CATALOGUE.filter((w) => !d.includes(w.id));
-  return { prets: absents.filter((w) => w.disponible), bientot: absents.filter((w) => !w.disponible) };
-}
-
 /**
  * L'ordre d'affichage : les widgets urgents d'abord, puis les autres,
  * chaque groupe gardant l'ordre choisi.

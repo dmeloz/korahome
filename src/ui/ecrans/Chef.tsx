@@ -111,7 +111,8 @@ export function Chef(p: PropsPage) {
 
         {!p.jarvis ? (
           <div className="carte">
-            <p className="discret">Le Chef passe par le serveur du foyer : ouvre le partage dans les Réglages pour le réveiller.</p>
+            <p className="discret">Le Chef passe par le serveur du foyer : il se réveille dès que le partage est activé.</p>
+            <button className="bouton-principal" onClick={p.ouvrirPartage}>Activer le partage</button>
           </div>
         ) : (
           <section className="carte chef-entete">
