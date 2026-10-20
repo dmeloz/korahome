@@ -12,6 +12,8 @@ import { vibrer } from "../haptique";
 import type { PropsPage } from "../modules";
 import { Onglets, Page } from "../pieces";
 import { recettesDe, soirsPrevus } from "../../domaine/recettes";
+import { ficheDeLaSemaine, platsDeLaSemaine } from "../../domaine/ficheSemaine";
+import { FicheSemaine } from "./FicheSemaine";
 import { FicheRecette, nomDuSoir, OngletRecettes } from "./Recettes";
 import { nomFee } from "../fee";
 import { Ligne, ListeVivante } from "../moteur/pieces";
@@ -39,6 +41,9 @@ export function Chef(p: PropsPage) {
   const [confirmer, setConfirmer] = useState(false);
   const menu = menuDeLaSemaine(p.menus, p.aujourdhui);
   const reglage = reglageChef(p.menus);
+  const [ficheSemaine, setFicheSemaine] = useState(false);
+  const plats = platsDeLaSemaine(recettes, menu, p.aujourdhui);
+  const croisee = plats.length >= 2 ? ficheDeLaSemaine(plats, p.produits) : null;
   const passage = prochainPassage(reglage, new Date());
 
   /** Un cœur ou une croix sur un plat : le Chef s'en souvient les semaines suivantes. Un second toucher retire l'avis. */
@@ -147,6 +152,33 @@ export function Chef(p: PropsPage) {
                 </li>
               ))}
             </ul>
+          </>
+        )}
+
+        {croisee && (
+          <>
+            <ul className="carte groupe fiche-semaine-entree">
+              <li>
+                <button type="button" className="ligne recette-ligne" onClick={() => setFicheSemaine(true)}>
+                  <span className="ligne-texte">
+                    <span className="recette-titre">La fiche de la semaine</span>
+                    <span className="discret">
+                      {croisee.plats.length} repas
+                      {croisee.communs.length ? ` · ${croisee.communs.length} ingrédient${croisee.communs.length > 1 ? "s" : ""} en commun` : ""}
+                      {` · ${croisee.aAcheter.length ? `${croisee.aAcheter.length} à acheter` : "tout est à la maison"}`}
+                    </span>
+                  </span>
+                  <span className="chevron" aria-hidden><Icone nom="suivant" taille={16} /></span>
+                </button>
+              </li>
+            </ul>
+            <FicheSemaine
+              {...p}
+              fiche={croisee}
+              ouverte={ficheSemaine && !fiche}
+              fermer={() => setFicheSemaine(false)}
+              ouvrirRecette={setFicheId}
+            />
           </>
         )}
 
