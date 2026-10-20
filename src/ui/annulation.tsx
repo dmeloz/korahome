@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { Message } from "./moteur/pieces";
 
 // Après une suppression d'un glissement, un bandeau « Annuler » reste six secondes :
 // le geste est rapide, il doit pouvoir se rattraper.
@@ -23,20 +24,22 @@ export function FournisseurAnnulation({ children }: { children: ReactNode }) {
   return (
     <Contexte.Provider value={annoncer}>
       {children}
-      {annonce && (
-        <div className="toast" role="status" key={annonce.n}>
-          <span>{annonce.texte}</span>
-          <button
-            className="lien"
-            onClick={() => {
-              void annonce.annuler();
-              setAnnonce(null);
-            }}
-          >
-            Annuler
-          </button>
-        </div>
-      )}
+      <Message visible={!!annonce} cle={annonce?.n}>
+        {annonce && (
+          <>
+            <span>{annonce.texte}</span>
+            <button
+              className="lien"
+              onClick={() => {
+                void annonce.annuler();
+                setAnnonce(null);
+              }}
+            >
+              Annuler
+            </button>
+          </>
+        )}
+      </Message>
     </Contexte.Provider>
   );
 }

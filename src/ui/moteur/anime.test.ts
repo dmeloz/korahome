@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { courbeRessort } from "./mouvement";
+import { courbeRessort } from "./anime";
 
 describe("courbeRessort", () => {
   it("donne une courbe CSS qui part de 0, dépasse un peu et finit à 1", () => {

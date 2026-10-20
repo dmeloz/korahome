@@ -35,6 +35,7 @@ import { annulerModifications, enregistrerModifications, photoPourJarvis } from 
 import type { PropsPage } from "../modules";
 import { useGestionnaireBarre, useInvitationBarre } from "../pieces";
 import { nomFee } from "../fee";
+import { Ligne, ListeVivante } from "../moteur/pieces";
 
 // Les recettes du foyer, dans « Menus de la semaine » : la base qui se remplit seule (le Chef,
 // les liens et photos lus par Jarvis, ce qu'on écrit), ce qu'on peut faire ce soir avec le
@@ -141,12 +142,12 @@ export function OngletRecettes(p: PropsPage & { recettes: Recette[]; ouvrir: (id
               : "Aucune recette aimée pour l'instant : touche le cœur sur une fiche."}
         </p>
       ) : (
-        <ul className="carte groupe recettes-liste">
+        <ListeVivante className="carte groupe recettes-liste">
           {liste.map((r) => {
             const d = disponibilite(r, p.produits);
             const a = avis(r);
             return (
-              <li key={r.id}>
+              <Ligne key={r.id}>
                 <Glissable onSupprimer={() => void supprimer(r)} libelle="Retirer">
                   <button type="button" className="ligne recette-ligne" onClick={() => p.ouvrir(r.id)}>
                     <span className="ligne-texte">
@@ -166,10 +167,10 @@ export function OngletRecettes(p: PropsPage & { recettes: Recette[]; ouvrir: (id
                     <span className="chevron" aria-hidden><Icone nom="suivant" taille={16} /></span>
                   </button>
                 </Glissable>
-              </li>
+              </Ligne>
             );
           })}
-        </ul>
+        </ListeVivante>
       )}
       {liste.length > 0 && <p className="discret">Glisse une recette vers la gauche pour la retirer.</p>}
 

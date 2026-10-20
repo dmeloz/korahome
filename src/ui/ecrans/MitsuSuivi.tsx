@@ -27,7 +27,8 @@ import { Glissable } from "../Glissable";
 import { vibrer } from "../haptique";
 import { copierRapport } from "../rapport";
 import { nomFee } from "../fee";
-import { useDessin } from "../mouvement";
+import { useDessin } from "../moteur";
+import { Ligne, ListeVivante } from "../moteur/pieces";
 
 // Les ajouts de la 0.0.14 au suivi de Mitsu : journal du quotidien, courbe de poids,
 // carnet prérempli, fiches à partager (vétérinaire, garde) et informations pratiques.
@@ -107,9 +108,9 @@ export function Journal(props: Commun & { membres: Membre[]; membreId: string | 
           : "Un geste suffit : l'app prévient si un souci revient (vomir, ne pas manger…)."}
       </p>
       {recents.length > 0 && (
-        <ul className="groupe mitsu-journal-liste">
+        <ListeVivante className="groupe mitsu-journal-liste">
           {recents.map((e) => (
-            <li key={e.id}>
+            <Ligne key={e.id}>
               <Glissable className="ligne" libelle="Retirer" onSupprimer={() => modifier(() => retirerEvenement(animal, e.id), `« ${TYPES_EVENEMENT[e.quoi]} » retiré du journal.`)}>
                 <span className={`ligne-texte${SOUCIS.includes(e.quoi) ? " urgent-texte" : ""}`}>
                   {e.quoi === "autre" ? e.note : TYPES_EVENEMENT[e.quoi]}
@@ -120,9 +121,9 @@ export function Journal(props: Commun & { membres: Membre[]; membreId: string | 
                   {prenom(e.par) ? ` · ${prenom(e.par)}` : ""}
                 </span>
               </Glissable>
-            </li>
+            </Ligne>
           ))}
-        </ul>
+        </ListeVivante>
       )}
     </div>
   );

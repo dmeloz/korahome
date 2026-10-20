@@ -52,6 +52,7 @@ import type { Depot } from "../../donnees/depot";
 import { useAnnoncer } from "../annulation";
 import { contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
+import { Ligne, ListeVivante } from "../moteur/pieces";
 import { Icone } from "../Icone";
 import { AuDessusDeLaBarre, Onglets, Page, useGestionnaireBarre, useSaisieBarre } from "../pieces";
 
@@ -242,7 +243,7 @@ export function Stock(props: {
     const details = [montrerLieu ? LIEUX[p.lieu] : null, date].filter(Boolean);
     const reste = fraicheur(p, aujourdhui);
     return (
-      <li key={p.id}>
+      <Ligne key={p.id}>
         <Glissable onSupprimer={() => void supprimer(p)} libelle="Retirer">
           <div className="ligne produit">
             <button className="produit-corps" onClick={() => setOuvert(p.id)} aria-haspopup="dialog">
@@ -276,7 +277,7 @@ export function Stock(props: {
             </span>
           </div>
         </Glissable>
-      </li>
+      </Ligne>
     );
   }
 
@@ -437,7 +438,7 @@ export function Stock(props: {
           {groupes.map((g) => (
             <section key={g.cle}>
               <h2 className={`rayon${g.cle === "aConsommer" ? " retard" : ""}`}>{g.titre}</h2>
-              <ul className="carte groupe">{g.produits.map((p) => ligne(p, g.cle === "aConsommer" && filtre === "tous"))}</ul>
+              <ListeVivante className="carte groupe">{g.produits.map((p) => ligne(p, g.cle === "aConsommer" && filtre === "tous"))}</ListeVivante>
             </section>
           ))}
 
@@ -451,7 +452,7 @@ export function Stock(props: {
           {jours.map((j) => (
             <section key={j.cle}>
               <h2 className={`rayon${j.urgent ? " retard" : ""}`}>{j.titre}</h2>
-              <ul className="carte groupe">{j.produits.map((p) => ligne(p, true))}</ul>
+              <ListeVivante className="carte groupe">{j.produits.map((p) => ligne(p, true))}</ListeVivante>
             </section>
           ))}
           {props.produits.some((p) => !p.peremption) && (
@@ -529,12 +530,12 @@ function Base(props: { depot: Depot; catalogue: ProduitHabituel[]; remettre: (h:
 
   return (
     <>
-      <ul className="carte groupe">
+      <ListeVivante className="carte groupe">
         {tous.map((h) => {
           const estOuvert = ouvert === h.id;
           const details = [LIEUX[h.lieu], decrireQuantite(h.nombre, h.unite), h.dureeJours ? `se garde ${decrireDuree(h.dureeJours)}` : null].filter(Boolean);
           return (
-            <li key={h.id}>
+            <Ligne key={h.id}>
               <Glissable
                 onSupprimer={() => {
                   void props.depot.supprimerHabituel(h.id);
@@ -574,10 +575,10 @@ function Base(props: { depot: Depot; catalogue: ProduitHabituel[]; remettre: (h:
                   <button className="bouton-principal" onClick={() => { setOuvert(null); void props.remettre(h); }}>Remettre au stock</button>
                 </div>
               </Feuille>
-            </li>
+            </Ligne>
           );
         })}
-      </ul>
+      </ListeVivante>
       <p className="discret indice">Touche un produit pour changer son lieu ou sa durée. Glisse vers la gauche pour l'oublier.</p>
     </>
   );

@@ -29,6 +29,7 @@ import { EXPOSITIONS, NOMS_MOIS, type Espece, type Exposition } from "../../doma
 import { useAnnoncer } from "../annulation";
 import { contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
+import { Ligne, ListeVivante, Message } from "../moteur/pieces";
 import { vibrer } from "../haptique";
 import { Icone } from "../Icone";
 import { annulerModifications, enregistrerModifications, photoPourJarvis } from "../jarvis";
@@ -244,12 +245,10 @@ export function Jardin(p: PropsPage) {
         </div>
       </Section>
 
-      {erreur && (
-        <div className="toast" role="alert">
-          <span>{erreur}</span>
-          <button className="lien" onClick={() => setErreur(null)}>OK</button>
-        </div>
-      )}
+      <Message visible={!!erreur} cle={erreur ?? undefined} role="alert">
+        <span>{erreur}</span>
+        <button className="lien" onClick={() => setErreur(null)}>OK</button>
+      </Message>
     </Page>
   );
 }
@@ -327,21 +326,21 @@ function CarteZone(
       )}
 
       {zone.plantes.length > 0 && (
-        <ul className="groupe jardin-plantes">
+        <ListeVivante className="groupe jardin-plantes">
           {zone.plantes.map((pl) => {
             const x = especeDe(pl);
             return (
-              <li key={pl.id}>
+              <Ligne key={pl.id}>
                 <Glissable className="jardin-plante" libelle="Retirer" onSupprimer={() => retirer(pl.id, pl.nom)}>
                   <button type="button" className="jardin-plante-nom" onClick={() => setDetail(pl.id)} aria-haspopup="dialog">
                     <strong>{pl.nom}</strong>
                     <span className="tache-details">{x ? decrireEspece(x) : "Kora ne la connaît pas encore : arrosage tous les 3 jours en été"}</span>
                   </button>
                 </Glissable>
-              </li>
+              </Ligne>
             );
           })}
-        </ul>
+        </ListeVivante>
       )}
 
       <form onSubmit={planter} className="ajout">

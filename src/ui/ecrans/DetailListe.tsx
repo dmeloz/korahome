@@ -7,6 +7,7 @@ import type { Depot } from "../../donnees/depot";
 import { useAnnoncer } from "../annulation";
 import { aujourdhuiLocal, contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
+import { Ligne, ListeVivante } from "../moteur/pieces";
 import { vibrer } from "../haptique";
 import { Icone } from "../Icone";
 import { ajouterArticles } from "../ajouts";
@@ -119,7 +120,7 @@ export function DetailListe(props: {
     // Le prénom de qui l'a ajouté, seulement quand ce n'est pas soi.
     const autre = auteur && auteur.id !== props.membreId && props.foyer.membres.length > 1;
     return (
-      <li key={el.id} className={el.id === phare ? "phare-ligne" : undefined}>
+      <Ligne key={el.id} className={el.id === phare ? "phare-ligne" : undefined}>
         <Glissable onSupprimer={() => void supprimer(el)} onFait={el.coche ? undefined : () => void basculer(el)} libelleFait="Pris">
         <button className={`ligne element${el.coche ? " coche" : ""}${recents.has(el.id) ? " vient-detre-coche" : ""}`} onClick={() => void basculer(el)}>
           <span className="case" aria-hidden>{el.coche ? "✓" : ""}</span>
@@ -135,7 +136,7 @@ export function DetailListe(props: {
           )}
         </button>
         </Glissable>
-      </li>
+      </Ligne>
     );
   }
 
@@ -198,7 +199,7 @@ export function DetailListe(props: {
       {aPrendre.map((g) => (
         <section key={g.rayon}>
           {props.liste.type === "courses" && <h2 className="rayon">{g.rayon}</h2>}
-          <ul className="carte groupe">{g.elements.map(ligne)}</ul>
+          <ListeVivante className="carte groupe">{g.elements.map(ligne)}</ListeVivante>
         </section>
       ))}
 
@@ -208,7 +209,7 @@ export function DetailListe(props: {
             <h2 className="rayon">Dans le panier ({coches.length})</h2>
             <button className="lien" onClick={viderCoches}>Vider</button>
           </div>
-          <ul className="carte groupe">{coches.map(ligne)}</ul>
+          <ListeVivante className="carte groupe">{coches.map(ligne)}</ListeVivante>
         </section>
       )}
     </Page>

@@ -24,6 +24,7 @@ import { vibrer } from "../haptique";
 import { Icone, PICTO_HUMEUR } from "../Icone";
 import { Page, useGestionnaireBarre } from "../pieces";
 import type { DonneesModule } from "../modules";
+import { Ligne, ListeVivante } from "../moteur/pieces";
 
 type Quand = "maintenant" | "soir" | "matin";
 
@@ -164,9 +165,9 @@ export function NosMots(props: {
       <h2 className="rayon">Comptes à rebours</h2>
       {comptes.length === 0 && <p className="discret">Dis à ta fée le moment attendu et sa date : « vacances au Portugal le 12 juillet ».</p>}
       {comptes.length > 0 && (
-        <ul className="carte groupe">
+        <ListeVivante className="carte groupe">
           {comptes.map((c) => (
-            <li key={c.id}>
+            <Ligne key={c.id}>
               <Glissable onSupprimer={() => void retirer(c, "Compte à rebours retiré.")} libelle="Retirer">
                 <div className="ligne">
                   <span className="ligne-texte">
@@ -175,16 +176,16 @@ export function NosMots(props: {
                   </span>
                 </div>
               </Glissable>
-            </li>
+            </Ligne>
           ))}
-        </ul>
+        </ListeVivante>
       )}
 
       <h2 className="rayon">Tous nos mots</h2>
       {mots.length === 0 ? (
         <p className="vide">Pas encore de mot. Le premier est pour toi.</p>
       ) : (
-        <ul className="carte groupe mots">
+        <ListeVivante className="carte groupe mots">
           {mots.map((m) => {
             const aime = !!moi && m.coeurs.includes(moi);
             const contenu = (
@@ -208,12 +209,12 @@ export function NosMots(props: {
               </div>
             );
             return (
-              <li key={m.id}>
+              <Ligne key={m.id}>
                 {m.de === moi ? <Glissable onSupprimer={() => void retirer(m, "Mot retiré.")} libelle="Retirer">{contenu}</Glissable> : contenu}
-              </li>
+              </Ligne>
             );
           })}
-        </ul>
+        </ListeVivante>
       )}
 
     </Page>

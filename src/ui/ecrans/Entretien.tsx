@@ -10,6 +10,7 @@ import { contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
 import { Feuille } from "../Feuille";
 import { vibrer } from "../haptique";
+import { Ligne, ListeVivante } from "../moteur/pieces";
 
 /** L'onglet Entretien de Tâches : ce qui revient tous les quelques mois, du plus pressé au plus lointain. */
 export function Entretien(props: { depot: Depot; membreId: string | null; taches: Tache[]; aujourdhui: Jour }) {
@@ -56,9 +57,9 @@ export function Entretien(props: { depot: Depot; membreId: string | null; taches
       <p className="discret">Les gestes qui reviennent tous les quelques mois, à dire à ta fée : « détartrer la bouilloire tous les 3 mois ». Kora les met dans les tâches la semaine où ils sont dus.</p>
 
       {lignes.length > 0 && (
-        <ul className="carte groupe">
+        <ListeVivante className="carte groupe">
           {lignes.map(({ tache, quand, du }) => (
-            <li key={tache.id}>
+            <Ligne key={tache.id}>
               <Glissable onSupprimer={() => void retirer(tache)} libelle="Retirer">
                 <div className="ligne tache">
                   <button className="case" onClick={() => void faire(tache)} aria-label={`Marquer « ${tache.titre} » comme fait`} />
@@ -70,9 +71,9 @@ export function Entretien(props: { depot: Depot; membreId: string | null; taches
                   </button>
                 </div>
               </Glissable>
-            </li>
+            </Ligne>
           ))}
-        </ul>
+        </ListeVivante>
       )}
 
       {propositions.length > 0 && (

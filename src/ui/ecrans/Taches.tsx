@@ -18,6 +18,7 @@ import type { Foyer, Tache } from "../../domaine/types";
 import type { Depot } from "../../donnees/depot";
 import { aujourdhuiLocal, contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
+import { Ligne, ListeVivante, Message } from "../moteur/pieces";
 import { vibrer } from "../haptique";
 import { equilibreDesTaches, equilibreVisible } from "../../domaine/apprentissage";
 import { noterUsage } from "../usage";
@@ -137,7 +138,7 @@ export function Taches(props: {
     ].filter(Boolean);
 
     return (
-      <li key={t.id} className={t.id === phare ? "phare-ligne" : undefined}>
+      <Ligne key={t.id} className={t.id === phare ? "phare-ligne" : undefined}>
         <Glissable
           onSupprimer={() => void supprimer(t)}
           onFait={terminee ? undefined : () => void faire(t)}
@@ -173,7 +174,7 @@ export function Taches(props: {
           )}
         </div>
         </Glissable>
-      </li>
+      </Ligne>
     );
   }
 
@@ -280,7 +281,7 @@ export function Taches(props: {
       {groupes.map((g) => (
         <section key={g.cle}>
           <h2 className={`rayon${g.cle === "retard" ? " retard" : ""}`}>{g.titre}</h2>
-          <ul className="carte groupe">{g.taches.map(ligne)}</ul>
+          <ListeVivante className="carte groupe">{g.taches.map(ligne)}</ListeVivante>
         </section>
       ))}
 
@@ -292,19 +293,21 @@ export function Taches(props: {
               Effacer
             </button>
           </div>
-          <ul className="carte groupe">{terminees.map(ligne)}</ul>
+          <ListeVivante className="carte groupe">{terminees.map(ligne)}</ListeVivante>
         </section>
       )}
 
       </>
       )}
 
-      {annulable && (
-        <div className="toast" role="status">
-          <span>{annulable.texte}</span>
-          <button className="lien" onClick={annuler}>Annuler</button>
-        </div>
-      )}
+      <Message visible={!!annulable}>
+        {annulable && (
+          <>
+            <span>{annulable.texte}</span>
+            <button className="lien" onClick={annuler}>Annuler</button>
+          </>
+        )}
+      </Message>
     </Page>
   );
 }
