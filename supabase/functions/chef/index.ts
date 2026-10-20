@@ -74,8 +74,8 @@ async function annoncer(foyerId: string, message: { titre: string; corps: string
     try {
       await webpush.sendNotification(
         { endpoint: a.endpoint, keys: a.cles },
-        JSON.stringify({ ...message, nombre: 0, url: "/" }),
-        { vapidDetails: { subject: "https://korahome-cassa.netlify.app", publicKey: r.vapid_publique, privateKey: r.vapid_privee }, TTL: 4 * 3600, urgency: "normal" },
+        JSON.stringify({ ...message, nombre: 0, url: "./" }),
+        { vapidDetails: { subject: "https://dmeloz.github.io/korahome/", publicKey: r.vapid_publique, privateKey: r.vapid_privee }, TTL: 4 * 3600, urgency: "normal" },
       );
       envoyes++;
     } catch (e) {
