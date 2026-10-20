@@ -23,6 +23,8 @@ export interface LiensEspaces {
   ouvrirRappels: () => void;
   ouvrirMots: () => void;
   ouvrirJarvis: () => void;
+  /** Le fil du foyer : ce que chacun a fait. */
+  ouvrirFil: () => void;
   rappelsNonLus: number;
   nouvelleVersion: boolean;
   /** La personne de ce téléphone, pour la pastille des réglages. */
@@ -195,6 +197,7 @@ export function TousLesEspaces(props: {
             <div className="grille-espaces">
               {ESPACES.flatMap((e) => modulesDeLEspace(e.id)).map(tuile)}
               {!props.ajouter && lien("Nos mots", "coeur", liens.ouvrirMots)}
+              {!props.ajouter && lien("Chez nous", "maison", liens.ouvrirFil)}
               {!props.ajouter && lien(nomFee(), "jarvis", liens.ouvrirJarvis)}
             </div>
           )}

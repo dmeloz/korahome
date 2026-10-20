@@ -35,6 +35,7 @@ import { MODULES, PICTOS, type ApercuWidget, type DonneesModule } from "../modul
 import { vibrer } from "../haptique";
 import { calculerApprentissages } from "../apprendre";
 import { CarteAujourdhui, Visite } from "../pieces";
+import { CarteDemarrage } from "../pieces/Demarrage";
 import { FeuilleHeure } from "../pieces/FeuilleHeure";
 import { DateRepliee, GrandeDate, Signes } from "../pieces/HautAccueil";
 import { clinDejaDit, noterClinDit, useClinDuJour } from "../clinDuJour";
@@ -72,6 +73,10 @@ export function Accueil(props: {
   ouvrirReglages: () => void;
   ouvrirMots: () => void;
   ouvrirJarvis: () => void;
+  ouvrirFil: () => void;
+  /** Les réglages où mène la carte de mise en route. */
+  ouvrirReglage: (ou: "telephone" | "partage" | "notifications" | "siri") => void;
+  partageActif: boolean;
   ouvrirBilan: () => void;
   ouvrirRappels: () => void;
   ouvrirSauvegarde: () => void;
@@ -460,6 +465,16 @@ export function Accueil(props: {
       )}
 
       {!edition && (
+        <CarteDemarrage
+          foyer={foyer}
+          membreId={membreId}
+          partageActif={props.partageActif}
+          taches={props.donnees.taches}
+          ouvrir={(ou) => (ou === "taches" ? props.ouvrirModule("taches") : props.ouvrirReglage(ou))}
+        />
+      )}
+
+      {!edition && (
         <CarteAujourdhui
           carte={carte}
           titre={montrer === "demain" ? "Demain" : titreMoment(heure)}
@@ -554,6 +569,7 @@ export function Accueil(props: {
           ouvrirRappels: props.ouvrirRappels,
           ouvrirMots: props.ouvrirMots,
           ouvrirJarvis: props.ouvrirJarvis,
+          ouvrirFil: props.ouvrirFil,
           rappelsNonLus: props.rappelsNonLus,
           nouvelleVersion: props.nouvelleVersion,
           moi: moi ? { prenom: moi.prenom, couleur: moi.couleur } : null,

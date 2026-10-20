@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, useSyncExternalStore, type FormEvent } from "react";
+import { decrireAppareils } from "../../domaine/foyer";
 import { afficherCode, decrireDerniereSynchro, normaliserCode } from "../../domaine/synchro";
 import type { Foyer } from "../../domaine/types";
 import type { Compte, FoyerPartage, ServeurAgenda, ServeurJarvis, ServeurRappels, TempsReel } from "../../donnees/distant";
@@ -350,6 +351,17 @@ function FoyerRelie(props: {
           Synchroniser
         </button>
       </div>
+      <ul className="carte groupe partage-appareils" aria-label="Les iPhone du foyer">
+        {decrireAppareils(props.foyer, __VERSION__, maintenant).map((a) => (
+          <li key={a.prenom} className="ligne">
+            <span className="ligne-texte">
+              <strong>{a.prenom}</strong>
+              <span className="discret">{a.version} · {a.detail}</span>
+            </span>
+            {a.enRetard && <span className="alerte alerte-ligne" aria-label="en retard" />}
+          </li>
+        ))}
+      </ul>
       {code && (
         <div className="carte partage-invitation">
           <p className="partage-etape">Code pour rejoindre ce foyer</p>
