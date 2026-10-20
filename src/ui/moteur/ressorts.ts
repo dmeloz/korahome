@@ -18,6 +18,8 @@ export const RESSORTS = {
   onglet: { bounce: 0.18, duration: 320 },
   /** Un widget qui s'ouvre en page. */
   widget: { bounce: 0.14, duration: 480 },
+  /** Un chiffre qui roule jusqu'à sa nouvelle valeur. */
+  chiffre: { bounce: 0.1, duration: 550 },
 } as const;
 
 export type NomRessort = keyof typeof RESSORTS;

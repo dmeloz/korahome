@@ -3,3 +3,5 @@ export { Moteur } from "./Moteur";
 export { Apparait, Ligne, ListeVivante, m, Message, Presence, RepereOnglet } from "./pieces";
 export { RESSORTS, ressortMotion, moinsDAnimations, type NomRessort } from "./ressorts";
 export { useDessin } from "./anime";
+export { Chiffre, Montant } from "./Chiffre";
+export { feter } from "./fete";

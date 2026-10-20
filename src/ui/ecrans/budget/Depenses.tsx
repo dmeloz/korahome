@@ -10,6 +10,7 @@ import { FeuilleReleve } from "./Releve";
 import { InvitationApplePay } from "./Paiements";
 import { ChampMontant, leJour, majuscule, montant, nomDuPot, Puces } from "./communs";
 import { Ligne, ListeVivante } from "../../moteur/pieces";
+import { Montant } from "../../moteur/Chiffre";
 
 // ----- Les dépenses -----
 
@@ -45,7 +46,7 @@ export function Depenses(p: PropsPage & { plan: PlanBudget; filtre: Pot | null; 
         </button>
         <p>
           <span className="surtitre">{majuscule(nommerMois(mois, aujourdhui))}</span>
-          <span className="budget-solde">{montant(total)}</span>
+          <span className="budget-solde"><Montant valeur={total} /></span>
         </p>
         <button type="button" className="bouton-icone" onClick={() => decaleMois(1)} disabled={mois >= moisDe(aujourdhui)} aria-label="Mois suivant">
           <Icone nom="suivant" taille={18} />

@@ -8,6 +8,7 @@ import { useAnnoncer } from "../annulation";
 import { aujourdhuiLocal, contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
 import { Ligne, ListeVivante } from "../moteur/pieces";
+import { feter } from "../moteur/fete";
 import { vibrer } from "../haptique";
 import { Icone } from "../Icone";
 import { ajouterArticles } from "../ajouts";
@@ -76,7 +77,10 @@ export function DetailListe(props: {
 
   async function basculer(el: Element) {
     vibrer();
+    // Le dernier article pris : la liste est faite, une gerbe de confettis.
+    const dernier = !el.coche && props.elements.filter((e) => !e.coche).length === 1;
     const apres = basculerCoche(el, contexteReel);
+    if (dernier) feter();
     if (apres.coche) {
       clearTimeout(minuteries.current.get(el.id));
       setRecents((r) => new Set(r).add(el.id));

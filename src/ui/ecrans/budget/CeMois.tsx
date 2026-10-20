@@ -27,6 +27,7 @@ import { moisACloturer } from "../../../domaine/budgetConseil";
 import { PaiementsAClasser } from "./Paiements";
 import { JaugeRythme, MotDeJarvis, phraseRythme } from "./Visuels";
 import { ChampMontant, leJour, majuscule, montant, nomDuPot } from "./communs";
+import { Montant } from "../../moteur/Chiffre";
 
 // ----- Ce mois -----
 
@@ -70,7 +71,7 @@ export function CeMois(p: PropsPage & { plan: PlanBudget; voirCharges: () => voi
           return (
             <button type="button" key={pot} className={`carte budget-pot${e.solde < 0 ? " negatif" : ""}`} onClick={() => p.voirPot(pot)}>
               <span className="surtitre">{nomDuPot(plan, pot)}</span>
-              <span className="budget-solde">{montant(e.solde)}</span>
+              <span className="budget-solde"><Montant valeur={e.solde} /></span>
               {jauge && <JaugeRythme rythme={jauge} />}
               <span className="discret">{detail[pot]}</span>
             </button>
