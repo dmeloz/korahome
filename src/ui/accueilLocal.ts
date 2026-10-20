@@ -1,24 +1,15 @@
 import { nettoyerSignes, type Signe } from "../domaine/signes";
+import { CLES, ecrireJson, effacer, lireJson } from "./stockageLocal";
 
 // Ce que chaque téléphone règle pour son accueil, sans jamais le partager : la place et la
 // taille de la date, les petits signes choisis, et l'intensité du verre des widgets.
 
-function lire(cle: string): unknown {
-  try {
-    const brut = localStorage.getItem(cle);
-    return brut === null ? undefined : JSON.parse(brut);
-  } catch {
-    return undefined;
-  }
-}
+const lire = (cle: string): unknown => lireJson<unknown>(cle, undefined);
 
+/** Stockage indisponible : le réglage vaut pour cette visite. */
 function ecrire(cle: string, valeur: unknown): void {
-  try {
-    if (valeur === undefined) localStorage.removeItem(cle);
-    else localStorage.setItem(cle, JSON.stringify(valeur));
-  } catch {
-    // Stockage indisponible : le réglage vaut pour cette visite.
-  }
+  if (valeur === undefined) effacer(cle);
+  else ecrireJson(cle, valeur);
 }
 
 // ----- La date -----
@@ -30,43 +21,38 @@ export interface ReglageDate {
   taille: number;
 }
 export const TAILLE_DATE = { min: 22, max: 60, depart: 28 } as const;
-const CLE_DATE = "korahome.date";
 
 export function lireDate(): ReglageDate {
-  const brut = lire(CLE_DATE) as Partial<ReglageDate> | undefined;
+  const brut = lire(CLES.date) as Partial<ReglageDate> | undefined;
   const taille = typeof brut?.taille === "number" ? Math.min(TAILLE_DATE.max, Math.max(TAILLE_DATE.min, Math.round(brut.taille))) : TAILLE_DATE.depart;
   return { place: brut?.place === "centre" ? "centre" : "gauche", taille };
 }
 
 export function enregistrerDate(r: ReglageDate): void {
-  ecrire(CLE_DATE, r);
+  ecrire(CLES.date, r);
 }
 
 // ----- Les petits signes -----
 
-const CLE_SIGNES = "korahome.signes";
-
 export function lireSignes(): Signe[] {
-  return nettoyerSignes(lire(CLE_SIGNES));
+  return nettoyerSignes(lire(CLES.signes));
 }
 
 export function enregistrerSignes(signes: readonly Signe[]): void {
-  ecrire(CLE_SIGNES, signes);
+  ecrire(CLES.signes, signes);
 }
 
 // ----- Le verre des widgets -----
 // De 0 (le plus transparent) à 100 (presque plein). Sans choix, le thème décide : le plus
 // transparent en sombre, le plus opaque en clair (choix de Melo).
 
-const CLE_VERRE = "korahome.verre";
-
 export function lireVerre(): number | null {
-  const v = lire(CLE_VERRE);
+  const v = lire(CLES.verre);
   return typeof v === "number" && v >= 0 && v <= 100 ? Math.round(v) : null;
 }
 
 export function enregistrerVerre(valeur: number | null): void {
-  ecrire(CLE_VERRE, valeur === null ? undefined : Math.round(valeur));
+  ecrire(CLES.verre, valeur === null ? undefined : Math.round(valeur));
   appliquerVerre();
 }
 

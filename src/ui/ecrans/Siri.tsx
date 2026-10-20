@@ -4,29 +4,21 @@ import type { Foyer, Id } from "../../domaine/types";
 import type { ServeurJarvis } from "../../donnees/distant";
 import { vibrer } from "../haptique";
 import { Page } from "../pieces";
+import { CLES, ecrireJson, effacer, lireJson } from "../stockageLocal";
 
 // Jarvis dans Siri, rangé dans les Réglages : créer le lien de cet iPhone et copier la demande
 // à coller dans Raccourcis. Les règles sont dans src/domaine/siri.ts.
 
 /** L'adresse et le nom du raccourci de cet iPhone : ils restent sur ce téléphone, pour les recopier. */
-const CLE = "korahome.siri";
-
 function lire(): { adresse: string; nom: string } | null {
-  try {
-    const v = JSON.parse(localStorage.getItem(CLE) ?? "null");
-    return v && typeof v.adresse === "string" && typeof v.nom === "string" ? v : null;
-  } catch {
-    return null;
-  }
+  const v = lireJson<{ adresse?: unknown; nom?: unknown } | null>(CLES.siri, null);
+  return v && typeof v.adresse === "string" && typeof v.nom === "string" ? (v as { adresse: string; nom: string }) : null;
 }
 
 function garder(v: { adresse: string; nom: string } | null) {
-  try {
-    if (v) localStorage.setItem(CLE, JSON.stringify(v));
-    else localStorage.removeItem(CLE);
-  } catch {
-    // Navigation privée : le lien marche quand même, il faudra seulement le recréer pour le recopier.
-  }
+  // Navigation privée : le lien marche quand même, il faudra seulement le recréer pour le recopier.
+  if (v) ecrireJson(CLES.siri, v);
+  else effacer(CLES.siri);
 }
 
 /** La ligne des Réglages : relié ou pas, sur cet iPhone. */

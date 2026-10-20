@@ -24,28 +24,20 @@ import { noterUsage } from "../usage";
 import { Onglets, Page } from "../pieces";
 import { Icone } from "../Icone";
 import { Entretien } from "./Entretien";
+import { CLES, ecrireTexte, lireTexte } from "../stockageLocal";
 
 // Les tâches de la maison, et l'onglet Entretien. On en ajoute d'une phrase à la fée (« linge
 // chaque mercredi ») ; on glisse une tâche vers la droite pour la marquer faite, vers la gauche
 // pour la supprimer ; un appui long ouvre sa fiche. Le dimanche, on se répartit la semaine.
 
-const CLE_REPARTITION = "korahome.derniereRepartition";
-
 /** Le dernier dimanche où la semaine a été répartie sur ce téléphone. */
 export function lireDerniereRepartition(): string | null {
-  try {
-    return localStorage.getItem(CLE_REPARTITION);
-  } catch {
-    return null;
-  }
+  return lireTexte(CLES.derniereRepartition);
 }
 
 function noterRepartition(jour: string): void {
-  try {
-    localStorage.setItem(CLE_REPARTITION, jour);
-  } catch {
-    // Stockage indisponible : Kora reproposera, sans gravité.
-  }
+  // Stockage indisponible : Kora reproposera, sans gravité.
+  ecrireTexte(CLES.derniereRepartition, jour);
 }
 
 // « On se répartit la semaine ? » touché sur l'accueil : la page s'ouvre sur la répartition.

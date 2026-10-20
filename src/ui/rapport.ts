@@ -2,6 +2,7 @@ import { nomFichierRapport, rapportVersion } from "../domaine/retours";
 import type { RetourTest } from "../domaine/retours";
 import type { Membre } from "../domaine/types";
 import { lireJournal } from "./journal";
+import { CLES, ecrireTexte, effacer, lireTexte } from "./stockageLocal";
 
 // Le rapport complet (notes et journal de ce téléphone), à partager ou copier. Les notes
 // elles-mêmes partent seules vers le serveur du foyer avec le partage.
@@ -52,22 +53,12 @@ export async function copierRapport(texte: string): Promise<boolean> {
   }
 }
 
-const CLE_PASTILLE = "korahome.coinDev";
-
 /** La pastille « Dev » est visible sauf si on l'a masquée sur ce téléphone. */
 export function lirePastilleVisible(): boolean {
-  try {
-    return localStorage.getItem(CLE_PASTILLE) !== "masquee";
-  } catch {
-    return true;
-  }
+  return lireTexte(CLES.pastilleDev) !== "masquee";
 }
 
 export function enregistrerPastilleVisible(visible: boolean): void {
-  try {
-    if (visible) localStorage.removeItem(CLE_PASTILLE);
-    else localStorage.setItem(CLE_PASTILLE, "masquee");
-  } catch {
-    // rien
-  }
+  if (visible) effacer(CLES.pastilleDev);
+  else ecrireTexte(CLES.pastilleDev, "masquee");
 }

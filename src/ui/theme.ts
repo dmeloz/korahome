@@ -1,3 +1,5 @@
+import { CLES, ecrireTexte, effacer, lireTexte } from "./stockageLocal";
+
 // Le thème de ce téléphone : Auto (comme l'iPhone), Sombre laiton ou Clair doux.
 // Propre à chaque téléphone, jamais partagé : Melo peut rester en sombre et Sarah en clair.
 
@@ -9,15 +11,9 @@ export const THEMES: readonly { id: Theme; libelle: string; detail: string }[] =
   { id: "clair", libelle: "Clair doux", detail: "Papier chaud et laiton" },
 ];
 
-const CLE = "korahome.theme";
-
 export function lireTheme(): Theme {
-  try {
-    const t = localStorage.getItem(CLE);
-    return t === "sombre" || t === "clair" ? t : "auto";
-  } catch {
-    return "auto";
-  }
+  const t = lireTexte(CLES.theme);
+  return t === "sombre" || t === "clair" ? t : "auto";
 }
 
 /** La couleur de la barre d'état de l'iPhone suit le fond du thème. */
@@ -34,11 +30,8 @@ export function appliquerTheme(theme: Theme): void {
 }
 
 export function choisirTheme(theme: Theme): void {
-  try {
-    if (theme === "auto") localStorage.removeItem(CLE);
-    else localStorage.setItem(CLE, theme);
-  } catch {
-    // Stockage indisponible : le thème vaut pour cette visite.
-  }
+  // Stockage indisponible : le thème vaut pour cette visite.
+  if (theme === "auto") effacer(CLES.theme);
+  else ecrireTexte(CLES.theme, theme);
   appliquerTheme(theme);
 }

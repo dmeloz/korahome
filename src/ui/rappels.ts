@@ -1,5 +1,6 @@
 import { heureValide, minuteValide, nettoyerJours, PREFERENCES_DE_DEPART, type PreferencesRappels } from "../domaine/rappels";
 import type { ServeurRappels } from "../donnees/distant";
+import { CLES, ecrireJson, lireTexte } from "./stockageLocal";
 
 // Les rappels du matin côté téléphone : demander la permission, inscrire l'iPhone
 // auprès du serveur, retenir les choix de chacun. Sur iPhone, les notifications
@@ -36,12 +37,12 @@ export function cleEnOctets(base64url: string): Uint8Array<ArrayBuffer> {
   return octets;
 }
 
-const CLE_PREFERENCES = "korahome.rappels";
-
 /** Ce que cette personne veut recevoir. Propre au téléphone, comme « qui utilise ce téléphone ». */
 export function lirePreferences(): PreferencesRappels {
+  const texte = lireTexte(CLES.rappels, false);
   try {
-    const brut = JSON.parse(localStorage.getItem(CLE_PREFERENCES) ?? "null");
+    if (texte === false) throw new Error("Stockage indisponible");
+    const brut = JSON.parse(texte ?? "null");
     return {
       taches: typeof brut?.taches === "boolean" ? brut.taches : PREFERENCES_DE_DEPART.taches,
       mitsu: typeof brut?.mitsu === "boolean" ? brut.mitsu : PREFERENCES_DE_DEPART.mitsu,
@@ -60,11 +61,8 @@ export function lirePreferences(): PreferencesRappels {
 }
 
 export function enregistrerPreferences(p: PreferencesRappels): void {
-  try {
-    localStorage.setItem(CLE_PREFERENCES, JSON.stringify(p));
-  } catch {
-    // Stockage indisponible : le serveur garde quand même les choix envoyés.
-  }
+  // Stockage indisponible : le serveur garde quand même les choix envoyés.
+  ecrireJson(CLES.rappels, p);
 }
 
 // ----- Le navigateur -----

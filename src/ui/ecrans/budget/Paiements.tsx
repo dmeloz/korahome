@@ -6,28 +6,20 @@ import { contexteReel } from "../../contexte";
 import { vibrer } from "../../haptique";
 import type { PropsPage } from "../../modules";
 import { Feuille } from "../../pieces";
+import { CLES, ecrireTexte, effacer, lireTexte } from "../../stockageLocal";
 
 // Les paiements Apple Pay dans le budget : ceux qui attendent leur pot, et la mise en route
 // du raccourci sur chaque iPhone. Les règles sont dans src/domaine/paiements.ts.
 
 /** L'adresse du raccourci de cet iPhone : elle reste sur ce téléphone, pour la recopier. */
-const CLE_LIEN = "korahome.lienPaiements";
-
 function lienEnregistre(): string | null {
-  try {
-    return localStorage.getItem(CLE_LIEN);
-  } catch {
-    return null;
-  }
+  return lireTexte(CLES.lienPaiements);
 }
 
 function garderLien(adresse: string | null) {
-  try {
-    if (adresse) localStorage.setItem(CLE_LIEN, adresse);
-    else localStorage.removeItem(CLE_LIEN);
-  } catch {
-    // Navigation privée : le lien marche quand même, il faudra seulement le recréer pour le recopier.
-  }
+  // Navigation privée : le lien marche quand même, il faudra seulement le recréer pour le recopier.
+  if (adresse) ecrireTexte(CLES.lienPaiements, adresse);
+  else effacer(CLES.lienPaiements);
 }
 
 const nomDuPot = (plan: PlanBudget, pot: Pot) => plan.comptes[pot] || POTS[pot].nom;
@@ -124,13 +116,7 @@ export function PaiementsAClasser(p: PropsPage & { plan: PlanBudget }) {
 
 /** L'invitation, tant que cet iPhone n'envoie pas ses paiements. */
 export function InvitationApplePay(props: { ouvrir: () => void }) {
-  const [cachee, setCachee] = useState(() => {
-    try {
-      return !!lienEnregistre() || localStorage.getItem("korahome.applePayVu") === "1";
-    } catch {
-      return false;
-    }
-  });
+  const [cachee, setCachee] = useState(() => !!lienEnregistre() || lireTexte(CLES.applePayVu) === "1");
   if (cachee) return null;
   return (
     <section className="carte budget-invitation">
@@ -143,11 +129,8 @@ export function InvitationApplePay(props: { ouvrir: () => void }) {
           type="button"
           className="bouton-secondaire"
           onClick={() => {
-            try {
-              localStorage.setItem("korahome.applePayVu", "1");
-            } catch {
-              // Rien à garder : elle reviendra.
-            }
+            // Sans stockage, rien à garder : elle reviendra.
+            ecrireTexte(CLES.applePayVu, "1");
             setCachee(true);
           }}
         >

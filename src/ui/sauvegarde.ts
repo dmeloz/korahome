@@ -2,27 +2,19 @@ import { creerSauvegarde, lireSauvegarde, nomFichier, type ContenuFoyer, type Sa
 import type { DocAgenda } from "../domaine/agenda";
 import type { Depot } from "../donnees/depot";
 import { ErreurValidation } from "../domaine/foyer";
+import { CLES, ecrireTexte, lireTexte } from "./stockageLocal";
 
 // La sauvegarde de la semaine sur l'iPhone : le fichier part par la feuille de partage
 // (« Enregistrer dans Fichiers », iCloud Drive, le dossier de l'Atelier), et revient d'un
 // toucher. Le jour de la dernière sauvegarde reste sur ce téléphone.
 
-const CLE = "korahome.derniereSauvegarde";
-
 export function lireDerniereSauvegarde(): string | null {
-  try {
-    return localStorage.getItem(CLE);
-  } catch {
-    return null;
-  }
+  return lireTexte(CLES.derniereSauvegarde);
 }
 
 function noterSauvegarde(quand: string): void {
-  try {
-    localStorage.setItem(CLE, quand);
-  } catch {
-    // Stockage indisponible : Kora reproposera la sauvegarde, sans gravité.
-  }
+  // Stockage indisponible : Kora reproposera la sauvegarde, sans gravité.
+  ecrireTexte(CLES.derniereSauvegarde, quand);
 }
 
 /** Écrit le fichier et le confie à l'iPhone. Renvoie faux si la personne a renoncé. */
