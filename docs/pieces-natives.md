@@ -36,6 +36,7 @@ Kora range l'interface en quelques pièces qui se répètent sur toutes les page
 | `Apparait`, `Message` | `src/ui/moteur/pieces.tsx` | `.transition(.scale.combined(with: .opacity))` dans un `withAnimation` |
 | `RepereOnglet` | `src/ui/moteur/pieces.tsx` | `Picker` en `.segmented` ; sinon `.matchedGeometryEffect` |
 | « Ce soir » : la suivante prend la place | `src/ui/pieces/Aujourdhui.tsx` | `.matchedGeometryEffect(id:in:)` |
+| Le widget qui s'ouvre en page (et y rentre) | `src/ui/transitions.ts` | `.matchedTransitionSource(id:in:)` sur le widget, `.navigationTransition(.zoom(sourceID:in:))` sur la page |
 | Graphiques qui se dessinent (Anime.js) | `src/ui/moteur/anime.ts` | Un trait en `.trim(from: 0, to: avancee)` animé |
 | `Feuille` | `src/ui/Feuille.tsx` (Motion : glisser et ressort « feuille ») | `.sheet` avec `presentationDetents` |
 | Tous les espaces (tirer vers le bas) | `src/ui/TousLesEspaces.tsx` | `.searchable` sur une grille `LazyVGrid` |
