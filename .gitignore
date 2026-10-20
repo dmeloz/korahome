@@ -8,3 +8,4 @@ dist/
 .srl
 retours-de-test/
 .claude/worktrees/
+.atelier/
