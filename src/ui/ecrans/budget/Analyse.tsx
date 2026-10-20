@@ -17,6 +17,7 @@ import { tableauDesMois } from "../../../domaine/budgetConseil";
 import { FinDuMois, TableauDesMois } from "./Conseiller";
 import { CourbeEpargne, CoursesParMois, Magasins, MoisLourds, PrixQuiMontent } from "./Visuels";
 import { montant } from "./communs";
+import { Montant } from "../../moteur/Chiffre";
 
 // ----- L'analyse (sous la carte du conseiller) -----
 
@@ -86,7 +87,7 @@ function Epargne(p: PropsPage & { plan: PlanBudget; reglerProjet: () => void }) 
           <>
             <p className="surtitre">{a.projet.nom}</p>
             <p className="budget-solde">
-              {montant(a.epargne)} <span className="discret">sur {montant(a.projet.objectif)}</span>
+              <Montant valeur={a.epargne} /> <span className="discret">sur {montant(a.projet.objectif)}</span>
             </p>
             <span className="widget-jauge" aria-hidden>
               <span style={{ width: `${Math.round(a.part * 100)}%` }} />
@@ -108,7 +109,7 @@ function Epargne(p: PropsPage & { plan: PlanBudget; reglerProjet: () => void }) 
         ) : (
           <>
             <p className="surtitre">{plan.comptes.epargne || "Épargne"}</p>
-            <p className="budget-solde">{montant(pots.epargne.solde)}</p>
+            <p className="budget-solde"><Montant valeur={pots.epargne.solde} /></p>
             <p className="discret">Un projet (des vacances, un meuble, la réserve) : Kora dit où vous en êtes et ce qu'il faut par mois.</p>
             <button type="button" className="bouton-principal" onClick={p.reglerProjet}>Choisir un projet</button>
           </>

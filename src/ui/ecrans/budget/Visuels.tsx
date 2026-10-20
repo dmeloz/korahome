@@ -12,6 +12,7 @@ import {
 } from "../../../domaine/budget";
 import { Icone } from "../../Icone";
 import { useDessin } from "../../moteur";
+import { Montant } from "../../moteur/Chiffre";
 
 // Les visuels du Budget : sobres, sans légende inutile, un chiffre qui compte par visuel.
 // Les couleurs des pots viennent des variables --pot-* (styles/budget.css), pour les deux thèmes.
@@ -54,7 +55,7 @@ export function AnneauDuCommun(props: { parts: PartDuCommun[]; entree: number; n
           })}
         </svg>
         <div className="budget-anneau-centre" aria-live="polite">
-          <span className="budget-solde">{montant(actif ? actif.montant : props.entree)}</span>
+          <span className="budget-solde"><Montant valeur={actif ? actif.montant : props.entree} /></span>
           <span className="discret">{actif ? props.noms(actif.pot) : "par mois"}</span>
         </div>
       </div>

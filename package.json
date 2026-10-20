@@ -1,7 +1,7 @@
 {
   "name": "korahome",
   "private": true,
-  "version": "0.0.57",
+  "version": "0.0.58",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -15,14 +15,17 @@
     "essai": "node scripts/essai-ecrans.mjs"
   },
   "dependencies": {
+    "@number-flow/react": "^0.6.2",
     "@supabase/supabase-js": "^2.117.3",
     "animejs": "4.5.0",
     "barcode-detector": "^3.2.2",
+    "canvas-confetti": "^1.9.4",
     "motion": "13.5.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },
   "devDependencies": {
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^26.6.4",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

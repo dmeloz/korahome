@@ -2,6 +2,7 @@ import { useId, useRef, useState, type PointerEvent, type ReactNode } from "reac
 import { choseDuMoment, resteAFaire, type CarteDuJour, type ChoseDuJour } from "../../domaine/aujourdhui";
 import { vibrer } from "../haptique";
 import { Icone } from "../Icone";
+import { Chiffre } from "../moteur/Chiffre";
 import { m, Presence } from "../moteur/pieces";
 import { ressortMotion } from "../moteur/ressorts";
 import { toucherFiable } from "../toucher";
@@ -69,7 +70,7 @@ export function CarteAujourdhui(props: {
     <section className={`ce-moment${avecHeures ? " avec-heures" : ""}`} aria-label={props.titre}>
       <header className="ce-moment-entete">
         <h2>{props.titre}</h2>
-        {reste > 0 && <span className="discret">{reste} à faire</span>}
+        {reste > 0 && <span className="discret"><Chiffre valeur={reste} /> à faire</span>}
       </header>
       {!phare ? (
         <p className="ce-moment-vide">{carte.faites ? "Tout est fait. Belle journée." : "Rien de prévu, rien ne presse."}</p>
