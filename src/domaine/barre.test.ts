@@ -62,8 +62,16 @@ describe("la barre Jarvis", () => {
   it("invite et confirme avec les mots de la page", () => {
     expect(invitation("courses")).toBe("Ajouter aux courses…");
     expect(invitation("mitsu")).toBe("Demander à Jarvis…");
+    expect(invitation("administratif")).toContain("démarche");
     expect(decrireIntention({ type: "courses", articles: ["Lait"] })).toBe("Lait ajouté aux courses.");
     expect(decrireIntention({ type: "courses", articles: ["Lait", "Pain"] })).toBe("2 articles ajoutés aux courses.");
+  });
+});
+
+describe("l'onglet Administratif des tâches", () => {
+  it("y comprend chaque phrase comme une démarche à faire", () => {
+    const i = comprendrePhrase("assurance voiture chaque année", "administratif", "2026-10-20");
+    expect(i.type).toBe("tache");
   });
 });
 

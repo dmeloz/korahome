@@ -261,7 +261,7 @@ export function BarreJarvis(props: {
     }
     if (intention.type === "tache") {
       const tache = nouvelleTache(intention.titre, intention.recurrence, intention.echeance, contexteReel);
-      const avecCategorie = props.lieu === "entretien" ? { ...tache, categorie: "entretien" as const } : tache;
+      const avecCategorie = props.lieu === "entretien" || props.lieu === "administratif" ? { ...tache, categorie: props.lieu } : tache;
       await depot.enregistrerTache(avecCategorie);
       vibrer();
       const quand = intention.recurrence ? `${decrireRecurrence(intention.recurrence).toLowerCase()}, la première ${decrireEcheance(intention.echeance, donnees.aujourdhui)}` : decrireEcheance(intention.echeance, donnees.aujourdhui);

@@ -46,11 +46,14 @@ export const demanderRepartition = () => {
   repartitionDemandee = true;
 };
 
-const FILTRES: { id: Filtre | "entretien"; libelle: string }[] = [
+type Onglet = Filtre | "entretien" | "administratif";
+
+const FILTRES: { id: Onglet; libelle: string }[] = [
   { id: "toutes", libelle: "Toutes" },
   { id: "miennes", libelle: "Les miennes" },
   { id: "libres", libelle: "Libres" },
   { id: "entretien", libelle: "Entretien" },
+  { id: "administratif", libelle: "Administratif" },
 ];
 
 export function Taches(props: {
@@ -58,7 +61,7 @@ export function Taches(props: {
   foyer: Foyer;
   membreId: string | null;
   taches: Tache[];
-  /** « entretien » : l'onglet de l'entretien de la maison. */
+  /** « entretien » : l'onglet de l'entretien de la maison ; « administratif » : papiers et démarches. */
   onglet?: string;
   changerOnglet: (onglet: string | undefined) => void;
 }) {
@@ -82,7 +85,10 @@ export function Taches(props: {
   const moi = props.membreId;
   const membre = (id: string | null) => props.foyer.membres.find((m) => m.id === id);
   const plusieurs = props.foyer.membres.length > 1;
-  const { groupes, terminees } = organiserTaches(props.taches, aujourdhui, filtre, moi);
+  const administratif = props.onglet === "administratif";
+  const { groupes, terminees } = administratif
+    ? organiserTaches(props.taches.filter((t) => t.categorie === "administratif"), aujourdhui, "toutes", moi)
+    : organiserTaches(props.taches, aujourdhui, filtre, moi);
 
   async function faire(t: Tache) {
     vibrer();
@@ -181,8 +187,8 @@ export function Taches(props: {
   return (
     <Page
       titre="Tâches"
-      sousTitre={entretien ? "Ce qui revient pour la maison" : vide ? undefined : dues ? `${dues} à faire aujourd'hui` : "Rien ne presse aujourd'hui"}
-      actions={plusieurs && !vide && !entretien ? <button className="lien" onClick={() => setRepartir(true)}>Répartir</button> : undefined}
+      sousTitre={entretien ? "Ce qui revient pour la maison" : administratif ? "Les papiers, les factures et les démarches" : vide ? undefined : dues ? `${dues} à faire aujourd'hui` : "Rien ne presse aujourd'hui"}
+      actions={plusieurs && !vide && !entretien && !administratif ? <button className="lien" onClick={() => setRepartir(true)}>Répartir</button> : undefined}
       aide={{ cle: "taches", texte: "Dis une tâche à ta fée, avec son rythme : « linge chaque mercredi ». Glisse une tâche vers la droite quand elle est faite, vers la gauche pour la supprimer. Un appui long ouvre sa fiche." }}
     >
       <Repartition ouverte={repartir} fermer={() => setRepartir(false)} foyer={props.foyer} taches={props.taches} aujourdhui={aujourdhui} depot={props.depot} />
@@ -228,10 +234,10 @@ export function Taches(props: {
 
       <Onglets
         libelle="Afficher"
-        onglets={FILTRES.filter((f) => (f.id !== "miennes" || moi) && (!vide || f.id === "toutes" || f.id === "entretien"))}
-        actif={entretien ? "entretien" : filtre}
+        onglets={FILTRES.filter((f) => (f.id !== "miennes" || moi) && (!vide || f.id === "toutes" || f.id === "entretien" || f.id === "administratif"))}
+        actif={entretien ? "entretien" : administratif ? "administratif" : filtre}
         changer={(id) => {
-          if (id === "entretien") return props.changerOnglet("entretien");
+          if (id === "entretien" || id === "administratif") return props.changerOnglet(id);
           props.changerOnglet(undefined);
           setFiltre(id);
         }}
@@ -242,7 +248,11 @@ export function Taches(props: {
       ) : (
       <>
 
-      {etalement.length > 0 && (
+      {administratif && groupes.length === 0 && terminees.length === 0 && (
+        <p className="vide">Aucune démarche en cours. Dis-en une à ta fée : « déclaration d'impôts », « renouveler l'assurance chaque année ».</p>
+      )}
+
+      {!administratif && etalement.length > 0 && (
         <button className="carte proposition" onClick={() => void props.depot.enregistrerTaches(appliquerEtalement(etalement))}>
           <span className="pictogramme"><Icone nom="calendrier" taille={20} /></span>
           <span className="proposition-texte">
@@ -253,9 +263,9 @@ export function Taches(props: {
         </button>
       )}
 
-      {!vide && equilibreVisible(props.foyer) && <CarteEquilibre foyer={props.foyer} taches={props.taches} aujourdhui={aujourdhui} />}
+      {!administratif && !vide && equilibreVisible(props.foyer) && <CarteEquilibre foyer={props.foyer} taches={props.taches} aujourdhui={aujourdhui} />}
 
-      {vide && (
+      {!administratif && vide && (
         <div className="carte bientot">
           <p>Aucune tâche pour l'instant.</p>
           <p className="discret">Les tâches de la semaine que vous avez choisies : {TACHES_DE_LA_SEMAINE.join(", ")}. Kora les pose sur six jours différents.</p>
@@ -263,7 +273,7 @@ export function Taches(props: {
         </div>
       )}
 
-      {!vide && groupes.length === 0 && terminees.length === 0 && (
+      {!administratif && !vide && groupes.length === 0 && terminees.length === 0 && (
         <p className="vide">{filtre === "miennes" ? "Tu ne t'occupes d'aucune tâche." : "Aucune tâche libre."}</p>
       )}
 
