@@ -38,9 +38,15 @@ const TYPES_SOIN = {
 	autre: "Autre soin"
 };
 //#endregion
+//#region src/domaine/texte.ts
+/** « Pâtes fraîches » → « Pates fraiches » : la casse est gardée, seuls les accents partent. */
+const sansAccents = (t) => t.normalize("NFD").replace(/\p{M}/gu, "");
+/** 7 → « 07 ». */
+const deuxChiffres = (n) => String(n).padStart(2, "0");
+//#endregion
 //#region src/domaine/rayons.ts
 function normaliser(texte) {
-	return texte.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/œ/g, "oe").trim();
+	return sansAccents(texte.toLowerCase()).replace(/œ/g, "oe").trim();
 }
 //#endregion
 //#region src/domaine/agenda.ts
@@ -100,7 +106,6 @@ function empreinte(texte) {
 	}
 	return a.toString(36) + b.toString(36);
 }
-const deux = (n) => String(n).padStart(2, "0");
 /** Le décalage d'un fuseau à un instant, en minutes (Zurich en été : +120). */
 function decalage(instant, fuseau) {
 	const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", {
@@ -132,8 +137,8 @@ function versZurich(jour, heure, fuseau) {
 	}
 	const local = new Date(instant + decalage(instant, FUSEAU) * 6e4);
 	return {
-		jour: `${local.getUTCFullYear()}-${deux(local.getUTCMonth() + 1)}-${deux(local.getUTCDate())}`,
-		heure: `${deux(local.getUTCHours())}:${deux(local.getUTCMinutes())}`
+		jour: `${local.getUTCFullYear()}-${deuxChiffres(local.getUTCMonth() + 1)}-${deuxChiffres(local.getUTCDate())}`,
+		heure: `${deuxChiffres(local.getUTCHours())}:${deuxChiffres(local.getUTCMinutes())}`
 	};
 }
 /** L'heure d'été suisse, comme l'attend l'app Calendrier. */
@@ -327,7 +332,7 @@ function versEvenementLu(props) {
 		const duree = une("DURATION")?.valeur.match(/^P(?:T(?:(\d+)H)?(?:(\d+)M)?)$/);
 		if (duree && (duree[1] || duree[2])) {
 			const minutes = Number(debut.heure.slice(0, 2)) * 60 + Number(debut.heure.slice(3)) + Number(duree[1] ?? 0) * 60 + Number(duree[2] ?? 0);
-			if (minutes < 1440) heureFin = `${deux(Math.floor(minutes / 60))}:${deux(minutes % 60)}`;
+			if (minutes < 1440) heureFin = `${deuxChiffres(Math.floor(minutes / 60))}:${deuxChiffres(minutes % 60)}`;
 		}
 	}
 	const lu = {

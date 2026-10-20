@@ -39,6 +39,24 @@ function moisDe(jour) {
 	return jour.slice(0, 7);
 }
 //#endregion
+//#region src/domaine/texte.ts
+/** « Pâtes fraîches » → « Pates fraiches » : la casse est gardée, seuls les accents partent. */
+const sansAccents = (t) => t.normalize("NFD").replace(/\p{M}/gu, "");
+const NOMS_MOIS = [
+	"janvier",
+	"février",
+	"mars",
+	"avril",
+	"mai",
+	"juin",
+	"juillet",
+	"août",
+	"septembre",
+	"octobre",
+	"novembre",
+	"décembre"
+];
+//#endregion
 //#region src/domaine/rayons.ts
 const MOTS_CLES = [
 	["Bébé", [
@@ -210,7 +228,7 @@ const MOTS_CLES = [
 	]]
 ];
 function normaliser(texte) {
-	return texte.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/œ/g, "oe").trim();
+	return sansAccents(texte.toLowerCase()).replace(/œ/g, "oe").trim();
 }
 function contientMot(texte, motCle) {
 	const echappe = motCle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -437,7 +455,7 @@ function prevoir(provision, animal, aujourdhui) {
 }
 /** « Pâtes fraîches » → « pate fraiche » : minuscules, sans accent, chaque mot au singulier. */
 function cleProduit(nom) {
-	return nom.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/œ/g, "oe").replace(/[^a-z0-9' ]+/g, " ").split(/\s+/).filter(Boolean).map((mot) => mot.length > 3 && /[sx]$/.test(mot) && !/(?:ss|is|us|ys)$/.test(mot) ? mot.slice(0, -1) : mot).join(" ");
+	return sansAccents(nom.toLowerCase()).replace(/œ/g, "oe").replace(/[^a-z0-9' ]+/g, " ").split(/\s+/).filter(Boolean).map((mot) => mot.length > 3 && /[sx]$/.test(mot) && !/(?:ss|is|us|ys)$/.test(mot) ? mot.slice(0, -1) : mot).join(" ");
 }
 const INGREDIENTS_MAX = 40;
 const ETAPES_MAX = 20;
@@ -477,7 +495,7 @@ function lireBrouillon(brut, source) {
 		ingredients,
 		etapes,
 		source,
-		lien: /^https:\/\//.test(lien) ? lien : null
+		lien: lien.startsWith("https://") ? lien : null
 	};
 }
 function majuscule(s) {
@@ -1120,20 +1138,6 @@ function alertesMitsu(animaux, aujourdhui) {
 	}
 	return alertes;
 }
-const MOIS = [
-	"janvier",
-	"février",
-	"mars",
-	"avril",
-	"mai",
-	"juin",
-	"juillet",
-	"août",
-	"septembre",
-	"octobre",
-	"novembre",
-	"décembre"
-];
 const CONSIGNES_CHEF = `Tu es le Chef de la semaine de KoraHome, l'app d'un couple qui vit à Renens, dans le canton de Vaud.
 Chaque dimanche, tu proposes 5 repas du soir pour la semaine, simples (45 minutes au plus), de saison en Suisse romande, pour deux personnes.
 Utilise d'abord les produits à finir vite, puis le reste du frigo, du congélateur et des placards. Varie les plats, évite deux fois la même base.
@@ -1154,7 +1158,7 @@ function messageChef(d) {
 		p.quantite,
 		p.peremption && decrirePeremption(p, d.aujourdhui)
 	].filter(Boolean).join(" · ");
-	const lignes = [`Nous sommes le ${Number(d.aujourdhui.slice(8, 10))} ${MOIS[Number(d.aujourdhui.slice(5, 7)) - 1]} ${d.aujourdhui.slice(0, 4)}.`, ""];
+	const lignes = [`Nous sommes le ${Number(d.aujourdhui.slice(8, 10))} ${NOMS_MOIS[Number(d.aujourdhui.slice(5, 7)) - 1]} ${d.aujourdhui.slice(0, 4)}.`, ""];
 	lignes.push("À finir vite :", ...aFinir.length ? aFinir.map((p) => `- ${decrire(p)}`) : ["- rien de pressé"], "");
 	for (const lieu of ORDRE_LIEUX) {
 		const ici = d.produits.filter((p) => p.lieu === lieu && !urgents.has(p.id));
