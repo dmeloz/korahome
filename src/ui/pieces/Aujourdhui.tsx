@@ -12,6 +12,8 @@ import { Icone } from "../Icone";
 
 /** Au-delà de ce glissement vers la droite, la chose du moment est faite. */
 const SEUIL_FAIT = 84;
+/** Sous la chose du moment, les suivantes montrées d'emblée ; « Voir les N autres » déplie le reste. */
+const SUIVANTES_VISIBLES = 3;
 
 export function CarteAujourdhui(props: {
   carte: CarteDuJour;
@@ -30,7 +32,11 @@ export function CarteAujourdhui(props: {
 }) {
   const { carte } = props;
   const phare = choseDuMoment(carte);
-  const suivantes = carte.choses.slice(1);
+  const [deplie, setDeplie] = useState(false);
+  const toutes = carte.choses.slice(1);
+  // Pas de liste qui défile dans la page : une ligne coupée à moitié ne se touche pas bien.
+  const suivantes = deplie ? toutes : toutes.slice(0, SUIVANTES_VISIBLES);
+  const cachees = toutes.length - suivantes.length;
   const reste = resteAFaire(carte);
   const avecHeures = carte.choses.some((c) => c.heure || c.tacheId);
 
@@ -88,7 +94,12 @@ export function CarteAujourdhui(props: {
           ))}
         </ol>
       )}
-      {carte.autres > 0 && props.voirTout && (
+      {cachees > 0 && (
+        <button className="lien ce-moment-plus" onClick={() => setDeplie(true)}>
+          {cachees === 1 ? "Voir l'autre" : `Voir les ${cachees} autres`}
+        </button>
+      )}
+      {cachees === 0 && carte.autres > 0 && props.voirTout && (
         <button className="lien ce-moment-plus" onClick={props.voirTout}>
           {carte.autres === 1 ? "Et une autre chose" : `Et ${carte.autres} autres choses`}
         </button>

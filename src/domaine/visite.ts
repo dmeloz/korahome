@@ -32,7 +32,7 @@ export function parcoursVisite(autre: string | null, fee = "Tael"): EtapeVisite[
       id: "signes",
       cible: "signes",
       titre: "Les petits signes",
-      texte: "Au bout de la date : vos humeurs, un compte à rebours, le prochain rendez-vous… Touche-les pour en savoir plus. Appui long pour choisir les tiens.",
+      texte: "Au bout de la date : vos humeurs, un compte à rebours, le prochain rendez-vous… Touche-en un pour ouvrir sa page. Appui long pour choisir les tiens.",
     },
     {
       id: "aujourdhui",

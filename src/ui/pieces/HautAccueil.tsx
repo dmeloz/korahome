@@ -77,14 +77,14 @@ export function DateRepliee({ date, cible }: { date: Date; cible: RefObject<HTML
 const PICTO_SIGNE: Record<Signe, NomIcone> = { humeurs: "sourire", compte: "sablier", rdv: "calendrier", meteo: "soleil", mitsu: "chat" };
 
 /**
- * Les petits signes au bout de la ligne de la date. Toucher : ce qu'ils disent. Appui long :
+ * Les petits signes au bout de la ligne de la date. Toucher : leur page. Appui long :
  * choisir les siens, trois au plus.
  */
 export function Signes(props: {
   valeurs: readonly ValeurSigne[];
   choisis: readonly Signe[];
   changer: (s: Signe[]) => void;
-  /** Toucher un signe : la fée l'explique (ou, sans elle, une petite bulle). */
+  /** Toucher un signe : sa page s'ouvre (Nos mots, Agenda, Jardin, Mitsu). */
   toucher: (v: ValeurSigne) => void;
 }) {
   const [choix, setChoix] = useState(false);
@@ -149,10 +149,13 @@ export function Signes(props: {
               props.toucher(v);
             }}
           >
-            {v.humeurs ? (
+            {v.humeurs?.some(Boolean) ? (
               v.humeurs.map((h, i) => (
                 <span key={i} className={`signe-humeur${h ? "" : " sans"}`}>{h && <Icone nom={PICTO_HUMEUR[h] ?? "sourire"} taille={13} />}</span>
               ))
+            ) : v.humeurs ? (
+              // Personne n'a encore dit son humeur : un sourire à toucher plutôt que deux ronds vides.
+              <Icone nom="sourire" taille={16} />
             ) : (
               <Icone nom={v.code !== undefined ? pictoMeteo(v.code) : PICTO_SIGNE[v.id]} taille={14} />
             )}

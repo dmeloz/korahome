@@ -2170,7 +2170,7 @@ button.budget-pot:active { transform: scale(0.98); }
 
 /* Les petits signes au bout de la ligne de la date. */
 .signes-accueil { position: absolute; right: 0; top: 50%; transform: translateY(-50%); display: flex; gap: 4px; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
-.signe { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; padding: 4px 8px; border: none; border-radius: 999px; background: none; color: var(--accent); font-size: var(--t-legende); font-variant-numeric: tabular-nums; }
+.signe { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; min-width: 44px; justify-content: center; padding: 4px 8px; border: none; border-radius: 999px; background: none; color: var(--accent); font-size: var(--t-legende); font-variant-numeric: tabular-nums; }
 .signe:active { background: var(--accent-doux); }
 .signe.urgent { color: var(--urgent); }
 .signe.vide { color: var(--discret); opacity: 0.6; }
@@ -2200,8 +2200,7 @@ button.budget-pot:active { transform: scale(0.98); }
 .ce-moment-entete h2 { margin: 0; font-family: var(--police-titre); font-size: var(--t-section); font-weight: 650; }
 .ce-moment-entete .discret { font-size: var(--t-legende); }
 .ce-moment-vide { margin: 4px 0; color: var(--discret); font-size: var(--t-detail); }
-.fil { position: relative; list-style: none; margin: 0; padding: 0; max-height: calc(64px + 46px * 3.5); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
-.fil::-webkit-scrollbar { display: none; }
+.fil { position: relative; list-style: none; margin: 0; padding: 0; }
 .fil > li { position: relative; display: grid; grid-template-columns: var(--col-heure) 34px minmax(0, 1fr); align-items: center; }
 /* Le fil : un trait fin d'un rond au suivant. */
 .fil > li + li::before { content: ""; position: absolute; left: calc(var(--col-heure) + 16.5px); top: -14px; height: 28px; width: 1px; background: color-mix(in srgb, var(--discret) 35%, transparent); }

@@ -38,7 +38,7 @@ import { CarteAujourdhui, Visite } from "../pieces";
 import { FeuilleHeure } from "../pieces/FeuilleHeure";
 import { DateRepliee, GrandeDate, Signes } from "../pieces/HautAccueil";
 import { clinDejaDit, noterClinDit, useClinDuJour } from "../clinDuJour";
-import { direFee, direSiCalme, feteFee, taireFee } from "../fee";
+import { direSiCalme, feteFee, taireFee } from "../fee";
 import { nuitDeCeTelephone, useVieFee } from "../vieFee";
 import { lireSignes } from "../accueilLocal";
 import { abonnerVisite, finirVisite, visiteEnAttente } from "../visite";
@@ -331,8 +331,6 @@ export function Accueil(props: {
     if (v.destination === "mots") props.ouvrirMots();
     else props.ouvrirModule(v.destination);
   };
-  // Toucher un signe : la fée dit ce qu'il veut dire.
-  const direSigne = (v: ValeurSigne) => direFee({ cle: `signe:${v.id}`, texte: v.phrase, actions: [{ texte: "Ouvrir", faire: () => ouvrirSigne(v) }, { texte: "Merci" }] });
 
   const terminer = () => {
     setEdition(false);
@@ -416,7 +414,7 @@ export function Accueil(props: {
     <main className="tableau accueil">
       <header className="haut-accueil" ref={haut}>
         <GrandeDate date={maintenant} />
-        {!edition && <Signes valeurs={valeursSignes} choisis={signes} changer={setSignes} toucher={direSigne} />}
+        {!edition && <Signes valeurs={valeursSignes} choisis={signes} changer={setSignes} toucher={ouvrirSigne} />}
         {/* La date tient lieu de salutation ; le titre reste pour VoiceOver. */}
         <h1 className="cache-visuel">
           {salutation(heure)}
@@ -481,7 +479,6 @@ export function Accueil(props: {
             <Icone nom="sauvegarde" taille={15} />
             Sauvegarde : {decrireDerniere(derniereSauvegarde, aujourdhui)}
           </button>
-          <button className="lien modifier" onClick={() => setEdition(true)}>Modifier l'accueil</button>
         </footer>
       )}
 
