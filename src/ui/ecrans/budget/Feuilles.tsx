@@ -5,6 +5,7 @@ import {
   formaterMontant,
   modifierPlan,
   nomDuMois,
+  debutMoisBudget,
   nommerMois,
   POTS,
   POTS_SUIVIS,
@@ -187,7 +188,7 @@ export function FeuilleReglages(props: { plan: PlanBudget; ouverte: boolean; fer
             }}
           />
         </label>
-        <p className="discret">Le mois s'ouvre ce jour-là : Kora propose de noter les versements dans chaque pot.</p>
+        <p className="discret">Le mois s'ouvre ce jour-là et porte le nom du mois que cet argent paie : avec la paie le 25, du 25 octobre au 24 novembre, c'est novembre. Kora propose alors de noter les versements dans chaque pot.</p>
         <p className="surtitre">Le reste du commun</p>
         <Puces
           libelle="Part du plaisir"
@@ -195,7 +196,10 @@ export function FeuilleReglages(props: { plan: PlanBudget; ouverte: boolean; fer
           changer={(v) => changer({ partPlaisir: v / 100 })}
           choix={[20, 30, 40, 50].map((v) => ({ v, libelle: `${v} % plaisir` }))}
         />
-        <p className="surtitre">Soldes au début de {nommerMois(plan.depart.mois)}</p>
+        <p className="surtitre">
+          Soldes au début de {nommerMois(plan.depart.mois)}
+          {plan.jourDePaie && plan.jourDePaie > 1 ? ` (le ${Number(debutMoisBudget(plan, plan.depart.mois).slice(8, 10))} ${nomDuMois(Number(debutMoisBudget(plan, plan.depart.mois).slice(5, 7)))})` : ""}
+        </p>
         <p className="discret">Ce qu'il y avait vraiment sur chaque compte ; Kora compte à partir de là.</p>
         {POTS_SUIVIS.map((pot) => (
           <label key={`depart-${pot}`}>

@@ -23,6 +23,10 @@ import {
   lireDepense,
   lireMontant,
   moisAConfirmer,
+  moisBudget,
+  debutMoisBudget,
+  finMoisBudget,
+  avanceeMoisBudget,
   nouveauPlan,
   nouveauPoste,
   nouvelleDepense,
@@ -98,9 +102,40 @@ describe("les pots", () => {
   const ctx = contexteTest();
   const p = { ...plan(), depart: { mois: "2026-10", soldes: { factures: 500, courses: 30 } } };
 
+  it("nomment le mois du budget d'après le mois que la paie finance", () => {
+    const paie25 = { jourDePaie: 25 };
+    expect(moisBudget(paie25, "2026-10-24")).toBe("2026-10");
+    expect(moisBudget(paie25, "2026-10-25")).toBe("2026-11");
+    expect(moisBudget(paie25, "2026-12-31")).toBe("2027-01");
+    expect(debutMoisBudget(paie25, "2026-11")).toBe("2026-10-25");
+    expect(finMoisBudget(paie25, "2026-11")).toBe("2026-11-24");
+    expect(avanceeMoisBudget(paie25, "2026-10-25")).toEqual({ jour: 1, jours: 31 });
+    // Une paie le 5 ouvre son propre mois ; sans jour de paie, c'est le calendrier.
+    expect(moisBudget({ jourDePaie: 5 }, "2026-10-04")).toBe("2026-09");
+    expect(moisBudget({ jourDePaie: 5 }, "2026-10-05")).toBe("2026-10");
+    expect(moisBudget({ jourDePaie: null }, "2026-10-31")).toBe("2026-10");
+    expect(finMoisBudget({ jourDePaie: null }, "2026-02")).toBe("2026-02-28");
+  });
+
+  it("comptent les dépenses d'une paie à la suivante", () => {
+    const plan = { ...p, jourDePaie: 25, depart: { ...p.depart, mois: "2026-11" } };
+    const docs: DocBudget[] = [
+      plan,
+      confirmerMois("2026-11", bilanDuMois(plan).versements, A, ctx),
+      nouvelleDepense({ montant: 50, pot: "courses", libelle: "Coop", jour: "2026-10-26" }, A, ctx),
+      nouvelleDepense({ montant: 30, pot: "courses", libelle: "Avant la paie", jour: "2026-10-20" }, A, ctx),
+    ];
+    const courses = etatDesPots(plan, docs, "2026-10-28").courses;
+    expect(courses.depenseDuMois).toBe(50);
+    expect(courses.solde).toBe((p.depart.soldes.courses ?? 0) + bilanDuMois(plan).versements.courses - 50);
+  });
+
   it("demandent de confirmer le mois une fois la paie passée", () => {
     expect(moisAConfirmer(p, [], AUJOURDHUI)).toBe("2026-10");
-    expect(moisAConfirmer({ ...p, jourDePaie: 25 }, [], AUJOURDHUI)).toBeNull();
+    // Paie le 25 : le mois ouvert le 25 septembre s'appelle octobre, celui du 25 octobre novembre.
+    expect(moisAConfirmer({ ...p, jourDePaie: 25 }, [], AUJOURDHUI)).toBe("2026-10");
+    expect(moisAConfirmer({ ...p, jourDePaie: 25 }, [], "2026-10-25")).toBe("2026-11");
+    expect(moisAConfirmer({ ...p, jourDePaie: 25, depart: { ...p.depart, mois: "2026-11" } }, [], "2026-10-24")).toBeNull();
     const octobre = confirmerMois("2026-10", bilanDuMois(p).versements, A, ctx);
     expect(moisAConfirmer(p, [octobre], AUJOURDHUI)).toBeNull();
   });

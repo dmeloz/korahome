@@ -56,10 +56,23 @@ try {
   };
 
   await capture("accueil");
-  for (const espace of ["Tâches", "Courses", "Listes", "Agenda", "Mitsu", "Frigo et placards", "Entretien", "Jardin", "Menus de la semaine", "Budget"]) {
+  // Les six espaces (Kora 0.0.62), et chaque onglet qui reprend une ancienne page.
+  const ESPACES = {
+    Tâches: ["Entretien", "Administratif"],
+    Courses: ["Autres listes"],
+    Agenda: [],
+    Maison: ["Jardin", "Mitsu"],
+    Cuisine: ["Nos recettes", "Frigo"],
+    Budget: [],
+  };
+  for (const [espace, onglets] of Object.entries(ESPACES)) {
     await tousLesEspaces();
     await p.locator(".tous-espaces").getByText(espace, { exact: true }).first().click();
     await verifier(espace);
+    for (const onglet of onglets) {
+      await p.locator(".page-dessus").getByRole("tab", { name: onglet }).first().click();
+      await verifier(`${espace} › ${onglet}`);
+    }
     await revenir();
   }
   await tousLesEspaces();

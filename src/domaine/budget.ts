@@ -327,13 +327,47 @@ export function jourDuMois(mois: string, jour: number): Jour {
 }
 
 export const moisSuivant = (mois: string) => decaler(`${mois}-01`, { unite: "mois", tous: 1 }).slice(0, 7);
+export const moisPrecedent = (mois: string) => decaler(`${mois}-01`, { unite: "mois", tous: -1 }).slice(0, 7);
 
-/** Le mois à confirmer : celui en cours, une fois le jour de paie passé, s'il n'est pas encore versé. */
+// Le mois du budget va d'une paie à la suivante et porte le nom du mois que cet argent paie
+// (Kora 0.0.62, choix du foyer) : avec la paie le 25, du 25 octobre au 24 novembre, c'est
+// « novembre », celui du loyer du 1er. Une paie en début de mois (le 5) ouvre son propre mois.
+// Sans jour de paie, c'est le mois du calendrier.
+
+/** Le mois de budget d'un jour. */
+export function moisBudget(plan: Pick<PlanBudget, "jourDePaie"> | null, jour: Jour): string {
+  const paie = plan?.jourDePaie;
+  const mois = moisDe(jour);
+  if (!paie || paie <= 1) return mois;
+  const passee = jour >= jourDuMois(mois, paie);
+  if (paie > 15) return passee ? moisSuivant(mois) : mois;
+  return passee ? mois : moisPrecedent(mois);
+}
+
+/** Le premier jour d'un mois de budget : la paie qui l'ouvre. */
+export function debutMoisBudget(plan: Pick<PlanBudget, "jourDePaie"> | null, mois: string): Jour {
+  const paie = plan?.jourDePaie;
+  if (!paie || paie <= 1) return `${mois}-01`;
+  return jourDuMois(paie > 15 ? moisPrecedent(mois) : mois, paie);
+}
+
+/** Le dernier jour d'un mois de budget : la veille de la paie suivante. */
+export function finMoisBudget(plan: Pick<PlanBudget, "jourDePaie"> | null, mois: string): Jour {
+  return decaler(debutMoisBudget(plan, moisSuivant(mois)), { unite: "jour", tous: -1 });
+}
+
+/** Où en est le mois de budget : le jour (1 le jour de paie) sur le nombre de jours du mois. */
+export function avanceeMoisBudget(plan: Pick<PlanBudget, "jourDePaie"> | null, aujourdhui: Jour): { jour: number; jours: number } {
+  const mois = moisBudget(plan, aujourdhui);
+  const debut = debutMoisBudget(plan, mois);
+  return { jour: ecartJours(debut, aujourdhui) + 1, jours: ecartJours(debut, finMoisBudget(plan, mois)) + 1 };
+}
+
+/** Le mois à confirmer : le mois de budget en cours (ouvert par la paie), s'il n'est pas encore versé. */
 export function moisAConfirmer(plan: PlanBudget, docs: readonly DocBudget[], aujourdhui: Jour): string | null {
-  const mois = moisDe(aujourdhui);
+  const mois = moisBudget(plan, aujourdhui);
   if (mois < plan.depart.mois) return null;
   if (moisDocs(docs).some((m) => m.mois === mois)) return null;
-  if (plan.jourDePaie && aujourdhui < jourDuMois(mois, plan.jourDePaie)) return null;
   return mois;
 }
 
@@ -347,10 +381,11 @@ export function confirmerMois(mois: string, versements: Partial<Record<Pot, numb
 export function prelevementsPasses(plan: PlanBudget, aujourdhui: Jour): { poste: Poste; jour: Jour }[] {
   const resultat: { poste: Poste; jour: Jour }[] = [];
   const auto = plan.postes.filter((p) => p.qui === null && p.prelevement && p.frequence === "mois" && p.pot && p.pot !== "commun");
-  for (let mois = plan.depart.mois; mois <= moisDe(aujourdhui); mois = moisSuivant(mois)) {
+  const debut = debutMoisBudget(plan, plan.depart.mois);
+  for (let mois = moisDe(debut); mois <= moisDe(aujourdhui); mois = moisSuivant(mois)) {
     for (const poste of auto) {
       const jour = jourDuMois(mois, poste.jour ?? 1);
-      if (jour <= aujourdhui) resultat.push({ poste, jour });
+      if (jour >= debut && jour <= aujourdhui) resultat.push({ poste, jour });
     }
   }
   return resultat;
@@ -367,8 +402,8 @@ export interface EtatPot {
 
 /** Le solde de chaque pot : le départ, plus les mois versés, moins les dépenses et les prélèvements. */
 export function etatDesPots(plan: PlanBudget, docs: readonly DocBudget[], aujourdhui: Jour): Record<Pot, EtatPot> {
-  const debut = `${plan.depart.mois}-01`;
-  const mois = moisDe(aujourdhui);
+  const debut = debutMoisBudget(plan, plan.depart.mois);
+  const mois = moisBudget(plan, aujourdhui);
   const bilan = bilanDuMois(plan);
   const verses = moisDocs(docs).filter((m) => m.mois >= plan.depart.mois && m.mois <= mois);
   const sorties = depenses(docs).filter((d) => d.jour >= debut && d.jour <= aujourdhui);
@@ -379,8 +414,8 @@ export function etatDesPots(plan: PlanBudget, docs: readonly DocBudget[], aujour
     const entre = verses.reduce((t, m) => t + (m.versements[pot] ?? 0), 0);
     const sorti = sorties.filter((d) => d.pot === pot).reduce((t, d) => t + d.montant, 0) + auto.filter((a) => a.poste.pot === pot).reduce((t, a) => t + a.poste.montant, 0);
     const sortiCeMois =
-      sorties.filter((d) => d.pot === pot && moisDe(d.jour) === mois).reduce((t, d) => t + d.montant, 0) +
-      auto.filter((a) => a.poste.pot === pot && moisDe(a.jour) === mois).reduce((t, a) => t + a.poste.montant, 0);
+      sorties.filter((d) => d.pot === pot && moisBudget(plan, d.jour) === mois).reduce((t, d) => t + d.montant, 0) +
+      auto.filter((a) => a.poste.pot === pot && moisBudget(plan, a.jour) === mois).reduce((t, a) => t + a.poste.montant, 0);
     etat[pot] = {
       pot,
       solde: auCentime((plan.depart.soldes[pot] ?? 0) + entre - sorti),
@@ -609,9 +644,9 @@ export function avanceeProjet(plan: PlanBudget, docs: readonly DocBudget[], aujo
     const moisRestants = Math.max(1, (Number(projet.date.slice(0, 4)) - Number(aujourdhui.slice(0, 4))) * 12 + Number(projet.date.slice(5, 7)) - Number(aujourdhui.slice(5, 7)));
     parMoisPourLaDate = auCentime(manque / moisRestants);
   }
-  let atteintVers: string | null = manque === 0 ? moisDe(aujourdhui) : null;
+  let atteintVers: string | null = manque === 0 ? moisBudget(plan, aujourdhui) : null;
   if (manque > 0 && rythme > 0) {
-    let mois = moisDe(aujourdhui);
+    let mois = moisBudget(plan, aujourdhui);
     for (let i = 0; i < Math.ceil(manque / rythme); i++) mois = moisSuivant(mois);
     atteintVers = mois;
   }
@@ -658,8 +693,7 @@ export interface RythmeCourses {
 export function rythmeCourses(plan: PlanBudget, docs: readonly DocBudget[], aujourdhui: Jour): RythmeCourses | null {
   const { budgetDuMois: budget, depenseDuMois: depense } = etatDesPots(plan, docs, aujourdhui).courses;
   if (budget <= 0) return null;
-  const jour = Number(aujourdhui.slice(8, 10));
-  const jours = Number(jourDuMois(moisDe(aujourdhui), 31).slice(8, 10));
+  const { jour, jours } = avanceeMoisBudget(plan, aujourdhui);
   return {
     depense,
     budget,
@@ -689,10 +723,10 @@ export function previsionFactures(plan: PlanBudget, docs: readonly DocBudget[], 
   const versement = bilanDuMois(plan).versements.factures;
   const toutes = depenses(docs);
   const auto = prelevementsPasses(plan, aujourdhui);
-  const ceMois = moisDe(aujourdhui);
+  const ceMois = moisBudget(plan, aujourdhui);
   const dejaPaye = (poste: Poste) =>
-    auto.some((a) => a.poste.id === poste.id && moisDe(a.jour) === ceMois) ||
-    toutes.some((d) => regle(d, poste, poste.frequence === "an" ? jourDuMois(ceMois, poste.jour ?? 1) : `${ceMois}-01`) && (poste.frequence === "an" || moisDe(d.jour) === ceMois));
+    auto.some((a) => a.poste.id === poste.id && moisBudget(plan, a.jour) === ceMois) ||
+    toutes.some((d) => regle(d, poste, poste.frequence === "an" ? jourDuMois(ceMois, poste.jour ?? 1) : `${ceMois}-01`) && (poste.frequence === "an" || moisBudget(plan, d.jour) === ceMois));
   let solde = etatDesPots(plan, docs, aujourdhui).factures.solde;
   const resultat: MoisDeFactures[] = [];
   let mois = ceMois;
@@ -726,14 +760,14 @@ export interface PointEpargne {
  * six mois sans projet.
  */
 export function courbeEpargne(plan: PlanBudget, docs: readonly DocBudget[], aujourdhui: Jour): PointEpargne[] {
-  const ceMois = moisDe(aujourdhui);
+  const ceMois = moisBudget(plan, aujourdhui);
   const verses = moisDocs(docs).filter((m) => m.mois >= plan.depart.mois && m.mois <= ceMois);
-  const sorties = depenses(docs).filter((d) => d.pot === "epargne" && d.jour >= `${plan.depart.mois}-01`);
+  const sorties = depenses(docs).filter((d) => d.pot === "epargne" && d.jour >= debutMoisBudget(plan, plan.depart.mois));
   const points: PointEpargne[] = [];
   let solde = plan.depart.soldes.epargne ?? 0;
   for (let mois = plan.depart.mois; mois <= ceMois; mois = moisSuivant(mois)) {
     solde += verses.find((m) => m.mois === mois)?.versements.epargne ?? 0;
-    solde -= sorties.filter((d) => moisDe(d.jour) === mois).reduce((t, d) => t + d.montant, 0);
+    solde -= sorties.filter((d) => moisBudget(plan, d.jour) === mois).reduce((t, d) => t + d.montant, 0);
     points.push({ mois, solde: auCentime(solde), prevu: false });
   }
   const rythme = bilanDuMois(plan).versements.epargne;
@@ -754,12 +788,13 @@ const depensesCourses = (docs: readonly DocBudget[]) => depenses(docs).filter((d
 
 /** Ce que la carte courses a payé chaque mois, sur les `combien` derniers mois (le mois en cours compris). */
 export function coursesParMois(docs: readonly DocBudget[], aujourdhui: Jour, combien = 6): { mois: string; total: number }[] {
+  const plan = planDe(docs);
   const liste = depensesCourses(docs);
-  let mois = moisDe(aujourdhui);
+  let mois = moisBudget(plan, aujourdhui);
   const resultat: { mois: string; total: number }[] = [];
   for (let i = 0; i < combien; i++) {
     const m = mois;
-    resultat.unshift({ mois: m, total: auCentime(liste.filter((d) => moisDe(d.jour) === m).reduce((t, d) => t + d.montant, 0)) });
+    resultat.unshift({ mois: m, total: auCentime(liste.filter((d) => moisBudget(plan, d.jour) === m).reduce((t, d) => t + d.montant, 0)) });
     mois = decaler(`${mois}-01`, { unite: "mois", tous: -1 }).slice(0, 7);
   }
   return resultat;
@@ -767,7 +802,8 @@ export function coursesParMois(docs: readonly DocBudget[], aujourdhui: Jour, com
 
 /** Les courses des `combien` derniers mois, magasin par magasin, du plus gros au plus petit. */
 export function coursesParMagasin(docs: readonly DocBudget[], aujourdhui: Jour, combien = 6): { magasin: string; total: number; part: number }[] {
-  const depuis = decaler(`${moisDe(aujourdhui)}-01`, { unite: "mois", tous: -(combien - 1) });
+  const plan = planDe(docs);
+  const depuis = debutMoisBudget(plan, decaler(`${moisBudget(plan, aujourdhui)}-01`, { unite: "mois", tous: -(combien - 1) }).slice(0, 7));
   const totaux = new Map<string, number>();
   for (const d of depensesCourses(docs)) {
     if (d.jour < depuis || d.jour > aujourdhui) continue;
@@ -827,15 +863,15 @@ export function prixQuiMontent(docs: readonly DocBudget[], aujourdhui: Jour): Pr
 }
 
 /**
- * Le mot de Jarvis sur le mois écoulé, les sept premiers jours du mois suivant : il compare
+ * Le mot de Jarvis sur le mois écoulé, les sept premiers jours du mois suivant (comptés depuis la paie) : il compare
  * les courses au mois d'avant et l'épargne à ce qui était prévu. Sans rien de parlant, il se tait.
  */
 export function motDuMois(plan: PlanBudget, docs: readonly DocBudget[], aujourdhui: Jour): string | null {
-  if (Number(aujourdhui.slice(8, 10)) > 7) return null;
-  const mois = decaler(`${moisDe(aujourdhui)}-01`, { unite: "mois", tous: -1 }).slice(0, 7);
+  if (avanceeMoisBudget(plan, aujourdhui).jour > 7) return null;
+  const mois = moisPrecedent(moisBudget(plan, aujourdhui));
   if (mois < plan.depart.mois) return null;
-  const precedent = decaler(`${mois}-01`, { unite: "mois", tous: -1 }).slice(0, 7);
-  const parMoisCourses = coursesParMois(docs, `${mois}-28`, 2);
+  const precedent = moisPrecedent(mois);
+  const parMoisCourses = coursesParMois(docs, finMoisBudget(plan, mois), 2);
   const [avant, celui] = [parMoisCourses.find((m) => m.mois === precedent)?.total ?? 0, parMoisCourses.find((m) => m.mois === mois)?.total ?? 0];
   const phrases: string[] = [];
   const nom = nommerMois(mois);

@@ -1054,13 +1054,33 @@ const moisSuivant = (mois) => decaler(`${mois}-01`, {
 	unite: "mois",
 	tous: 1
 }).slice(0, 7);
+const moisPrecedent = (mois) => decaler(`${mois}-01`, {
+	unite: "mois",
+	tous: -1
+}).slice(0, 7);
+/** Le mois de budget d'un jour. */
+function moisBudget(plan, jour) {
+	const paie = plan?.jourDePaie;
+	const mois = moisDe$2(jour);
+	if (!paie || paie <= 1) return mois;
+	const passee = jour >= jourDuMois(mois, paie);
+	if (paie > 15) return passee ? moisSuivant(mois) : mois;
+	return passee ? mois : moisPrecedent(mois);
+}
+/** Le premier jour d'un mois de budget : la paie qui l'ouvre. */
+function debutMoisBudget(plan, mois) {
+	const paie = plan?.jourDePaie;
+	if (!paie || paie <= 1) return `${mois}-01`;
+	return jourDuMois(paie > 15 ? moisPrecedent(mois) : mois, paie);
+}
 /** Les prélèvements automatiques déjà passés depuis le départ : ils sortent seuls du pot. */
 function prelevementsPasses(plan, aujourdhui) {
 	const resultat = [];
 	const auto = plan.postes.filter((p) => p.qui === null && p.prelevement && p.frequence === "mois" && p.pot && p.pot !== "commun");
-	for (let mois = plan.depart.mois; mois <= moisDe$2(aujourdhui); mois = moisSuivant(mois)) for (const poste of auto) {
+	const debut = debutMoisBudget(plan, plan.depart.mois);
+	for (let mois = moisDe$2(debut); mois <= moisDe$2(aujourdhui); mois = moisSuivant(mois)) for (const poste of auto) {
 		const jour = jourDuMois(mois, poste.jour ?? 1);
-		if (jour <= aujourdhui) resultat.push({
+		if (jour >= debut && jour <= aujourdhui) resultat.push({
 			poste,
 			jour
 		});
@@ -1069,8 +1089,8 @@ function prelevementsPasses(plan, aujourdhui) {
 }
 /** Le solde de chaque pot : le départ, plus les mois versés, moins les dépenses et les prélèvements. */
 function etatDesPots(plan, docs, aujourdhui) {
-	const debut = `${plan.depart.mois}-01`;
-	const mois = moisDe$2(aujourdhui);
+	const debut = debutMoisBudget(plan, plan.depart.mois);
+	const mois = moisBudget(plan, aujourdhui);
 	const bilan = bilanDuMois(plan);
 	const verses = moisDocs(docs).filter((m) => m.mois >= plan.depart.mois && m.mois <= mois);
 	const sorties = depenses(docs).filter((d) => d.jour >= debut && d.jour <= aujourdhui);
@@ -1080,7 +1100,7 @@ function etatDesPots(plan, docs, aujourdhui) {
 	for (const pot of Object.keys(POTS)) {
 		const entre = verses.reduce((t, m) => t + (m.versements[pot] ?? 0), 0);
 		const sorti = sorties.filter((d) => d.pot === pot).reduce((t, d) => t + d.montant, 0) + auto.filter((a) => a.poste.pot === pot).reduce((t, a) => t + a.poste.montant, 0);
-		const sortiCeMois = sorties.filter((d) => d.pot === pot && moisDe$2(d.jour) === mois).reduce((t, d) => t + d.montant, 0) + auto.filter((a) => a.poste.pot === pot && moisDe$2(a.jour) === mois).reduce((t, a) => t + a.poste.montant, 0);
+		const sortiCeMois = sorties.filter((d) => d.pot === pot && moisBudget(plan, d.jour) === mois).reduce((t, d) => t + d.montant, 0) + auto.filter((a) => a.poste.pot === pot && moisBudget(plan, a.jour) === mois).reduce((t, a) => t + a.poste.montant, 0);
 		etat[pot] = {
 			pot,
 			solde: auCentime((plan.depart.soldes[pot] ?? 0) + entre - sorti),
@@ -1188,9 +1208,9 @@ function avanceeProjet(plan, docs, aujourdhui) {
 		const moisRestants = Math.max(1, (Number(projet.date.slice(0, 4)) - Number(aujourdhui.slice(0, 4))) * 12 + Number(projet.date.slice(5, 7)) - Number(aujourdhui.slice(5, 7)));
 		parMoisPourLaDate = auCentime(manque / moisRestants);
 	}
-	let atteintVers = manque === 0 ? moisDe$2(aujourdhui) : null;
+	let atteintVers = manque === 0 ? moisBudget(plan, aujourdhui) : null;
 	if (manque > 0 && rythme > 0) {
-		let mois = moisDe$2(aujourdhui);
+		let mois = moisBudget(plan, aujourdhui);
 		for (let i = 0; i < Math.ceil(manque / rythme); i++) mois = moisSuivant(mois);
 		atteintVers = mois;
 	}
