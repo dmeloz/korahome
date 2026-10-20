@@ -193,7 +193,22 @@ export function direAVoixHaute(texte: string): void {
   speechSynthesis.speak(phrase);
 }
 
-// ----- Les photos -----
+// ----- Les photos et les PDF -----
+
+/** Au-delà, le PDF est trop lourd pour le serveur (4 Mo une fois en base64). */
+const PDF_MAX_OCTETS = 2_900_000;
+
+/** Un PDF tel quel, en base64, pour que Jarvis le lise page par page. Refuse un fichier trop lourd. */
+export async function pdfPourJarvis(fichier: Blob): Promise<{ type: "application/pdf"; donnees: string }> {
+  if (fichier.size > PDF_MAX_OCTETS) throw new Error("Ce PDF est trop lourd (3 Mo au plus). Garde seulement les pages de la recette, ou photographie-la.");
+  const adresse = await new Promise<string>((ok, ko) => {
+    const lecteur = new FileReader();
+    lecteur.onload = () => ok(String(lecteur.result));
+    lecteur.onerror = () => ko(new Error("Le PDF n'a pas pu être ouvert."));
+    lecteur.readAsDataURL(fichier);
+  });
+  return { type: "application/pdf", donnees: adresse.slice(adresse.indexOf(",") + 1) };
+}
 
 /** Réduit une photo (même HEIC de l'iPhone) en JPEG d'au plus `cote` pixels : légère à envoyer, lisible par Jarvis. */
 export async function photoPourJarvis(fichier: Blob, cote = 1600): Promise<{ type: "image/jpeg"; donnees: string }> {

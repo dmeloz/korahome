@@ -260,12 +260,14 @@ export function BarreJarvis(props: {
       return;
     }
     if (intention.type === "tache") {
-      const tache = nouvelleTache(intention.titre, intention.recurrence, intention.echeance, contexteReel);
+      const base = nouvelleTache(intention.titre, intention.recurrence, intention.echeance, contexteReel);
+      // Une heure dite (« à 20h ») : un rappel à cette heure-là, comme dans l'app Rappels.
+      const tache = intention.heure ? { ...base, heure: intention.heure } : base;
       const avecCategorie = props.lieu === "entretien" || props.lieu === "administratif" ? { ...tache, categorie: props.lieu } : tache;
       await depot.enregistrerTache(avecCategorie);
       vibrer();
       const quand = intention.recurrence ? `${decrireRecurrence(intention.recurrence).toLowerCase()}, la première ${decrireEcheance(intention.echeance, donnees.aujourdhui)}` : decrireEcheance(intention.echeance, donnees.aujourdhui);
-      annoncer(`« ${tache.titre} » ajoutée, ${quand}.`, () => depot.supprimerTache(tache.id));
+      annoncer(`« ${tache.titre} » ajoutée, ${quand}${intention.heure ? `, rappel à ${intention.heure}` : ""}.`, () => depot.supprimerTache(tache.id));
       return;
     }
     if (intention.type === "agenda") {

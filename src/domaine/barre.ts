@@ -14,7 +14,7 @@ export type LieuBarre = "accueil" | "liste" | "memoire" | "mots" | "administrati
 export type Intention =
   | { type: "courses"; articles: string[] }
   | { type: "liste"; articles: string[] }
-  | { type: "tache"; titre: string; recurrence: Recurrence | null; echeance: Jour }
+  | { type: "tache"; titre: string; recurrence: Recurrence | null; echeance: Jour; heure?: string }
   | { type: "agenda"; brouillon: Brouillon }
   | { type: "stock"; texte: string }
   | { type: "ouvrir"; ou: OuOuvrir }
@@ -33,6 +33,8 @@ const COURSES = /^(ajoute[rsz]?|acheter|achete|il faut|il nous faut|faut|prendre
 const VERS_COURSES = /\s+(?:aux|a la liste de|à la liste de|sur la liste de|dans les) courses\s*$|\s+(?:a|à) acheter\s*$/i;
 const RYTHME = /\b(chaque (jour|semaine|mois|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)|tous les (jours|mois|\d+ (jours|semaines|mois))|toutes les (\d+ )?semaines|tous les (lundis|mardis|mercredis|jeudis|vendredis|samedis|dimanches))\b/;
 const VERBES_TACHE = /^(tache|sortir|faire|nettoyer|ranger|laver|passer|arroser|changer|vider|repasser|aspirer|appeler|payer|reserver|envoyer|plier|trier|recycler|detartrer|degivrer|tondre|tailler|preparer|reparer|monter|deposer|rendre|recuperer|chercher|poster|remplir|commander)\b/;
+/** « Prendre mes médicaments », « prendre sa pilule » : un geste à ne pas oublier, pas des courses. */
+const PRENDRE_SOIN = /^prendre (?:mes|ses|son|mon|ma|sa|le|les|un|une) (?:medicaments?|traitements?|comprimes?|pilules?|vitamines?|gouttes|sirop|tension|temperature)\b/;
 
 const OUVRIR = /^(?:ouvre|ouvrir|ouvre-moi|montre|montre-moi|affiche|affiche-moi|va|aller|allons|emmene-moi|amene-moi)\s+(?:(?:a|au|aux|dans|sur|voir)\s+)?(.+)$/;
 const DETERMINANTS = /^(?:(?:la page|les|le|la|mon|ma|mes|notre|nos|page|espace|onglet)\s+|l')/;
@@ -77,14 +79,20 @@ function prochainJour(numero: number, aujourdhui: Jour): Jour {
   return decaler(aujourdhui, { unite: "jour", tous: (numero - actuel + 7) % 7 });
 }
 
+/** « Rappelle-moi de … », « rappelle-moi d'… » : un rappel, comme dans l'app Rappels. */
+const RAPPELLE_MOI = /^rappelle[- ]moi (?:de |d'|d’)/i;
+
 /**
  * Une tâche écrite comme on parle : « Sortir les poubelles chaque mardi »,
  * « Détartrer la bouilloire tous les 3 mois », « Appeler le garage demain ».
+ * Avec une heure (« à 20h », « 8h30 », « 20:15 »), elle devient un rappel à cette heure-là,
+ * comme dans l'app Rappels : la notification arrive sur le téléphone de qui s'en occupe.
  */
-export function analyserTache(texte: string, aujourdhui: Jour): { titre: string; recurrence: Recurrence | null; echeance: Jour } {
-  let reste = ` ${texte.trim().replace(/^t[aâ]che\s*:?\s*/i, "")} `;
+export function analyserTache(texte: string, aujourdhui: Jour): { titre: string; recurrence: Recurrence | null; echeance: Jour; heure?: string } {
+  let reste = ` ${texte.trim().replace(RAPPELLE_MOI, "").replace(/^t[aâ]che\s*:?\s*/i, "")} `;
   let recurrence: Recurrence | null = null;
   let echeance = aujourdhui;
+  let heure: string | undefined;
   const retirer = (re: RegExp, faire: (m: RegExpMatchArray) => void) => {
     const m = reste.match(re);
     if (m) {
@@ -109,12 +117,18 @@ export function analyserTache(texte: string, aujourdhui: Jour): { titre: string;
   retirer(/(?:(?:à|a) partir (?:de |du )|dès )?\b(?:ce |le )?(lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)( prochain)?\b/i, (m) => {
     echeance = prochainJour(NOMS_JOURS.indexOf(m[1].toLowerCase()), aujourdhui);
   });
+  retirer(/(?:\s(?:à|a|vers))?\s(\d{1,2})\s?(?:h|heures?|:)\s?(\d{2})?(?=[\s,.;!]|$)/i, (m) => {
+    const h = Number(m[1]);
+    const mn = Number(m[2] ?? 0);
+    if (h <= 23 && mn <= 59) heure = `${String(h).padStart(2, "0")}:${String(mn).padStart(2, "0")}`;
+  });
+  retirer(/\s(?:à|a) midi\b/i, () => void (heure = "12:00"));
   const titre = reste
     .replace(/\s+/g, " ")
     .replace(/[\s,;:–-]+$/g, "")
     .replace(/\s+(le|la|à|a|au|de|du|pour|et)$/i, "")
     .trim();
-  return { titre: majuscule(titre), recurrence, echeance };
+  return { titre: majuscule(titre), recurrence, echeance, ...(heure ? { heure } : {}) };
 }
 
 /** Ce que veut dire une phrase de la barre, selon la page où on l'écrit. */
@@ -123,6 +137,7 @@ export function comprendrePhrase(texte: string, lieu: LieuBarre, aujourdhui: Jou
   const cle = sansAccents(phrase);
   const ou = pageAOuvrir(phrase);
   if (ou) return { type: "ouvrir", ou };
+  if (RAPPELLE_MOI.test(phrase)) return { type: "tache", ...analyserTache(phrase, aujourdhui) };
   if (phrase.endsWith("?") || QUESTION.test(cle) || POUR_JARVIS.test(cle)) return { type: "jarvis", demande: phrase };
 
   // Sur une page, la page d'abord.
@@ -134,11 +149,13 @@ export function comprendrePhrase(texte: string, lieu: LieuBarre, aujourdhui: Jou
   if (lieu !== "accueil") return { type: "jarvis", demande: phrase };
 
   // Depuis l'accueil, Kora devine.
+  if (PRENDRE_SOIN.test(cle)) return { type: "tache", ...analyserTache(phrase, aujourdhui) };
   if (VERS_COURSES.test(phrase) || COURSES.test(cle)) return { type: "courses", articles: decouperArticles(sansVerbeDeCourses(phrase)) };
   if (RYTHME.test(cle) && !/\b(rdv|rendez-vous|anniv)/.test(cle)) return { type: "tache", ...analyserTache(phrase, aujourdhui) };
   const brouillon = analyserPhrase(phrase, aujourdhui, membres);
   const datee = brouillon.jour !== null || brouillon.heure !== null;
-  if (VERBES_TACHE.test(cle) && !brouillon.heure) return { type: "tache", ...analyserTache(phrase, aujourdhui) };
+  // Un verbe d'action, même avec une heure, est un rappel (« appeler le garage à 14h ») ; un rendez-vous n'a pas de verbe.
+  if (VERBES_TACHE.test(cle)) return { type: "tache", ...analyserTache(phrase, aujourdhui) };
   if (datee && brouillon.titre) return { type: "agenda", brouillon };
   if (devinerCategorie(phrase) !== "autre") return { type: "jarvis", demande: phrase };
   // Une phrase avec un verbe conjugué (« la litière est faite ») : Jarvis comprend mieux.
@@ -188,7 +205,7 @@ export function decrireIntention(i: Intention): string {
     const ou = i.type === "courses" ? "aux courses" : "à la liste";
     return n === 1 ? `${i.articles[0]} ajouté ${ou}.` : `${n} articles ajoutés ${ou}.`;
   }
-  if (i.type === "tache") return `Tâche « ${i.titre} » ajoutée.`;
+  if (i.type === "tache") return i.heure ? `Rappel « ${i.titre} » à ${i.heure}.` : `Tâche « ${i.titre} » ajoutée.`;
   if (i.type === "agenda") return `« ${i.brouillon.titre} » ajouté à l'agenda.`;
   if (i.type === "stock") return "Ajouté au stock.";
   if (i.type === "ouvrir") return "J'ouvre la page.";

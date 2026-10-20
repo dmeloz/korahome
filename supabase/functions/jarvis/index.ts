@@ -48,8 +48,8 @@ async function compter(foyerId: string, microChf: number): Promise<number> {
 const texte = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max) : "");
 
 const TAILLE_PAGE_MAX = 1_500_000;
-const TAILLE_IMAGE_MAX = 4_000_000; // en base64, environ 3 Mo d'image
-const IMAGES = ["image/jpeg", "image/png", "image/webp"];
+const TAILLE_IMAGE_MAX = 4_000_000; // en base64, environ 3 Mo d'image ou de PDF
+const IMAGES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 
 /** Ouvre le lien d'une recette (https public seulement, 3 redirections, 8 secondes, 1,5 Mo). */
 async function ouvrirLien(adresse: string): Promise<string | null> {
@@ -73,13 +73,13 @@ async function ouvrirLien(adresse: string): Promise<string | null> {
   return null;
 }
 
-/** La photo jointe, si elle est d'un format que Claude lit. */
-function lireImage(v: unknown): { media_type: "image/jpeg" | "image/png" | "image/webp"; data: string } | null {
+/** La photo ou le PDF joint, si c'est un format que Claude lit. */
+function lireImage(v: unknown): { media_type: "image/jpeg" | "image/png" | "image/webp" | "application/pdf"; data: string } | null {
   if (!v || typeof v !== "object") return null;
   const { type, donnees } = v as { type?: unknown; donnees?: unknown };
   if (typeof type !== "string" || !IMAGES.includes(type) || typeof donnees !== "string") return null;
   if (!donnees || donnees.length > TAILLE_IMAGE_MAX || !/^[A-Za-z0-9+/=]+$/.test(donnees)) return null;
-  return { media_type: type as "image/jpeg", data: donnees };
+  return { media_type: type as "image/jpeg" | "application/pdf", data: donnees };
 }
 
 Deno.serve(async (req) => {
@@ -133,7 +133,15 @@ Deno.serve(async (req) => {
       messages: [
         {
           role: "user",
-          content: image ? [{ type: "image", source: { type: "base64", ...image } }, { type: "text", text: message }] : message,
+          content: image
+            ? [
+                // Un PDF (une recette enregistrée, un livre scanné) se lit comme un document, page par page.
+                image.media_type === "application/pdf"
+                  ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: image.data } }
+                  : { type: "image", source: { type: "base64", media_type: image.media_type, data: image.data } },
+                { type: "text", text: message },
+              ]
+            : message,
         },
       ],
     });
