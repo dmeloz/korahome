@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
-import { creerFoyer, ErreurValidation, listesInitiales } from "../../domaine/foyer";
+import { expliquerErreur } from "../../domaine/erreurs";
+import { creerFoyer, listesInitiales } from "../../domaine/foyer";
 import { normaliserCode } from "../../domaine/synchro";
 import type { Depot } from "../../donnees/depot";
 import { choisirMembreCourant, contexteReel } from "../contexte";
@@ -64,7 +65,7 @@ function Retrouver({ rejoindre }: { rejoindre: (code: string) => Promise<void> }
     try {
       await rejoindre(code);
     } catch (err) {
-      setErreur(err instanceof Error && err.message ? err.message : "Ça n'a pas marché, réessaie.");
+      setErreur(expliquerErreur(err, "L'entrée dans le foyer"));
       setOccupe(false);
     }
   }
@@ -109,7 +110,7 @@ function Creation({ depot, onCree }: { depot: Depot; onCree: (membreId: string) 
       choisirMembreCourant(foyer.membres[0].id);
       onCree(foyer.membres[0].id);
     } catch (err) {
-      setErreur(err instanceof ErreurValidation ? err.message : "Impossible d'enregistrer, réessaie.");
+      setErreur(expliquerErreur(err, "Enregistrer"));
     }
   }
 

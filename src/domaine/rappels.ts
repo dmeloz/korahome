@@ -44,6 +44,29 @@ export interface PreferencesRappels {
   minute?: number;
   /** Les jours où le rappel arrive : 0 dimanche, 1 lundi… 6 samedi. */
   jours: number[];
+  /** Heures calmes : un mot écrit entre 22 h et 7 h attend 7 h au lieu de sonner la nuit. */
+  calme?: boolean;
+}
+
+/** Les heures calmes, les mêmes pour tous : de 22 h à 7 h, heure du foyer. */
+export const CALME_DEBUT = 22;
+export const CALME_FIN = 7;
+
+/** Est-ce une heure calme en ce moment, pour qui a choisi les heures calmes ? */
+export function enHeuresCalmes(instant: Date, fuseau: string = FUSEAU_DU_FOYER): boolean {
+  const { heure } = jourEtHeure(instant, fuseau);
+  return heure >= CALME_DEBUT || heure < CALME_FIN;
+}
+
+/**
+ * Au passage de 7 h : les mots devenus visibles pendant les heures calmes (depuis 22 h la veille),
+ * à annoncer maintenant à qui les a choisies. Null à toute autre heure.
+ */
+export function fenetreMotsCalmes(instant: Date, fuseau: string = FUSEAU_DU_FOYER): { apres: string; jusqua: string } | null {
+  const { heure, minute } = jourEtHeure(instant, fuseau);
+  if (heure !== CALME_FIN || minute !== 0) return null;
+  const jusqua = new Date(Math.floor(instant.getTime() / 3_600_000) * 3_600_000);
+  return { apres: new Date(jusqua.getTime() - (24 - CALME_DEBUT + CALME_FIN) * 3_600_000).toISOString(), jusqua: jusqua.toISOString() };
 }
 
 /** L'heure proposée au départ, décidée avec le foyer ; chacun peut la changer. */

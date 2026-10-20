@@ -351,7 +351,7 @@ describe("la synchro, compte par compte", () => {
 
 describe("l'identifiant Apple masqué", () => {
   it("garde le début et le domaine", () => {
-    expect(masquerAppleId("d.zadi@icloud.com")).toBe("d.z…@icloud.com");
+    expect(masquerAppleId("m.exemple@icloud.com")).toBe("m.e…@icloud.com");
     expect(masquerAppleId("ab@me.com")).toBe("a…@me.com");
   });
 });

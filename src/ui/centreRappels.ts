@@ -5,7 +5,8 @@ import type { Jour } from "../domaine/types";
 // le cache du téléphone. On les relit à l'ouverture de la cloche.
 
 const CACHE = "korahome-rappels";
-const ADRESSE = "/__rappels.json";
+// Même adresse que le service worker (public/notifications-sw.js), sous le chemin de l'app (« /korahome/ » sur GitHub Pages).
+const ADRESSE = `${import.meta.env.BASE_URL}__rappels.json`;
 
 export async function lireRappels(aujourdhui: Jour): Promise<RappelRecu[]> {
   try {

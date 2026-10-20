@@ -1,4 +1,5 @@
 import type { Evenement } from "../../domaine/agenda";
+import { expliquerErreur } from "../../domaine/erreurs";
 import { useEffect, useState } from "react";
 import type { Zone } from "../../domaine/jardin";
 import type { Meteo } from "../../domaine/meteo";
@@ -71,7 +72,7 @@ export function Notifications(props: {
     try {
       await action();
     } catch (e) {
-      setMessage({ texte: e instanceof Error && e.message ? e.message : "Ça n'a pas marché, réessaie.", erreur: true });
+      setMessage({ texte: expliquerErreur(e, "Le réglage des notifications"), erreur: true });
     } finally {
       setOccupe(false);
     }
@@ -245,6 +246,21 @@ export function Notifications(props: {
                 </button>
               </li>
             ))}
+            <li key="calme">
+              <button
+                className="ligne"
+                role="switch"
+                aria-checked={!!preferences.calme}
+                disabled={occupe}
+                onClick={() => changer({ ...preferences, calme: !preferences.calme })}
+              >
+                <span className="ligne-texte rappels-choix">
+                  <span>Heures calmes</span>
+                  <span className="discret">Un mot écrit entre 22 h et 7 h attend 7 h au lieu de sonner la nuit.</span>
+                </span>
+                <span className={`interrupteur${preferences.calme ? " actif" : ""}`} aria-hidden />
+              </button>
+            </li>
           </ul>
           {apercu}
           <div className="rappels-actions">

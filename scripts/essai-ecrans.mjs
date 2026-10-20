@@ -2,10 +2,15 @@
 // espace depuis « Tous les espaces » et chaque page des Réglages, et signale toute erreur ou page
 // sans titre. À lancer avant une version : `npm run build`, puis `node scripts/essai-ecrans.mjs`.
 // Les captures vont dans le dossier donné en argument (par défaut un dossier temporaire).
+// Depuis 0.0.67, axe-core (le contrôleur d'accessibilité de Deque) passe sur chaque écran : une
+// faute « grave » ou « critique » (contraste, bouton sans nom, rôle mal formé) fait échouer l'essai.
 import { spawn } from "node:child_process";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createRequire } from "node:module";
+
+const AXE = createRequire(import.meta.url).resolve("axe-core/axe.min.js");
 
 const PLAYWRIGHT = process.env.PLAYWRIGHT_MODULE ?? "/opt/node22/lib/node_modules/playwright/index.mjs";
 const NAVIGATEUR = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
@@ -25,6 +30,7 @@ try {
   p.on("pageerror", (e) => erreurs.push(`Erreur JavaScript : ${e.message}`));
   await p.goto(`http://localhost:${port}/`);
   await p.waitForTimeout(800);
+  await p.addScriptTag({ path: AXE });
   await p.getByText(/Créer|créer/).first().click().catch(() => {});
   await p.waitForTimeout(300);
   await p.getByPlaceholder("Chez nous").fill("Essai");
@@ -43,7 +49,25 @@ try {
     const titre = await p.locator(".page-dessus h1").first().textContent({ timeout: 3000 }).catch(() => null);
     if (!titre) erreurs.push(`« ${nom} » : pas de titre`);
     await capture(nom.replace(/\W+/g, "-"));
-    console.log(`${titre ? "ok " : "?? "} ${nom}${titre ? ` → ${titre}` : ""}`);
+    const fautes = await accessibilite(nom);
+    console.log(`${titre && !fautes ? "ok " : "?? "} ${nom}${titre ? ` → ${titre}` : ""}${fautes ? ` · ${fautes} faute${fautes > 1 ? "s" : ""} d'accessibilité` : ""}`);
+  };
+  /** axe sur la page du dessus : WCAG A et AA, fautes graves et critiques seulement. Rend leur nombre. */
+  const accessibilite = async (nom) => {
+    const resultat = await p
+      .evaluate(() =>
+        window.axe.run(document.querySelector(".page-dessus") ?? document.body, {
+          runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21aa"] },
+          resultTypes: ["violations"],
+        }),
+      )
+      .catch((e) => ({ violations: [{ id: "axe", impact: "critical", help: `axe n'a pas tourné : ${e.message}`, nodes: [] }] }));
+    const graves = resultat.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
+    for (const v of graves) {
+      const cible = v.nodes[0]?.target?.join(" ") ?? "";
+      erreurs.push(`« ${nom} » : ${v.help} (${v.id}, ${v.nodes.length}×)${cible ? ` — ${cible}` : ""}`);
+    }
+    return graves.length;
   };
   const revenir = async () => {
     await p.locator(".page-dessus .retour").click();
