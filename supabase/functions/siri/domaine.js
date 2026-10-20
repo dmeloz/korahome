@@ -531,6 +531,34 @@ function choseAFaire(animal, aujourdhui) {
 	return [...urgentes, ...bientot];
 }
 //#endregion
+//#region src/domaine/texte.ts
+/** « Pâtes fraîches » → « Pates fraiches » : la casse est gardée, seuls les accents partent. */
+const sansAccents = (t) => t.normalize("NFD").replace(/\p{M}/gu, "");
+const NOMS_MOIS = [
+	"janvier",
+	"février",
+	"mars",
+	"avril",
+	"mai",
+	"juin",
+	"juillet",
+	"août",
+	"septembre",
+	"octobre",
+	"novembre",
+	"décembre"
+];
+/** Dans l'ordre de `Date.getDay()` : le dimanche d'abord. */
+const NOMS_JOURS = [
+	"dimanche",
+	"lundi",
+	"mardi",
+	"mercredi",
+	"jeudi",
+	"vendredi",
+	"samedi"
+];
+//#endregion
 //#region src/domaine/rayons.ts
 const MOTS_CLES = [
 	["Bébé", [
@@ -702,7 +730,7 @@ const MOTS_CLES = [
 	]]
 ];
 function normaliser(texte) {
-	return texte.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/œ/g, "oe").trim();
+	return sansAccents(texte.toLowerCase()).replace(/œ/g, "oe").trim();
 }
 function contientMot(texte, motCle) {
 	const echappe = motCle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -904,15 +932,6 @@ const MOIS_COURTS = [
 	"oct.",
 	"nov.",
 	"déc."
-];
-const NOMS_JOURS = [
-	"dimanche",
-	"lundi",
-	"mardi",
-	"mercredi",
-	"jeudi",
-	"vendredi",
-	"samedi"
 ];
 const jourSemaine = (j) => (/* @__PURE__ */ new Date(`${j}T12:00:00Z`)).getUTCDay();
 const dateCourte = (j) => `${Number(j.slice(8, 10))} ${MOIS_COURTS[Number(j.slice(5, 7)) - 1]}`;
@@ -1184,20 +1203,6 @@ function avanceeProjet(plan, docs, aujourdhui) {
 		atteintVers
 	};
 }
-const NOMS_MOIS = [
-	"janvier",
-	"février",
-	"mars",
-	"avril",
-	"mai",
-	"juin",
-	"juillet",
-	"août",
-	"septembre",
-	"octobre",
-	"novembre",
-	"décembre"
-];
 /** « le 15 mars », « aujourd'hui », « demain », « en retard (le 3 octobre) ». */
 function decrireEcheanceFacture(echeance, aujourdhui) {
 	const ecart = ecartJours(aujourdhui, echeance);
@@ -2055,7 +2060,7 @@ const CONNAISSANCES = {
 };
 /** « Pâtes fraîches » → « pate fraiche » : minuscules, sans accent, chaque mot au singulier. */
 function cleProduit(nom) {
-	return nom.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/œ/g, "oe").replace(/[^a-z0-9' ]+/g, " ").split(/\s+/).filter(Boolean).map((mot) => mot.length > 3 && /[sx]$/.test(mot) && !/(?:ss|is|us|ys)$/.test(mot) ? mot.slice(0, -1) : mot).join(" ");
+	return sansAccents(nom.toLowerCase()).replace(/œ/g, "oe").replace(/[^a-z0-9' ]+/g, " ").split(/\s+/).filter(Boolean).map((mot) => mot.length > 3 && /[sx]$/.test(mot) && !/(?:ss|is|us|ys)$/.test(mot) ? mot.slice(0, -1) : mot).join(" ");
 }
 /**
 * Ce que Kora sait d'un produit : l'expression connue la plus longue contenue dans son
@@ -2117,7 +2122,7 @@ function lireBrouillon(brut, source) {
 		ingredients,
 		etapes,
 		source,
-		lien: /^https:\/\//.test(lien) ? lien : null
+		lien: lien.startsWith("https://") ? lien : null
 	};
 }
 function majuscule$2(s) {
@@ -3078,18 +3083,9 @@ function evenementsAvant(journal, quand, nombre = 6) {
 //#region src/domaine/jarvis.ts
 const listeCourses = (d) => d.listes.find((l) => l.type === "courses") ?? null;
 const prenomDe = (foyer, id) => foyer.membres.find((m) => m.id === id)?.prenom ?? null;
-const JOURS_SEMAINE = [
-	"dimanche",
-	"lundi",
-	"mardi",
-	"mercredi",
-	"jeudi",
-	"vendredi",
-	"samedi"
-];
 function nomDuJour(jour) {
 	const [a, m, j] = jour.split("-").map(Number);
-	return JOURS_SEMAINE[new Date(Date.UTC(a, m - 1, j)).getUTCDay()];
+	return NOMS_JOURS[new Date(Date.UTC(a, m - 1, j)).getUTCDay()];
 }
 /** L'état du foyer, en quelques lignes, envoyé avec chaque demande. */
 function decrireFoyer(d, membreId, aujourdhui) {

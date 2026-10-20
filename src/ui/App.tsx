@@ -1,5 +1,5 @@
 import { comptesIcloudDe, evenementsDe } from "../domaine/agenda";
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { lazy, Suspense, type ReactNode, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { flushSync } from "react-dom";
 import { meteoFraiche } from "../domaine/meteo";
 import { rappelDuMatin } from "../domaine/rappels";
@@ -12,21 +12,12 @@ import { CoinDev } from "./CoinDev";
 import { aujourdhuiLocal, choisirMembreCourant, lireMembreCourant } from "./contexte";
 import { Accueil } from "./ecrans/Accueil";
 import { Bienvenue } from "./ecrans/Bienvenue";
-import { Conseil } from "./ecrans/Conseil";
-import { Bilan } from "./ecrans/Bilan";
 import { CalendrierIphone, icloudEnErreur } from "./ecrans/CalendrierIphone";
 import { Siri, siriRelie } from "./ecrans/Siri";
-import { LaFee } from "./ecrans/LaFee";
-import { Memoire, type OngletMemoire } from "./ecrans/Memoire";
-import { NosMots } from "./ecrans/NosMots";
 import { Jarvis } from "./ecrans/Jarvis";
 import { DetailListe } from "./ecrans/DetailListe";
-import { Notifications } from "./ecrans/Notifications";
-import { Partage, type ServicesPartage } from "./ecrans/Partage";
 import { Apparence, Reglages, Telephone } from "./ecrans/Reglages";
-import { RetoursTest } from "./ecrans/RetoursTest";
 import { CentreRappels } from "./ecrans/CentreRappels";
-import { Sauvegarde } from "./ecrans/Sauvegarde";
 import { demanderRepartition } from "./ecrans/Taches";
 import { preparerDemande } from "./ecrans/Jarvis";
 import { BarreJarvis, FournisseurSaisie } from "./pieces";
@@ -39,7 +30,9 @@ import type { MiseAJour } from "./miseAJour";
 import { BORD_RETOUR, finRetour, gesteRetour } from "./gestes";
 import { noter } from "./journal";
 import { useMeteo } from "./meteo";
-import { MODULES, type DonneesModule } from "./modules";
+import { MODULES, prechargerPages, type DonneesModule } from "./modules";
+import type { OngletMemoire } from "./ecrans/Memoire";
+import type { ServicesPartage } from "./ecrans/Partage";
 import { enregistrerPastilleVisible, lirePastilleVisible } from "./rapport";
 import { afficherPastilleIcone, enregistrerPreferences, lirePreferences, mettreAJourRappels } from "./rappels";
 import { planifierSynchro, synchroEnDirect } from "./synchroAuto";
@@ -47,6 +40,28 @@ import { avecTransition } from "./transitions";
 import { useDonnees } from "./useDonnees";
 import { demanderVisite } from "./visite";
 import { definirFee, nomFee } from "./fee";
+
+// Les pages qu'on ouvre rarement se chargent à leur première ouverture.
+const PAGES_DIFFEREES = {
+  Bilan: () => import("./ecrans/Bilan").then((m) => ({ default: m.Bilan })),
+  Conseil: () => import("./ecrans/Conseil").then((m) => ({ default: m.Conseil })),
+  LaFee: () => import("./ecrans/LaFee").then((m) => ({ default: m.LaFee })),
+  Memoire: () => import("./ecrans/Memoire").then((m) => ({ default: m.Memoire })),
+  NosMots: () => import("./ecrans/NosMots").then((m) => ({ default: m.NosMots })),
+  Notifications: () => import("./ecrans/Notifications").then((m) => ({ default: m.Notifications })),
+  Partage: () => import("./ecrans/Partage").then((m) => ({ default: m.Partage })),
+  RetoursTest: () => import("./ecrans/RetoursTest").then((m) => ({ default: m.RetoursTest })),
+  Sauvegarde: () => import("./ecrans/Sauvegarde").then((m) => ({ default: m.Sauvegarde })),
+};
+const Bilan = lazy(PAGES_DIFFEREES.Bilan);
+const Conseil = lazy(PAGES_DIFFEREES.Conseil);
+const LaFee = lazy(PAGES_DIFFEREES.LaFee);
+const Memoire = lazy(PAGES_DIFFEREES.Memoire);
+const NosMots = lazy(PAGES_DIFFEREES.NosMots);
+const Notifications = lazy(PAGES_DIFFEREES.Notifications);
+const Partage = lazy(PAGES_DIFFEREES.Partage);
+const RetoursTest = lazy(PAGES_DIFFEREES.RetoursTest);
+const Sauvegarde = lazy(PAGES_DIFFEREES.Sauvegarde);
 
 // Pas de barre d'onglets : tout part du tableau de bord, chaque widget ouvre la
 // page de son module, et chaque page a son retour vers la précédente.
@@ -121,7 +136,18 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     if (!pret) return;
     const rappel = rappelDuMatin({ foyer, membreId: membreRappels, factures: facturesDuJour(budget, aujourdhui), taches, animaux, produits, zones, meteo, aujourdhui, preferences: lirePreferences() });
     afficherPastilleIcone(rappel?.nombre ?? 0);
-  }, [pret, foyer, membreRappels, taches, animaux, produits, zones, meteo, aujourdhui]);
+  }, [pret, foyer, membreRappels, budget, taches, animaux, produits, zones, meteo, aujourdhui]);
+
+  // Une fois l'accueil affiché, les autres pages se chargent en silence : la suivante s'ouvre aussitôt.
+  useEffect(() => {
+    if (!pret) return;
+    const precharger = () => {
+      prechargerPages();
+      for (const charger of Object.values(PAGES_DIFFEREES)) void charger().catch(() => {});
+    };
+    const id = setTimeout(precharger, 1500);
+    return () => clearTimeout(id);
+  }, [pret]);
 
   const page = pile[pile.length - 1];
   // Le glissement du doigt anime déjà la page : sans transition dans ce cas-là.
@@ -226,10 +252,9 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   };
   const jarvisPartage = partage && foyerPartage ? { serveur: partage.jarvis, foyerId: foyerPartage } : null;
   const agendaPartage = partage && foyerPartage ? { serveur: partage.agenda, foyerId: foyerPartage } : null;
-  function ecranDe(page: Page) {
-  let ecran;
-  if (page.nom === "accueil") {
-    ecran = (
+  // Chaque page de la pile et son écran ; une page oubliée ici est une erreur de types.
+  const ECRANS: { [N in Page["nom"]]: (page: Extract<Page, { nom: N }>) => ReactNode } = {
+    accueil: () => (
       <Accueil
         donnees={donnees}
         ouvrirModule={(id) => ouvrir({ nom: "module", id })}
@@ -253,9 +278,8 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         rappelsNonLus={rappelsNonLus}
         auDessus={pile.length === 1}
       />
-    );
-  } else if (page.nom === "module") {
-    ecran = MODULES[page.id]?.page?.({
+    ),
+    module: (page) => MODULES[page.id]?.page?.({
       ...donnees,
       depot,
       ouvrirListe,
@@ -265,83 +289,16 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       ouvrirCalendrier: () => ouvrir({ nom: "calendrier" }),
       onglet: page.onglet,
       changerOnglet,
-    });
-  } else if (page.nom === "liste") {
-    const liste = listes.find((l) => l.id === page.id);
-    ecran = liste ? (
-      <DetailListe depot={depot} foyer={leFoyer} membreId={membre} liste={liste} elements={elements} catalogue={catalogue} />
-    ) : (
-      <main><p className="vide">Cette liste n'existe plus.</p></main>
-    );
-  } else if (page.nom === "partage") {
-    ecran = <Partage services={partage} foyer={leFoyer} />;
-  } else if (page.nom === "notifications") {
-    ecran = (
-      <Notifications
-        serveur={partage?.rappels ?? null}
-        foyerId={foyerPartage}
-        membreId={membre}
-        ouvrirPartage={() => ouvrir({ nom: "partage" })}
-        foyer={leFoyer}
-        taches={taches}
-        evenements={evenementsDe(agenda)}
-        factures={facturesDuJour(budget, donnees.aujourdhui)}
-        animaux={animaux}
-        produits={produits}
-        zones={zones}
-        meteo={meteo}
-        aujourdhui={donnees.aujourdhui}
-      />
-    );
-  } else if (page.nom === "telephone") {
-    ecran = (
-      <Telephone
-        foyer={leFoyer}
-        membreId={membre}
-        choisir={(id) => {
-          choisirMembreCourant(id);
-          setMembreId(id);
-        }}
-      />
-    );
-  } else if (page.nom === "apparence") {
-    ecran = <Apparence />;
-  } else if (page.nom === "conseil" && partage && foyerPartage) {
-    ecran = <Conseil donnees={donnees} depot={depot} serveur={partage.jarvis} foyerPartage={foyerPartage} />;
-  } else if (page.nom === "jarvis" || page.nom === "conseil") {
-    ecran = (
-      <Jarvis
-        donnees={donnees}
-        depot={depot}
-        serveur={partage?.jarvis ?? null}
-        foyerPartage={foyerPartage}
-        ouvrirPartage={() => ouvrir({ nom: "partage" })}
-        ouvrirConseil={() => ouvrir({ nom: "conseil" })}
-        ouvrirMemoire={() => ouvrir({ nom: "memoire" })}
-      />
-    );
-  } else if (page.nom === "memoire") {
-    ecran = <Memoire donnees={donnees} depot={depot} ouvrirBilan={() => ouvrir({ nom: "bilan" })} onglet={page.onglet} />;
-  } else if (page.nom === "bilan") {
-    ecran = <Bilan depot={depot} donnees={donnees} changerHeureRappel={changerHeureRappel} ouvrirAppris={() => ouvrir({ nom: "memoire" })} />;
-  } else if (page.nom === "mots") {
-    const notifier =
-      partage && foyerPartage ? (m: { id: string; de: string | null; texte: string }) => partage.rappels.notifierMot({ foyerId: foyerPartage, id: m.id, de: m.de, texte: m.texte }) : null;
-    ecran = <NosMots donnees={donnees} depot={depot} notifier={notifier} />;
-  } else if (page.nom === "rappels") {
-    ecran = <CentreRappels ouvrirNotifications={() => ouvrir({ nom: "notifications" })} />;
-  } else if (page.nom === "sauvegarde") {
-    ecran = <Sauvegarde depot={depot} aujourdhui={donnees.aujourdhui} contenu={{ foyer: leFoyer, listes, elements, taches, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda, budget, retours }} />;
-  } else if (page.nom === "calendrier") {
-    ecran = <CalendrierIphone foyer={leFoyer} membreId={membre} comptes={comptesIcloudDe(agenda)} distant={agendaPartage} ouvrirPartage={() => ouvrir({ nom: "partage" })} />;
-  } else if (page.nom === "fee") {
-    ecran = <LaFee />;
-  } else if (page.nom === "siri") {
-    ecran = <Siri foyer={leFoyer} membreId={membre} distant={jarvisPartage} ouvrirPartage={() => ouvrir({ nom: "partage" })} />;
-  } else if (page.nom === "retours") {
-    ecran = <RetoursTest depot={depot} foyer={leFoyer} retours={retours} partageActif={partageActif} />;
-  } else {
-    ecran = (
+    }),
+    liste: (page) => {
+      const liste = listes.find((l) => l.id === page.id);
+      return liste ? (
+        <DetailListe depot={depot} foyer={leFoyer} membreId={membre} liste={liste} elements={elements} catalogue={catalogue} />
+      ) : (
+        <main><p className="vide">Cette liste n'existe plus.</p></main>
+      );
+    },
+    reglages: () => (
       <Reglages
         foyer={leFoyer}
         membreId={membre}
@@ -374,11 +331,63 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
           setPastille(visible);
         }}
       />
-    );
-  }
-
-  return ecran;
-  }
+    ),
+    telephone: () => (
+      <Telephone
+        foyer={leFoyer}
+        membreId={membre}
+        choisir={(id) => {
+          choisirMembreCourant(id);
+          setMembreId(id);
+        }}
+      />
+    ),
+    apparence: () => <Apparence />,
+    partage: () => <Partage services={partage} foyer={leFoyer} />,
+    notifications: () => (
+      <Notifications
+        serveur={partage?.rappels ?? null}
+        foyerId={foyerPartage}
+        membreId={membre}
+        ouvrirPartage={() => ouvrir({ nom: "partage" })}
+        foyer={leFoyer}
+        taches={taches}
+        evenements={evenementsDe(agenda)}
+        factures={facturesDuJour(budget, donnees.aujourdhui)}
+        animaux={animaux}
+        produits={produits}
+        zones={zones}
+        meteo={meteo}
+        aujourdhui={donnees.aujourdhui}
+      />
+    ),
+    jarvis: () => (
+      <Jarvis
+        donnees={donnees}
+        depot={depot}
+        serveur={partage?.jarvis ?? null}
+        foyerPartage={foyerPartage}
+        ouvrirPartage={() => ouvrir({ nom: "partage" })}
+        ouvrirConseil={() => ouvrir({ nom: "conseil" })}
+        ouvrirMemoire={() => ouvrir({ nom: "memoire" })}
+      />
+    ),
+    conseil: () => (partage && foyerPartage ? <Conseil donnees={donnees} depot={depot} serveur={partage.jarvis} foyerPartage={foyerPartage} /> : ECRANS.jarvis({ nom: "jarvis" })),
+    memoire: (page) => <Memoire donnees={donnees} depot={depot} ouvrirBilan={() => ouvrir({ nom: "bilan" })} onglet={page.onglet} />,
+    bilan: () => <Bilan depot={depot} donnees={donnees} changerHeureRappel={changerHeureRappel} ouvrirAppris={() => ouvrir({ nom: "memoire" })} />,
+    mots: () => {
+      const notifier =
+        partage && foyerPartage ? (m: { id: string; de: string | null; texte: string }) => partage.rappels.notifierMot({ foyerId: foyerPartage, id: m.id, de: m.de, texte: m.texte }) : null;
+      return <NosMots donnees={donnees} depot={depot} notifier={notifier} />;
+    },
+    rappels: () => <CentreRappels ouvrirNotifications={() => ouvrir({ nom: "notifications" })} />,
+    sauvegarde: () => <Sauvegarde depot={depot} aujourdhui={donnees.aujourdhui} contenu={{ foyer: leFoyer, listes, elements, taches, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda, budget, retours }} />,
+    calendrier: () => <CalendrierIphone foyer={leFoyer} membreId={membre} comptes={comptesIcloudDe(agenda)} distant={agendaPartage} ouvrirPartage={() => ouvrir({ nom: "partage" })} />,
+    fee: () => <LaFee />,
+    siri: () => <Siri foyer={leFoyer} membreId={membre} distant={jarvisPartage} ouvrirPartage={() => ouvrir({ nom: "partage" })} />,
+    retours: () => <RetoursTest depot={depot} foyer={leFoyer} retours={retours} partageActif={partageActif} />,
+  };
+  const ecranDe = (page: Page) => (ECRANS[page.nom] as (p: Page) => ReactNode)(page);
 
   // La fée, sur l'accueil, chaque module, chaque liste, la mémoire et Nos mots : là où l'on
   // ajoute quelque chose. Les réglages et la conversation ont leurs propres champs.
@@ -416,7 +425,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
             inert
           >
             {retour}
-            {ecranDe(p)}
+            <Suspense fallback={null}>{ecranDe(p)}</Suspense>
           </div>
         );
       }
@@ -426,7 +435,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       className={`contenu page-dessus${glissement ? " retour-glisse" : ""}`}
     >
       {retour}
-      {ecranDe(p)}
+      <Suspense fallback={null}>{ecranDe(p)}</Suspense>
       {bandeauVersion}
     </div>
       );
@@ -579,7 +588,7 @@ function useGlissementRetour(actif: boolean, revenir: () => void) {
   return glisse;
 }
 
-/** La durée de la fin du geste, accordée à `.retour-anime` dans styles.css. */
+/** La durée de la fin du geste, accordée à `.retour-anime` dans styles/pieces.css. */
 const DUREE_RETOUR_MS = 220;
 
 const sansAbonnement = () => () => {};

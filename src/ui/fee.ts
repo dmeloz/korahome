@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react";
 import { feeDe, type Fee, type TeinteFee } from "../domaine/fee";
 import { heuresDiscretes, nettoyerRenvois, type AllureMeteo, type Eclat } from "../domaine/vieFee";
 import { aujourdhuiLocal } from "./contexte";
+import { CLES, ecrireJson, ecrireTexte, effacer, lireJson, lireTexte } from "./stockageLocal";
 
 // La fée de ce téléphone (Tael ou Navi) et ce qu'elle est en train de dire. Toute page peut la
 // faire parler (un signe touché, le mot du jour) ; c'est la fée, en bas, qui montre la bulle.
@@ -161,21 +162,13 @@ export const estEveillee = () => Date.now() < eveilleeJusqua;
 
 // ----- Son tintement (coupé tant qu'on ne l'a pas allumé dans Réglages) -----
 
-const CLE_SON = "korahome.feeSon";
 export function sonActif(): boolean {
-  try {
-    return localStorage.getItem(CLE_SON) === "1";
-  } catch {
-    return false;
-  }
+  return lireTexte(CLES.feeSon) === "1";
 }
 export function changerSon(actif: boolean): void {
-  try {
-    if (actif) localStorage.setItem(CLE_SON, "1");
-    else localStorage.removeItem(CLE_SON);
-  } catch {
-    // vaut pour cette visite
-  }
+  // vaut pour cette visite
+  if (actif) ecrireTexte(CLES.feeSon, "1");
+  else effacer(CLES.feeSon);
 }
 
 let audio: AudioContext | null = null;
@@ -206,13 +199,11 @@ export function tinter(force = false): void {
 
 // ----- Sa discrétion apprise -----
 
-const CLE_RENVOIS = "korahome.feeRenvois";
-const CLE_DISCRETE_DIT = "korahome.feeDiscreteDit";
-
 export function lireRenvois() {
   try {
-    return nettoyerRenvois(JSON.parse(localStorage.getItem(CLE_RENVOIS) ?? "[]"), aujourdhuiLocal());
+    return nettoyerRenvois(lireJson<unknown>(CLES.feeRenvois, []), aujourdhuiLocal());
   } catch {
+    // Un jour mal écrit fait lever le nettoyage.
     return [];
   }
 }
@@ -224,13 +215,12 @@ export function lireRenvois() {
 export function noterRenvoi(): number | null {
   const heure = new Date().getHours();
   const renvois = [...lireRenvois(), { jour: aujourdhuiLocal(), heure }];
+  if (!ecrireJson(CLES.feeRenvois, renvois)) return null;
   try {
-    localStorage.setItem(CLE_RENVOIS, JSON.stringify(renvois));
     if (!heuresDiscretes(renvois).has(heure)) return null;
-    const dites: number[] = JSON.parse(localStorage.getItem(CLE_DISCRETE_DIT) ?? "[]");
+    const dites: number[] = JSON.parse(lireTexte(CLES.feeDiscreteDit) ?? "[]");
     if (dites.includes(heure)) return null;
-    localStorage.setItem(CLE_DISCRETE_DIT, JSON.stringify([...dites, heure]));
-    return heure;
+    return ecrireJson(CLES.feeDiscreteDit, [...dites, heure]) ? heure : null;
   } catch {
     return null;
   }
@@ -238,23 +228,18 @@ export function noterRenvoi(): number | null {
 
 /** Réglages › La fée › Remettre à zéro : elle reparle à toute heure. */
 export function oublierDiscretion(): void {
-  try {
-    localStorage.removeItem(CLE_RENVOIS);
-    localStorage.removeItem(CLE_DISCRETE_DIT);
-  } catch {
-    // rien
-  }
+  effacer(CLES.feeRenvois);
+  effacer(CLES.feeDiscreteDit);
 }
 
 // ----- Ce que j'ai déjà vu de l'autre -----
 
-const CLE_VUES = "korahome.feeVues";
-
 /** Null la toute première fois : tout ce qui est déjà là compte alors comme vu. */
 export function lireVues(): Set<string> | null {
+  const brut = lireTexte(CLES.feeVues, false);
+  if (brut === false) return new Set();
+  if (brut === null) return null;
   try {
-    const brut = localStorage.getItem(CLE_VUES);
-    if (brut === null) return null;
     const v: unknown = JSON.parse(brut);
     return new Set(Array.isArray(v) ? v.filter((c): c is string => typeof c === "string") : []);
   } catch {
@@ -263,11 +248,8 @@ export function lireVues(): Set<string> | null {
 }
 
 export function enregistrerVues(vues: Iterable<string>): void {
-  try {
-    localStorage.setItem(CLE_VUES, JSON.stringify([...vues]));
-  } catch {
-    // Stockage indisponible : l'icône reviendra à la prochaine ouverture.
-  }
+  // Stockage indisponible : l'icône reviendra à la prochaine ouverture.
+  ecrireJson(CLES.feeVues, [...vues]);
 }
 
 // ----- Où elle se tient -----
@@ -280,27 +262,19 @@ export interface PlaceFee {
   rangee: boolean;
 }
 
-const CLE_PLACE = "korahome.fee";
 export const PLACE_DE_DEPART: PlaceFee = { cote: "droite", bas: 96, rangee: false };
 
 export function lirePlace(): PlaceFee {
-  try {
-    const v = JSON.parse(localStorage.getItem(CLE_PLACE) ?? "null") as Partial<PlaceFee> | null;
-    if (!v) return PLACE_DE_DEPART;
-    return {
-      cote: v.cote === "gauche" ? "gauche" : "droite",
-      bas: typeof v.bas === "number" && v.bas >= 0 ? v.bas : PLACE_DE_DEPART.bas,
-      rangee: v.rangee === true,
-    };
-  } catch {
-    return PLACE_DE_DEPART;
-  }
+  const v = lireJson<Partial<PlaceFee> | null>(CLES.placeFee, null);
+  if (!v) return PLACE_DE_DEPART;
+  return {
+    cote: v.cote === "gauche" ? "gauche" : "droite",
+    bas: typeof v.bas === "number" && v.bas >= 0 ? v.bas : PLACE_DE_DEPART.bas,
+    rangee: v.rangee === true,
+  };
 }
 
 export function enregistrerPlace(p: PlaceFee): void {
-  try {
-    localStorage.setItem(CLE_PLACE, JSON.stringify(p));
-  } catch {
-    // La place vaut pour cette visite.
-  }
+  // La place vaut pour cette visite.
+  ecrireJson(CLES.placeFee, p);
 }

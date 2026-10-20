@@ -1,4 +1,5 @@
 import { normaliser } from "./rayons";
+import { NOMS_MOIS } from "./texte";
 
 // Ce que Kora sait des plantes qu'on cultive en pot ou en bac sur le plateau vaudois
 // (Renens, environ 400 m) : l'ensoleillement qu'elles aiment, l'arrosage en été,
@@ -270,7 +271,7 @@ export function trouverEspece(texte: string): Espece | null {
   return meilleure?.espece ?? null;
 }
 
-export const NOMS_MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+export { NOMS_MOIS };
 
 /** L'exposition d'une zone convient-elle à la plante ? Le soleil trop fort se compense mieux que l'ombre. */
 export function expositionConvient(plante: Exposition, zone: Exposition): boolean {

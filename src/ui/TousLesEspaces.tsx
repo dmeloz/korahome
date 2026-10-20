@@ -7,6 +7,7 @@ import { vibrer } from "./haptique";
 import { Icone, type NomIcone } from "./Icone";
 import { PICTOS, type DonneesModule } from "./modules";
 import { nomFee } from "./fee";
+import { APPUI_LONG_MS } from "./gestes";
 
 // « Tous les espaces » : on tire l'accueil vers le bas et une feuille de verre descend, avec la
 // recherche, chaque module rangé par usage du quotidien, les rappels et les réglages. Aucune
@@ -14,7 +15,6 @@ import { nomFee } from "./fee";
 // puis on la glisse sur l'accueil : elle devient un widget.
 // Équivalent natif : la bibliothèque d'apps de l'iPhone, avec .searchable et un draggable.
 
-const APPUI_LONG_MS = 350;
 /** Remontée d'autant par la poignée, la feuille se referme. */
 const SEUIL_FERMETURE = 60;
 

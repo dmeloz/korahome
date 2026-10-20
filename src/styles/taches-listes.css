@@ -1,0 +1,43 @@
+/* ===== Tâches et listes : la date d'une tâche, ses actions, « Kora devine », l'équilibre du foyer ===== */
+
+.date-tache { display: flex; align-items: center; gap: 10px; font-size: var(--t-detail); color: var(--discret); }
+.date-tache input {
+  border: 1px solid var(--trait);
+  background: var(--surface);
+  color: var(--texte);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: var(--t-detail);
+}
+
+.tache { padding: 6px 12px 6px 16px; }
+.tache .case { background: none; padding: 0; }
+.tache.coche .case { background: var(--accent); border-color: var(--accent); }
+.tache.coche .ligne-texte { color: var(--coche); text-decoration: line-through; }
+.tache-texte {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 6px 0;
+}
+.tache-details { font-size: var(--t-legende); color: var(--discret); }
+.tache-details.retard, .rayon.retard { color: var(--urgent); }
+.tache-actions { display: flex; flex-wrap: wrap; gap: 4px 18px; padding: 0 16px 10px 52px; }
+.tache-actions .lien { font-size: var(--t-detail); padding: 4px 0; }
+
+.devinees { margin: 4px 0 14px; display: grid; gap: 6px; }
+.devinees .surtitre { margin: 0; }
+
+.saisie-devinee { margin: -4px 0 10px; }
+.equilibre { display: grid; gap: 8px; margin-top: 4px; }
+.equilibre .surtitre, .equilibre p { margin: 0; }
+.equilibre-barre { display: flex; gap: 3px; height: 8px; border-radius: 999px; overflow: hidden; }
+.equilibre-barre span { min-width: 6px; opacity: 0.85; }
+.equilibre-noms { display: flex; gap: 16px; font-size: var(--t-detail); }
+.equilibre-noms > span { display: inline-flex; align-items: center; gap: 6px; }
+.equilibre-point { width: 8px; height: 8px; border-radius: 50%; }

@@ -6,6 +6,7 @@ import { decrirePeremption, LIEUX, type Produit } from "./stock";
 import type { WidgetId } from "./tableauDeBord";
 import { decrireEcheance, estTerminee } from "./taches";
 import type { Element, Jour, Liste, Tache } from "./types";
+import { sansAccents } from "./texte";
 
 // Chercher partout depuis l'accueil (on tire la page vers le bas) : un article, un
 // rendez-vous, un produit, un vaccin de Mitsu, un numéro retenu par Jarvis.
@@ -34,7 +35,7 @@ export interface DonneesRecherche {
 }
 
 export const normaliserRecherche = (t: string) =>
-  t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[’']/g, " ").replace(/\s+/g, " ").trim();
+  sansAccents(t).toLowerCase().replace(/[’']/g, " ").replace(/\s+/g, " ").trim();
 
 /** Chaque mot de la recherche commence un mot du texte : « den » trouve « Dentiste ». */
 export function correspond(texte: string, recherche: string): boolean {

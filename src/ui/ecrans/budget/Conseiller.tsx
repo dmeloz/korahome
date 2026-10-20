@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { formaterMontant, nommerMois, POTS, POTS_SUIVIS, type PlanBudget, type Pot } from "../../domaine/budget";
+import { formaterMontant, nommerMois, POTS, POTS_SUIVIS, type PlanBudget, type Pot } from "../../../domaine/budget";
 import {
   decrireBudgetConseiller,
   finDuMois,
@@ -8,12 +8,13 @@ import {
   QUESTIONS_CONSEILLER,
   type BilanDeMois,
   type ReponseConseiller,
-} from "../../domaine/budgetConseil";
-import { formaterChf } from "../../domaine/jarvis";
-import { Icone } from "../Icone";
-import type { PropsPage } from "../modules";
-import { vibrer } from "../haptique";
-import { nomFee } from "../fee";
+} from "../../../domaine/budgetConseil";
+import { formaterChf } from "../../../domaine/jarvis";
+import { Icone } from "../../Icone";
+import type { PropsPage } from "../../modules";
+import { vibrer } from "../../haptique";
+import { nomFee } from "../../fee";
+import { CLES, ecrireJson, lireJson } from "../../stockageLocal";
 
 // Le conseiller du Budget (Kora 0.0.37) : Jarvis lit tout le budget et répond par quelques
 // phrases, un tableau s'il le faut et des conseils chiffrés. Règles dans src/domaine/budgetConseil.ts.
@@ -28,23 +29,14 @@ interface Echange {
 }
 
 /** La dernière réponse reste sur ce téléphone (les montants ne quittent pas l'appareil autrement). */
-const CLE = "korahome.conseillerBudget";
-
 function relire(): Echange | null {
-  try {
-    const brut = localStorage.getItem(CLE);
-    return brut ? (JSON.parse(brut) as Echange) : null;
-  } catch {
-    return null;
-  }
+  // Une chaîne vide n'est pas du JSON : elle rend null comme une clé absente.
+  return lireJson<Echange | null>(CLES.conseillerBudget, null);
 }
 
 function garder(e: Echange) {
-  try {
-    localStorage.setItem(CLE, JSON.stringify(e));
-  } catch {
-    // Navigation privée : la réponse reste affichée tant que la page est ouverte.
-  }
+  // Navigation privée : la réponse reste affichée tant que la page est ouverte.
+  ecrireJson(CLES.conseillerBudget, e);
 }
 
 export interface Conseiller {

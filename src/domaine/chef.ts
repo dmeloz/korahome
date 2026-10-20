@@ -20,6 +20,7 @@ import { detecterRayon, normaliser } from "./rayons";
 import { decrirePeremption, LIEUX, ORDRE_LIEUX, type Produit } from "./stock";
 import { ecartJours } from "./taches";
 import { RAYONS, type Contexte, type Element, type Id, type Jour, type Liste, type Rayon } from "./types";
+import { NOMS_MOIS } from "./texte";
 
 // Ce dont la fonction serveur a aussi besoin : le compteur de Jarvis et l'heure de Zurich.
 export { etatBudget, moisDe } from "./jarvisModele";
@@ -172,7 +173,6 @@ export function alertesMitsu(animaux: readonly Animal[], aujourdhui: Jour): stri
   return alertes;
 }
 
-const MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
 
 export const CONSIGNES_CHEF = `Tu es le Chef de la semaine de KoraHome, l'app d'un couple qui vit à Renens, dans le canton de Vaud.
 Chaque dimanche, tu proposes ${NOMBRE_REPAS} repas du soir pour la semaine, simples (45 minutes au plus), de saison en Suisse romande, pour deux personnes.
@@ -191,7 +191,7 @@ export function messageChef(d: { produits: readonly Produit[]; enCourses: readon
   const aFinir = produitsAFinir(d.produits, d.aujourdhui);
   const urgents = new Set(aFinir.map((p) => p.id));
   const decrire = (p: Produit) => [p.nom, p.quantite, p.peremption && decrirePeremption(p, d.aujourdhui)].filter(Boolean).join(" · ");
-  const lignes = [`Nous sommes le ${Number(d.aujourdhui.slice(8, 10))} ${MOIS[Number(d.aujourdhui.slice(5, 7)) - 1]} ${d.aujourdhui.slice(0, 4)}.`, ""];
+  const lignes = [`Nous sommes le ${Number(d.aujourdhui.slice(8, 10))} ${NOMS_MOIS[Number(d.aujourdhui.slice(5, 7)) - 1]} ${d.aujourdhui.slice(0, 4)}.`, ""];
   lignes.push("À finir vite :", ...(aFinir.length ? aFinir.map((p) => `- ${decrire(p)}`) : ["- rien de pressé"]), "");
   for (const lieu of ORDRE_LIEUX) {
     const ici = d.produits.filter((p) => p.lieu === lieu && !urgents.has(p.id));

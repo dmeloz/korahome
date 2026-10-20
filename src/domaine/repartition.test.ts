@@ -12,7 +12,7 @@ describe("étaler les tâches de la semaine", () => {
   it("pose les six tâches de départ sur six jours différents", () => {
     const taches = tachesDeDepart(auj, ctx);
     const etalees = appliquerEtalement(etalementPropose(taches, auj));
-    const jours = [...taches.map((t) => etalees.find((e) => e.id === t.id)?.echeance ?? t.echeance)];
+    const jours = taches.map((t) => etalees.find((e) => e.id === t.id)?.echeance ?? t.echeance);
     expect(new Set(jours).size).toBe(6);
     expect(jours.every((j) => j >= auj && j <= "2026-10-25")).toBe(true);
   });

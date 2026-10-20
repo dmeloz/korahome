@@ -1,0 +1,68 @@
+/* ===== Nos mots : les mots de l'un à l'autre, les humeurs, les comptes à rebours ===== */
+
+.mot-nouveau { display: flex; flex-direction: column; gap: 10px; padding: 14px; }
+.mot-nouveau textarea {
+  width: 100%;
+  resize: none;
+  border: 0;
+  background: transparent;
+  color: var(--texte);
+  font: inherit;
+  font-size: var(--t-corps);
+  line-height: 1.4;
+  outline: none;
+}
+.mot-bas { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.mot-bas .compteur { font-size: var(--t-legende); font-variant-numeric: tabular-nums; }
+.humeurs { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.humeurs p { margin: 0; }
+.humeurs-choix { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 2px; }
+.humeur-bouton {
+  aspect-ratio: 1;
+  min-width: 0;
+  padding: 0;
+  line-height: 1;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: none;
+  font-size: var(--t-section);
+  filter: grayscale(0.6);
+  opacity: 0.7;
+  transition: transform 0.15s, filter 0.15s, opacity 0.15s;
+}
+.humeur-bouton.active { background: var(--accent-doux); border-color: var(--accent); filter: none; opacity: 1; transform: scale(1.08); }
+.compte-nouveau { flex-wrap: wrap; }
+.compte-nouveau input:first-child { flex-basis: 100%; }
+.compte-nouveau input[type="date"] { color: var(--discret); min-height: 48px; }
+.mots .mot { display: flex; align-items: center; gap: 10px; }
+.mots .mot .ligne-texte { flex: 1; }
+.coeur-mot {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: none;
+  color: var(--discret);
+  font: inherit;
+  font-size: var(--t-legende);
+  padding: 6px;
+}
+.coeur-mot.rempli { color: var(--accent); }
+.coeur-mot.aime svg { fill: currentColor; }
+
+/* Humeurs : quatre par rang, pictogramme au trait et son nom. */
+.humeurs-choix { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.humeur-bouton {
+  aspect-ratio: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 2px 8px;
+  color: var(--discret);
+  filter: none;
+  opacity: 1;
+  font-size: var(--t-legende);
+}
+.humeur-bouton.active { color: var(--accent); transform: none; }
+.humeur-nom { font-size: var(--t-legende); line-height: 1.15; text-align: center; }

@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Icone } from "../Icone";
+import { CLES, ecrireTexte, lireTexte } from "../stockageLocal";
 
 // Le gabarit unique d'une page : un grand titre (30), une ligne de contexte, des actions
 // à droite, puis le contenu. Équivalent natif : une vue de NavigationStack avec
@@ -31,15 +32,8 @@ export function Page(props: {
   );
 }
 
-const PREFIXE = "korahome.aide.";
-
-function dejaVue(cle: string): boolean {
-  try {
-    return localStorage.getItem(PREFIXE + cle) === "1";
-  } catch {
-    return true;
-  }
-}
+/** Sans stockage, l'aide ne s'impose pas. */
+const dejaVue = (cle: string): boolean => lireTexte(CLES.prefixeAide + cle, "1") === "1";
 
 /** Une carte d'aide douce à la première visite d'une page ; « Compris » la range pour de bon. */
 export function AideUneFois({ cle, texte }: { cle: string; texte: string }) {
@@ -52,11 +46,8 @@ export function AideUneFois({ cle, texte }: { cle: string; texte: string }) {
       <button
         className="lien"
         onClick={() => {
-          try {
-            localStorage.setItem(PREFIXE + cle, "1");
-          } catch {
-            // Stockage indisponible : l'aide se range pour cette visite.
-          }
+          // Stockage indisponible : l'aide se range pour cette visite.
+          ecrireTexte(CLES.prefixeAide + cle, "1");
           setVue(true);
         }}
       >

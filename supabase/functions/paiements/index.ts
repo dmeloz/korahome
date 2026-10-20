@@ -12,42 +12,11 @@
 // Les règles viennent de src/domaine/paiements.ts, copié dans domaine.js par `npm run fonction`.
 // Déploiement : docs/budget.md (sans vérification du JWT : le raccourci n'a pas de session).
 
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { aujourdhui, ctx } from "../_shared/contexte.ts";
+import { preflight, repondre } from "../_shared/http.ts";
+import { empreinte, nouveauJeton } from "../_shared/jetons.ts";
+import { echec, estMembre, serveur, utilisateur } from "../_shared/supabase.ts";
 import { recevoirPaiement } from "./domaine.js";
-
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-const serveur = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
-  auth: { persistSession: false },
-});
-
-function repondre(corps: unknown, statut = 200): Response {
-  return new Response(JSON.stringify(corps), { status: statut, headers: { ...CORS, "Content-Type": "application/json" } });
-}
-
-async function echec<T>(requete: PromiseLike<{ data: T; error: { message: string } | null }>): Promise<T> {
-  const { data, error } = await requete;
-  if (error) throw new Error(error.message);
-  return data;
-}
-
-async function empreinte(jeton: string): Promise<string> {
-  const octets = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(jeton)));
-  return [...octets].map((o) => o.toString(16).padStart(2, "0")).join("");
-}
-
-function nouveauJeton(): string {
-  const octets = crypto.getRandomValues(new Uint8Array(24));
-  return btoa(String.fromCharCode(...octets)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
-/** Le jour à Renens (Europe/Zurich), « AAAA-MM-JJ ». */
-const aujourdhui = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Zurich" }).format(new Date());
-
-const ctx = { maintenant: () => new Date().toISOString(), nouvelId: () => crypto.randomUUID() };
 
 /** Un paiement envoyé par le raccourci. */
 async function recevoir(jeton: string, corps: Record<string, unknown>) {
@@ -66,7 +35,8 @@ async function recevoir(jeton: string, corps: Record<string, unknown>) {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  const options = preflight(req);
+  if (options) return options;
   try {
     const texte = await req.text();
     if (texte.length > 4000) return repondre({ erreur: "Trop long" }, 413);
@@ -80,14 +50,12 @@ Deno.serve(async (req) => {
     const jeton = new URL(req.url).searchParams.get("j") ?? (typeof corps.jeton === "string" ? corps.jeton : "");
     if (jeton) return await recevoir(jeton.slice(0, 100), corps);
 
-    const session = req.headers.get("Authorization")?.replace(/^Bearer /, "") ?? "";
-    const { data } = await serveur.auth.getUser(session);
-    if (!data.user) return repondre({ erreur: "Connexion requise" }, 401);
+    const user = await utilisateur(req);
+    if (!user) return repondre({ erreur: "Connexion requise" }, 401);
     const foyerId = typeof corps.foyerId === "string" ? corps.foyerId.slice(0, 100) : "";
     const membreId = typeof corps.membreId === "string" ? corps.membreId.slice(0, 100) : "";
     if (!foyerId || !membreId) return repondre({ erreur: "Demande inconnue" }, 400);
-    const { data: membre } = await serveur.from("membres_foyer").select("user_id").eq("foyer_id", foyerId).eq("user_id", data.user.id).maybeSingle();
-    if (!membre) return repondre({ erreur: "Ce foyer appartient à un autre compte" }, 403);
+    if (!(await estMembre(foyerId, user.id))) return repondre({ erreur: "Ce foyer appartient à un autre compte" }, 403);
 
     if (corps.mode === "lien") {
       const nouveau = nouveauJeton();

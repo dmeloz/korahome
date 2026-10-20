@@ -22,6 +22,8 @@ interrupteurs) et la 5. Les étapes complètes servent si le projet devait être
 1. Menu « SQL Editor » > « New query ».
 2. Coller tout le contenu de [`supabase/schema.sql`](../supabase/schema.sql), puis « Run ».
    Le script peut être relancé sans risque.
+3. Les changements du schéma qui suivent ont chacun leur fichier daté dans
+   [`supabase/migrations/`](../supabase/migrations/README.md).
 
 ## 3. Entrée par le code, et comptes
 

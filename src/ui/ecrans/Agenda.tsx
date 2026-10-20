@@ -34,6 +34,7 @@ import { Icone } from "../Icone";
 import type { PropsPage } from "../modules";
 import { Onglets, Page, useGestionnaireBarre } from "../pieces";
 import { comprendrePhrase } from "../../domaine/barre";
+import { deuxChiffres } from "../../domaine/texte";
 
 type Vue = "jour" | "semaine" | "mois" | "avenir";
 const VUES: Record<Vue, string> = { jour: "Jour", semaine: "Semaine", mois: "Mois", avenir: "À venir" };
@@ -266,7 +267,6 @@ export function Agenda(p: PropsPage) {
 
 const HAUTEUR_HEURE = 52;
 const HEURES = Array.from({ length: 24 }, (_, h) => h);
-const deuxChiffres = (n: number) => String(n).padStart(2, "0");
 const maintenantEnMinutes = () => {
   const d = new Date(contexteReel.maintenant());
   return d.getHours() * 60 + d.getMinutes();

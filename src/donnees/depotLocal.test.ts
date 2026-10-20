@@ -234,7 +234,7 @@ describe("dépôt local : modifications en attente de partage", () => {
     await depot.enregistrerRetour(nouveauRetour({ texte: "Note", genre: "idee", ecran: "Accueil", version: "0.0.4", auteur: null }, ctx));
     const attente = await depot.lireEnAttente();
     expect(attente.map((c) => c.collection).sort()).toEqual(["elements", "listes", "retours"]);
-    expect((attente.find((c) => c.id === lait.id)?.donnees as { coche: boolean }).coche).toBe(true);
+    expect((attente.find((c) => c.id === lait.id)!.donnees as { coche: boolean }).coche).toBe(true);
   });
 
   it("note une suppression de liste avec ses éléments", async () => {

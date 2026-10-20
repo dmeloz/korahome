@@ -1,0 +1,25 @@
+/* Les styles de Kora, rangés par écran.
+   L'ordre des imports est celui de la cascade : à sélecteurs de même poids, la règle importée plus tard gagne.
+   Il reprend l'ordre où les règles sont nées ; ne pas le changer sans vérifier qu'aucune règle d'un fichier
+   n'en reprend une d'un autre (même élément, même propriété, même spécificité). */
+@import "./base.css";
+@import "./pieces.css";
+@import "./accueil.css";
+@import "./taches-listes.css";
+@import "./retours-dev.css";
+@import "./mitsu.css";
+@import "./partage.css";
+@import "./bienvenue.css";
+@import "./rappels.css";
+@import "./reglages.css";
+@import "./stock.css";
+@import "./jarvis.css";
+@import "./jardin.css";
+@import "./mots.css";
+@import "./ce-que-kora-sait.css";
+@import "./agenda.css";
+@import "./budget.css";
+@import "./chef-recettes.css";
+@import "./visite.css";
+@import "./fee.css";
+@import "./surcharges.css";

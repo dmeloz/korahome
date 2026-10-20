@@ -12,6 +12,7 @@ import { TYPES_SOIN, type Animal } from "./mitsu";
 import { normaliser } from "./rayons";
 import { decaler, ecartJours } from "./taches";
 import type { Contexte, Foyer, Id, Jour } from "./types";
+import { deuxChiffres, NOMS_JOURS, NOMS_MOIS } from "./texte";
 
 export const CATEGORIES = {
   rdv: "Rendez-vous",
@@ -357,9 +358,9 @@ export function dispositionDuJour(occ: readonly Occurrence[], jour: Jour): { jou
 
 // ----- Les mots des dates -----
 
-export const NOMS_MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+export { NOMS_MOIS };
 const MOIS_COURTS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
-export const NOMS_JOURS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
+export { NOMS_JOURS };
 
 export const jourSemaine = (j: Jour) => new Date(`${j}T12:00:00Z`).getUTCDay();
 const dateCourte = (j: Jour) => `${Number(j.slice(8, 10))} ${MOIS_COURTS[Number(j.slice(5, 7)) - 1]}`;
@@ -470,7 +471,6 @@ function numeroMois(mot: string): number {
   return ["jan", "fev", "mar", "avr", "mai", "juin", "juil", "aou", "sep", "oct", "nov", "dec"].findIndex((p) => n.startsWith(p)) + 1;
 }
 
-const deux = (n: number) => String(n).padStart(2, "0");
 const RE_DATE_VALIDE = (j: Jour) => {
   const [a, m, d] = j.split("-").map(Number);
   const date = new Date(Date.UTC(a, m - 1, d));
@@ -482,9 +482,9 @@ function dateDe(jour: number, mois: number, an: number | null, aujourdhui: Jour)
   if (!mois || jour < 1 || jour > 31) return null;
   let a = an ?? annee(aujourdhui);
   if (a < 100) a += 2000;
-  let j = `${a}-${deux(mois)}-${deux(jour)}`;
+  let j = `${a}-${deuxChiffres(mois)}-${deuxChiffres(jour)}`;
   if (!RE_DATE_VALIDE(j)) return null;
-  if (an === null && j < aujourdhui) j = `${a + 1}-${deux(mois)}-${deux(jour)}`;
+  if (an === null && j < aujourdhui) j = `${a + 1}-${deuxChiffres(mois)}-${deuxChiffres(jour)}`;
   return j;
 }
 
@@ -493,7 +493,7 @@ function prochainQuantieme(jour: number, aujourdhui: Jour, apres: Jour = aujourd
   if (jour < 1 || jour > 31) return null;
   let [a, m] = [annee(apres), Number(apres.slice(5, 7))];
   for (let i = 0; i < 3; i++) {
-    const j = `${a}-${deux(m)}-${deux(jour)}`;
+    const j = `${a}-${deuxChiffres(m)}-${deuxChiffres(jour)}`;
     if (RE_DATE_VALIDE(j) && j >= apres && j >= aujourdhui) return j;
     [a, m] = m === 12 ? [a + 1, 1] : [a, m + 1];
   }
@@ -504,7 +504,7 @@ function heureDe(h: string, m?: string): string | null {
   const hh = Number(h);
   const mm = m ? Number(m) : 0;
   if (hh > 23 || mm > 59) return null;
-  return `${deux(hh)}:${deux(mm)}`;
+  return `${deuxChiffres(hh)}:${deuxChiffres(mm)}`;
 }
 
 /** Le prochain jour de la semaine nommé, jamais aujourd'hui : « jeudi » dit un jeudi, c'est le suivant. */

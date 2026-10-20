@@ -3,6 +3,7 @@
 // ses propres habitudes (voir catalogue.ts). Durées prudentes, produit non entamé.
 
 import type { Lieu, Unite } from "./stock";
+import { sansAccents } from "./texte";
 
 export interface Connaissance {
   lieu: Lieu;
@@ -45,10 +46,7 @@ const CONNAISSANCES: Record<string, Connaissance> = {
 
 /** « Pâtes fraîches » → « pate fraiche » : minuscules, sans accent, chaque mot au singulier. */
 export function cleProduit(nom: string): string {
-  return nom
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+  return sansAccents(nom.toLowerCase())
     .replace(/œ/g, "oe")
     .replace(/[^a-z0-9' ]+/g, " ")
     .split(/\s+/)

@@ -2,6 +2,7 @@ import { auCentime, depenses, factureReglee, POTS, type DocBudget, type Depense,
 import { ecartJours } from "./taches";
 import { nomDeCommercant } from "./paiements";
 import type { Contexte, Id, Jour } from "./types";
+import { sansAccents as retirerAccents } from "./texte";
 
 // Le relevé Revolut d'un mois (export CSV de l'app Revolut), pour ce qu'Apple Pay n'a pas vu :
 // achats en ligne, carte en plastique, prélèvements. Kora lit les sorties terminées, laisse de côté
@@ -33,7 +34,7 @@ const COLONNES: Record<"type" | "debut" | "fin" | "description" | "montant" | "f
   etat: /^(state|etat|statut)$/,
 };
 
-const sansAccents = (t: string) => t.trim().toLowerCase().normalize("NFD").replace(/\p{M}/gu, "").replace(/^﻿/, "");
+const sansAccents = (t: string) => retirerAccents(t.trim().toLowerCase()).replace(/^﻿/, "");
 
 /** Découpe une ligne CSV (guillemets compris). */
 function cellules(ligne: string, separateur: string): string[] {

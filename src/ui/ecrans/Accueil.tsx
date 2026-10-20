@@ -46,6 +46,8 @@ import { TousLesEspaces } from "../TousLesEspaces";
 import { lireDerniereSauvegarde } from "../sauvegarde";
 import { fermerRemarque, lireAdaptations, lireDernierBilan, lireUsages, noterUsage, remarqueAMontrer, useApprentissageLocal } from "../usage";
 import { lireDerniereRepartition } from "./Taches";
+import { APPUI_LONG_MS } from "../gestes";
+import { heureMinute } from "../../domaine/texte";
 
 /** Combien de choses du jour la carte garde ; trois se voient, les autres se font défiler. */
 const CHOSES_CARTE = 12;
@@ -56,8 +58,6 @@ function salutation(heure: number): string {
   return "Bonsoir";
 }
 
-/** Durée d'appui pour passer en mode modification, comme sur l'écran d'accueil de l'iPhone. */
-const APPUI_LONG_MS = 450;
 /** Au-delà de ce déplacement, le doigt fait défiler la page : pas d'appui long. */
 const TOLERANCE_PX = 10;
 /** Tirée vers le bas d'autant, depuis le haut, la page ouvre « Tous les espaces ». */
@@ -108,7 +108,7 @@ export function Accueil(props: {
   const moi = foyer.membres.find((m) => m.id === membreId);
   const annoncer = useAnnoncer();
   const maintenant = new Date();
-  const heureTexte = `${String(maintenant.getHours()).padStart(2, "0")}:${String(maintenant.getMinutes()).padStart(2, "0")}`;
+  const heureTexte = heureMinute(maintenant);
   // La visite guidée attend que l'accueil soit posé, tout en haut.
   const visiteDemandee = useSyncExternalStore(abonnerVisite, visiteEnAttente);
   const [visite, setVisite] = useState(false);
@@ -317,7 +317,7 @@ export function Accueil(props: {
       const t = props.donnees.taches.find((x) => x.id === c.tacheId);
       if (!t) return;
       const dans = new Date(Date.now() + 15 * 60_000);
-      const heure = `${String(dans.getHours()).padStart(2, "0")}:${String(dans.getMinutes()).padStart(2, "0")}`;
+      const heure = heureMinute(dans);
       void props.depot.enregistrerTache({ ...t, heure });
     },
   });

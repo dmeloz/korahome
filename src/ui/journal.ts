@@ -1,33 +1,26 @@
 import { ajouterEvenement, nettoyerDetail, type EvenementJournal, type TypeEvenement } from "../domaine/retours";
+import { CLES, ecrireJson, lireJson } from "./stockageLocal";
 
 // Journal discret des retours de test : propre à ce téléphone, hors du dépôt et
 // jamais envoyé seul. Il note l'ouverture de l'app, les écrans visités, le
 // libellé des boutons touchés et les erreurs ; jamais ce qui est tapé au clavier.
 
-const CLE = "korahome.journal";
 let memoire: EvenementJournal[] | null = null;
 let ecriture: ReturnType<typeof setTimeout> | null = null;
 let ecranCourant = () => "Accueil";
 
 function charger(): EvenementJournal[] {
   if (memoire) return memoire;
-  try {
-    const brut = JSON.parse(localStorage.getItem(CLE) ?? "[]");
-    memoire = Array.isArray(brut) ? brut : [];
-  } catch {
-    memoire = [];
-  }
+  const brut = lireJson<unknown>(CLES.journal, []);
+  memoire = Array.isArray(brut) ? brut : [];
   return memoire;
 }
 
 function vider() {
   if (ecriture) clearTimeout(ecriture);
   ecriture = null;
-  try {
-    localStorage.setItem(CLE, JSON.stringify(memoire ?? []));
-  } catch {
-    // Stockage plein ou indisponible : le journal vaut pour cette visite.
-  }
+  // Stockage plein ou indisponible : le journal vaut pour cette visite.
+  ecrireJson(CLES.journal, memoire ?? []);
 }
 
 export function lireJournal(): EvenementJournal[] {

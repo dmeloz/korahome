@@ -18,13 +18,15 @@ import {
 } from "../domaine/vieFee";
 import { changerEtatFee, direSiCalme, estEveillee, feteFee, lireEtatFee, tinter, type Parole } from "./fee";
 import { lireUsages } from "./usage";
+import { heureMinute } from "../domaine/texte";
+import { CLES, ecrireJson, ecrireTexte, lireJson, lireTexte } from "./stockageLocal";
 
 // Le moteur de la vie de la fée, sur l'accueil : il regarde le foyer toutes les vingt secondes
 // et décide si elle dort, scintille près d'un widget, rappelle une tâche à son heure, fête un
 // jour J ou dit bonjour au réveil. Les règles sont dans `domaine/vieFee.ts`.
 
 const minuteDuJour = (d: Date) => d.getHours() * 60 + d.getMinutes();
-const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+
 
 /** La nuit en ce moment, et le jour que l'accueil montre (demain, une fois la nuit tombée le soir). */
 export function nuitDeCeTelephone(aujourdhui: Jour, maintenant = new Date()): { nuit: boolean; montrer: "demain" | "aujourdhui" } {
@@ -37,26 +39,14 @@ export function nuitDeCeTelephone(aujourdhui: Jour, maintenant = new Date()): { 
 // ----- Ce qu'elle a déjà fait aujourd'hui (par téléphone) -----
 
 function lireDuJour(cle: string, jour: Jour): Set<string> {
-  try {
-    const v = JSON.parse(localStorage.getItem(cle) ?? "null") as { jour?: string; cles?: unknown } | null;
-    return v?.jour === jour && Array.isArray(v.cles) ? new Set(v.cles.filter((c): c is string => typeof c === "string")) : new Set();
-  } catch {
-    return new Set();
-  }
+  const v = lireJson<{ jour?: string; cles?: unknown } | null>(cle, null);
+  return v?.jour === jour && Array.isArray(v.cles) ? new Set(v.cles.filter((c): c is string => typeof c === "string")) : new Set();
 }
 function noterDuJour(cle: string, jour: Jour, cles: Set<string>): void {
-  try {
-    localStorage.setItem(cle, JSON.stringify({ jour, cles: [...cles] }));
-  } catch {
-    // Vaut pour cette visite.
-  }
+  // Vaut pour cette visite.
+  ecrireJson(cle, { jour, cles: [...cles] });
 }
 
-const CLE_ALERTES = "korahome.feeAlertes";
-const CLE_HEURES = "korahome.feeHeures";
-const CLE_RITUELS = "korahome.feeRituels";
-const CLE_COURSES_VUES = "korahome.feeCoursesVues";
-const CLE_COURSES_DIT = "korahome.feeCoursesDit";
 /** Elle ne parle des courses ajoutées par l'autre qu'une fois par heure au plus. */
 const ENTRE_COURSES_MS = 60 * 60_000;
 /** Une alerte que personne ne touche cesse de scintiller après deux minutes. */
@@ -65,9 +55,11 @@ const TICK_MS = 20_000;
 const SUR_LA_DATE = ".page-dessus .grande-date .date-chiffre";
 
 function lireCoursesVues(): Set<string> | null {
+  const brut = lireTexte(CLES.feeCoursesVues, false);
+  if (brut === false) return new Set();
+  if (brut === null) return null;
   try {
-    const brut = localStorage.getItem(CLE_COURSES_VUES);
-    return brut === null ? null : new Set(JSON.parse(brut) as string[]);
+    return new Set(JSON.parse(brut) as string[]);
   } catch {
     return new Set();
   }
@@ -116,11 +108,11 @@ export function useVieFee(e: EntreeVie): void {
       const vie = lireEtatFee();
       changerEtatFee({
         nuit: false,
-        eclat: eclatDuFoyer(x.carte, hhmm(maintenant)),
+        eclat: eclatDuFoyer(x.carte, heureMinute(maintenant)),
         allure: allureMeteo(x.meteo, jour),
         cible: vie.cible === SUR_LA_DATE ? null : vie.cible,
       });
-      const rituels = lireDuJour(CLE_RITUELS, jour);
+      const rituels = lireDuJour(CLES.feeRituels, jour);
 
       // Le réveil : le premier matin où elle ne dort plus, elle s'étire et résume la journée.
       if (!rituels.has("reveil") && maintenant.getHours() < 12) {
@@ -135,15 +127,15 @@ export function useVieFee(e: EntreeVie): void {
         }
         if (direSiCalme(parole)) {
           rituels.add("reveil");
-          noterDuJour(CLE_RITUELS, jour, rituels);
+          noterDuJour(CLES.feeRituels, jour, rituels);
           etaitNuit.current = false;
           return;
         }
       }
 
       // L'heure d'une tâche : elle le dit tout de suite, même à une heure où elle se tait.
-      const dites = lireDuJour(CLE_HEURES, jour);
-      const t = tacheDeLHeure(x.carte, x.taches, x.membreId, hhmm(maintenant), dites);
+      const dites = lireDuJour(CLES.feeHeures, jour);
+      const t = tacheDeLHeure(x.carte, x.taches, x.membreId, heureMinute(maintenant), dites);
       if (t) {
         const parole: Parole = {
           cle: `heure:${t.cle}`,
@@ -153,9 +145,9 @@ export function useVieFee(e: EntreeVie): void {
             {
               texte: "Dans 15 min",
               faire: () => {
-                const d = lireDuJour(CLE_HEURES, jour);
+                const d = lireDuJour(CLES.feeHeures, jour);
                 d.delete(t.cle);
-                noterDuJour(CLE_HEURES, jour, d);
+                noterDuJour(CLES.feeHeures, jour, d);
                 entree.current.repousser(t);
               },
             },
@@ -164,13 +156,13 @@ export function useVieFee(e: EntreeVie): void {
         if (direSiCalme(parole, true)) {
           tinter();
           dites.add(t.cle);
-          noterDuJour(CLE_HEURES, jour, dites);
+          noterDuJour(CLES.feeHeures, jour, dites);
           return;
         }
       }
 
       // Une chose urgente : elle file au coin de son widget et scintille ; la toucher la fait parler.
-      const signalees = lireDuJour(CLE_ALERTES, jour);
+      const signalees = lireDuJour(CLES.feeAlertes, jour);
       const a = vie.alerte ? null : alerteAFaire(x.carte, signalees);
       if (a) {
         const cible = `.page-dessus [data-widget="${a.destination}"]`;
@@ -188,7 +180,7 @@ export function useVieFee(e: EntreeVie): void {
         });
         tinter();
         signalees.add(a.cle);
-        noterDuJour(CLE_ALERTES, jour, signalees);
+        noterDuJour(CLES.feeAlertes, jour, signalees);
         clearTimeout(finAlerte.current);
         finAlerte.current = setTimeout(() => {
           if (lireEtatFee().alerte) changerEtatFee({ alerte: null, cible: null });
@@ -201,7 +193,7 @@ export function useVieFee(e: EntreeVie): void {
       if (fete && direSiCalme({ cle: `jourJ:${jour}`, texte: fete })) {
         feteFee();
         rituels.add("jourJ");
-        noterDuJour(CLE_RITUELS, jour, rituels);
+        noterDuJour(CLES.feeRituels, jour, rituels);
         return;
       }
 
@@ -211,11 +203,11 @@ export function useVieFee(e: EntreeVie): void {
       const ids = x.elements.filter((el) => el.listeId === courses).map((el) => el.id);
       if (vues === null) {
         // La première fois, ce qui est déjà là compte comme vu.
-        localStorage.setItem(CLE_COURSES_VUES, JSON.stringify(ids));
+        ecrireJson(CLES.feeCoursesVues, ids);
         return;
       }
       const nouveautes = nouveautesDeLAutre(x.elements, courses, x.membreId, vues);
-      const dernier = Number(localStorage.getItem(CLE_COURSES_DIT) ?? 0);
+      const dernier = Number(lireTexte(CLES.feeCoursesDit) ?? 0);
       if (nouveautes.length && x.autre && Date.now() - dernier > ENTRE_COURSES_MS && !vie.alerte) {
         const noms = nouveautes.slice(0, 3).map((n) => minuscule(n.texte));
         const liste = noms.length === 1 ? noms[0] : `${noms.slice(0, -1).join(", ")} et ${noms[noms.length - 1]}`;
@@ -230,12 +222,8 @@ export function useVieFee(e: EntreeVie): void {
         });
         if (dit) {
           if (document.querySelector(cible)) changerEtatFee({ cible });
-          try {
-            localStorage.setItem(CLE_COURSES_DIT, String(Date.now()));
-            localStorage.setItem(CLE_COURSES_VUES, JSON.stringify(ids));
-          } catch {
-            // Elle en reparlera.
-          }
+          // Sans stockage, elle en reparlera.
+          if (ecrireTexte(CLES.feeCoursesDit, String(Date.now()))) ecrireJson(CLES.feeCoursesVues, ids);
         }
       }
     };

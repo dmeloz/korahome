@@ -1,0 +1,179 @@
+/* ===== Les fondations : couleurs des deux thèmes, tailles de texte, mouvement, fond, passage d'une page à l'autre ===== */
+
+/* KoraHome : sombre et élégant, et clair quand l'iPhone est en mode clair.
+   Graphite légèrement vert, laiton pour l'accent, étiquettes en chasse fixe. */
+/* Le système visuel de Kora (0.0.23) :
+   - cinq tailles de texte, pas une de plus, qui suivent la taille choisie dans l'iPhone (Dynamic Type) ;
+   - trois états : urgent (en retard ou avant ce soir), jour (aujourd'hui, et les actions), calme (le reste) ;
+   - deux thèmes, un par téléphone (Réglages › Ce téléphone) : Sombre laiton et Clair doux ;
+   - un seul mouvement, la courbe de l'iPhone, en fondu si l'iPhone demande moins d'animations. */
+:root {
+  --fond: #0f1211;
+  --surface: #181c1a;
+  --surface-haute: #1f2421;
+  --texte: #ecebe5;
+  --discret: #9aa09a;
+  --trait: #2a302d;
+  --accent: #d3a14a;
+  --accent-doux: #3a2f1a;
+  --sur-accent: #15120b;
+  --urgent: #e2916a;
+  --coche: #6f746f;
+  --ombre: 0 18px 40px -24px rgb(0 0 0 / 0.8);
+  --verre: rgb(24 28 26 / 0.72);
+  --verre-trait: rgb(255 255 255 / 0.08);
+  --verre-reflet: inset 0 1px 0 rgb(255 255 255 / 0.06);
+  --carte-jour: linear-gradient(180deg, #2a2418 0%, #181c1a 72%);
+  --carte-jour-trait: #3a3222;
+  --police: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  --police-titre: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+  --police-fixe: ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Les cinq tailles, relatives à la taille de texte de l'iPhone (17 px par défaut). Rien sous 13. */
+  --t-titre: min(1.765rem, 40px);
+  --t-section: min(1.176rem, 28px);
+  --t-corps: 1rem;
+  --t-detail: max(0.882rem, 13px);
+  --t-legende: max(0.765rem, 13px);
+
+  /* Le mouvement : la courbe des feuilles de l'iPhone. */
+  --courbe: cubic-bezier(0.32, 0.72, 0, 1);
+  --duree-feuille: 0.5s;
+  --duree-page: 0.35s;
+  color-scheme: dark;
+}
+
+/* Clair doux : papier chaud, laiton plus profond. Automatique quand l'iPhone est en clair,
+   ou choisi pour ce téléphone. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="sombre"]) {
+    --fond: #f4efe6;
+    --surface: #fffcf6;
+    --surface-haute: #f7f1e6;
+    --texte: #2a2620;
+    --discret: #6e675c;
+    --trait: #e6dccb;
+    --accent: #a5762a;
+    --accent-doux: #f3e4c4;
+    --sur-accent: #fffaf0;
+    --urgent: #b4532f;
+    --coche: #9a9488;
+    --ombre: 0 10px 24px -18px rgb(90 70 40 / 0.35);
+    --verre: rgb(255 252 246 / 0.78);
+    --verre-trait: rgb(160 130 80 / 0.22);
+    --verre-reflet: inset 0 1px 0 rgb(255 255 255 / 0.9);
+    --carte-jour: linear-gradient(180deg, #fbefd9 0%, #fffcf6 70%);
+    --carte-jour-trait: #ecd9b4;
+    color-scheme: light;
+  }
+}
+:root[data-theme="clair"] {
+  --fond: #f4efe6;
+  --surface: #fffcf6;
+  --surface-haute: #f7f1e6;
+  --texte: #2a2620;
+  --discret: #6e675c;
+  --trait: #e6dccb;
+  --accent: #a5762a;
+  --accent-doux: #f3e4c4;
+  --sur-accent: #fffaf0;
+  --urgent: #b4532f;
+  --coche: #9a9488;
+  --ombre: 0 10px 24px -18px rgb(90 70 40 / 0.35);
+  --verre: rgb(255 252 246 / 0.78);
+  --verre-trait: rgb(160 130 80 / 0.22);
+  --verre-reflet: inset 0 1px 0 rgb(255 255 255 / 0.9);
+  --carte-jour: linear-gradient(180deg, #fbefd9 0%, #fffcf6 70%);
+  --carte-jour-trait: #ecd9b4;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--fond);
+  color: var(--texte);
+  font-size: var(--t-corps);
+  /* Sur l'iPhone, la taille de texte choisie dans Réglages › Luminosité et affichage. */
+  font: -apple-system-body;
+  font-family: var(--police);
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: default; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.contenu {
+  padding: calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 72px);
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+h1 {
+  font-family: var(--police-titre);
+  font-size: var(--t-titre);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+  margin: 8px 0 20px;
+  text-wrap: balance;
+}
+.surtitre {
+  font-family: var(--police-fixe);
+  font-size: var(--t-legende);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--discret);
+  margin: 16px 0 0;
+}
+.discret { color: var(--discret); font-size: var(--t-detail); }
+.erreur { color: var(--urgent); font-size: var(--t-detail); margin: 0; }
+.vide { color: var(--discret); text-align: center; margin-top: 48px; }
+
+/* Allure iOS 26 : un fond qui respire, des surfaces de verre, des pages qui glissent. */
+:root {
+  --reflet: var(--verre-reflet);
+  --lueur: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 55% at 85% -12%, var(--lueur), transparent 62%),
+    radial-gradient(90% 45% at -10% 105%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 70%);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--duree-page);
+  animation-timing-function: var(--courbe);
+}
+html[data-sens="avant"]::view-transition-old(root) { animation-name: page-recule; }
+html[data-sens="avant"]::view-transition-new(root) { animation-name: page-arrive; }
+html[data-sens="arriere"]::view-transition-old(root) { animation-name: page-part; z-index: 1; }
+html[data-sens="arriere"]::view-transition-new(root) { animation-name: page-revient; }
+@keyframes page-arrive { from { transform: translateX(100%); } }
+@keyframes page-recule { to { transform: translateX(-28%); opacity: 0.6; } }
+@keyframes page-part { to { transform: translateX(100%); } }
+@keyframes page-revient { from { transform: translateX(-28%); opacity: 0.6; } }
+/* Moins d'animations demandées : les pages passent en fondu. */
+html[data-sens="fondu"]::view-transition-old(root), html[data-sens="fondu"]::view-transition-new(root) { animation-duration: 0.2s; animation-timing-function: ease; }
+
+/* La place de la barre Jarvis en bas des pages qui l'ont (0.0.23). */
+.contenu { padding-bottom: calc(env(safe-area-inset-bottom) + 132px); }
+
+/* Le verre des widgets (0.0.42) : de 0 (transparent) à 100 (plein). Le thème choisit si personne ne l'a
+   réglé : le plus transparent en sombre, le plus opaque en clair. */
+:root { --verre-defaut: 28%; --verre-widget: var(--verre-choisi, var(--verre-defaut)); --flou-widget: 22px; }
+@media (prefers-color-scheme: light) { :root:not([data-theme="sombre"]) { --verre-defaut: 92%; } }
+:root[data-theme="clair"] { --verre-defaut: 92%; }
+:root[data-theme="sombre"] { --verre-defaut: 28%; }

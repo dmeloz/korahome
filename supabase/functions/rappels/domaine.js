@@ -394,6 +394,22 @@ function choseAFaire(animal, aujourdhui) {
 	return [...urgentes, ...bientot];
 }
 //#endregion
+//#region src/domaine/texte.ts
+const NOMS_MOIS = [
+	"janvier",
+	"février",
+	"mars",
+	"avril",
+	"mai",
+	"juin",
+	"juillet",
+	"août",
+	"septembre",
+	"octobre",
+	"novembre",
+	"décembre"
+];
+//#endregion
 //#region src/domaine/agenda.ts
 const estEvenement = (d) => "titre" in d && "jour" in d && !d.aRetirer;
 const evenementsDe = (docs) => docs.filter(estEvenement);
@@ -650,20 +666,6 @@ function facturesDuJour(docs, aujourdhui, jours = 3) {
 		echeance: f.echeance
 	}));
 }
-const NOMS_MOIS = [
-	"janvier",
-	"février",
-	"mars",
-	"avril",
-	"mai",
-	"juin",
-	"juillet",
-	"août",
-	"septembre",
-	"octobre",
-	"novembre",
-	"décembre"
-];
 /** « le 15 mars », « aujourd'hui », « demain », « en retard (le 3 octobre) ». */
 function decrireEcheanceFacture(echeance, aujourdhui) {
 	const ecart = ecartJours(aujourdhui, echeance);

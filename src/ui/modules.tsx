@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { lazy, type ReactNode } from "react";
 import { evenementsDe, ligneWidget, resumeAgenda, type DocAgenda } from "../domaine/agenda";
 import type { DocCouple } from "../domaine/bandeau";
 import { paiementsAClasser } from "../domaine/paiements";
@@ -19,15 +19,31 @@ import type { Element, Foyer, Jour, Liste, Tache } from "../domaine/types";
 import type { Depot } from "../donnees/depot";
 import type { ServeurAgenda, ServeurJarvis } from "../donnees/distant";
 import { organiserEntretien } from "../domaine/entretien";
-import { Agenda } from "./ecrans/Agenda";
-import { Budget } from "./ecrans/Budget";
-import { Chef } from "./ecrans/Chef";
-import { Jardin } from "./ecrans/Jardin";
 import { Courses } from "./ecrans/Listes";
-import { Mitsu } from "./ecrans/Mitsu";
-import { Stock } from "./ecrans/Stock";
 import { Taches } from "./ecrans/Taches";
 import type { NomIcone } from "./Icone";
+
+// Les pages les plus lourdes ne se chargent qu'à leur première ouverture : l'app démarre plus
+// vite sur l'iPhone. Elles sont préchargées en silence une fois l'accueil affiché.
+const PAGES_DIFFEREES = {
+  Agenda: () => import("./ecrans/Agenda").then((m) => ({ default: m.Agenda })),
+  Budget: () => import("./ecrans/budget/Budget").then((m) => ({ default: m.Budget })),
+  Chef: () => import("./ecrans/Chef").then((m) => ({ default: m.Chef })),
+  Jardin: () => import("./ecrans/Jardin").then((m) => ({ default: m.Jardin })),
+  Mitsu: () => import("./ecrans/Mitsu").then((m) => ({ default: m.Mitsu })),
+  Stock: () => import("./ecrans/Stock").then((m) => ({ default: m.Stock })),
+};
+const Agenda = lazy(PAGES_DIFFEREES.Agenda);
+const Budget = lazy(PAGES_DIFFEREES.Budget);
+const Chef = lazy(PAGES_DIFFEREES.Chef);
+const Jardin = lazy(PAGES_DIFFEREES.Jardin);
+const Mitsu = lazy(PAGES_DIFFEREES.Mitsu);
+const Stock = lazy(PAGES_DIFFEREES.Stock);
+
+/** Charge d'avance les pages différées, quand le téléphone n'a rien d'autre à faire. */
+export function prechargerPages(): void {
+  for (const charger of Object.values(PAGES_DIFFEREES)) void charger().catch(() => {});
+}
 
 // Le squelette standard de l'app : un tableau de bord fait de widgets, et chaque
 // widget ouvre sa page, qui a son bouton de retour. Un module se branche en

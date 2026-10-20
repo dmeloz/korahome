@@ -1,0 +1,18 @@
+/* ===== Surcharges, importées en dernier : elles reprennent les cartes, groupes et lignes de tous
+   les écrans et doivent passer après eux dans la cascade. ===== */
+
+/* ---------- Kora 0.0.45 : les pages sans cadre ---------- */
+/* Comme « Ce soir » sur l'accueil : les listes perdent leur cadre, seuls de fins traits les
+   séparent. Les cartes visuelles gardent leurs graphiques, sans bordure. Les Réglages et les pages
+   « avec-cadre » gardent leurs groupes, comme ceux de l'iPhone. */
+main.page:not(.avec-cadre) .carte { background: none; border: 0; box-shadow: none; border-radius: 0; padding-left: 0; padding-right: 0; }
+main.page:not(.avec-cadre) .carte.groupe { padding: 0; }
+main.page:not(.avec-cadre) .groupe li + li { border-top: .5px solid var(--trait); }
+main.page:not(.avec-cadre) .carte.proposition, main.page:not(.avec-cadre) .carte.bientot { background: var(--surface); border-radius: 16px; padding: 14px 16px; }
+/* La chose du moment en grand : la première ligne pas encore faite du groupe qui presse. */
+main.page:not(.avec-cadre) .phare-ligne .ligne-texte { font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+main.page:not(.avec-cadre) .phare-ligne .ligne { min-height: 64px; }
+/* Sans cadre, la ligne est transparente ; elle ne prend le fond qu'en glissant, pour couvrir l'action. */
+main.page:not(.avec-cadre) .glissable-contenu { background: transparent; }
+main.page:not(.avec-cadre) .glissable-contenu.glisse, main.page:not(.avec-cadre) .glissable.ouverte .glissable-contenu { background: var(--fond); }
+main.page:not(.avec-cadre) .glissable:not(.ouverte):not(:has(.glisse)) :is(.glissable-action, .glissable-fait) { opacity: 0; }

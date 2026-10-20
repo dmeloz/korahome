@@ -1,7 +1,7 @@
 {
   "name": "korahome",
   "private": true,
-  "version": "0.0.50",
+  "version": "0.0.51",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -9,8 +9,10 @@
     "preview": "vite preview --host",
     "test": "vitest run",
     "typecheck": "tsc -b",
+    "lint": "oxlint --deny-warnings",
     "serveur": "bash scripts/serveur-mac.sh",
-    "fonction": "node scripts/construire-fonction.mjs"
+    "fonction": "node scripts/construire-fonction.mjs",
+    "essai": "node scripts/essai-ecrans.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.3",
@@ -24,6 +26,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "fake-indexeddb": "^6.2.5",
+    "oxlint": "^1.89.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.3",
     "vite-plugin-pwa": "^2.0.0",

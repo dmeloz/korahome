@@ -5,6 +5,7 @@
 import type { Lieu, Unite } from "./stock";
 import { decaler, ecartJours } from "./taches";
 import type { Jour } from "./types";
+import { NOMS_JOURS, NOMS_MOIS, sansAccents } from "./texte";
 
 export interface SaisieComprise {
   nom: string;
@@ -27,8 +28,6 @@ const LIEUX_DITS: [RegExp, Lieu][] = [
   [/(?:au |à la |dans le |dans la |le |la )?(?:placard|cellier|garde-manger|cave|armoire)\b/i, "placard"],
 ];
 
-const MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
-const JOURS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
 const AVANT = `(?:(?:à consommer |a consommer )?(?:jusqu'(?:au|à|a)|avant(?: le)?|pour|le|dlc|date)\\s+)?`;
 
 const UNITES_DITES: [RegExp, Unite, number][] = [
@@ -75,17 +74,17 @@ function trouverDate(s: string, aujourdhui: Jour): { jour: Jour; reste: string }
       return prochainJourDuMois(Number(m[1]), Number(m[2]), an, aujourdhui);
     }],
     // 16 octobre
-    [new RegExp(`${AVANT}(\\d{1,2})(?:er)?\\s+(${MOIS.join("|")}|fevrier|aout|decembre)\\b`, "i"), (m) => {
-      const nom = m[2].toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-      const mois = MOIS.findIndex((x) => x.normalize("NFD").replace(/[̀-ͯ]/g, "") === nom) + 1;
+    [new RegExp(`${AVANT}(\\d{1,2})(?:er)?\\s+(${NOMS_MOIS.join("|")}|fevrier|aout|decembre)\\b`, "i"), (m) => {
+      const nom = sansAccents(m[2].toLowerCase());
+      const mois = NOMS_MOIS.findIndex((x) => sansAccents(x) === nom) + 1;
       return prochainJourDuMois(Number(m[1]), mois, null, aujourdhui);
     }],
     [/(?:jusqu'(?:à|a) |pour )?apr[èe]s-demain\b/i, () => decaler(aujourdhui, { unite: "jour", tous: 2 })],
     [/(?:jusqu'(?:à|a) |pour )?demain\b/i, () => decaler(aujourdhui, { unite: "jour", tous: 1 })],
     [/(?:jusqu'(?:à|a) |pour )?aujourd'hui\b/i, () => aujourdhui],
     // vendredi : le prochain, jamais aujourd'hui
-    [new RegExp(`(?:jusqu'(?:à|a)|avant|pour)?\\s*(${JOURS.join("|")})(?: prochain)?\\b`, "i"), (m) => {
-      const cible = JOURS.indexOf(m[1].toLowerCase());
+    [new RegExp(`(?:jusqu'(?:à|a)|avant|pour)?\\s*(${NOMS_JOURS.join("|")})(?: prochain)?\\b`, "i"), (m) => {
+      const cible = NOMS_JOURS.indexOf(m[1].toLowerCase());
       const [a, mo, j] = aujourdhui.split("-").map(Number);
       const actuel = new Date(Date.UTC(a, mo - 1, j)).getUTCDay();
       const ecart = ((cible - actuel + 7) % 7) || 7;

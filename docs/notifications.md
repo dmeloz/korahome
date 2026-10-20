@@ -52,7 +52,7 @@ dit sur l'accueil, avec « C'est fait » et « Dans 15 min » (`src/ui/vieFee.ts
 Après une modification de `src/domaine/rappels.ts` (ou de `taches.ts`, `mitsu.ts`, `stock.ts`) :
 
 1. `npm run fonction` régénère `supabase/functions/rappels/domaine.js` (un test vérifie qu'il est à jour).
-2. Redéployer la fonction `rappels` (fichiers `index.ts` et `domaine.js`, sans vérification JWT :
+2. Redéployer la fonction `rappels` (fichiers `index.ts`, `domaine.js` et le dossier `_shared`, sans vérification JWT :
    elle contrôle elle-même la clé du passage horaire et la session du téléphone).
 
 ## Mise en route d'un nouveau projet Supabase

@@ -31,6 +31,10 @@ function ecartJours(a, b) {
 	return Math.round((versDate(b).getTime() - versDate(a).getTime()) / 864e5);
 }
 //#endregion
+//#region src/domaine/texte.ts
+/** « Pâtes fraîches » → « Pates fraiches » : la casse est gardée, seuls les accents partent. */
+const sansAccents$1 = (t) => t.normalize("NFD").replace(/\p{M}/gu, "");
+//#endregion
 //#region src/domaine/budget.ts
 const POTS = {
 	commun: {
@@ -168,7 +172,7 @@ function reglerFacture(d, plan, docs) {
 		libelle: f.poste.libelle
 	};
 }
-const sansAccents = (t) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const sansAccents = (t) => sansAccents$1(t).toLowerCase();
 //#endregion
 //#region src/domaine/paiements.ts
 /** Les pots qu'on peut donner à une carte, dans l'ordre des puces. */
@@ -210,7 +214,7 @@ function nomDeCommercant(valeur) {
 	if (texte !== texte.toUpperCase()) return texte;
 	return texte.toLowerCase().replace(/(^|[\s'’.-])(\p{L})/gu, (_, avant, l) => avant + l.toUpperCase());
 }
-const cleDeCarte = (carte) => carte.toLowerCase().normalize("NFD").replace(/\p{M}/gu, "").trim();
+const cleDeCarte = (carte) => sansAccents$1(carte.toLowerCase()).trim();
 /** Ce que le foyer a décidé pour cette carte ; undefined si elle est encore inconnue. */
 function choixDeCarte(plan, carte) {
 	const cle = cleDeCarte(carte);

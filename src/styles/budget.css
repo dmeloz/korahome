@@ -1,0 +1,188 @@
+/* ===== Le budget : pots, visuels, paiements Apple Pay, relevé Revolut, conseiller et tableaux ===== */
+
+/* Le Budget (0.0.27) : quatre pots en tuiles, les montants alignés en chiffres tabulaires. */
+.budget-pots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 16px 0 4px; }
+.budget-pots .carte { margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.budget-pot .surtitre { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.budget-pot .discret { margin: 0; font-size: var(--t-legende); }
+.budget-solde { font-family: var(--police-titre); font-size: var(--t-section); font-weight: 700; letter-spacing: -0.01em; margin: 2px 0; font-variant-numeric: tabular-nums; }
+.budget-pot.negatif .budget-solde { color: var(--urgent); }
+.budget-montant { font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--texte); }
+.budget-total .ligne-texte, .budget-total .budget-montant { font-weight: 600; }
+.budget-champ {
+  width: 7.5em;
+  text-align: right;
+  border: 1px solid var(--trait);
+  background: var(--surface-haute);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
+.budget-champ:focus { border-color: var(--accent); }
+.formulaire .budget-champ { width: 100%; text-align: left; padding: 12px 14px; font-size: var(--t-corps); background: var(--surface); color: var(--texte); }
+.budget-note { margin: 4px 4px 12px; }
+.budget-rappel { display: flex; gap: 10px; align-items: flex-start; width: 100%; text-align: left; font-size: var(--t-detail); color: var(--texte); }
+.budget-rappel .point-etat { margin-top: 6px; }
+.budget-projet { margin-top: 16px; }
+.budget-projet .surtitre { margin: 0; }
+.budget-projet .budget-solde .discret { font-family: var(--police); font-weight: 400; }
+.budget-projet .bouton-principal { width: 100%; margin-top: 8px; }
+.budget-total .tache-details { font-weight: 400; }
+.budget-choix { display: flex; flex-direction: column; gap: 8px; }
+
+/* ----- Les visuels du Budget (0.0.28) : sobres, une couleur par pot, un chiffre par visuel ----- */
+:root {
+  --pot-commun: color-mix(in srgb, var(--discret) 75%, var(--surface));
+  --pot-courses: var(--accent);
+  --pot-factures: #6f9aa8;
+  --pot-plaisir: #c07e64;
+  --pot-epargne: #7fa37a;
+}
+.pot-commun { --pot: var(--pot-commun); }
+.pot-courses { --pot: var(--pot-courses); }
+.pot-factures { --pot: var(--pot-factures); }
+.pot-plaisir { --pot: var(--pot-plaisir); }
+.pot-epargne { --pot: var(--pot-epargne); }
+.magasin-0 { --pot: var(--accent); }
+.magasin-1 { --pot: var(--pot-factures); }
+.magasin-2 { --pot: var(--pot-epargne); }
+.magasin-3 { --pot: var(--pot-plaisir); }
+.magasin-4 { --pot: var(--pot-commun); }
+
+.budget-pastille { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--pot); flex: none; margin-right: 8px; vertical-align: middle; }
+
+.budget-anneau { display: flex; flex-direction: column; gap: 12px; }
+.budget-anneau-dessin { position: relative; width: 168px; height: 168px; margin: 4px auto 0; }
+.budget-anneau-dessin svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.budget-anneau-fond { fill: none; stroke: var(--surface-haute); stroke-width: 14; }
+.budget-anneau-part { fill: none; stroke: var(--pot); stroke-width: 14; stroke-linecap: round; cursor: pointer; transition: opacity 0.25s var(--courbe); }
+.budget-anneau-part.estompe { opacity: 0.25; }
+.budget-anneau-centre { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; pointer-events: none; }
+.budget-anneau-centre .budget-solde { margin: 0; }
+.budget-anneau-centre .discret { font-size: var(--t-legende); }
+.budget-legende { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 12px; }
+.budget-legende button { display: flex; align-items: center; width: 100%; gap: 0; padding: 6px 0; background: none; border: 0; color: var(--texte); font: inherit; font-size: var(--t-detail); text-align: left; }
+.budget-legende button .ligne-texte { flex: 1; min-width: 0; }
+.budget-legende button.actif .ligne-texte { font-weight: 600; }
+.budget-detail { list-style: none; margin: 0; padding: 10px 0 0; border-top: 1px solid var(--trait); display: flex; flex-direction: column; gap: 6px; font-size: var(--t-detail); }
+.budget-detail li { display: flex; justify-content: space-between; gap: 12px; }
+.budget-detail-vide { margin: 0; }
+
+.budget-rythme { position: relative; overflow: visible; }
+.budget-rythme > span { position: relative; }
+.budget-rythme > i { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--texte); opacity: 0.55; }
+.budget-rythme.vite > span { background: var(--urgent); }
+
+.budget-mois-lourds .discret, .budget-mois-lourds .budget-alerte { margin: 10px 0 0; font-size: var(--t-detail); }
+.budget-alerte { color: var(--urgent); }
+.budget-barres { position: relative; display: flex; align-items: stretch; gap: 4px; height: 92px; }
+.budget-barres.larges { height: 128px; gap: 10px; }
+.budget-barre { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; padding: 0; background: none; border: 0; color: var(--discret); font: inherit; }
+.budget-barre-trait { width: 100%; max-width: 22px; border-radius: 4px 4px 2px 2px; background: color-mix(in srgb, var(--pot-factures) 55%, var(--surface-haute)); transition: background 0.2s var(--courbe); }
+.budget-barres.larges .budget-barre-trait { background: color-mix(in srgb, var(--accent) 35%, var(--surface-haute)); }
+.budget-barre.lourde .budget-barre-trait { background: var(--pot-factures); }
+.budget-barre.actif .budget-barre-trait { background: var(--accent); }
+.budget-barre.manque .budget-barre-trait { background: var(--urgent); }
+.budget-barres.larges .budget-barre.manque .budget-barre-trait { background: color-mix(in srgb, var(--urgent) 45%, var(--surface-haute)); }
+.budget-barres.larges .budget-barre.manque .budget-barre-valeur { color: var(--urgent); }
+.budget-barres.larges .budget-barre.actif .budget-barre-trait { background: var(--accent); }
+.budget-barre-nom { font-size: var(--t-legende); line-height: 1; }
+.budget-barre-valeur { font-size: var(--t-legende); font-variant-numeric: tabular-nums; color: var(--discret); line-height: 1; }
+.budget-barre.actif .budget-barre-nom, .budget-barre.actif .budget-barre-valeur { color: var(--texte); }
+.budget-barres-repere { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed var(--discret); opacity: 0.4; pointer-events: none; z-index: 0; }
+.budget-barres.larges .budget-barre { position: relative; z-index: 1; }
+
+.budget-trajet { margin: 0 4px 10px; }
+.budget-trajet-barre { display: flex; height: 8px; border-radius: 4px; overflow: hidden; gap: 2px; background: var(--surface-haute); }
+.budget-trajet-barre > span { display: block; height: 100%; background: var(--pot); }
+.budget-trajet-barre > .charges, .budget-trajet-legende i.charges { --pot: var(--pot-commun); }
+.budget-trajet-barre > .versement, .budget-trajet-legende i.versement { --pot: var(--pot-factures); }
+.budget-trajet-barre > .reste, .budget-trajet-legende i.reste { --pot: var(--accent); }
+.budget-trajet-legende { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; font-size: var(--t-legende); color: var(--discret); }
+.budget-trajet-legende i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; background: var(--pot); }
+.budget-magasins { display: flex; flex-direction: column; gap: 10px; }
+.budget-magasins .budget-detail { border-top: 0; padding-top: 0; }
+
+.budget-courbe svg { display: block; width: 100%; height: auto; overflow: visible; }
+.budget-courbe .discret { margin: 8px 0 0; font-size: var(--t-detail); }
+.budget-courbe-trait { fill: none; stroke: var(--pot-epargne); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.budget-courbe-trait.prevu { stroke-dasharray: 4 5; opacity: 0.7; }
+.budget-courbe-aire { fill: color-mix(in srgb, var(--pot-epargne) 14%, transparent); }
+.budget-courbe-point { fill: var(--pot-epargne); stroke: var(--surface); stroke-width: 2; }
+.budget-courbe-objectif { stroke: var(--discret); stroke-width: 1; stroke-dasharray: 2 4; opacity: 0.7; }
+
+.budget-hausse { color: var(--urgent); font-size: var(--t-legende); margin-left: 4px; }
+.budget-mot { display: flex; gap: 10px; align-items: flex-start; margin: 16px 4px 0; font-size: var(--t-detail); color: var(--discret); }
+.budget-mot svg { flex: none; margin-top: 2px; color: var(--accent); }
+
+/* ----- Budget : les paiements Apple Pay (0.0.29) ----- */
+.budget-a-classer .groupe { margin: 6px 0 10px; }
+.budget-paiement { display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px; }
+.budget-paiement + .budget-paiement { border-top: 1px solid var(--trait); padding-top: 4px; }
+.budget-paiement .puces { padding: 0 2px; }
+.budget-paiement .puce:disabled { opacity: 0.4; }
+.budget-francs { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 2px; }
+.budget-invitation p { margin: 0 0 12px; color: var(--texte); }
+.budget-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.budget-actions .bouton-secondaire { margin-top: 0; }
+.budget-adresse { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--fond); font-family: var(--police-fixe); font-size: var(--t-legende); color: var(--discret); word-break: break-all; user-select: all; -webkit-user-select: all; }
+.budget-etapes { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; font-size: var(--t-detail); line-height: 1.45; color: var(--texte); }
+.budget-etapes li::marker { color: var(--accent); font-weight: 600; }
+.budget-a-la-main summary { cursor: pointer; color: var(--accent); font-size: var(--t-detail); font-weight: 600; padding: 4px 0; }
+.budget-a-la-main .budget-etapes { margin-top: 8px; }
+
+/* ----- Budget : le relevé Revolut (0.0.33) ----- */
+.budget-importer { display: block; width: 100%; margin: 12px 0 0; }
+.budget-fichier { position: relative; display: block; text-align: center; overflow: hidden; }
+.budget-fichier input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.budget-releve .ligne { width: 100%; text-align: left; background: none; border: 0; color: inherit; font: inherit; }
+
+/* Le Budget qui conseille (0.0.37) : tuiles à toucher, clôture du mois, dépenses par jour, conseiller et tableaux. */
+button.budget-pot { width: 100%; text-align: left; font: inherit; color: var(--texte); cursor: pointer; }
+button.budget-pot:active { transform: scale(0.98); }
+.budget-pot .budget-solde { display: block; }
+.budget-cloture { margin-top: 16px; display: flex; flex-direction: column; gap: 6px; }
+.budget-cloture .surtitre { margin: 0; }
+.budget-cloture .groupe { margin: 0 -16px 4px; }
+.budget-cloture .budget-mot { margin: 4px 0; }
+.budget-cloture .bouton-principal { width: 100%; margin-top: 4px; }
+.budget-cloture .discret { margin: 0; font-size: var(--t-legende); }
+.budget-cloture .discret + .surtitre { margin-top: 12px; }
+.budget-montant.negatif { color: var(--urgent); }
+.budget-tout-voir { color: var(--accent); }
+.budget-tout-voir svg { flex: none; }
+.budget-mois-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 16px 0 8px; }
+.budget-mois-nav p { margin: 0; display: flex; flex-direction: column; align-items: center; }
+.budget-mois-nav .surtitre { margin: 0; }
+.budget-mois-nav .bouton-icone:disabled { opacity: 0.3; }
+.budget-filtre { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -16px 4px; padding: 0 16px; }
+.budget-filtre::-webkit-scrollbar { display: none; }
+.budget-filtre .puce { flex: none; }
+.budget-conseiller { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+.budget-conseiller .surtitre { margin: 0; display: flex; align-items: center; gap: 6px; }
+.budget-conseiller .surtitre svg { color: var(--accent); }
+.budget-conseiller .discret { margin: 0; font-size: var(--t-legende); }
+.budget-conseiller .puce:disabled { opacity: 0.5; }
+.budget-conseiller-attente { margin: 0; color: var(--discret); font-size: var(--t-detail); animation: budget-respire 1.6s ease-in-out infinite; }
+@keyframes budget-respire { 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .budget-conseiller-attente { animation: none; } }
+.budget-reponse { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--trait); padding-top: 12px; }
+.budget-reponse > p { margin: 0; }
+.budget-question { color: var(--discret); font-size: var(--t-detail); }
+.budget-conseils { margin: 0; padding: 0 0 0 1.2em; display: flex; flex-direction: column; gap: 10px; }
+.budget-conseils li { display: flex; flex-direction: column; gap: 2px; }
+.budget-conseils li::marker { color: var(--accent); font-weight: 600; }
+.budget-conseil-titre { font-weight: 600; }
+.budget-gain { font-weight: 400; color: var(--pot-epargne); }
+.budget-tableau { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.carte.budget-tableau { padding-left: 0; padding-right: 0; }
+.carte.budget-tableau > figcaption { padding: 0 16px; margin: 0; font-size: var(--t-legende); }
+.budget-tableau-defile { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.budget-tableau table { border-collapse: collapse; width: 100%; font-size: var(--t-detail); font-variant-numeric: tabular-nums; }
+.budget-tableau th, .budget-tableau td { padding: 7px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--trait); }
+.budget-tableau th:first-child { text-align: left; font-weight: 500; position: sticky; left: 0; background: var(--surface); }
+.carte.budget-tableau th:first-child { padding-left: 16px; }
+.budget-tableau thead th { color: var(--discret); font-weight: 500; font-size: var(--t-legende); }
+.budget-tableau tr:last-child th, .budget-tableau tr:last-child td { border-bottom: 0; }
+.budget-tableau-total th, .budget-tableau-total td { font-weight: 600; }

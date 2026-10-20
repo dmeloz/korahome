@@ -52,7 +52,7 @@ le recrée et le remplit, sans rien effacer de l'agenda.
 
 1. Appliquer `supabase/schema.sql` : ajoute `agenda` aux collections, la table `prive.comptes_icloud` et
    les fonctions `icloud_*` (réservées au serveur), et `prive.programmer_agenda`.
-2. Déployer la fonction `agenda` (fichiers `index.ts` et `domaine.js`, sans vérification du jeton par
+2. Déployer la fonction `agenda` (fichiers `index.ts`, `domaine.js` et le dossier `_shared`, sans vérification du jeton par
    Supabase : elle vérifie elle-même la session ou la clé du passage régulier).
 3. Redéployer `rappels` (l'agenda du jour dans le rappel du matin) et `jarvis` (ses nouveaux outils).
 4. Programmer le passage du quart d'heure :

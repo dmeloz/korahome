@@ -12,18 +12,10 @@
 // Les règles (quoi rappeler, à quelle heure) viennent de src/domaine/rappels.ts, copié
 // dans domaine.js par `npm run fonction`. Déploiement : docs/notifications.md.
 
-import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
+import { preflight, repondre } from "../_shared/http.ts";
+import { echec, estMembre, serveur, utilisateur } from "../_shared/supabase.ts";
 import { adresseMeteo, evenementsDe, facturesDuJour, fenetreMotsProgrammes, formaterHeure, FUSEAU_DU_FOYER, jourEtHeure, lireMeteo, notificationHeure, notificationMot, PREFERENCES_DE_DEPART, rappelDu, rappelDuMatin, tachesALHeure } from "./domaine.js";
-
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-const serveur = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
-  auth: { persistSession: false },
-});
 
 interface Abonnement {
   endpoint: string;
@@ -34,16 +26,6 @@ interface Abonnement {
   preferences: { taches?: boolean; mitsu?: boolean; stock?: boolean; jardin?: boolean; mots?: boolean; agenda?: boolean; budget?: boolean; jours?: number[]; minute?: number };
   heure: number;
   dernier_envoi: string | null;
-}
-
-function repondre(corps: unknown, statut = 200): Response {
-  return new Response(JSON.stringify(corps), { status: statut, headers: { ...CORS, "Content-Type": "application/json" } });
-}
-
-async function echec<T>(requete: PromiseLike<{ data: T; error: { message: string } | null }>): Promise<T> {
-  const { data, error } = await requete;
-  if (error) throw new Error(error.message);
-  return data;
 }
 
 /** Les clés d'envoi, créées au tout premier passage. */
@@ -206,7 +188,8 @@ async function essai(utilisateur: string, endpoint: string, cles: { publique: st
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  const options = preflight(req);
+  if (options) return options;
   try {
     const corps = await req.json().catch(() => ({}));
     const cles = await reglages();
@@ -223,16 +206,14 @@ Deno.serve(async (req) => {
 
     if (corps.mode === "cle") return repondre({ cle: cles.publique });
 
-    const jeton = req.headers.get("Authorization")?.replace(/^Bearer /, "") ?? "";
-    const { data } = await serveur.auth.getUser(jeton);
-    if (!data.user) return repondre({ erreur: "Connexion requise" }, 401);
-    if (corps.mode === "essai" && typeof corps.endpoint === "string") return await essai(data.user.id, corps.endpoint, cles);
+    const user = await utilisateur(req);
+    if (!user) return repondre({ erreur: "Connexion requise" }, 401);
+    if (corps.mode === "essai" && typeof corps.endpoint === "string") return await essai(user.id, corps.endpoint, cles);
     if (corps.mode === "mot" && typeof corps.foyerId === "string" && typeof corps.texte === "string") {
-      const { data: membre } = await serveur.from("membres_foyer").select("user_id").eq("foyer_id", corps.foyerId).eq("user_id", data.user.id).maybeSingle();
-      if (!membre) return repondre({ erreur: "Ce foyer appartient à un autre compte" }, 403);
+      if (!(await estMembre(corps.foyerId, user.id))) return repondre({ erreur: "Ce foyer appartient à un autre compte" }, 403);
       const mot = { id: String(corps.id ?? ""), de: typeof corps.de === "string" ? corps.de : null, texte: corps.texte.trim().slice(0, 140) };
       if (!mot.texte) return repondre({ erreur: "Le mot est vide" }, 400);
-      return repondre({ envoyes: await annoncerMot(corps.foyerId, mot, data.user.id, cles) });
+      return repondre({ envoyes: await annoncerMot(corps.foyerId, mot, user.id, cles) });
     }
     return repondre({ erreur: "Demande inconnue" }, 400);
   } catch (e) {

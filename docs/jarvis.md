@@ -72,7 +72,7 @@ Par sécurité, fixer aussi une limite mensuelle sur la console Anthropic (Limit
 2. Dans Supabase > Edge Functions > Secrets : ajouter `ANTHROPIC_API_KEY` avec cette clé. Elle ne passe
    jamais par le dépôt ni par un téléphone.
 3. Appliquer la section « Jarvis » de `supabase/schema.sql`.
-4. Déployer la fonction `jarvis` (fichiers `index.ts` et `domaine.js`, sans vérification JWT : elle
+4. Déployer la fonction `jarvis` (fichiers `index.ts`, `domaine.js` et le dossier `_shared`, sans vérification JWT : elle
    contrôle elle-même la session du téléphone).
 
 Après une modification de `src/domaine/jarvis.ts` : `npm run fonction`, puis redéployer `jarvis`.

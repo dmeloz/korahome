@@ -1,0 +1,30 @@
+/* ===== Bienvenue : le premier écran, créer ou rejoindre le foyer ===== */
+
+/* Bienvenue */
+.bienvenue {
+  padding: calc(env(safe-area-inset-top) + 56px) 20px 32px;
+  max-width: 480px;
+  margin: 0 auto;
+  text-align: center;
+}
+.monogramme {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 8px;
+  display: grid;
+  place-items: center;
+  border-radius: 20px;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-family: var(--police-titre);
+  font-weight: 700;
+  font-size: var(--t-titre);
+  letter-spacing: -0.04em;
+}
+
+.bienvenue-rejoindre { margin-top: 18px; font-size: var(--t-detail); }
+.choix-membre { text-align: left; margin-top: 24px; }
+
+.bienvenue .partage-choix { text-align: left; margin-top: 24px; }
+.bienvenue-safari { text-align: left; margin-top: 20px; border-color: var(--accent); }
+.bienvenue-safari p { margin: 0 0 6px; line-height: 1.4; }
