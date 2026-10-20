@@ -1,0 +1,1031 @@
+<title>Atelier de finition</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* L'établi : une rangée d'écrans à gauche, la capture au centre sur un plan de travail quadrillé,
+   l'inspecteur et la note à droite. Graphite et laiton comme Kora ; papier chaud en clair. */
+:root {
+  --fond: #0e1110;
+  --plan: #121614;
+  --surface: #181c1a;
+  --surface-haute: #20251f;
+  --trait: #2a302d;
+  --texte: #ecebe5;
+  --discret: #959b94;
+  --laiton: #d3a14a;
+  --laiton-doux: #3a2f1a;
+  --sur-laiton: #15120b;
+  --change: #e2916a;
+  --change-doux: rgb(226 145 106 / 0.18);
+  --regle: #7fb39a;
+  --mesure: #6fb7e8;
+  --quadrillage: rgb(255 255 255 / 0.035);
+  --ombre: 0 30px 60px -30px rgb(0 0 0 / 0.9);
+  --police: "Instrument Sans", -apple-system, "Segoe UI", sans-serif;
+  --police-titre: "Instrument Serif", Georgia, serif;
+  --police-fixe: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --fond: #efe9de; --plan: #f4efe6; --surface: #fffcf6; --surface-haute: #f7f1e6; --trait: #e2d7c4;
+    --texte: #2a2620; --discret: #6e675c; --laiton: #a5762a; --laiton-doux: #f3e4c4; --sur-laiton: #fffaf0;
+    --change: #b4532f; --change-doux: rgb(180 83 47 / 0.14); --regle: #3d7f61; --mesure: #2a78b0;
+    --quadrillage: rgb(90 70 40 / 0.05); --ombre: 0 24px 50px -30px rgb(90 70 40 / 0.45);
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --fond: #efe9de; --plan: #f4efe6; --surface: #fffcf6; --surface-haute: #f7f1e6; --trait: #e2d7c4;
+  --texte: #2a2620; --discret: #6e675c; --laiton: #a5762a; --laiton-doux: #f3e4c4; --sur-laiton: #fffaf0;
+  --change: #b4532f; --change-doux: rgb(180 83 47 / 0.14); --regle: #3d7f61; --mesure: #2a78b0;
+  --quadrillage: rgb(90 70 40 / 0.05); --ombre: 0 24px 50px -30px rgb(90 70 40 / 0.45);
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { background: var(--fond); color: var(--texte); font: 14px/1.45 var(--police); margin: 0; }
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--laiton); outline-offset: 2px; }
+.fixe { font-family: var(--police-fixe); font-size: 12px; font-variant-numeric: tabular-nums; }
+.discret { color: var(--discret); }
+
+/* ---- En-tête ---- */
+.entete {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px;
+  padding-block: 14px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  border-bottom: 1px solid var(--trait); background: var(--fond);
+}
+.marque { display: flex; align-items: baseline; gap: 12px; margin-right: auto; min-width: 0; }
+.marque h1 { font: 400 28px/1 var(--police-titre); margin: 0; letter-spacing: 0.01em; }
+.marque .version { font-family: var(--police-fixe); font-size: 12px; color: var(--discret); white-space: nowrap; }
+.marque .version b { color: var(--laiton); font-weight: 500; }
+.groupe { display: inline-flex; background: var(--surface); border: 1px solid var(--trait); border-radius: 10px; padding: 3px; gap: 2px; flex-wrap: wrap; }
+.groupe button { border: 0; background: none; padding: 6px 11px; border-radius: 7px; color: var(--discret); white-space: nowrap; }
+.groupe button[aria-pressed="true"] { background: var(--surface-haute); color: var(--texte); box-shadow: inset 0 0 0 1px var(--trait); }
+.groupe button .qui { font-size: 11px; color: var(--discret); margin-left: 4px; }
+.onglets-vue button[aria-pressed="true"] { color: var(--laiton); }
+.compte { display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--laiton-doux); color: var(--laiton); font: 500 11px/18px var(--police-fixe); text-align: center; margin-left: 4px; }
+
+/* ---- L'établi ---- */
+.etabli { display: grid; grid-template-columns: 250px minmax(0, 1fr) 380px; height: calc(100% - 64px); min-height: 0; }
+.rail { border-right: 1px solid var(--trait); overflow-y: auto; padding: 14px 10px 30px; }
+.rubrique { font: 500 11px/1 var(--police-fixe); letter-spacing: 0.12em; text-transform: uppercase; color: var(--discret); margin: 18px 8px 8px; }
+.rubrique:first-child { margin-top: 4px; }
+.ecran { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; text-align: left; border: 0; background: none; padding: 6px 8px; border-radius: 9px; }
+.ecran:hover { background: var(--surface); }
+.ecran[aria-current="true"] { background: var(--surface-haute); box-shadow: inset 0 0 0 1px var(--trait); }
+.ecran img { width: 38px; height: 76px; object-fit: cover; object-position: top; border-radius: 6px; border: 1px solid var(--trait); background: var(--surface); }
+.ecran .nom { font-size: 13px; line-height: 1.3; min-width: 0; }
+.ecran .etat { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.puce { font: 500 10.5px/1 var(--police-fixe); padding: 3px 6px; border-radius: 6px; white-space: nowrap; }
+.puce.change { background: var(--change-doux); color: var(--change); }
+.puce.nouveau { background: var(--laiton-doux); color: var(--laiton); }
+.puce.notes { background: var(--surface-haute); color: var(--texte); border: 1px solid var(--trait); }
+
+.centre { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.outils { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--trait); }
+.outils .titre-ecran { font-weight: 600; margin-right: auto; min-width: 0; }
+.outils .titre-ecran small { display: block; font-weight: 400; color: var(--discret); font-size: 12px; }
+.bascule { border: 1px solid var(--trait); background: var(--surface); padding: 6px 10px; border-radius: 8px; color: var(--discret); display: inline-flex; gap: 6px; align-items: center; white-space: nowrap; }
+.bascule kbd { font: 10.5px var(--police-fixe); color: var(--discret); border: 1px solid var(--trait); border-radius: 4px; padding: 0 4px; }
+.bascule[aria-pressed="true"] { color: var(--laiton); border-color: var(--laiton); background: var(--laiton-doux); }
+.bascule:disabled { opacity: 0.4; cursor: default; }
+
+.plan {
+  flex: 1; min-height: 0; overflow: auto; position: relative;
+  background-color: var(--plan);
+  background-image: linear-gradient(var(--quadrillage) 1px, transparent 1px), linear-gradient(90deg, var(--quadrillage) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.scene { display: flex; gap: 40px; align-items: flex-start; justify-content: center; padding: 36px 40px 60px; min-width: max-content; }
+.cadre { position: relative; flex: none; }
+.cadre .etiquette { position: absolute; top: -24px; left: 0; font: 11px var(--police-fixe); color: var(--discret); letter-spacing: 0.06em; text-transform: uppercase; }
+.ecran-capture { position: relative; border-radius: 28px; overflow: hidden; box-shadow: var(--ombre), 0 0 0 1px var(--trait); background: var(--surface); }
+.ecran-capture.ipad { border-radius: 18px; }
+.ecran-capture img { display: block; width: 100%; height: 100%; max-width: none; user-select: none; -webkit-user-drag: none; }
+.ecran-capture img.pixels { image-rendering: pixelated; }
+.ecran-capture svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.ecran-capture.inspecte { cursor: crosshair; }
+.rideau { position: absolute; inset: 0; overflow: hidden; border-right: 2px solid var(--laiton); pointer-events: none; }
+.rideau img { width: auto; height: 100%; }
+.poignee-rideau { position: absolute; top: 0; bottom: 0; width: 24px; margin-left: -12px; cursor: ew-resize; z-index: 3; }
+.poignee-rideau::after { content: "avant · après"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--laiton); color: var(--sur-laiton); font: 500 10px/1 var(--police-fixe); padding: 5px 7px; border-radius: 6px; white-space: nowrap; }
+
+.loupe { position: fixed; width: 220px; pointer-events: none; z-index: 20; background: var(--surface); border: 1px solid var(--trait); border-radius: 12px; overflow: hidden; box-shadow: var(--ombre); }
+.loupe canvas { display: block; width: 220px; height: 220px; image-rendering: pixelated; }
+.loupe .lecture { display: flex; align-items: center; gap: 8px; padding: 7px 9px; font: 11px var(--police-fixe); }
+.loupe .pastille { width: 14px; height: 14px; border-radius: 4px; border: 1px solid var(--trait); flex: none; }
+
+.vide { padding: 60px 24px; text-align: center; color: var(--discret); max-width: 520px; margin: 0 auto; }
+.vide h2 { font: 400 26px var(--police-titre); color: var(--texte); margin: 0 0 8px; }
+
+/* ---- Inspecteur ---- */
+.inspecteur { border-left: 1px solid var(--trait); overflow-y: auto; padding: 16px 18px 40px; display: flex; flex-direction: column; gap: 18px; }
+.bloc h3 { font: 500 11px/1 var(--police-fixe); letter-spacing: 0.12em; text-transform: uppercase; color: var(--discret); margin: 0 0 10px; display: flex; justify-content: space-between; gap: 8px; }
+.composant { font: 400 22px/1.15 var(--police-titre); margin: 0 0 4px; overflow-wrap: anywhere; }
+.fichier { font: 12px var(--police-fixe); color: var(--laiton); overflow-wrap: anywhere; }
+.selecteur { font: 11.5px/1.5 var(--police-fixe); color: var(--discret); overflow-wrap: anywhere; margin-top: 6px; }
+.fil { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
+.fil button { border: 1px solid var(--trait); background: var(--surface); border-radius: 6px; padding: 2px 7px; font: 11px var(--police-fixe); color: var(--discret); }
+.fil button.ici { color: var(--laiton); border-color: var(--laiton); }
+.boite { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--trait); border: 1px solid var(--trait); border-radius: 10px; overflow: hidden; }
+.boite div { background: var(--surface); padding: 7px 9px; }
+.boite span { display: block; font: 10.5px var(--police-fixe); color: var(--discret); }
+.boite b { font: 500 13px var(--police-fixe); font-variant-numeric: tabular-nums; }
+.styles { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 6px 10px; margin: 0; }
+.styles dt { color: var(--discret); font-size: 12.5px; }
+.styles dd { margin: 0; font: 12px/1.45 var(--police-fixe); overflow-wrap: anywhere; display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+.styles .pastille { width: 12px; height: 12px; border-radius: 3px; border: 1px solid var(--trait); display: inline-block; transform: translateY(1px); }
+.jeton { color: var(--laiton); }
+.changements li { font: 12px/1.5 var(--police-fixe); color: var(--change); }
+.changements { margin: 0; padding-left: 18px; display: grid; gap: 3px; }
+.sous { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.sous button { width: 100%; text-align: left; border: 0; background: none; padding: 4px 6px; border-radius: 6px; display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; }
+.sous button:hover { background: var(--surface); }
+.sous .fixe { color: var(--discret); }
+
+.note { background: var(--surface); border: 1px solid var(--trait); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.note .cible { font-size: 12.5px; color: var(--discret); }
+.note .cible b { color: var(--texte); font-weight: 500; }
+.choix { display: flex; flex-wrap: wrap; gap: 6px; }
+.choix button { border: 1px solid var(--trait); background: var(--fond); border-radius: 8px; padding: 5px 9px; font-size: 12.5px; color: var(--discret); }
+.choix button[aria-pressed="true"] { border-color: var(--laiton); color: var(--laiton); background: var(--laiton-doux); }
+.choix.importance button[data-v="genant"][aria-pressed="true"] { border-color: var(--change); color: var(--change); background: var(--change-doux); }
+.note textarea { width: 100%; min-height: 92px; resize: vertical; background: var(--fond); border: 1px solid var(--trait); border-radius: 10px; padding: 10px; line-height: 1.45; }
+.note label { font-size: 12.5px; color: var(--discret); display: flex; gap: 8px; align-items: center; }
+.principal { border: 0; background: var(--laiton); color: var(--sur-laiton); font-weight: 600; border-radius: 10px; padding: 10px 14px; }
+.principal:disabled { opacity: 0.45; cursor: default; }
+.secondaire { border: 1px solid var(--trait); background: var(--surface); border-radius: 10px; padding: 8px 12px; color: var(--texte); }
+.message { font-size: 12.5px; color: var(--regle); min-height: 1em; }
+.message.erreur { color: var(--change); }
+.aide { font-size: 12.5px; color: var(--discret); margin: 0; }
+.aide kbd { font: 10.5px var(--police-fixe); border: 1px solid var(--trait); border-radius: 4px; padding: 0 4px; }
+
+/* ---- Les notes ---- */
+.notes-vue { grid-column: 1 / -1; overflow-y: auto; padding: 22px max(16px, env(safe-area-inset-right, 0px)) 60px max(16px, env(safe-area-inset-left, 0px)); }
+.notes-entete { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 18px; }
+.notes-entete h2 { font: 400 30px var(--police-titre); margin: 0 auto 0 0; }
+.liste-notes { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+.carte-note { background: var(--surface); border: 1px solid var(--trait); border-radius: 14px; overflow: hidden; display: grid; grid-template-columns: 110px minmax(0, 1fr); }
+.carte-note img { width: 110px; height: 100%; min-height: 130px; object-fit: cover; background: var(--fond); border-right: 1px solid var(--trait); }
+.carte-note .corps { padding: 12px 14px; display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.carte-note .haut { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.carte-note p { margin: 0; overflow-wrap: anywhere; }
+.carte-note .ou { font: 11.5px var(--police-fixe); color: var(--discret); overflow-wrap: anywhere; }
+.carte-note .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: auto; padding-top: 4px; }
+.carte-note .actions button { border: 0; background: none; padding: 0; color: var(--laiton); font-size: 12.5px; }
+.statut { font: 500 10.5px/1 var(--police-fixe); padding: 4px 7px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.06em; }
+.statut.ouverte { background: var(--laiton-doux); color: var(--laiton); }
+.statut.en-cours { background: rgb(111 183 232 / 0.16); color: var(--mesure); }
+.statut.reglee { background: rgb(127 179 154 / 0.16); color: var(--regle); }
+.type { font-size: 12px; color: var(--discret); }
+.importance-genant { color: var(--change); font-size: 12px; font-weight: 600; }
+
+@media (max-width: 1100px) {
+  .etabli { grid-template-columns: 210px minmax(0, 1fr); height: auto; }
+  .inspecteur { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--trait); }
+  .plan { min-height: 70vh; }
+}
+@media (max-width: 720px) {
+  .etabli { display: flex; flex-direction: column; }
+  .rail { display: flex; gap: 6px; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--trait); padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); }
+  .rubrique { display: none; }
+  .ecran { grid-template-columns: 38px; width: auto; flex: none; }
+  .ecran .nom, .ecran .etat { display: none; }
+  .scene { padding: 30px 16px 40px; }
+  .marque h1 { font-size: 24px; }
+  .bascule kbd { display: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ecran, .bascule, .choix button { transition: background-color 0.15s, color 0.15s, border-color 0.15s; }
+}
+</style>
+
+<header class="entete">
+  <div class="marque">
+    <h1>Atelier de finition</h1>
+    <span class="version" id="version">Chargement des captures…</span>
+  </div>
+  <div class="groupe onglets-vue" role="group" aria-label="Vue">
+    <button id="vue-ecrans" aria-pressed="true">Écrans</button>
+    <button id="vue-notes" aria-pressed="false">Notes <span class="compte" id="compte-notes">0</span></button>
+  </div>
+  <div class="groupe" role="group" aria-label="Appareil" id="appareils"></div>
+  <div class="groupe" role="group" aria-label="Thème de Kora" id="themes"></div>
+</header>
+
+<main class="etabli" id="etabli">
+  <nav class="rail" id="rail" aria-label="Écrans de Kora"></nav>
+  <section class="centre">
+    <div class="outils" id="outils">
+      <div class="titre-ecran" id="titre-ecran">Atelier de finition<small>Les captures arrivent</small></div>
+      <button class="bascule" id="b-grille" aria-pressed="false" title="Grille de 8 points">Grille <kbd>G</kbd></button>
+      <button class="bascule" id="b-marges" aria-pressed="true" title="Marges et espacements de l'élément choisi">Marges <kbd>M</kbd></button>
+      <button class="bascule" id="b-mesure" aria-pressed="false" title="Choisis un élément, puis survole-en un autre">Mesurer <kbd>R</kbd></button>
+      <button class="bascule" id="b-loupe" aria-pressed="false" title="Loupe au pixel, avec la couleur">Loupe <kbd>L</kbd></button>
+      <button class="bascule" id="b-diff" aria-pressed="false" title="Ce qui a changé depuis la version d'avant">Différences <kbd>D</kbd></button>
+      <div class="groupe" role="group" aria-label="Comparer" id="comparer">
+        <button data-v="non" aria-pressed="true">Seul</button>
+        <button data-v="cote" aria-pressed="false">Côte à côte</button>
+        <button data-v="rideau" aria-pressed="false">Rideau</button>
+      </div>
+      <div class="groupe" role="group" aria-label="Zoom" id="zoom">
+        <button data-v="ajuste" aria-pressed="true">Ajusté</button>
+        <button data-v="1" aria-pressed="false">100 %</button>
+        <button data-v="2" aria-pressed="false">200 %</button>
+        <button data-v="4" aria-pressed="false">400 %</button>
+      </div>
+    </div>
+    <div class="plan" id="plan">
+      <div class="vide" id="vide">
+        <h2>Les écrans de Kora arrivent</h2>
+        <p>Chaque version, Claude capture tous les écrans de Kora et leurs états, en sombre et en clair, sur vos quatre appareils. Ils s'affichent ici dès qu'ils sont chargés.</p>
+      </div>
+      <div class="scene" id="scene" hidden></div>
+    </div>
+  </section>
+  <aside class="inspecteur" id="inspecteur" aria-label="Inspecteur et note">
+    <div class="bloc">
+      <h3>Comment faire</h3>
+      <p class="aide">Touche un endroit de l'écran : l'élément touché s'entoure, avec sa place, ses mesures et ses couleurs. Fais glisser pour entourer une zone. Écris ce qui ne va pas, la note part dans le fil Patch.</p>
+      <p class="aide" style="margin-top:8px"><kbd>←</kbd> <kbd>→</kbd> écran précédent ou suivant · <kbd>↑</kbd> élément parent · <kbd>Échap</kbd> tout lâcher</p>
+    </div>
+  </aside>
+</main>
+
+<div class="loupe" id="loupe" hidden><canvas id="loupe-canvas" width="220" height="220"></canvas><div class="lecture"><span class="pastille" id="loupe-pastille"></span><span id="loupe-texte"></span></div></div>
+
+<script>
+"use strict";
+// ---------- État ----------
+const etat = {
+  manifeste: null, cartes: {}, grilles: {},
+  appareil: "air", theme: "sombre", ecran: null, vue: "ecrans",
+  zoom: "ajuste", comparer: "non", grille: false, marges: true, mesure: false, loupe: false, diff: false,
+  survol: null, choisi: null, point: null, zone: null, rideau: 0.5,
+  notes: [], filtre: "ouverte", type: null, importance: "a-revoir",
+  db: null, comments: null, user: null,
+};
+const $ = (id) => document.getElementById(id);
+const NS = "http://www.w3.org/2000/svg";
+const PROPRIETES = ["police", "taille", "graisse", "interligne", "approche", "couleur", "fond", "arrondi", "marge intérieure", "marge", "écart", "bordure", "opacité", "ombre", "affichage", "alignement", "flou"];
+const TYPES = [["espacement", "Espacement"], ["alignement", "Alignement"], ["couleur", "Couleur"], ["texte", "Texte"], ["mouvement", "Mouvement"], ["geste", "Geste"], ["contenu", "Contenu"], ["autre", "Autre"]];
+const IMPORTANCES = [["genant", "Gênant"], ["a-revoir", "À revoir"], ["detail", "Détail"]];
+const STATUTS = { ouverte: "Ouverte", "en-cours": "En cours", reglee: "Réglée" };
+const ENVELOPPES = /^(App|MotionConfig|LazyMotion|Moteur|Fournisseur\w*|Presence\w*|AnimatePresence|PopChild\w*|Suspense|StrictMode|Metamorphose|Lazy\w*)$/;
+const lire = (cle, defaut) => { try { return localStorage.getItem(cle) ?? defaut; } catch { return defaut; } };
+const garder = (cle, v) => { try { localStorage.setItem(cle, v); } catch { /* sans stockage, l'atelier repart des réglages par défaut */ } };
+
+// ---------- Données ----------
+const groupe = () => `${etat.appareil}-${etat.theme}`;
+const capture = (cle = etat.ecran) => etat.manifeste?.captures[`${groupe()}/${cle}`];
+const appareil = () => etat.manifeste.appareils[etat.appareil];
+async function carte() {
+  const g = groupe();
+  if (!etat.cartes[g]) etat.cartes[g] = fetch(`donnees/cartes/${g}.json`).then((r) => r.json());
+  return etat.cartes[g];
+}
+async function ecranCarte() {
+  const c = await carte();
+  return c.ecrans[etat.ecran] ?? null;
+}
+async function grille() {
+  const cle = `${groupe()}/${etat.ecran}`;
+  if (!etat.grilles[cle]) {
+    const e = await ecranCarte();
+    if (!e) return null;
+    const g = e.grille, t = new Int32Array(g.colonnes * g.lignes);
+    let k = 0;
+    for (let i = 0; i < g.suites.length; i += 2) { t.fill(g.suites[i], k, k + g.suites[i + 1]); k += g.suites[i + 1]; }
+    etat.grilles[cle] = { ...g, t };
+  }
+  return etat.grilles[cle];
+}
+const style = (c, el) => c.styles[el.y].split("|");
+function composantDe(c, el) {
+  const noms = (c.composants[el.c] || "").split(" › ").filter((n) => n && !ENVELOPPES.test(n));
+  return { noms, fichier: noms.map((n) => etat.manifeste.composants[n]).find(Boolean) ?? null };
+}
+
+// ---------- Couleurs ----------
+function rgba(v) {
+  if (!v) return null;
+  v = v.trim();
+  let m = v.match(/^#([0-9a-f]{3,8})$/i);
+  if (m) {
+    let h = m[1];
+    if (h.length <= 4) h = [...h].map((x) => x + x).join("");
+    return [0, 2, 4, 6].map((i) => (i < h.length ? parseInt(h.slice(i, i + 2), 16) : 255)).map((x, i) => (i === 3 ? x / 255 : x));
+  }
+  m = v.match(/^rgba?\(([^)]+)\)$/);
+  if (m) {
+    const p = m[1].split(/[\s,/]+/).filter(Boolean).map(Number);
+    return [p[0], p[1], p[2], p[3] ?? 1];
+  }
+  return null;
+}
+const hex = (c) => "#" + c.slice(0, 3).map((x) => Math.round(x).toString(16).padStart(2, "0")).join("") + (c[3] < 1 ? Math.round(c[3] * 255).toString(16).padStart(2, "0") : "");
+function jetonDe(valeur, jetons) {
+  const c = rgba(valeur);
+  if (!c) return null;
+  for (const [k, v] of Object.entries(jetons || {})) {
+    const j = rgba(v);
+    if (j && j.every((x, i) => Math.abs(x - c[i]) < (i === 3 ? 0.02 : 1.5))) return k;
+  }
+  return null;
+}
+function jetonProche(c, jetons) {
+  let meilleur = null, d = 12;
+  for (const [k, v] of Object.entries(jetons || {})) {
+    const j = rgba(v);
+    if (!j || j[3] < 1) continue;
+    const e = Math.hypot(j[0] - c[0], j[1] - c[1], j[2] - c[2]);
+    if (e < d) { d = e; meilleur = k; }
+  }
+  return meilleur;
+}
+
+// ---------- Mise en page ----------
+function echelle() {
+  const a = appareil();
+  if (etat.zoom !== "ajuste") return Number(etat.zoom);
+  const plan = $("plan");
+  const cote = etat.comparer === "cote" && capture()?.avant ? 2 : 1;
+  const largeur = (plan.clientWidth - 80 - (cote - 1) * 40) / cote;
+  const hauteur = plan.clientHeight - 100;
+  return Math.max(0.3, Math.min(1.5, largeur / a.largeur, hauteur / a.hauteur));
+}
+
+function boutonsGroupe(conteneur, valeurs, actuel, choisir) {
+  conteneur.replaceChildren(...valeurs.map(([v, libelle, qui]) => {
+    const b = document.createElement("button");
+    b.textContent = libelle;
+    if (qui) { const s = document.createElement("span"); s.className = "qui"; s.textContent = qui; b.append(s); }
+    b.setAttribute("aria-pressed", String(v === actuel));
+    b.onclick = () => choisir(v);
+    return b;
+  }));
+}
+
+function dessinerEntete() {
+  const m = etat.manifeste;
+  const v = $("version");
+  v.replaceChildren();
+  const b = document.createElement("b"); b.textContent = `Kora ${m.version}`;
+  v.append(b, document.createTextNode(m.avant ? ` · comparé à ${m.avant}` : " · première série"));
+  boutonsGroupe($("appareils"), Object.entries(m.appareils).map(([k, a]) => [k, a.nom.replace(" (9e génération)", " 9").replace(" (M1)", ""), a.qui]), etat.appareil, (k) => { etat.appareil = k; garder("atelier:appareil", k); lacher(); tout(); });
+  boutonsGroupe($("themes"), [["sombre", "Sombre"], ["clair", "Clair"]].filter(([t]) => m.themes.includes(t)), etat.theme, (t) => { etat.theme = t; garder("atelier:theme", t); lacher(); tout(); });
+  $("compte-notes").textContent = etat.notes.filter((n) => n.statut !== "reglee").length;
+}
+
+function dessinerRail() {
+  const m = etat.manifeste, rail = $("rail");
+  rail.replaceChildren();
+  let rubrique = null;
+  for (const e of m.ecrans) {
+    const c = capture(e.cle);
+    if (!c) continue;
+    if (e.rubrique !== rubrique) {
+      rubrique = e.rubrique;
+      const h = document.createElement("div"); h.className = "rubrique"; h.textContent = rubrique; rail.append(h);
+    }
+    const b = document.createElement("button");
+    b.className = "ecran";
+    b.setAttribute("aria-current", String(e.cle === etat.ecran));
+    b.title = e.titre;
+    const img = document.createElement("img"); img.src = `donnees/${c.image}`; img.alt = ""; img.loading = "lazy";
+    const nom = document.createElement("span"); nom.className = "nom"; nom.textContent = e.titre.replace(/^\w+ › /, (x) => (e.rubrique && x.startsWith(e.rubrique) ? "" : x)) || e.titre;
+    const et = document.createElement("span"); et.className = "etat";
+    if (c.difference?.part > 0) { const p = document.createElement("span"); p.className = "puce change"; p.textContent = `${Math.max(0.01, c.difference.part * 100).toFixed(c.difference.part < 0.01 ? 2 : 1)} %`; p.title = "Part de l'écran qui a changé"; et.append(p); }
+    else if (c.nouveau) { const p = document.createElement("span"); p.className = "puce nouveau"; p.textContent = "nouveau"; et.append(p); }
+    const n = etat.notes.filter((x) => x.ecran === e.cle && x.statut !== "reglee").length;
+    if (n) { const p = document.createElement("span"); p.className = "puce notes"; p.textContent = `${n} note${n > 1 ? "s" : ""}`; et.append(p); }
+    b.append(img, nom, et);
+    b.onclick = () => ouvrir(e.cle);
+    rail.append(b);
+  }
+}
+
+function dessinerOutils() {
+  const e = etat.manifeste.ecrans.find((x) => x.cle === etat.ecran);
+  const c = capture();
+  const t = $("titre-ecran");
+  t.replaceChildren(document.createTextNode(e?.titre ?? ""));
+  const s = document.createElement("small");
+  const a = appareil();
+  s.textContent = `${a.nom} · ${a.largeur} × ${a.hauteur} pt · @${a.densite}x · ${etat.theme}` + (c?.difference?.part > 0 ? ` · ${c.difference.boites.length} zone${c.difference.boites.length > 1 ? "s" : ""} changée${c.difference.boites.length > 1 ? "s" : ""}` : "");
+  t.append(s);
+  for (const [id, cle] of [["b-grille", "grille"], ["b-marges", "marges"], ["b-mesure", "mesure"], ["b-loupe", "loupe"], ["b-diff", "diff"]]) $(id).setAttribute("aria-pressed", String(etat[cle]));
+  const avecAvant = !!c?.avant;
+  $("b-diff").disabled = !avecAvant;
+  for (const b of $("comparer").children) { b.setAttribute("aria-pressed", String(b.dataset.v === etat.comparer)); b.disabled = b.dataset.v !== "non" && !avecAvant; }
+  for (const b of $("zoom").children) b.setAttribute("aria-pressed", String(b.dataset.v === etat.zoom));
+}
+
+// La scène : la capture (et celle d'avant), avec le calque SVG des repères, en points.
+function dessinerScene() {
+  const c = capture(), a = appareil(), z = echelle();
+  const scene = $("scene");
+  $("vide").hidden = !!c;
+  scene.hidden = !c;
+  if (!c) return;
+  scene.replaceChildren();
+  const comparer = c.avant ? etat.comparer : "non";
+  if (comparer === "cote") scene.append(cadre(`Avant · ${etat.manifeste.avant}`, `donnees/${c.avant}`, z, false));
+  const principal = cadre(comparer === "cote" ? `Après · ${etat.manifeste.version}` : `${etat.manifeste.version}`, `donnees/${c.image}`, z, true);
+  if (comparer === "rideau") {
+    const ecranEl = principal.querySelector(".ecran-capture");
+    const r = document.createElement("div"); r.className = "rideau"; r.style.width = `${etat.rideau * 100}%`;
+    const img = document.createElement("img"); img.src = `donnees/${c.avant}`; img.alt = "Avant"; img.style.width = `${a.largeur * z}px`;
+    r.append(img);
+    const p = document.createElement("div"); p.className = "poignee-rideau"; p.style.left = `${etat.rideau * 100}%`;
+    p.onpointerdown = (ev) => {
+      ev.stopPropagation(); p.setPointerCapture(ev.pointerId);
+      p.onpointermove = (m) => { const b = ecranEl.getBoundingClientRect(); etat.rideau = Math.min(1, Math.max(0, (m.clientX - b.left) / b.width)); r.style.width = p.style.left = `${etat.rideau * 100}%`; };
+      p.onpointerup = () => { p.onpointermove = null; };
+    };
+    ecranEl.insertBefore(r, ecranEl.querySelector("svg"));
+    ecranEl.append(p);
+  }
+  scene.append(principal);
+  void dessinerCalque();
+}
+
+function cadre(etiquette, src, z, actif) {
+  const a = appareil();
+  const d = document.createElement("div"); d.className = "cadre";
+  const et = document.createElement("div"); et.className = "etiquette"; et.textContent = etiquette;
+  const e = document.createElement("div");
+  e.className = `ecran-capture${a.largeur > 600 ? " ipad" : ""}${actif ? " inspecte" : ""}`;
+  e.style.width = `${a.largeur * z}px`; e.style.height = `${a.hauteur * z}px`;
+  const img = document.createElement("img"); img.src = src; img.alt = etiquette; img.draggable = false; img.crossOrigin = "anonymous";
+  if (z >= 2) img.className = "pixels";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${a.largeur} ${a.hauteur}`);
+  svg.setAttribute("preserveAspectRatio", "none");
+  if (actif) { svg.id = "calque"; img.id = "image-active"; brancher(e); }
+  else svg.dataset.miroir = "1";
+  e.append(img, svg);
+  d.append(et, e);
+  return d;
+}
+
+// ---------- Le calque : survol, choix, marges, mesures, grille, différences, notes ----------
+function rect(svg, [x, y, w, h], attrs) {
+  const r = document.createElementNS(NS, "rect");
+  Object.entries({ x, y, width: Math.max(0, w), height: Math.max(0, h), ...attrs }).forEach(([k, v]) => r.setAttribute(k, v));
+  svg.append(r); return r;
+}
+function ligne(svg, x1, y1, x2, y2, attrs) {
+  const l = document.createElementNS(NS, "line");
+  Object.entries({ x1, y1, x2, y2, ...attrs }).forEach(([k, v]) => l.setAttribute(k, v));
+  svg.append(l); return l;
+}
+function texte(svg, x, y, t, attrs = {}) {
+  const z = echelle();
+  const g = document.createElementNS(NS, "g");
+  const s = document.createElementNS(NS, "text");
+  s.textContent = t;
+  Object.entries({ x, y, "font-size": 11 / z, "font-family": "IBM Plex Mono, monospace", fill: "var(--sur-laiton)", "text-anchor": "middle", "dominant-baseline": "middle", ...attrs }).forEach(([k, v]) => s.setAttribute(k, v));
+  const largeur = (t.length * 6.9 + 10) / z, hauteur = 16 / z;
+  rect(g, [x - largeur / 2, y - hauteur / 2, largeur, hauteur], { rx: 3 / z, fill: attrs.fond ?? "var(--laiton)" });
+  g.append(s);
+  svg.append(g);
+}
+const quatre = (v) => { const p = (v || "0px").split(/\s+/).map((x) => parseFloat(x) || 0); return [p[0], p[1] ?? p[0], p[2] ?? p[0], p[3] ?? p[1] ?? p[0]]; };
+
+async function dessinerCalque() {
+  const svg = $("calque");
+  if (!svg) return;
+  const a = appareil(), z = echelle(), c = capture();
+  const ec = await ecranCarte(), cc = await carte();
+  svg.replaceChildren();
+  const fin = 1 / z;
+  if (etat.grille) {
+    for (let x = 8; x < a.largeur; x += 8) ligne(svg, x, 0, x, a.hauteur, { stroke: x % 16 ? "rgb(111 183 232 / 0.18)" : "rgb(111 183 232 / 0.32)", "stroke-width": fin });
+    for (let y = 8; y < a.hauteur; y += 8) ligne(svg, 0, y, a.largeur, y, { stroke: y % 16 ? "rgb(111 183 232 / 0.18)" : "rgb(111 183 232 / 0.32)", "stroke-width": fin });
+    ligne(svg, 16, 0, 16, a.hauteur, { stroke: "var(--change)", "stroke-width": fin, "stroke-dasharray": `${4 * fin} ${3 * fin}` });
+    ligne(svg, a.largeur - 16, 0, a.largeur - 16, a.hauteur, { stroke: "var(--change)", "stroke-width": fin, "stroke-dasharray": `${4 * fin} ${3 * fin}` });
+  }
+  if (etat.diff && c?.difference) for (const b of c.difference.boites) rect(svg, b, { fill: "var(--change-doux)", stroke: "var(--change)", "stroke-width": 1.5 * fin });
+  if (ec) {
+    const el = (i) => ec.elements[i];
+    if (etat.survol != null && etat.survol !== etat.choisi) rect(svg, el(etat.survol).r, { fill: "rgb(111 183 232 / 0.12)", stroke: "var(--mesure)", "stroke-width": fin });
+    if (etat.choisi != null) {
+      const e = el(etat.choisi), s = style(cc, e);
+      if (etat.marges) {
+        const [pt, pr, pb, pl] = quatre(s[8]), [mt, mr, mb, ml] = quatre(s[9]);
+        const [x, y, w, h] = e.r;
+        const orange = { fill: "rgb(226 145 106 / 0.22)" }, vert = { fill: "rgb(127 179 154 / 0.28)" };
+        if (mt) rect(svg, [x, y - mt, w, mt], orange); if (mb) rect(svg, [x, y + h, w, mb], orange);
+        if (ml) rect(svg, [x - ml, y, ml, h], orange); if (mr) rect(svg, [x + w, y, mr, h], orange);
+        if (pt) rect(svg, [x, y, w, pt], vert); if (pb) rect(svg, [x, y + h - pb, w, pb], vert);
+        if (pl) rect(svg, [x, y + pt, pl, h - pt - pb], vert); if (pr) rect(svg, [x + w - pr, y + pt, pr, h - pt - pb], vert);
+      }
+      rect(svg, e.r, { fill: "none", stroke: "var(--laiton)", "stroke-width": 1.5 * fin });
+      texte(svg, e.r[0] + e.r[2] / 2, e.r[1] + e.r[3] + 11 * fin, `${e.r[2]} × ${e.r[3]}`);
+      if (etat.mesure && etat.survol != null && etat.survol !== etat.choisi) mesurer(svg, e.r, el(etat.survol).r, fin);
+      else if (etat.mesure) mesurerParent(svg, ec, e, fin);
+    }
+  }
+  if (etat.zone) rect(svg, etat.zone, { fill: "rgb(211 161 74 / 0.12)", stroke: "var(--laiton)", "stroke-width": 1.5 * fin, "stroke-dasharray": `${5 * fin} ${3 * fin}` });
+  if (etat.point && !etat.zone) {
+    const [x, y] = etat.point;
+    ligne(svg, x - 10 * fin, y, x + 10 * fin, y, { stroke: "var(--laiton)", "stroke-width": 1.5 * fin });
+    ligne(svg, x, y - 10 * fin, x, y + 10 * fin, { stroke: "var(--laiton)", "stroke-width": 1.5 * fin });
+  }
+  // Les notes déjà écrites sur cet écran, ici.
+  etat.notes.filter((n) => n.ecran === etat.ecran && n.appareil === etat.appareil && n.theme === etat.theme && n.statut !== "reglee").forEach((n, i) => {
+    const g = document.createElementNS(NS, "g");
+    const ci = document.createElementNS(NS, "circle");
+    Object.entries({ cx: n.x, cy: n.y, r: 10 * fin, fill: n.importance === "genant" ? "var(--change)" : "var(--laiton)", stroke: "var(--fond)", "stroke-width": 2 * fin }).forEach(([k, v]) => ci.setAttribute(k, v));
+    const t = document.createElementNS(NS, "text");
+    Object.entries({ x: n.x, y: n.y, "font-size": 10 * fin, "font-family": "IBM Plex Mono, monospace", fill: "var(--sur-laiton)", "text-anchor": "middle", "dominant-baseline": "central" }).forEach(([k, v]) => t.setAttribute(k, v));
+    t.textContent = String(i + 1);
+    const titre = document.createElementNS(NS, "title"); titre.textContent = n.texte;
+    g.append(ci, t, titre);
+    svg.append(g);
+  });
+  // Le côte à côte montre les mêmes différences sur la capture d'avant.
+  const miroir = document.querySelector("svg[data-miroir]");
+  if (miroir) {
+    miroir.replaceChildren();
+    if (etat.diff && c?.difference) for (const b of c.difference.boites) rect(miroir, b, { fill: "var(--change-doux)", stroke: "var(--change)", "stroke-width": 1.5 * fin });
+  }
+}
+
+// Les écarts entre deux éléments, comme dans les outils de maquette.
+function mesurer(svg, a, b, fin) {
+  const [ax, ay, aw, ah] = a, [bx, by, bw, bh] = b;
+  const attrs = { stroke: "var(--mesure)", "stroke-width": fin };
+  rect(svg, b, { fill: "none", stroke: "var(--mesure)", "stroke-width": fin, "stroke-dasharray": `${3 * fin} ${2 * fin}` });
+  const cy = Math.max(ay, by) + (Math.min(ay + ah, by + bh) - Math.max(ay, by)) / 2;
+  const cyf = Number.isFinite(cy) && Math.min(ay + ah, by + bh) > Math.max(ay, by) ? cy : ay + ah / 2;
+  const cx = Math.min(ax + aw, bx + bw) > Math.max(ax, bx) ? (Math.max(ax, bx) + Math.min(ax + aw, bx + bw)) / 2 : ax + aw / 2;
+  const fond = { fond: "var(--mesure)", fill: "var(--fond)" };
+  if (bx >= ax + aw) { ligne(svg, ax + aw, cyf, bx, cyf, attrs); texte(svg, (ax + aw + bx) / 2, cyf - 9 * fin, String(+(bx - ax - aw).toFixed(1)), fond); }
+  else if (ax >= bx + bw) { ligne(svg, bx + bw, cyf, ax, cyf, attrs); texte(svg, (bx + bw + ax) / 2, cyf - 9 * fin, String(+(ax - bx - bw).toFixed(1)), fond); }
+  if (by >= ay + ah) { ligne(svg, cx, ay + ah, cx, by, attrs); texte(svg, cx + 16 * fin, (ay + ah + by) / 2, String(+(by - ay - ah).toFixed(1)), fond); }
+  else if (ay >= by + bh) { ligne(svg, cx, by + bh, cx, ay, attrs); texte(svg, cx + 16 * fin, (by + bh + ay) / 2, String(+(ay - by - bh).toFixed(1)), fond); }
+  // Un élément dans l'autre : les quatre retraits.
+  if (bx <= ax && by <= ay && bx + bw >= ax + aw && by + bh >= ay + ah) {
+    const r = [[ax - bx, bx, ay + ah / 2, ax, ay + ah / 2], [bx + bw - ax - aw, ax + aw, ay + ah / 2, bx + bw, ay + ah / 2]];
+    for (const [v, x1, y1, x2, y2] of r) if (v > 0) { ligne(svg, x1, y1, x2, y2, attrs); texte(svg, (x1 + x2) / 2, y1 - 9 * fin, String(+v.toFixed(1)), fond); }
+    const h = [[ay - by, ax + aw / 2, by, ax + aw / 2, ay], [by + bh - ay - ah, ax + aw / 2, ay + ah, ax + aw / 2, by + bh]];
+    for (const [v, x1, y1, x2, y2] of h) if (v > 0) { ligne(svg, x1, y1, x2, y2, attrs); texte(svg, x1 + 16 * fin, (y1 + y2) / 2, String(+v.toFixed(1)), fond); }
+  }
+}
+function mesurerParent(svg, ec, e, fin) {
+  let p = e.p;
+  while (p >= 0 && ec.elements[p].r[2] === e.r[2] && ec.elements[p].r[3] === e.r[3]) p = ec.elements[p].p;
+  if (p >= 0) mesurer(svg, e.r, ec.elements[p].r, fin);
+}
+
+// ---------- Les gestes sur la capture ----------
+function pointDe(ev, el) {
+  const b = el.getBoundingClientRect(), a = appareil();
+  return [Math.round(((ev.clientX - b.left) / b.width) * a.largeur * 2) / 2, Math.round(((ev.clientY - b.top) / b.height) * a.hauteur * 2) / 2];
+}
+async function elementSous([x, y]) {
+  const g = await grille();
+  if (!g) return null;
+  const i = g.t[Math.min(g.lignes - 1, Math.floor(y / g.pas)) * g.colonnes + Math.min(g.colonnes - 1, Math.floor(x / g.pas))];
+  const ec = await ecranCarte();
+  // Le plus petit élément visible qui contient le point, s'il est dans celui que le doigt touche.
+  let meilleur = i >= 0 ? i : null, aire = meilleur != null ? ec.elements[meilleur].r[2] * ec.elements[meilleur].r[3] : Infinity;
+  ec.elements.forEach((e, k) => {
+    const [ex, ey, ew, eh] = e.r;
+    if (x < ex || y < ey || x > ex + ew || y > ey + eh || ew * eh >= aire) return;
+    for (let q = e.p; q >= 0; q = ec.elements[q].p) if (q === i) { meilleur = k; aire = ew * eh; return; }
+  });
+  return meilleur;
+}
+function brancher(el) {
+  let depart = null;
+  el.onpointermove = async (ev) => {
+    const p = pointDe(ev, el);
+    if (depart && ev.buttons) {
+      etat.zone = [Math.min(depart[0], p[0]), Math.min(depart[1], p[1]), Math.abs(p[0] - depart[0]), Math.abs(p[1] - depart[1])];
+      if (etat.zone[2] < 4 && etat.zone[3] < 4) etat.zone = null;
+      void dessinerCalque();
+      return;
+    }
+    const s = await elementSous(p);
+    if (s !== etat.survol) { etat.survol = s; void dessinerCalque(); }
+    if (etat.loupe) loupe(ev, p);
+  };
+  el.onpointerleave = () => { etat.survol = null; $("loupe").hidden = true; void dessinerCalque(); };
+  el.onpointerdown = (ev) => { if (ev.button === 0) { depart = pointDe(ev, el); etat.zone = null; el.setPointerCapture(ev.pointerId); } };
+  el.onpointerup = async (ev) => {
+    if (!depart) return;
+    const p = pointDe(ev, el);
+    if (etat.zone) {
+      const [zx, zy, zw, zh] = etat.zone;
+      etat.point = [zx + zw / 2, zy + zh / 2];
+      etat.choisi = await elementSous(etat.point);
+    } else {
+      etat.point = p;
+      etat.choisi = await elementSous(p);
+    }
+    depart = null;
+    void dessinerCalque();
+    void dessinerInspecteur();
+  };
+}
+
+function loupe(ev, [x, y]) {
+  const img = $("image-active");
+  if (!img?.complete) return;
+  const a = appareil(), d = a.densite;
+  const cv = $("loupe-canvas"), ctx = cv.getContext("2d", { willReadFrequently: true });
+  const n = 21; // pixels de l'écran montrés de chaque côté
+  const px = Math.round(x * d), py = Math.round(y * d);
+  ctx.imageSmoothingEnabled = false;
+  ctx.clearRect(0, 0, 220, 220);
+  ctx.drawImage(img, px - (n - 1) / 2, py - (n - 1) / 2, n, n, 0, 0, 220, 220);
+  const centre = ctx.getImageData(110, 110, 1, 1).data;
+  const cote = 220 / n;
+  ctx.strokeStyle = "rgba(211,161,74,0.95)"; ctx.lineWidth = 1.5;
+  ctx.strokeRect(110 - cote / 2, 110 - cote / 2, cote, cote);
+  const c = [centre[0], centre[1], centre[2], 1];
+  $("loupe-pastille").style.background = hex(c);
+  const ec = etat.cartes[groupe()];
+  Promise.resolve(ec).then((cc) => {
+    const j = jetonProche(c, cc?.ecrans?.[etat.ecran]?.jetons);
+    $("loupe-texte").textContent = `${hex(c)} · ${x}, ${y} pt${j ? ` · ${j}` : ""}`;
+  });
+  const l = $("loupe");
+  l.hidden = false;
+  l.style.left = `${Math.min(innerWidth - 232, ev.clientX + 24)}px`;
+  l.style.top = `${Math.min(innerHeight - 270, ev.clientY + 24)}px`;
+}
+
+// ---------- L'inspecteur ----------
+function bloc(titre, droite) {
+  const d = document.createElement("div"); d.className = "bloc";
+  const h = document.createElement("h3"); h.textContent = titre;
+  if (droite) { const s = document.createElement("span"); s.textContent = droite; h.append(s); }
+  d.append(h); return d;
+}
+async function dessinerInspecteur() {
+  const insp = $("inspecteur");
+  if (etat.choisi == null && !etat.point) return dessinerAide();
+  const ec = await ecranCarte(), cc = await carte();
+  insp.replaceChildren();
+  const e = etat.choisi != null ? ec.elements[etat.choisi] : null;
+  if (e) {
+    const s = style(cc, e), { noms, fichier } = composantDe(cc, e);
+    const b1 = bloc("Élément", etat.point ? `${etat.point[0]}, ${etat.point[1]} pt` : "");
+    const nom = document.createElement("p"); nom.className = "composant"; nom.textContent = noms[0] ?? e.s.split(" > ").pop();
+    b1.append(nom);
+    if (noms.length > 1) { const p = document.createElement("div"); p.className = "selecteur"; p.textContent = `dans ${noms.slice(1, 4).join(" › ")}`; b1.append(p); }
+    if (fichier) { const f = document.createElement("div"); f.className = "fichier"; f.textContent = fichier; b1.append(f); }
+    const sel = document.createElement("div"); sel.className = "selecteur"; sel.textContent = e.s; b1.append(sel);
+    if (e.t || e.a) { const t = document.createElement("div"); t.className = "selecteur"; t.textContent = `« ${e.t || e.a} »`; b1.append(t); }
+    // Le fil des parents, pour remonter d'un cran.
+    const fil = document.createElement("div"); fil.className = "fil";
+    const chaine = [];
+    for (let q = etat.choisi; q >= 0 && chaine.length < 6; q = ec.elements[q].p) chaine.unshift(q);
+    for (const q of chaine) {
+      const b = document.createElement("button");
+      const m = ec.elements[q].s.split(" > ").pop();
+      b.textContent = m.replace(/:nth-of-type\(\d+\)/, "").slice(0, 28);
+      if (q === etat.choisi) b.className = "ici";
+      b.onclick = () => { etat.choisi = q; void dessinerCalque(); void dessinerInspecteur(); };
+      fil.append(b);
+    }
+    b1.append(fil);
+    insp.append(b1);
+
+    const b2 = bloc("Place", "points");
+    const boite = document.createElement("div"); boite.className = "boite";
+    for (const [k, v] of [["x", e.r[0]], ["y", e.r[1]], ["largeur", e.r[2]], ["hauteur", e.r[3]]]) {
+      const d = document.createElement("div"); const sp = document.createElement("span"); sp.textContent = k; const bb = document.createElement("b"); bb.textContent = v; d.append(sp, bb); boite.append(d);
+    }
+    const a = appareil();
+    const bords = document.createElement("p"); bords.className = "aide"; bords.style.marginTop = "8px";
+    bords.textContent = `À ${e.r[0]} pt du bord gauche, ${+(a.largeur - e.r[0] - e.r[2]).toFixed(1)} pt du bord droit.`;
+    b2.append(boite, bords);
+    insp.append(b2);
+
+    const b3 = bloc("Styles", "calculés");
+    const dl = document.createElement("dl"); dl.className = "styles";
+    const jetons = ec.jetons;
+    const ignorer = { 4: "normal", 6: "rgba(0, 0, 0, 0)", 7: "0px", 8: "0px", 9: "0px", 10: "normal", 11: "0px none", 12: "1", 13: "none", 16: "none" };
+    s.forEach((v, k) => {
+      if (k === 14 || k === 15) return;
+      if (ignorer[k] && (v === ignorer[k] || v.startsWith(ignorer[k]))) return;
+      const dt = document.createElement("dt"); dt.textContent = PROPRIETES[k];
+      const dd = document.createElement("dd");
+      if (k === 0) v = v.split(",")[0].replace(/"/g, "");
+      if (k === 1 || k === 3) v = `${+parseFloat(v).toFixed(2)} pt`;
+      const c = (k === 5 || k === 6) ? rgba(v) : null;
+      if (c) { const p = document.createElement("span"); p.className = "pastille"; p.style.background = v; dd.append(p); v = hex(c); }
+      dd.append(document.createTextNode(v));
+      const j = (k === 5 || k === 6) ? jetonDe(s[k], jetons) : null;
+      if (j) { const sp = document.createElement("span"); sp.className = "jeton"; sp.textContent = j; dd.append(sp); }
+      dl.append(dt, dd);
+    });
+    b3.append(dl);
+    insp.append(b3);
+
+    const changes = capture()?.changements?.filter((x) => ec.elements[x.e]?.s === e.s);
+    if (changes?.length) {
+      const b4 = bloc(`Changé depuis ${etat.manifeste.avant}`);
+      const ul = document.createElement("ul"); ul.className = "changements";
+      for (const q of changes[0].quoi) { const li = document.createElement("li"); li.textContent = q; ul.append(li); }
+      b4.append(ul); insp.append(b4);
+    }
+
+    // Ce qu'il y a aussi sous ce point (décor, éléments que le doigt traverse).
+    if (etat.point) {
+      const [x, y] = etat.point;
+      const sous = ec.elements.map((x2, k) => [k, x2]).filter(([, x2]) => x >= x2.r[0] && y >= x2.r[1] && x <= x2.r[0] + x2.r[2] && y <= x2.r[1] + x2.r[3]).sort((p, q) => p[1].r[2] * p[1].r[3] - q[1].r[2] * q[1].r[3]).slice(0, 7);
+      if (sous.length > 1) {
+        const b5 = bloc("Aussi sous ce point");
+        const ul = document.createElement("ul"); ul.className = "sous";
+        for (const [k, x2] of sous) {
+          const li = document.createElement("li"); const b = document.createElement("button");
+          const n = document.createElement("span"); n.textContent = (composantDe(cc, x2).noms[0] ?? "") + " " + x2.s.split(" > ").pop().replace(/:nth-of-type\(\d+\)/, "");
+          const t = document.createElement("span"); t.className = "fixe"; t.textContent = `${x2.r[2]}×${x2.r[3]}`;
+          b.append(n, t);
+          b.onclick = () => { etat.choisi = k; void dessinerCalque(); void dessinerInspecteur(); };
+          li.append(b); ul.append(li);
+        }
+        b5.append(ul); insp.append(b5);
+      }
+    }
+  }
+  insp.append(formulaireNote(e, cc));
+}
+
+function dessinerAide() {
+  const insp = $("inspecteur");
+  insp.replaceChildren();
+  const b = bloc("Comment faire");
+  const p1 = document.createElement("p"); p1.className = "aide";
+  p1.textContent = "Touche un endroit de l'écran : l'élément touché s'entoure, avec sa place au demi-point, ses marges et ses couleurs (et le jeton de Kora qui les donne). Fais glisser pour entourer une zone. Écris ce qui ne va pas : la note part dans le fil Patch.";
+  const p2 = document.createElement("p"); p2.className = "aide"; p2.style.marginTop = "8px";
+  p2.innerHTML = "<kbd>←</kbd> <kbd>→</kbd> écran précédent ou suivant · <kbd>↑</kbd> élément parent · <kbd>G</kbd> grille · <kbd>M</kbd> marges · <kbd>R</kbd> mesurer · <kbd>L</kbd> loupe · <kbd>D</kbd> différences · <kbd>Échap</kbd> tout lâcher";
+  b.append(p1, p2);
+  insp.append(b);
+  const c = capture();
+  if (c?.changements?.length) {
+    const b2 = bloc(`Changé depuis ${etat.manifeste.avant}`, `${c.changements.length} élément${c.changements.length > 1 ? "s" : ""}`);
+    const ul = document.createElement("ul"); ul.className = "sous";
+    Promise.all([ecranCarte(), carte()]).then(([ec, cc]) => {
+      for (const ch of c.changements.slice(0, 14)) {
+        const x2 = ec.elements[ch.e]; if (!x2) continue;
+        const li = document.createElement("li"); const bt = document.createElement("button");
+        const n = document.createElement("span"); n.textContent = composantDe(cc, x2).noms[0] ?? x2.s.split(" > ").pop();
+        const t = document.createElement("span"); t.className = "fixe"; t.textContent = ch.quoi[0].slice(0, 34);
+        bt.append(n, t);
+        bt.onclick = () => { etat.choisi = ch.e; etat.point = [x2.r[0] + x2.r[2] / 2, x2.r[1] + x2.r[3] / 2]; void dessinerCalque(); void dessinerInspecteur(); };
+        li.append(bt); ul.append(li);
+      }
+    });
+    b2.append(ul); insp.append(b2);
+  }
+  const notesIci = etat.notes.filter((n) => n.ecran === etat.ecran && n.statut !== "reglee");
+  if (notesIci.length) {
+    const b3 = bloc("Notes sur cet écran", String(notesIci.length));
+    for (const n of notesIci) b3.append(carteNote(n, true));
+    insp.append(b3);
+  }
+}
+
+function formulaireNote(e, cc) {
+  const f = document.createElement("form"); f.className = "note";
+  f.onsubmit = (ev) => { ev.preventDefault(); void envoyer(e, cc, f); };
+  const h = document.createElement("h3"); h.style.cssText = "font:500 11px/1 var(--police-fixe);letter-spacing:.12em;text-transform:uppercase;color:var(--discret);margin:0"; h.textContent = "Ta note";
+  const cible = document.createElement("div"); cible.className = "cible";
+  const b = document.createElement("b");
+  b.textContent = etat.zone ? `zone de ${etat.zone[2]} × ${etat.zone[3]} pt` : e ? (composantDe(cc, e).noms[0] ?? "cet élément") : "ce point";
+  cible.append(document.createTextNode("Sur "), b, document.createTextNode(` · ${etat.manifeste.ecrans.find((x) => x.cle === etat.ecran)?.titre} · ${appareil().nom} · ${etat.theme}`));
+  const types = document.createElement("div"); types.className = "choix"; types.setAttribute("role", "group"); types.setAttribute("aria-label", "Ce qui ne va pas");
+  for (const [v, l] of TYPES) {
+    const bt = document.createElement("button"); bt.type = "button"; bt.textContent = l; bt.setAttribute("aria-pressed", String(etat.type === v));
+    bt.onclick = () => { etat.type = v; for (const x of types.children) x.setAttribute("aria-pressed", String(x === bt)); maj(); };
+    types.append(bt);
+  }
+  const imp = document.createElement("div"); imp.className = "choix importance"; imp.setAttribute("role", "group"); imp.setAttribute("aria-label", "Importance");
+  for (const [v, l] of IMPORTANCES) {
+    const bt = document.createElement("button"); bt.type = "button"; bt.textContent = l; bt.dataset.v = v; bt.setAttribute("aria-pressed", String(etat.importance === v));
+    bt.onclick = () => { etat.importance = v; for (const x of imp.children) x.setAttribute("aria-pressed", String(x === bt)); };
+    imp.append(bt);
+  }
+  const ta = document.createElement("textarea"); ta.id = "texte-note"; ta.maxLength = 1500; ta.placeholder = "Ce qui ne va pas, et ce que tu voudrais à la place. Par exemple : le titre colle au bord, je voudrais 4 pt de plus.";
+  ta.value = lire("atelier:brouillon", "");
+  ta.oninput = () => { garder("atelier:brouillon", ta.value); maj(); };
+  const partout = document.createElement("label");
+  const cb = document.createElement("input"); cb.type = "checkbox"; cb.id = "partout"; cb.checked = true;
+  partout.append(cb, document.createTextNode("À régler sur tous les appareils et les deux thèmes"));
+  const bouton = document.createElement("button"); bouton.className = "principal"; bouton.textContent = "Envoyer à Patch"; bouton.type = "submit";
+  const msg = document.createElement("div"); msg.className = "message"; msg.id = "message-note";
+  const maj = () => { bouton.disabled = !ta.value.trim() || !etat.type || !etat.db; };
+  maj();
+  if (!etat.db) { msg.className = "message erreur"; msg.textContent = "Les notes se gardent quand tu es connecté à claude.ai."; }
+  f.append(h, cible, types, imp, ta, partout, bouton, msg);
+  return f;
+}
+
+// Un morceau de la capture autour du point, gardé avec la note.
+function vignette() {
+  const img = $("image-active"), a = appareil(), d = a.densite;
+  const [x, y, w, h] = etat.zone ?? (etat.choisi != null && etat.cartes[groupe()] ? null : null) ?? [etat.point[0] - 60, etat.point[1] - 60, 120, 120];
+  const marge = 24, sx = Math.max(0, (x - marge) * d), sy = Math.max(0, (y - marge) * d);
+  const sw = Math.min(img.naturalWidth - sx, (w + marge * 2) * d), sh = Math.min(img.naturalHeight - sy, (h + marge * 2) * d);
+  const k = Math.min(1, 420 / sw, 420 / sh);
+  const c = document.createElement("canvas"); c.width = Math.round(sw * k); c.height = Math.round(sh * k);
+  const ctx = c.getContext("2d");
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+  ctx.strokeStyle = "#d3a14a"; ctx.lineWidth = 3;
+  ctx.strokeRect((x * d - sx) * k, (y * d - sy) * k, w * d * k, h * d * k);
+  try { return c.toDataURL("image/jpeg", 0.82); } catch { return null; }
+}
+
+async function envoyer(e, cc, f) {
+  const msg = f.querySelector(".message"), bouton = f.querySelector("button[type=submit]");
+  const texteNote = f.querySelector("textarea").value.trim();
+  bouton.disabled = true; msg.className = "message"; msg.textContent = "Envoi…";
+  const ec = await ecranCarte();
+  let cadreNote = etat.zone;
+  if (!cadreNote && e) cadreNote = e.r;
+  if (!cadreNote) cadreNote = [etat.point[0] - 20, etat.point[1] - 20, 40, 40];
+  const ancienneZone = etat.zone;
+  etat.zone = cadreNote;
+  const image = vignette();
+  etat.zone = ancienneZone;
+  const { noms, fichier } = e ? composantDe(cc, e) : { noms: [], fichier: null };
+  const id = `n${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  const s = e ? style(cc, e) : null;
+  const note = {
+    ecran: etat.ecran, titreEcran: etat.manifeste.ecrans.find((x) => x.cle === etat.ecran)?.titre ?? etat.ecran,
+    appareil: etat.appareil, theme: etat.theme, version: etat.manifeste.version, partout: f.querySelector("#partout").checked,
+    x: etat.point[0], y: etat.point[1], zone: etat.zone ?? null,
+    element: e ? { composant: noms.slice(0, 4).join(" › "), fichier, selecteur: e.s, texte: e.t ?? e.a ?? null, place: e.r, styles: Object.fromEntries(s.map((v, k) => [PROPRIETES[k], v])) } : null,
+    type: etat.type, importance: etat.importance, texte: texteNote, statut: "ouverte",
+    creeLe: new Date().toISOString(), auteur: etat.user ? await etat.user.id().catch(() => null) : null, vignette: image,
+  };
+  try {
+    await etat.db.collection("notes").doc(id).set(note);
+  } catch (err) {
+    msg.className = "message erreur"; msg.textContent = `La note n'a pas été gardée (${err?.code ?? err?.message ?? "erreur"}). Ton texte reste dans le champ.`;
+    bouton.disabled = false; return;
+  }
+  garder("atelier:brouillon", "");
+  msg.textContent = "Note gardée.";
+  // Et Claude est prévenu dans le fil Patch, si cette vue le permet.
+  try {
+    if (etat.comments && (await etat.comments.canSendToClaude()) === "available") {
+      const pin = document.getElementById("calque");
+      const anchor = await etat.comments.anchorFor(pin);
+      const lignes = [
+        `Note d'atelier ${id} pour le fil Patch (Kora ${note.version}).`,
+        `Écran : ${note.titreEcran} · ${appareil().nom} · ${note.theme}${note.partout ? " (à régler partout)" : ""}`,
+        `Point : ${note.x}, ${note.y} pt${note.zone ? ` · zone ${note.zone.join(" ")}` : ""}`,
+        note.element ? `Élément : ${note.element.composant || "?"} · ${note.element.fichier ?? "fichier inconnu"} · ${note.element.selecteur}` : "Élément : aucun",
+        `Type : ${note.type} · importance : ${note.importance}`,
+        `Texte : ${note.texte}`,
+        "Détails complets dans la base de l'atelier (collection notes).",
+      ];
+      await etat.comments.sendToClaude({ anchor, text: lignes.join("\n").slice(0, 3900) });
+      msg.textContent = "Note gardée et envoyée à Claude, qui la passe au fil Patch.";
+    } else {
+      msg.textContent = "Note gardée. Patch la lira au début de la prochaine série de corrections.";
+    }
+  } catch {
+    msg.textContent = "Note gardée. Patch la lira au début de la prochaine série de corrections.";
+  }
+  etat.type = null;
+  f.querySelector("textarea").value = "";
+  setTimeout(() => { lacher(); tout(); }, 1600);
+}
+
+// ---------- La vue des notes ----------
+function carteNote(n, compacte) {
+  const d = document.createElement("article"); d.className = "carte-note";
+  const img = document.createElement("img"); img.alt = ""; if (n.vignette) img.src = n.vignette;
+  const corps = document.createElement("div"); corps.className = "corps";
+  const haut = document.createElement("div"); haut.className = "haut";
+  const st = document.createElement("span"); st.className = `statut ${n.statut}`; st.textContent = n.statut === "reglee" && n.regleeEn ? `Réglée en ${n.regleeEn}` : STATUTS[n.statut] ?? n.statut;
+  const ty = document.createElement("span"); ty.className = "type"; ty.textContent = TYPES.find(([v]) => v === n.type)?.[1] ?? n.type;
+  haut.append(st, ty);
+  if (n.importance === "genant") { const g = document.createElement("span"); g.className = "importance-genant"; g.textContent = "Gênant"; haut.append(g); }
+  const p = document.createElement("p"); p.textContent = n.texte;
+  const ou = document.createElement("div"); ou.className = "ou";
+  ou.textContent = `${n.titreEcran} · ${etat.manifeste?.appareils[n.appareil]?.nom ?? n.appareil} · ${n.theme} · ${n.version}${n.element?.fichier ? ` · ${n.element.fichier}` : ""}`;
+  corps.append(haut, p, ou);
+  if (n.reponse) { const r = document.createElement("p"); r.className = "discret"; r.style.fontSize = "12.5px"; r.textContent = n.reponse; corps.append(r); }
+  const actions = document.createElement("div"); actions.className = "actions";
+  const voir = document.createElement("button"); voir.textContent = "Voir sur l'écran";
+  voir.onclick = () => { etat.appareil = n.appareil; etat.theme = n.theme; etat.vue = "ecrans"; etat.point = [n.x, n.y]; etat.zone = n.zone; ouvrir(n.ecran, true); };
+  actions.append(voir);
+  if (etat.db && !compacte) {
+    const suivant = n.statut === "reglee" ? ["ouverte", "Rouvrir"] : ["reglee", "C'est réglé"];
+    const b = document.createElement("button"); b.textContent = suivant[1];
+    b.onclick = async () => { try { await etat.db.collection("notes").doc(n.id).update({ statut: suivant[0], ...(suivant[0] === "reglee" ? { regleeLe: new Date().toISOString() } : {}) }); } catch { b.textContent = "Pas enregistré"; } };
+    actions.append(b);
+  }
+  corps.append(actions);
+  d.append(img, corps);
+  return d;
+}
+
+function dessinerNotes() {
+  const v = document.createElement("section"); v.className = "notes-vue";
+  const ent = document.createElement("div"); ent.className = "notes-entete";
+  const h = document.createElement("h2"); h.textContent = "Les notes de l'atelier";
+  const filtres = document.createElement("div"); filtres.className = "groupe";
+  boutonsGroupe(filtres, [["ouverte", `Ouvertes · ${etat.notes.filter((n) => n.statut === "ouverte").length}`], ["en-cours", `En cours · ${etat.notes.filter((n) => n.statut === "en-cours").length}`], ["reglee", `Réglées · ${etat.notes.filter((n) => n.statut === "reglee").length}`], ["toutes", "Toutes"]], etat.filtre, (f) => { etat.filtre = f; tout(); });
+  ent.append(h, filtres);
+  v.append(ent);
+  const liste = etat.notes.filter((n) => etat.filtre === "toutes" || n.statut === etat.filtre).sort((a, b) => (b.creeLe || "").localeCompare(a.creeLe || ""));
+  if (!liste.length) {
+    const vide = document.createElement("div"); vide.className = "vide";
+    const t = document.createElement("h2"); t.textContent = etat.filtre === "ouverte" ? "Aucune note ouverte" : "Rien ici";
+    const p = document.createElement("p"); p.textContent = etat.db ? "Choisis un écran, touche ce qui te gêne et écris-le : la note s'affiche ici avec un morceau de la capture, et passe de « ouverte » à « réglée » quand Patch l'a corrigée." : "Les notes s'affichent quand tu ouvres l'atelier connecté à claude.ai.";
+    vide.append(t, p); v.append(vide);
+  } else {
+    const g = document.createElement("div"); g.className = "liste-notes";
+    for (const n of liste) g.append(carteNote(n, false));
+    v.append(g);
+  }
+  return v;
+}
+
+// ---------- Navigation ----------
+function lacher() { etat.choisi = null; etat.point = null; etat.zone = null; etat.survol = null; }
+function ouvrir(cle, garderPoint) {
+  if (!garderPoint) lacher();
+  etat.ecran = cle;
+  garder("atelier:ecran", cle);
+  try { history.replaceState(null, "", `#${etat.appareil}.${etat.theme}.${cle}`); } catch { /* adresse figée */ }
+  tout();
+  if (garderPoint && etat.point) elementSous(etat.point).then((i) => { etat.choisi = i; void dessinerCalque(); void dessinerInspecteur(); });
+}
+function tout() {
+  if (!etat.manifeste) return;
+  dessinerEntete();
+  $("vue-ecrans").setAttribute("aria-pressed", String(etat.vue === "ecrans"));
+  $("vue-notes").setAttribute("aria-pressed", String(etat.vue === "notes"));
+  const etabli = $("etabli");
+  const notesVue = etabli.querySelector(".notes-vue");
+  if (notesVue) notesVue.remove();
+  for (const enfant of etabli.children) enfant.hidden = etat.vue === "notes";
+  if (etat.vue === "notes") { etabli.append(dessinerNotes()); return; }
+  if (!capture()) etat.ecran = etat.manifeste.ecrans.find((e) => capture(e.cle))?.cle ?? null;
+  dessinerRail(); dessinerOutils(); dessinerScene(); void dessinerInspecteur();
+}
+
+$("vue-ecrans").onclick = () => { etat.vue = "ecrans"; tout(); };
+$("vue-notes").onclick = () => { etat.vue = "notes"; tout(); };
+for (const [id, cle] of [["b-grille", "grille"], ["b-marges", "marges"], ["b-mesure", "mesure"], ["b-loupe", "loupe"], ["b-diff", "diff"]]) $(id).onclick = () => { etat[cle] = !etat[cle]; if (cle === "loupe" && !etat.loupe) $("loupe").hidden = true; dessinerOutils(); void dessinerCalque(); };
+for (const b of $("comparer").children) b.onclick = () => { etat.comparer = b.dataset.v; dessinerOutils(); dessinerScene(); };
+for (const b of $("zoom").children) b.onclick = () => { etat.zoom = b.dataset.v; dessinerOutils(); dessinerScene(); };
+addEventListener("resize", () => { if (etat.manifeste && etat.zoom === "ajuste" && etat.vue === "ecrans") dessinerScene(); });
+addEventListener("keydown", (ev) => {
+  if (!etat.manifeste || etat.vue !== "ecrans" || ev.target.closest?.("textarea, input")) return;
+  const liste = etat.manifeste.ecrans.filter((e) => capture(e.cle)).map((e) => e.cle), i = liste.indexOf(etat.ecran);
+  const bascules = { g: "b-grille", m: "b-marges", r: "b-mesure", l: "b-loupe", d: "b-diff" };
+  if (ev.key === "ArrowRight" || ev.key === "ArrowDown" && etat.choisi == null) { ev.preventDefault(); ouvrir(liste[(i + 1) % liste.length]); }
+  else if (ev.key === "ArrowLeft") { ev.preventDefault(); ouvrir(liste[(i - 1 + liste.length) % liste.length]); }
+  else if (ev.key === "ArrowUp" && etat.choisi != null) { ev.preventDefault(); ecranCarte().then((ec) => { const p = ec.elements[etat.choisi].p; if (p >= 0) { etat.choisi = p; void dessinerCalque(); void dessinerInspecteur(); } }); }
+  else if (ev.key === "Escape") { lacher(); void dessinerCalque(); void dessinerInspecteur(); }
+  else if (bascules[ev.key.toLowerCase()] && !ev.metaKey && !ev.ctrlKey) $(bascules[ev.key.toLowerCase()]).click();
+});
+
+// ---------- Démarrage ----------
+(async function demarrer() {
+  try {
+    etat.manifeste = await (await fetch("donnees/atelier.json")).json();
+  } catch {
+    $("version").textContent = "Pas encore de captures";
+    return;
+  }
+  const m = etat.manifeste;
+  const [ha, ht, he] = decodeURIComponent(location.hash.slice(1)).split(".");
+  etat.appareil = m.appareils[ha] ? ha : m.appareils[lire("atelier:appareil", "air")] ? lire("atelier:appareil", "air") : Object.keys(m.appareils)[0];
+  etat.theme = m.themes.includes(ht) ? ht : m.themes.includes(lire("atelier:theme", "sombre")) ? lire("atelier:theme", "sombre") : m.themes[0];
+  const voulu = he || lire("atelier:ecran", null);
+  etat.ecran = m.ecrans.some((e) => e.cle === voulu) ? voulu : (m.ecrans.find((e) => m.captures[`${etat.appareil}-${etat.theme}/${e.cle}`]?.difference?.part > 0) ?? m.ecrans[0]).cle;
+  tout();
+
+  // Les notes vivent dans la base de l'atelier ; Claude est prévenu par un commentaire.
+  const claudeRt = window.claude;
+  if (!claudeRt?.use) return;
+  const [db, comments, user] = await Promise.all([claudeRt.use("db"), claudeRt.use("comments"), claudeRt.use("user")]);
+  etat.db = db; etat.comments = comments; etat.user = user;
+  if (db) {
+    db.collection("notes").onSnapshot((snap) => {
+      etat.notes = (snap.docs ?? snap).map((d) => ({ id: d.id, ...(typeof d.data === "function" ? d.data() : d.data ?? d) }));
+      tout();
+    }, () => {});
+  }
+  tout();
+})();
+</script>
