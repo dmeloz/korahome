@@ -1,5 +1,5 @@
 import { comptesIcloudDe, evenementsDe } from "../domaine/agenda";
-import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { lazy, Suspense, type ReactNode, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { flushSync } from "react-dom";
 import { meteoFraiche } from "../domaine/meteo";
 import { rappelDuMatin } from "../domaine/rappels";
@@ -252,10 +252,9 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   };
   const jarvisPartage = partage && foyerPartage ? { serveur: partage.jarvis, foyerId: foyerPartage } : null;
   const agendaPartage = partage && foyerPartage ? { serveur: partage.agenda, foyerId: foyerPartage } : null;
-  function ecranDe(page: Page) {
-  let ecran;
-  if (page.nom === "accueil") {
-    ecran = (
+  // Chaque page de la pile et son écran ; une page oubliée ici est une erreur de types.
+  const ECRANS: { [N in Page["nom"]]: (page: Extract<Page, { nom: N }>) => ReactNode } = {
+    accueil: () => (
       <Accueil
         donnees={donnees}
         ouvrirModule={(id) => ouvrir({ nom: "module", id })}
@@ -279,9 +278,8 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         rappelsNonLus={rappelsNonLus}
         auDessus={pile.length === 1}
       />
-    );
-  } else if (page.nom === "module") {
-    ecran = MODULES[page.id]?.page?.({
+    ),
+    module: (page) => MODULES[page.id]?.page?.({
       ...donnees,
       depot,
       ouvrirListe,
@@ -291,83 +289,16 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       ouvrirCalendrier: () => ouvrir({ nom: "calendrier" }),
       onglet: page.onglet,
       changerOnglet,
-    });
-  } else if (page.nom === "liste") {
-    const liste = listes.find((l) => l.id === page.id);
-    ecran = liste ? (
-      <DetailListe depot={depot} foyer={leFoyer} membreId={membre} liste={liste} elements={elements} catalogue={catalogue} />
-    ) : (
-      <main><p className="vide">Cette liste n'existe plus.</p></main>
-    );
-  } else if (page.nom === "partage") {
-    ecran = <Partage services={partage} foyer={leFoyer} />;
-  } else if (page.nom === "notifications") {
-    ecran = (
-      <Notifications
-        serveur={partage?.rappels ?? null}
-        foyerId={foyerPartage}
-        membreId={membre}
-        ouvrirPartage={() => ouvrir({ nom: "partage" })}
-        foyer={leFoyer}
-        taches={taches}
-        evenements={evenementsDe(agenda)}
-        factures={facturesDuJour(budget, donnees.aujourdhui)}
-        animaux={animaux}
-        produits={produits}
-        zones={zones}
-        meteo={meteo}
-        aujourdhui={donnees.aujourdhui}
-      />
-    );
-  } else if (page.nom === "telephone") {
-    ecran = (
-      <Telephone
-        foyer={leFoyer}
-        membreId={membre}
-        choisir={(id) => {
-          choisirMembreCourant(id);
-          setMembreId(id);
-        }}
-      />
-    );
-  } else if (page.nom === "apparence") {
-    ecran = <Apparence />;
-  } else if (page.nom === "conseil" && partage && foyerPartage) {
-    ecran = <Conseil donnees={donnees} depot={depot} serveur={partage.jarvis} foyerPartage={foyerPartage} />;
-  } else if (page.nom === "jarvis" || page.nom === "conseil") {
-    ecran = (
-      <Jarvis
-        donnees={donnees}
-        depot={depot}
-        serveur={partage?.jarvis ?? null}
-        foyerPartage={foyerPartage}
-        ouvrirPartage={() => ouvrir({ nom: "partage" })}
-        ouvrirConseil={() => ouvrir({ nom: "conseil" })}
-        ouvrirMemoire={() => ouvrir({ nom: "memoire" })}
-      />
-    );
-  } else if (page.nom === "memoire") {
-    ecran = <Memoire donnees={donnees} depot={depot} ouvrirBilan={() => ouvrir({ nom: "bilan" })} onglet={page.onglet} />;
-  } else if (page.nom === "bilan") {
-    ecran = <Bilan depot={depot} donnees={donnees} changerHeureRappel={changerHeureRappel} ouvrirAppris={() => ouvrir({ nom: "memoire" })} />;
-  } else if (page.nom === "mots") {
-    const notifier =
-      partage && foyerPartage ? (m: { id: string; de: string | null; texte: string }) => partage.rappels.notifierMot({ foyerId: foyerPartage, id: m.id, de: m.de, texte: m.texte }) : null;
-    ecran = <NosMots donnees={donnees} depot={depot} notifier={notifier} />;
-  } else if (page.nom === "rappels") {
-    ecran = <CentreRappels ouvrirNotifications={() => ouvrir({ nom: "notifications" })} />;
-  } else if (page.nom === "sauvegarde") {
-    ecran = <Sauvegarde depot={depot} aujourdhui={donnees.aujourdhui} contenu={{ foyer: leFoyer, listes, elements, taches, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda, budget, retours }} />;
-  } else if (page.nom === "calendrier") {
-    ecran = <CalendrierIphone foyer={leFoyer} membreId={membre} comptes={comptesIcloudDe(agenda)} distant={agendaPartage} ouvrirPartage={() => ouvrir({ nom: "partage" })} />;
-  } else if (page.nom === "fee") {
-    ecran = <LaFee />;
-  } else if (page.nom === "siri") {
-    ecran = <Siri foyer={leFoyer} membreId={membre} distant={jarvisPartage} ouvrirPartage={() => ouvrir({ nom: "partage" })} />;
-  } else if (page.nom === "retours") {
-    ecran = <RetoursTest depot={depot} foyer={leFoyer} retours={retours} partageActif={partageActif} />;
-  } else {
-    ecran = (
+    }),
+    liste: (page) => {
+      const liste = listes.find((l) => l.id === page.id);
+      return liste ? (
+        <DetailListe depot={depot} foyer={leFoyer} membreId={membre} liste={liste} elements={elements} catalogue={catalogue} />
+      ) : (
+        <main><p className="vide">Cette liste n'existe plus.</p></main>
+      );
+    },
+    reglages: () => (
       <Reglages
         foyer={leFoyer}
         membreId={membre}
@@ -400,11 +331,63 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
           setPastille(visible);
         }}
       />
-    );
-  }
-
-  return ecran;
-  }
+    ),
+    telephone: () => (
+      <Telephone
+        foyer={leFoyer}
+        membreId={membre}
+        choisir={(id) => {
+          choisirMembreCourant(id);
+          setMembreId(id);
+        }}
+      />
+    ),
+    apparence: () => <Apparence />,
+    partage: () => <Partage services={partage} foyer={leFoyer} />,
+    notifications: () => (
+      <Notifications
+        serveur={partage?.rappels ?? null}
+        foyerId={foyerPartage}
+        membreId={membre}
+        ouvrirPartage={() => ouvrir({ nom: "partage" })}
+        foyer={leFoyer}
+        taches={taches}
+        evenements={evenementsDe(agenda)}
+        factures={facturesDuJour(budget, donnees.aujourdhui)}
+        animaux={animaux}
+        produits={produits}
+        zones={zones}
+        meteo={meteo}
+        aujourdhui={donnees.aujourdhui}
+      />
+    ),
+    jarvis: () => (
+      <Jarvis
+        donnees={donnees}
+        depot={depot}
+        serveur={partage?.jarvis ?? null}
+        foyerPartage={foyerPartage}
+        ouvrirPartage={() => ouvrir({ nom: "partage" })}
+        ouvrirConseil={() => ouvrir({ nom: "conseil" })}
+        ouvrirMemoire={() => ouvrir({ nom: "memoire" })}
+      />
+    ),
+    conseil: () => (partage && foyerPartage ? <Conseil donnees={donnees} depot={depot} serveur={partage.jarvis} foyerPartage={foyerPartage} /> : ECRANS.jarvis({ nom: "jarvis" })),
+    memoire: (page) => <Memoire donnees={donnees} depot={depot} ouvrirBilan={() => ouvrir({ nom: "bilan" })} onglet={page.onglet} />,
+    bilan: () => <Bilan depot={depot} donnees={donnees} changerHeureRappel={changerHeureRappel} ouvrirAppris={() => ouvrir({ nom: "memoire" })} />,
+    mots: () => {
+      const notifier =
+        partage && foyerPartage ? (m: { id: string; de: string | null; texte: string }) => partage.rappels.notifierMot({ foyerId: foyerPartage, id: m.id, de: m.de, texte: m.texte }) : null;
+      return <NosMots donnees={donnees} depot={depot} notifier={notifier} />;
+    },
+    rappels: () => <CentreRappels ouvrirNotifications={() => ouvrir({ nom: "notifications" })} />,
+    sauvegarde: () => <Sauvegarde depot={depot} aujourdhui={donnees.aujourdhui} contenu={{ foyer: leFoyer, listes, elements, taches, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda, budget, retours }} />,
+    calendrier: () => <CalendrierIphone foyer={leFoyer} membreId={membre} comptes={comptesIcloudDe(agenda)} distant={agendaPartage} ouvrirPartage={() => ouvrir({ nom: "partage" })} />,
+    fee: () => <LaFee />,
+    siri: () => <Siri foyer={leFoyer} membreId={membre} distant={jarvisPartage} ouvrirPartage={() => ouvrir({ nom: "partage" })} />,
+    retours: () => <RetoursTest depot={depot} foyer={leFoyer} retours={retours} partageActif={partageActif} />,
+  };
+  const ecranDe = (page: Page) => (ECRANS[page.nom] as (p: Page) => ReactNode)(page);
 
   // La fée, sur l'accueil, chaque module, chaque liste, la mémoire et Nos mots : là où l'on
   // ajoute quelque chose. Les réglages et la conversation ont leurs propres champs.
