@@ -50,6 +50,7 @@ import { lireDerniereRepartition } from "./Taches";
 import { APPUI_LONG_MS } from "../gestes";
 import { heureMinute } from "../../domaine/texte";
 import { etatRappels } from "../rappels";
+import { ignorer } from "../journal";
 
 /** Combien de choses du jour la carte garde ; trois se voient, les autres se font défiler. */
 const CHOSES_CARTE = 12;
@@ -116,7 +117,7 @@ export function Accueil(props: {
     if (!matchMedia("(display-mode: standalone)").matches) return;
     void etatRappels()
       .then((e) => vivant && setNotificationsCoupees(e === "inactifs" || e === "refuses"))
-      .catch(() => {});
+      .catch(ignorer);
     return () => {
       vivant = false;
     };
@@ -488,7 +489,7 @@ export function Accueil(props: {
       {/* Le partage et la sauvegarde vivent dans Réglages : ici seulement quand il y a un souci. */}
       {!edition && (
         <footer className="pied-accueil">
-          {props.partage.ton === "urgent" && (
+          {(props.partage.ton === "urgent" || props.partage.horsLigne) && (
             <button className={`etat-pied ${props.partage.ton}`} onClick={props.ouvrirPartage}>
               <span className={`point-etat ${props.partage.ton}`} aria-hidden />
               {props.partage.texte}
@@ -583,7 +584,7 @@ function BoutonSynchro({ synchroniser }: { synchroniser: () => Promise<void> }) 
     setEnCours(true);
     try {
       // Assez long pour voir que ça tourne, même quand tout est déjà à jour.
-      await Promise.all([synchroniser().catch(() => {}), new Promise((r) => setTimeout(r, 600))]);
+      await Promise.all([synchroniser().catch(ignorer), new Promise((r) => setTimeout(r, 600))]);
     } finally {
       setEnCours(false);
     }

@@ -35,6 +35,7 @@ import type { PropsPage } from "../modules";
 import { Onglets, Page, useGestionnaireBarre } from "../pieces";
 import { comprendrePhrase } from "../../domaine/barre";
 import { deuxChiffres } from "../../domaine/texte";
+import { ignorer } from "../journal";
 
 type Vue = "jour" | "semaine" | "mois" | "avenir";
 const VUES: Record<Vue, string> = { jour: "Jour", semaine: "Semaine", mois: "Mois", avenir: "À venir" };
@@ -49,7 +50,7 @@ let attente: ReturnType<typeof setTimeout> | null = null;
 function synchroniserBientot(distant: Distant) {
   if (!distant) return;
   if (attente) clearTimeout(attente);
-  attente = setTimeout(() => void distant.serveur.synchroniserAgenda(distant.foyerId).catch(() => {}), 5000);
+  attente = setTimeout(() => void distant.serveur.synchroniserAgenda(distant.foyerId).catch(ignorer), 5000);
 }
 
 const couleurDe = (foyer: Foyer, pour: Id | null) => (pour ? (foyer.membres.find((m) => m.id === pour)?.couleur ?? "var(--discret)") : "var(--accent)");

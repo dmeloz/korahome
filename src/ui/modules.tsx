@@ -24,6 +24,7 @@ import { Taches } from "./ecrans/Taches";
 import { vibrer } from "./haptique";
 import type { NomIcone } from "./Icone";
 import { Espace } from "./pieces";
+import { ignorer } from "./journal";
 
 // Les pages les plus lourdes ne se chargent qu'à leur première ouverture : l'app démarre plus
 // vite sur l'iPhone. Elles sont préchargées en silence une fois l'accueil affiché.
@@ -44,7 +45,7 @@ const Stock = lazy(PAGES_DIFFEREES.Stock);
 
 /** Charge d'avance les pages différées, quand le téléphone n'a rien d'autre à faire. */
 export function prechargerPages(): void {
-  for (const charger of Object.values(PAGES_DIFFEREES)) void charger().catch(() => {});
+  for (const charger of Object.values(PAGES_DIFFEREES)) void charger().catch(ignorer);
 }
 
 // Le squelette standard de l'app : un tableau de bord fait de widgets, et chaque

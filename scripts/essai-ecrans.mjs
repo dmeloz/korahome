@@ -78,7 +78,7 @@ try {
   await tousLesEspaces();
   await p.getByLabel(/^Réglages/).first().click();
   await verifier("Réglages");
-  for (const ligne of ["Apparence", "Partage", "Sauvegarde", "Notifications", "Calendrier de l'iPhone", "Siri", "Ce que", "Retours de test"]) {
+  for (const ligne of ["Apparence", "Partage", "Sauvegarde", "Corbeille", "Notifications", "Calendrier de l'iPhone", "Siri", "Ce que", "Retours de test"]) {
     await p.locator(".page-dessus").getByText(ligne).first().click();
     await verifier(ligne);
     await revenir();

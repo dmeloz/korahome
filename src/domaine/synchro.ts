@@ -3,14 +3,14 @@
 // attente puis envoyé. Quand deux téléphones ont modifié la même chose, la modification
 // la plus récente gagne, document par document.
 
-export type CollectionSynchro = "foyer" | "listes" | "elements" | "taches" | "animaux" | "stock" | "catalogue" | "jardin" | "memoire" | "couple" | "menus" | "agenda" | "budget" | "retours";
+export type CollectionSynchro = "foyer" | "listes" | "elements" | "taches" | "animaux" | "stock" | "catalogue" | "jardin" | "memoire" | "couple" | "menus" | "agenda" | "budget" | "retours" | "corbeille";
 
 /**
  * Ce qui se partage. Les notes de test aussi : elles arrivent ainsi sur le serveur, où
  * Claude les lit, et les deux iPhone voient toutes les notes. Les réglages restent propres
- * à chaque téléphone.
+ * à chaque téléphone. La corbeille aussi : ce que l'un efface, l'autre peut le remettre.
  */
-export const COLLECTIONS_SYNCHRO: readonly CollectionSynchro[] = ["foyer", "listes", "elements", "taches", "animaux", "stock", "catalogue", "jardin", "memoire", "couple", "menus", "agenda", "budget", "retours"];
+export const COLLECTIONS_SYNCHRO: readonly CollectionSynchro[] = ["foyer", "listes", "elements", "taches", "animaux", "stock", "catalogue", "jardin", "memoire", "couple", "menus", "agenda", "budget", "retours", "corbeille"];
 
 export interface Changement {
   collection: CollectionSynchro;

@@ -1,4 +1,5 @@
 import type { ProduitHabituel } from "../domaine/catalogue";
+import { estCollectionCorbeille, meriteLaCorbeille, mettreALaCorbeille, type EntreeCorbeille } from "../domaine/corbeille";
 import type { Zone } from "../domaine/jardin";
 import type { DocCouple } from "../domaine/bandeau";
 import type { DocAgenda } from "../domaine/agenda";
@@ -23,9 +24,10 @@ import type { Depot } from "./depot";
 // Version 11 : les menus du Chef de la semaine ; relecture du serveur une fois, pour la même raison.
 // Version 12 : l'agenda commun ; relecture du serveur une fois, pour la même raison.
 // Version 13 : le budget du foyer ; relecture du serveur une fois, pour la même raison.
+// Version 14 : la corbeille du foyer ; relecture du serveur une fois, pour la même raison.
 // La mise à jour crée seulement les magasins manquants.
-const VERSION = 13;
-const MAGASINS = ["foyer", "listes", "elements", "taches", "retours", "animaux", "stock", "catalogue", "jardin", "memoire", "couple", "menus", "agenda", "budget", "attente", "synchro"] as const;
+const VERSION = 14;
+const MAGASINS = ["foyer", "listes", "elements", "taches", "retours", "animaux", "stock", "catalogue", "jardin", "memoire", "couple", "menus", "agenda", "budget", "corbeille", "attente", "synchro"] as const;
 type Magasin = (typeof MAGASINS)[number];
 const CLES: Partial<Record<Magasin, string>> = { attente: "cle" };
 
@@ -66,6 +68,8 @@ interface Operation {
   magasin: Magasin;
   id: Id;
   doc: { id: Id } | null;
+  /** Pour un article supprimé avec sa liste : l'article lui-même, qui suit la liste à la corbeille. */
+  articleDe?: Element;
 }
 
 const estPartage = (m: Magasin): m is CollectionSynchro => (COLLECTIONS_SYNCHRO as readonly string[]).includes(m);
@@ -89,7 +93,7 @@ function ouvrir(nomBase: string, fabrique: IDBFactory): Promise<IDBDatabase> {
           }
         });
       }
-      if (evenement.oldVersion < 13 && avant.contains("synchro")) {
+      if (evenement.oldVersion < 14 && avant.contains("synchro")) {
         const synchro = req.transaction!.objectStore("synchro");
         puis(synchro.get("etat") as IDBRequest<{ curseur: string | null } | undefined>, (etat) => {
           if (etat) synchro.put({ ...etat, curseur: null });
@@ -129,6 +133,8 @@ export function creerDepotLocal(
   nomBase = "korahome",
   fabrique: IDBFactory = indexedDB,
   horloge: () => string = () => new Date().toISOString(),
+  /** Qui utilise ce téléphone : noté sur ce qui part à la corbeille. */
+  auteur: () => Id | null = () => null,
 ): DepotLocal {
   const base = ouvrir(nomBase, fabrique);
   const abonnes = new Set<() => void>();
@@ -145,21 +151,40 @@ export function creerDepotLocal(
     return attendre(db.transaction(magasin).objectStore(magasin).getAll()) as Promise<T[]>;
   }
 
-  /** Pose ou supprime des documents ; ceux qui se partagent partent aussi en attente. */
+  /**
+   * Pose ou supprime des documents ; ceux qui se partagent partent aussi en attente.
+   * Un document effacé qui le mérite va d'abord à la corbeille, avec les articles d'une liste.
+   */
   async function modifier(operations: readonly Operation[]): Promise<void> {
     const magasins = new Set<Magasin>(operations.map((o) => o.magasin));
     if (operations.some((o) => estPartage(o.magasin))) magasins.add("attente");
+    if (operations.some((o) => !o.doc && estCollectionCorbeille(o.magasin))) magasins.add("corbeille");
     if (magasins.size === 0) return signaler();
     const db = await base;
     const tx = db.transaction([...magasins], "readwrite");
     const maj = horloge();
+    const par = auteur();
+    const enAttente = (collection: CollectionSynchro, id: Id, donnees: unknown) => {
+      const c: EnAttente = { cle: cleDe({ collection, id }), collection, id, donnees, maj };
+      tx.objectStore("attente").put(c);
+    };
+    // Les articles d'une liste effacée sont supprimés dans la même passe : on les garde pour la corbeille.
+    const articlesEffaces = operations.filter((o) => o.magasin === "elements" && !o.doc && o.articleDe).map((o) => o.articleDe!);
     for (const { magasin, id, doc } of operations) {
       if (doc) tx.objectStore(magasin).put(doc);
-      else tx.objectStore(magasin).delete(id);
-      if (estPartage(magasin)) {
-        const enAttente: EnAttente = { cle: cleDe({ collection: magasin, id }), collection: magasin, id, donnees: doc, maj };
-        tx.objectStore("attente").put(enAttente);
+      else {
+        if (estCollectionCorbeille(magasin)) {
+          puis(tx.objectStore(magasin).get(id) as IDBRequest<{ id: Id } | undefined>, (ancien) => {
+            if (!ancien || !meriteLaCorbeille(magasin, ancien, maj)) return;
+            const articles = magasin === "listes" ? articlesEffaces.filter((e) => e.listeId === id) : undefined;
+            const entree = mettreALaCorbeille(magasin, ancien, { maintenant: maj, par }, articles);
+            tx.objectStore("corbeille").put(entree);
+            enAttente("corbeille", entree.id, entree);
+          });
+        }
+        tx.objectStore(magasin).delete(id);
       }
+      if (estPartage(magasin)) enAttente(magasin, id, doc);
     }
     await terminer(tx);
     signaler();
@@ -181,7 +206,7 @@ export function creerDepotLocal(
       const orphelins = (await tous<Element>("elements")).filter((e) => e.listeId === id);
       await modifier([
         { magasin: "listes", id, doc: null },
-        ...orphelins.map((e): Operation => ({ magasin: "elements", id: e.id, doc: null })),
+        ...orphelins.map((e): Operation => ({ magasin: "elements", id: e.id, doc: null, articleDe: e })),
       ]);
     },
 
@@ -232,6 +257,15 @@ export function creerDepotLocal(
     lireRetours: () => tous<RetourTest>("retours"),
     enregistrerRetour: (retour) => poser("retours", [retour]),
     supprimerRetour: (id) => supprimer("retours", [id]),
+
+    lireCorbeille: () => tous<EntreeCorbeille>("corbeille"),
+    remettre: (entree) =>
+      modifier([
+        { magasin: entree.collection, id: entree.docId, doc: entree.donnees as { id: Id } },
+        ...(entree.elements ?? []).map((e): Operation => ({ magasin: "elements", id: e.id, doc: e })),
+        { magasin: "corbeille", id: entree.id, doc: null },
+      ]),
+    viderCorbeille: (ids) => supprimer("corbeille", ids),
 
     abonner(rappel) {
       abonnes.add(rappel);
