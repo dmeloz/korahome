@@ -76,7 +76,7 @@ La version légère de la « fiche de production croisée » de la cuisine pro (
 
 Règles : `src/domaine/ficheSemaine.ts` (tests à côté). Écran : `src/ui/ecrans/FicheSemaine.tsx`.
 
-## Le savoir et la variété (0.0.67)
+## Le savoir et la variété (0.0.68)
 
 Deux ajouts pour que les menus soient plus justes et ne se répètent pas.
 

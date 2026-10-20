@@ -1,4 +1,4 @@
-// Le tirage de la semaine (depuis Kora 0.0.67) : avant d'appeler le Chef, Kora tire elle-même
+// Le tirage de la semaine (depuis Kora 0.0.68) : avant d'appeler le Chef, Kora tire elle-même
 // au hasard la trame de chaque soir (une base, une protéine, deux légumes de saison), parce
 // qu'une IA laissée seule revient vite aux mêmes plats. Le hasard est pondéré : ce qu'on a mangé
 // ces quatre dernières semaines a moins de chances de revenir, et rien ne se répète dans la

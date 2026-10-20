@@ -1,4 +1,4 @@
-// Le savoir de cuisine du Chef (depuis Kora 0.0.67) : une petite partie choisie à la main du
+// Le savoir de cuisine du Chef (depuis Kora 0.0.68) : une petite partie choisie à la main du
 // référentiel culinaire de Sanji (brevet fédéral de chef de cuisine, validé par Melo le
 // 2026-10-04, dans l'Atelier : Projets-code/sanji/savoir/). On n'en garde que ce qui sert à la
 // maison pour deux : la saison des légumes en Suisse, les bases et leurs portions, les cuissons

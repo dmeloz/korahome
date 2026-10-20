@@ -74,7 +74,7 @@ export interface MenuSemaine {
   /** Les produits à finir vite, avec leur date : « Yaourts · demain ». */
   aFinir: string[];
   alertesMitsu: string[];
-  /** La trame tirée par Kora pour chaque soir (depuis 0.0.67), dont se souviennent les semaines suivantes. */
+  /** La trame tirée par Kora pour chaque soir (depuis 0.0.68), dont se souviennent les semaines suivantes. */
   trame?: TrameSoir[];
   /** « auto » : le passage de la semaine ; « maintenant » : lancé depuis l'app. */
   lance: "auto" | "maintenant";
