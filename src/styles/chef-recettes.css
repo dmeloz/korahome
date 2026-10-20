@@ -12,6 +12,8 @@
 .chef-repas .carte { display: grid; gap: 4px; }
 .chef-repas .surtitre { margin: 0; color: var(--accent); }
 .chef-repas .discret { margin: 0; line-height: 1.4; }
+.chef-repas-ouvrable { cursor: pointer; }
+.chef-sans-recette { margin: 12px 0; line-height: 1.4; }
 .chef-plat { margin: 0; font-size: var(--t-corps); font-weight: 600; text-wrap: balance; }
 .chef-stock { margin: 2px 0 0; font-size: var(--t-legende); color: var(--discret); }
 .chef .ligne.coche .ligne-texte { color: var(--coche); text-decoration: line-through; }
