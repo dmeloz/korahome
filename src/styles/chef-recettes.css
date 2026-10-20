@@ -125,3 +125,8 @@
 .fiche-semaine-lignes .ligne-texte { display: grid; gap: 2px; }
 .fiche-semaine-lignes .ligne-texte .discret { font-size: var(--t-legende); font-variant-numeric: tabular-nums; }
 .fiche-semaine-lignes .quantite { flex: none; font-variant-numeric: tabular-nums; }
+
+/* Kora 0.0.61 : valider ou effacer le menu de la semaine. */
+.chef-actions-menu { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 10px; }
+.chef-actions-menu .lien { padding: 6px 0; font-size: var(--t-detail); }
+.chef-valide { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-size: var(--t-detail); }

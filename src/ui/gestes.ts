@@ -27,9 +27,11 @@ const SEUIL_RETOUR = 12;
  * qu'en hauteur). Un défilement un peu en biais reste un défilement, sinon la page partait
  * de côté au lieu de défiler. null tant qu'on ne sait pas encore.
  */
-export function gesteRetour(dx: number, dy: number): "retour" | "autre" | null {
-  if (Math.hypot(dx, dy) < SEUIL_RETOUR) return null;
-  return dx > 0 && Math.abs(dx) >= 2 * Math.abs(dy) ? "retour" : "autre";
+export function gesteRetour(dx: number, dy: number, depuisLeBord = true): "retour" | "autre" | null {
+  // Parti du milieu de la page (Kora 0.0.61) : il faut un geste plus franc, sinon un défilement
+  // ou un toucher un peu glissé faisait revenir sans le vouloir.
+  if (Math.hypot(dx, dy) < (depuisLeBord ? SEUIL_RETOUR : 2 * SEUIL_RETOUR)) return null;
+  return dx > 0 && Math.abs(dx) >= (depuisLeBord ? 2 : 3) * Math.abs(dy) ? "retour" : "autre";
 }
 
 /** Vitesse en px par ms ; une durée nulle compte pour 1 ms. */
@@ -37,10 +39,12 @@ const vitesse = (dx: number, duree: number) => dx / Math.max(duree, 1);
 
 /**
  * Revenir à la page précédente : le doigt a parcouru plus d'un tiers de l'écran,
- * ou il a été lancé vers la droite d'un geste vif.
+ * ou il a été lancé vers la droite d'un geste vif. Les distances suivent la largeur de
+ * l'écran : le même geste sur l'iPhone 14 Pro (393 px) et sur l'iPhone Air (420 px).
  */
-export function finRetour(dx: number, duree: number, largeur: number): boolean {
-  return dx > largeur * 0.35 || (dx > 40 && vitesse(dx, duree) > 0.5);
+export function finRetour(dx: number, duree: number, largeur: number, depuisLeBord = true): boolean {
+  if (depuisLeBord) return dx > largeur * 0.35 || (dx > largeur * 0.12 && vitesse(dx, duree) > 0.5);
+  return dx > largeur * 0.45 || (dx > largeur * 0.25 && vitesse(dx, duree) > 0.7);
 }
 
 export type FinLigne = "fermer" | "ouvrir" | "supprimer";

@@ -39,6 +39,8 @@ export const CLES = {
   placeFee: "korahome.fee",
   /** « 1 » quand son tintement est allumé. */
   feeSon: "korahome.feeSon",
+  /** « micro » ou « clavier » : comment on parle à la fée d'un toucher (absent : selon l'appareil). */
+  feeParole: "korahome.feeParole",
   /** Les bulles renvoyées d'un toucher, pour apprendre sa discrétion (JSON). */
   feeRenvois: "korahome.feeRenvois",
   /** Les heures où elle a déjà dit qu'elle se tairait (JSON). */

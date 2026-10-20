@@ -74,6 +74,8 @@ export interface MenuSemaine {
   /** « auto » : le passage de la semaine ; « maintenant » : lancé depuis l'app. */
   lance: "auto" | "maintenant";
   creeLe: string;
+  /** Validé par le foyer : ses recettes restent dans la base, même si le menu est effacé ensuite. */
+  valideLe?: string;
 }
 
 /** Le passage automatique, pour un foyer qui l'a activé : le jour (0 = dimanche) et l'heure, à Zurich. */
@@ -388,6 +390,26 @@ export function retirerAjout(menu: MenuSemaine, elementId: Id): MenuSemaine {
 export function etatDesAjouts(menu: MenuSemaine, elements: readonly Element[]): { ajout: AjoutChef; element: Element | null }[] {
   const parId = new Map(elements.map((e) => [e.id, e]));
   return menu.ajouts.map((ajout) => ({ ajout, element: parId.get(ajout.elementId) ?? null }));
+}
+
+/** Le menu validé : ses recettes sont gardées pour de bon. */
+export function validerMenu(menu: MenuSemaine, ctx: Contexte): MenuSemaine {
+  return { ...menu, valideLe: ctx.maintenant() };
+}
+
+/**
+ * Ce qu'efface « Effacer ce menu » : le menu, les articles du Chef pas encore cochés et, si le
+ * menu n'a pas été validé, ses recettes jamais cuisinées ni proposées une autre semaine.
+ */
+export function ceQuEfface(
+  menu: MenuSemaine,
+  recettes: readonly { id: Id; source: string; fois: number; vue: number }[],
+  elements: readonly Element[],
+): { recettes: Id[]; elements: Id[] } {
+  const duMenu = new Set(menu.repas.map((r) => r.recetteId).filter((id): id is Id => !!id));
+  const aRetirer = menu.valideLe ? [] : recettes.filter((r) => duMenu.has(r.id) && r.source === "chef" && r.fois === 0 && r.vue <= 1).map((r) => r.id);
+  const articles = etatDesAjouts(menu, elements).flatMap(({ element }) => (element && !element.coche ? [element.id] : []));
+  return { recettes: aRetirer, elements: articles };
 }
 
 /** Le texte de la notification quand les menus sont prêts. */
