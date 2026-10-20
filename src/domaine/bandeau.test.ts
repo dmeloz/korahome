@@ -1,13 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  abreger,
   fenetreMotsProgrammes,
   basculerCoeur,
   decrireCompte,
-  elementsBandeau,
-  filtrerBandeau,
-  sorteDe,
-  infosUtiles,
   nosMots,
   notificationMot,
   nouveauClin,
@@ -18,8 +13,6 @@ import {
 } from "./bandeau";
 import { contexteTest } from "./contexteTest";
 import { creerFoyer } from "./foyer";
-import { nouveauProduit } from "./stock";
-import { nouvelleTache } from "./taches";
 
 const AUJOURDHUI = "2026-10-16";
 const MAINTENANT = "2026-10-16T09:00:00.000Z";
@@ -75,70 +68,6 @@ describe("les comptes à rebours", () => {
   });
 });
 
-describe("le bandeau", () => {
-  it("fait défiler les mots reçus, les humeurs, les comptes, le clin d'œil et les infos", () => {
-    const { ctx, f, melo, sarah } = foyer();
-    const docs: DocCouple[] = [
-      nouveauMot("Pense au pain", sarah, ctx),
-      nouveauMot("Mon propre mot", melo, ctx),
-      noterHumeur(melo, AUJOURDHUI, "😊"),
-      noterHumeur(sarah, AUJOURDHUI, "😴"),
-      noterHumeur(sarah, "2026-10-15", "🤒"),
-      nouveauCompte("Anniversaire de Sarah", "2026-10-21", melo, AUJOURDHUI, ctx),
-      nouveauClin(AUJOURDHUI, "« Un vendredi parfait pour une raclette. »")!,
-    ];
-    const textes = elementsBandeau({ docs, foyer: f, moi: melo, maintenant: MAINTENANT, aujourdhui: AUJOURDHUI, infos: [{ cle: "x", genre: "info", texte: "Info" }] }).map((e) => e.texte);
-    expect(textes).toEqual([
-      "Pense au pain",
-      "Toi : bien · Sarah : fatigue",
-      "Anniversaire de Sarah dans 5 jours",
-      "Un vendredi parfait pour une raclette.",
-      "Info",
-    ]);
-  });
-
-  it("oublie les mots de plus de trois jours", () => {
-    const { f, melo, sarah } = foyer();
-    const vieux = nouveauMot("Ancien", sarah, contexteTest("2026-10-12T08:00:00.000Z"));
-    expect(elementsBandeau({ docs: [vieux], foyer: f, moi: melo, maintenant: MAINTENANT, aujourdhui: AUJOURDHUI })).toEqual([]);
-  });
-
-  it("donne la météo, le prochain rendez-vous et ce qui périme", () => {
-    const { ctx, melo } = foyer();
-    const rdv = nouvelleTache("Véto 14 h", null, "2026-10-18", ctx);
-    const yaourt = nouveauProduit({ texte: "yaourts", lieu: "frigo", peremption: "2026-10-17" }, melo, ctx);
-    const infos = infosUtiles({
-      meteo: { lieu: "Renens", lue: MAINTENANT, jours: [{ jour: AUJOURDHUI, min: 6.4, max: 14.6, pluie: 0, code: 0 }] },
-      taches: [rdv],
-      produits: [yaourt],
-      animaux: [],
-      aujourdhui: AUJOURDHUI,
-    }).map((i) => i.texte);
-    expect(infos[0]).toMatch(/^Renens : .+, 6° à 15°$/);
-    expect(infos[1]).toMatch(/^Véto 14 h, /);
-    expect(infos[2]).toBe("À finir : yaourts");
-  });
-});
-
-describe("abreger", () => {
-  it("laisse un texte court tel quel", () => {
-    expect(abreger("Pense au pain")).toBe("Pense au pain");
-  });
-
-  it("coupe un texte long au dernier mot entier", () => {
-    const long = "Ce soir on se fait une raclette chez nous, j'achète le fromage en rentrant du travail";
-    const court = abreger(long);
-    expect(court.length).toBeLessThanOrEqual(60);
-    expect(court).toBe("Ce soir on se fait une raclette chez nous, j'achète le…");
-  });
-
-  it("met l'auteur d'un mot à part", () => {
-    const { f, melo, sarah, ctx } = foyer();
-    const [el] = elementsBandeau({ docs: [nouveauMot("Pense au pain", sarah, ctx)], foyer: f, moi: melo, maintenant: MAINTENANT, aujourdhui: AUJOURDHUI });
-    expect(el).toMatchObject({ genre: "mot", auteur: "Sarah", texte: "Pense au pain" });
-  });
-});
-
 describe("fenetreMotsProgrammes", () => {
   it("couvre l'heure écoulée jusqu'à l'heure pleine, même si le passage est en retard", () => {
     expect(fenetreMotsProgrammes(new Date("2026-10-15T18:00:07Z"))).toEqual({ apres: "2026-10-15T17:00:00.000Z", jusqua: "2026-10-15T18:00:00.000Z" });
@@ -146,22 +75,15 @@ describe("fenetreMotsProgrammes", () => {
   });
 });
 
-describe("filtrerBandeau", () => {
-  it("reconnaît la sorte de chaque élément, infos comprises", () => {
-    expect(sorteDe({ cle: "meteo", genre: "info", texte: "" })).toBe("meteo");
-    expect(sorteDe({ cle: "rdv-1", genre: "info", texte: "" })).toBe("rdv");
-    expect(sorteDe({ cle: "frigo", genre: "info", texte: "" })).toBe("frigo");
-    expect(sorteDe({ cle: "animal-m", genre: "info", texte: "" })).toBe("animal");
-    expect(sorteDe({ cle: "humeurs", genre: "humeur", texte: "" })).toBe("humeur");
+describe("l'humeur et le clin d'œil du jour", () => {
+  it("garde une seule humeur par personne et par jour", () => {
+    const { melo } = foyer();
+    const docs: DocCouple[] = [noterHumeur(melo, AUJOURDHUI, "😊"), noterHumeur(melo, AUJOURDHUI, "😌")];
+    expect(docs[0].id).toBe(docs[1].id);
   });
 
-  it("retire seulement les sortes masquées", () => {
-    const els = [
-      { cle: "m1", genre: "mot" as const, texte: "Coucou" },
-      { cle: "meteo", genre: "info" as const, texte: "Soleil" },
-      { cle: "frigo", genre: "info" as const, texte: "À finir : lait" },
-    ];
-    expect(filtrerBandeau(els, []).length).toBe(3);
-    expect(filtrerBandeau(els, ["meteo", "frigo"]).map((e) => e.cle)).toEqual(["m1"]);
+  it("nettoie le clin d'œil et refuse une phrase vide", () => {
+    expect(nouveauClin(AUJOURDHUI, " « Bonne  soirée à vous deux » ")?.texte).toBe("Bonne soirée à vous deux");
+    expect(nouveauClin(AUJOURDHUI, " \" \" ")).toBeNull();
   });
 });

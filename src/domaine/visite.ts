@@ -60,7 +60,7 @@ export function parcoursVisite(autre: string | null, fee = "Tael"): EtapeVisite[
         { picto: "droite", texte: "Glisser à droite : c'est fait" },
         { picto: "gauche", texte: "Glisser à gauche : supprimer, avec Annuler" },
         { picto: "appui", texte: "Appui long : plus de choix" },
-        { picto: "bord", texte: "Depuis le bord gauche : revenir" },
+        { picto: "bord", texte: "Glisser la page vers la droite : revenir" },
       ],
     },
     {

@@ -148,7 +148,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     if (p.nom === "telephone") return "Ce téléphone";
     if (p.nom === "jarvis") return nomFee();
     if (p.nom === "conseil") return "Conseil";
-    if (p.nom === "memoire") return `Mémoire de ${nomFee()}`;
+    if (p.nom === "memoire") return `Ce que ${nomFee()} sait`;
     if (p.nom === "mots") return "Nos mots";
     if (p.nom === "bilan") return "Bilan";
     if (p.nom === "appris") return "Ce que Kora sait";
@@ -156,7 +156,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     if (p.nom === "sauvegarde") return "Sauvegarde";
     if (p.nom === "calendrier") return "Calendrier de l'iPhone";
     if (p.nom === "siri") return "Siri";
-    if (p.nom === "fee") return nomFee();
+    if (p.nom === "fee") return `Réglages de ${nomFee()}`;
     if (p.nom === "module") return MODULES[p.id]?.libelle ?? "Retour";
     return listes.find((l) => l.id === p.id)?.nom ?? "Liste";
   }
@@ -246,7 +246,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       />
     );
   } else if (page.nom === "module") {
-    ecran = MODULES[page.id]?.page({ ...donnees, depot, ouvrirListe, jarvis: jarvisPartage, agendaDistant: agendaPartage });
+    ecran = MODULES[page.id]?.page({ ...donnees, depot, ouvrirListe, jarvis: jarvisPartage, agendaDistant: agendaPartage, ouvrirPartage: () => ouvrir({ nom: "partage" }), ouvrirCalendrier: () => ouvrir({ nom: "calendrier" }) });
   } else if (page.nom === "liste") {
     const liste = listes.find((l) => l.id === page.id);
     ecran = liste ? (
@@ -314,11 +314,11 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   } else if (page.nom === "sauvegarde") {
     ecran = <Sauvegarde depot={depot} aujourdhui={donnees.aujourdhui} contenu={{ foyer: leFoyer, listes, elements, taches, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda, budget, retours }} />;
   } else if (page.nom === "calendrier") {
-    ecran = <CalendrierIphone foyer={leFoyer} membreId={membre} comptes={comptesIcloudDe(agenda)} distant={agendaPartage} />;
+    ecran = <CalendrierIphone foyer={leFoyer} membreId={membre} comptes={comptesIcloudDe(agenda)} distant={agendaPartage} ouvrirPartage={() => ouvrir({ nom: "partage" })} />;
   } else if (page.nom === "fee") {
     ecran = <LaFee />;
   } else if (page.nom === "siri") {
-    ecran = <Siri foyer={leFoyer} membreId={membre} distant={jarvisPartage} />;
+    ecran = <Siri foyer={leFoyer} membreId={membre} distant={jarvisPartage} ouvrirPartage={() => ouvrir({ nom: "partage" })} />;
   } else if (page.nom === "retours") {
     ecran = <RetoursTest depot={depot} foyer={leFoyer} retours={retours} partageActif={partageActif} />;
   } else {

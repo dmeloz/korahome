@@ -1,14 +1,11 @@
-// Le bandeau du couple, en tête de l'accueil : il défile de droite à gauche (et au doigt) avec les mots
-// que l'un écrit à l'autre, l'humeur du jour de chacun, les comptes à rebours, le clin d'œil
-// du jour de Jarvis et quelques infos utiles (météo, rendez-vous, frigo, Mitsu).
-// Tout se partage entre les deux iPhone dans la collection « couple ».
+// Ce qui se dit entre vous deux : les mots que l'un écrit à l'autre (ils attendent au-dessus de
+// la fée), l'humeur du jour de chacun (un signe de l'accueil), les comptes à rebours et le clin
+// d'œil du jour que dit la fée. Page « Nos mots ». Tout se partage entre les deux iPhone dans la
+// collection « couple ».
 
 import { ErreurValidation } from "./foyer";
-import { decrireTemps, meteoDu, type Meteo } from "./meteo";
-import { choseAFaire, type Animal } from "./mitsu";
-import { resumeStock, type Produit } from "./stock";
-import { decrireEcheance, ecartJours, estTerminee } from "./taches";
-import type { Contexte, Foyer, Id, Jour, Tache } from "./types";
+import { ecartJours } from "./taches";
+import type { Contexte, Foyer, Id, Jour } from "./types";
 
 /** Un mot de l'un à l'autre ; programmé, il n'apparaît qu'à partir de `visibleDes`. */
 export interface Mot {
@@ -56,10 +53,6 @@ export interface ClinDOeil {
 export type DocCouple = Mot | Humeur | CompteARebours | ClinDOeil;
 
 export const LONGUEUR_MOT = 140;
-/** Un mot reste dans le bandeau trois jours. */
-const JOURS_MOT = 3;
-/** Un compte à rebours apparaît dans les trois derniers mois. */
-const JOURS_COMPTE = 90;
 
 // L'emoji reste l'identifiant enregistré (les humeurs déjà notées restent lisibles) ;
 // l'écran montre un pictogramme au trait et le nom, qui ne dit ni « il » ni « elle ».
@@ -151,131 +144,7 @@ export function nouveauClin(jour: Jour, texte: string): ClinDOeil | null {
 
 /** Ce qu'on demande à Jarvis chaque jour, une fois pour tout le foyer. */
 export const DEMANDE_CLIN =
-  "Écris le clin d'œil du jour pour le bandeau de l'accueil : une seule phrase courte et chaleureuse (au plus 90 caractères), pour vous deux, tirée de ce que tu sais du foyer (ta mémoire, la saison, la semaine, Mitsu, le jardin). Pas d'outil, pas de guillemets, pas d'emoji au début.";
-
-export type GenreBandeau = "mot" | "humeur" | "compte" | "clin" | "info";
-
-export interface ElementBandeau {
-  cle: string;
-  genre: GenreBandeau;
-  /** Ce qui défile, abrégé pour se lire d'un coup d'œil. */
-  texte: string;
-  /** Pour un mot : le prénom de celui ou celle qui l'a écrit, mis en évidence à part. */
-  auteur?: string;
-  /** Pour un mot : de quoi envoyer un cœur (et son texte entier, lu dans « Nos mots »). */
-  mot?: Mot;
-}
-
-/** Un élément du bandeau se lit en passant : au-delà, il est coupé au dernier mot entier. */
-export const LONGUEUR_BANDEAU = 60;
-
-/** « Ce soir on se fait une raclette chez…» : coupe au dernier mot entier qui tient, avec des points de suspension. */
-export function abreger(texte: string, max = LONGUEUR_BANDEAU): string {
-  const propre = texte.trim().replace(/\s+/g, " ");
-  if (propre.length <= max) return propre;
-  const coupe = propre.slice(0, max - 1);
-  const espace = coupe.lastIndexOf(" ");
-  const debut = espace > max * 0.5 ? coupe.slice(0, espace) : coupe;
-  return `${debut.replace(/[\s,;:.!?…-]+$/, "")}…`;
-}
-
-/** Les infos utiles qui passent entre deux mots : la météo, le prochain rendez-vous, le frigo, l'animal. */
-export function infosUtiles(d: {
-  meteo: Meteo | null;
-  taches: readonly Tache[];
-  produits: readonly Produit[];
-  animaux: readonly Animal[];
-  aujourdhui: Jour;
-}): ElementBandeau[] {
-  const infos: ElementBandeau[] = [];
-  const temps = meteoDu(d.meteo, d.aujourdhui);
-  if (temps) infos.push({ cle: "meteo", genre: "info", texte: `${d.meteo?.lieu ?? "Renens"} : ${decrireTemps(temps.code).toLowerCase()}, ${Math.round(temps.min)}° à ${Math.round(temps.max)}°` });
-  // Le prochain rendez-vous : une tâche unique dans la semaine.
-  const rdv = d.taches
-    .filter((t) => !t.recurrence && !estTerminee(t) && ecartJours(d.aujourdhui, t.echeance) >= 0 && ecartJours(d.aujourdhui, t.echeance) <= 7)
-    .sort((a, b) => a.echeance.localeCompare(b.echeance))[0];
-  if (rdv) infos.push({ cle: `rdv-${rdv.id}`, genre: "info", texte: `${rdv.titre}, ${decrireEcheance(rdv.echeance, d.aujourdhui)}` });
-  const { aConsommer } = resumeStock(d.produits, d.aujourdhui);
-  if (aConsommer.length) {
-    const noms = aConsommer.slice(0, 2).map((p) => p.nom.toLowerCase());
-    infos.push({ cle: "frigo", genre: "info", texte: `À finir : ${noms.join(", ")}${aConsommer.length > 2 ? "…" : ""}` });
-  }
-  for (const a of d.animaux) {
-    const aFaire = choseAFaire(a, d.aujourdhui)[0];
-    if (aFaire) infos.push({ cle: `animal-${a.id}`, genre: "info", texte: `${a.nom} : ${aFaire.texte.charAt(0).toLowerCase()}${aFaire.texte.slice(1)}` });
-  }
-  return infos;
-}
-
-/**
- * Ce qui défile, dans l'ordre : les mots reçus des trois derniers jours, les humeurs du jour,
- * les comptes à rebours proches, le clin d'œil de Jarvis, puis les infos utiles.
- */
-export function elementsBandeau(d: {
-  docs: readonly DocCouple[];
-  foyer: Foyer;
-  moi: Id | null;
-  maintenant: string;
-  aujourdhui: Jour;
-  infos?: readonly ElementBandeau[];
-}): ElementBandeau[] {
-  const prenom = (id: Id | null) => d.foyer.membres.find((m) => m.id === id)?.prenom ?? "Quelqu'un";
-  const elements: ElementBandeau[] = [];
-  const limite = new Date(Date.parse(d.maintenant) - JOURS_MOT * 86_400_000).toISOString();
-  const recus = nosMots(d.docs, d.moi, d.maintenant)
-    .filter((m) => m.de !== d.moi && estVisible(m, d.maintenant) && m.visibleDes >= limite)
-    .slice(0, 3);
-  for (const m of recus) elements.push({ cle: m.id, genre: "mot", auteur: prenom(m.de), texte: abreger(m.texte), mot: m });
-
-  const humeurs = d.foyer.membres
-    .map((m) => ({ m, h: humeurDu(d.docs, m.id, d.aujourdhui) }))
-    .filter((x) => x.h)
-    .map(({ m, h }) => `${m.id === d.moi ? "Toi" : m.prenom} : ${nomHumeur(h!.emoji).toLowerCase()}`);
-  if (humeurs.length) elements.push({ cle: "humeurs", genre: "humeur", texte: humeurs.join(" · ") });
-
-  for (const c of comptesAVenir(d.docs, d.aujourdhui).filter((c) => ecartJours(d.aujourdhui, c.jour) <= JOURS_COMPTE)) {
-    const texte = decrireCompte(c, d.aujourdhui);
-    if (texte) elements.push({ cle: c.id, genre: "compte", texte: abreger(texte) });
-  }
-
-  const clin = clinDuJour(d.docs, d.aujourdhui);
-  if (clin) elements.push({ cle: clin.id, genre: "clin", texte: abreger(clin.texte) });
-
-  elements.push(...(d.infos ?? []).map((i) => ({ ...i, texte: abreger(i.texte) })));
-  return elements;
-}
-
-/** Ce que chacun peut choisir de voir passer dans son bandeau (réglé dans « Nos mots », par téléphone). */
-export type SorteBandeau = "mot" | "humeur" | "compte" | "clin" | "meteo" | "rdv" | "frigo" | "animal";
-
-export const SORTES_BANDEAU: { sorte: SorteBandeau; nom: string; detail: string }[] = [
-  { sorte: "mot", nom: "Mots reçus", detail: "Les mots de l'autre, trois jours" },
-  { sorte: "humeur", nom: "Humeurs du jour", detail: "La tienne et celle de l'autre" },
-  { sorte: "compte", nom: "Comptes à rebours", detail: "Les moments attendus du mois" },
-  { sorte: "clin", nom: "Clin d'œil de Jarvis", detail: "Une phrase par jour pour vous deux" },
-  { sorte: "meteo", nom: "Météo", detail: "Le temps du jour à Renens" },
-  { sorte: "rdv", nom: "Prochain rendez-vous", detail: "Dans les sept jours" },
-  { sorte: "frigo", nom: "Frigo", detail: "Ce qu'il faut finir" },
-  { sorte: "animal", nom: "Animaux", detail: "Ce qui est à faire pour eux" },
-];
-
-/** La sorte d'un élément : son genre, ou pour une info, ce qu'elle annonce. */
-export function sorteDe(el: ElementBandeau): SorteBandeau {
-  if (el.genre !== "info") return el.genre;
-  if (el.cle === "meteo") return "meteo";
-  if (el.cle === "frigo") return "frigo";
-  if (el.cle.startsWith("rdv-")) return "rdv";
-  return "animal";
-}
-
-/** Retire du bandeau les sortes qu'on a choisi de ne plus voir ; tout passe par défaut. */
-export function filtrerBandeau(elements: readonly ElementBandeau[], masquees: readonly SorteBandeau[]): ElementBandeau[] {
-  return elements.filter((el) => !masquees.includes(sorteDe(el)));
-}
-
-/** Les vitesses du défilement, en points par seconde. */
-export const VITESSES_BANDEAU = { lente: 20, normale: 32, rapide: 48 } as const;
-export type VitesseBandeau = keyof typeof VITESSES_BANDEAU;
+  "Écris le clin d'œil du jour, que la fée dira à l'accueil : une seule phrase courte et chaleureuse (au plus 90 caractères), pour vous deux, tirée de ce que tu sais du foyer (ta mémoire, la saison, la semaine, Mitsu, le jardin). Pas d'outil, pas de guillemets, pas d'emoji au début.";
 
 /**
  * Les mots programmés que le passage de l'heure doit annoncer : ceux devenus visibles depuis

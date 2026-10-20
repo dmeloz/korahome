@@ -463,7 +463,7 @@ export function Accueil(props: {
 
       {edition && (
         <section className="ajout-widgets">
-          <p className="discret aide-edition">Glisse un widget pour le déplacer, la croix le retire de l'accueil (il reste dans « Tous les espaces »).</p>
+          <p className="discret aide-edition">Glisse un widget pour le déplacer, le − le retire de l'accueil (il reste dans « Tous les espaces »).</p>
           <button className="bouton-principal" onClick={() => setEspaces(true)}>Ajouter un widget</button>
         </section>
       )}

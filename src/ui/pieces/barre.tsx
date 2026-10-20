@@ -141,8 +141,8 @@ export function BarreJarvis(props: {
 
   // Les messages (Annuler, nouvelle version) se placent au-dessus du bas de l'écran.
   useEffect(() => {
-    document.documentElement.classList.add("avec-barre", "avec-fee");
-    return () => document.documentElement.classList.remove("avec-barre", "avec-fee");
+    document.documentElement.classList.add("avec-barre");
+    return () => document.documentElement.classList.remove("avec-barre");
   }, []);
   useEffect(() => {
     document.documentElement.classList.toggle("saisie-ouverte", ouverte);

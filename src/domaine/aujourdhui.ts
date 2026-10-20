@@ -163,22 +163,6 @@ export function avanceeDuJour(carte: CarteDuJour): { faites: number; total: numb
   return { faites: carte.faites, total, part: total ? carte.faites / total : 1 };
 }
 
-/** Le grand titre de la carte : combien de choses attendent. */
-export function titreCarte(carte: CarteDuJour): string {
-  const n = carte.choses.length + carte.autres;
-  if (n === 0) return carte.faites ? "Tout est fait" : "Journée libre";
-  return n === 1 ? "1 chose à faire" : `${n} choses à faire`;
-}
-
-/** La même carte, dite en une phrase : ce que répondra Siri. */
-export function phraseDuJour(carte: CarteDuJour): string {
-  if (carte.choses.length === 0) return "Rien de prévu aujourd'hui, profitez-en.";
-  const morceaux = carte.choses.map((c) => (c.quand && c.quand !== "aujourd'hui" ? `${c.texte} (${c.quand})` : c.texte));
-  const liste = morceaux.length === 1 ? morceaux[0] : `${morceaux.slice(0, -1).join(", ")} et ${morceaux[morceaux.length - 1]}`;
-  const suite = carte.autres > 0 ? ` Et ${carte.autres === 1 ? "une autre chose" : `${carte.autres} autres choses`} dans l'app.` : "";
-  return `Aujourd'hui : ${liste}.${suite}`;
-}
-
 /** Le titre de « Aujourd'hui » sur l'accueil, selon le moment de la journée. */
 export function titreMoment(heure: number): string {
   if (heure < 12) return "Ce matin";
@@ -199,9 +183,3 @@ export function choseDuMoment(carte: CarteDuJour): ChoseDuJour | null {
   return carte.choses[0] ?? null;
 }
 
-/** Le titre de la carte selon ce qu'elle contient. */
-export function sousTitreCarte(carte: CarteDuJour): string {
-  if (carte.choses.length === 0) return "Rien ne presse";
-  if (carte.choses.some((c) => c.etat === "urgent")) return "Le plus pressé d'abord";
-  return carte.choses.length === 1 ? "Une chose" : `${carte.choses.length} choses, dans l'ordre`;
-}

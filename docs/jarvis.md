@@ -33,7 +33,7 @@ aussi par Siri (« Dis Siri, Tael… ») : voir `docs/siri.md`.
   les courses correspondantes se cochent. La part budget viendra avec le module Budget. Dans Frigo
   et placards, le bouton ticket à côté du scanner fait la même chose avec une relecture d'abord :
   on décoche une ligne, on change son lieu d'un toucher, puis « Tout ranger » (avec Annuler).
-- **Clin d'œil du jour** : une phrase chaleureuse par jour pour le bandeau de l'accueil (voir
+- **Clin d'œil du jour** : une phrase chaleureuse par jour, que la fée dit à l'accueil (voir
   `docs/bandeau-couple.md`).
 - **Recette** : coller le lien d'une recette (Betty Bossi, Fooby, Marmiton…). Le serveur ouvre la page
   (https public seulement, 8 secondes, 1,5 Mo au plus), lit les ingrédients dans ses données

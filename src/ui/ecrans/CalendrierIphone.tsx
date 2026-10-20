@@ -20,7 +20,7 @@ const quand = (iso: string | null) => {
 };
 
 /** Relier son iCloud : l'agenda arrive dans l'app Calendrier, et l'iPhone revient dans Kora. */
-export function CalendrierIphone(props: { foyer: Foyer; membreId: Id | null; comptes: CompteIcloud[]; distant: Distant }) {
+export function CalendrierIphone(props: { foyer: Foyer; membreId: Id | null; comptes: CompteIcloud[]; distant: Distant; ouvrirPartage: () => void }) {
   const [ouvert, setOuvert] = useState(false);
   const [reglage, setReglage] = useState(false);
   const [appleId, setAppleId] = useState("");
@@ -49,7 +49,10 @@ export function CalendrierIphone(props: { foyer: Foyer; membreId: Id | null; com
       <h1>Calendrier de l'iPhone</h1>
       <div className="carte agenda-icloud">
         {!d ? (
-          <p className="discret">Active le partage du foyer dans les Réglages : l'agenda pourra alors se relier à l'iCloud de chacun.</p>
+          <>
+            <p className="discret">Une fois le foyer partagé, l'agenda pourra se relier à l'iCloud de chacun.</p>
+            <button className="bouton-principal" onClick={props.ouvrirPartage}>Activer le partage</button>
+          </>
         ) : (
           <>
             <p className="discret">

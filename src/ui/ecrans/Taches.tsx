@@ -9,7 +9,7 @@ import {
   estTerminee,
   liberer,
   marquerFaite,
-  nouvelleTache,
+  tachesDeDepart,
   organiserTaches,
   prendre,
   type Filtre,
@@ -110,7 +110,7 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
 
   // Les six tâches arrivent déjà étalées sur la semaine, pas toutes le même jour.
   const ajouterSemaine = () => {
-    const nouvelles = TACHES_DE_LA_SEMAINE.map((titre) => nouvelleTache(titre, { unite: "semaine", tous: 1 }, aujourdhui, contexteReel));
+    const nouvelles = tachesDeDepart(aujourdhui, contexteReel);
     const etalees = new Map(appliquerEtalement(etalementPropose(nouvelles, aujourdhui)).map((x) => [x.id, x]));
     return props.depot.enregistrerTaches(nouvelles.map((x) => etalees.get(x.id) ?? x));
   };
