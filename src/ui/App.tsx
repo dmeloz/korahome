@@ -156,7 +156,17 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   useLayoutEffect(() => {
     window.scrollTo(0, page.defilement ?? 0);
   }, [pile.length]); // eslint-disable-line react-hooks/exhaustive-deps
-  const revenirAnime = () => avecTransition("arriere", revenir);
+  // Le widget d'où vient la page du dessus : elle y rentre au retour (transitions.ts).
+  const widgetOuvert = useRef<string | null>(null);
+  const revenirAnime = () => {
+    const widget = pile.length === 2 ? widgetOuvert.current : null;
+    widgetOuvert.current = null;
+    avecTransition(
+      "arriere",
+      revenir,
+      widget ? { depart: () => document.querySelector(".page-dessus"), arrivee: () => document.querySelector(`.page-dessus [data-widget="${widget}"]`) } : undefined,
+    );
+  };
   const glissement = useGlissementRetour(pile.length > 1, revenir);
   const nomEcran = !pret ? "Chargement" : !foyer ? "Bienvenue" : nommer(page);
   ecranCourant = nomEcran;
@@ -229,10 +239,18 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     // Le widget Listes ouvre l'onglet des listes de Courses, Entretien celui de Tâches.
     const vers = demandee.nom === "module" ? MODULES[demandee.id]?.ouvre : undefined;
     const p: Page = vers ? { nom: "module", id: vers.id, onglet: vers.onglet } : demandee;
-    avecTransition("avant", () => {
-      const defilement = window.scrollY;
-      setPile((avant) => [...avant.slice(0, -1), { ...avant[avant.length - 1], defilement }, p]);
-    });
+    // Depuis l'accueil, le widget touché grandit jusqu'à devenir sa page.
+    const widget = pile.length === 1 && demandee.nom === "module" ? demandee.id : null;
+    const depuisWidget = widget ? document.querySelector(`.page-dessus [data-widget="${widget}"]`) : null;
+    widgetOuvert.current = depuisWidget ? widget : null;
+    avecTransition(
+      "avant",
+      () => {
+        const defilement = window.scrollY;
+        setPile((avant) => [...avant.slice(0, -1), { ...avant[avant.length - 1], defilement }, p]);
+      },
+      depuisWidget ? { depart: () => depuisWidget, arrivee: () => document.querySelector(".page-dessus") } : undefined,
+    );
   };
   /** Change l'onglet de la page du dessus, gardé dans la pile comme sa position. */
   const changerOnglet = (onglet: string | undefined) =>

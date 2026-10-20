@@ -40,6 +40,8 @@
   --courbe: cubic-bezier(0.32, 0.72, 0, 1);
   --duree-feuille: 0.5s;
   --duree-page: 0.35s;
+  /* Un widget qui s'ouvre en page : la durée du ressort « widget » (ui/moteur/ressorts.ts). */
+  --duree-widget: 0.48s;
   color-scheme: dark;
 }
 
@@ -165,6 +167,28 @@ html[data-sens="arriere"]::view-transition-new(root) { animation-name: page-revi
 @keyframes page-recule { to { transform: translateX(-28%); opacity: 0.6; } }
 @keyframes page-part { to { transform: translateX(100%); } }
 @keyframes page-revient { from { transform: translateX(-28%); opacity: 0.6; } }
+/* Un widget qui s'ouvre en page (transitions.ts) : le widget grandit jusqu'à la page, la page
+   rentre dans le widget au retour ; le reste de l'écran passe en fondu, sans glissement. */
+html[data-sens="widget"]::view-transition-old(root) { animation: page-efface 0.3s ease both; }
+html[data-sens="widget"]::view-transition-new(root) { animation: page-montre 0.3s ease both; }
+::view-transition-group(widget-page) {
+  animation-duration: var(--duree-widget);
+  animation-timing-function: var(--courbe);
+  border-radius: 22px;
+  overflow: clip;
+}
+/* Le cadre grandit et découpe ; dedans, le widget et la page gardent leur taille réelle, calés en
+   haut à gauche : l'un s'efface vite, l'autre apparaît, sans rien étirer. */
+::view-transition-old(widget-page), ::view-transition-new(widget-page) {
+  height: 100%;
+  object-fit: none;
+  object-position: left top;
+}
+::view-transition-old(widget-page) { animation: page-efface-vite 0.2s ease both; }
+::view-transition-new(widget-page) { animation: page-montre 0.2s ease both; }
+@keyframes page-efface-vite { to { opacity: 0; } }
+@keyframes page-efface { to { opacity: 0; transform: scale(0.96); } }
+@keyframes page-montre { from { opacity: 0; } }
 /* Moins d'animations demandées : les pages passent en fondu. */
 html[data-sens="fondu"]::view-transition-old(root), html[data-sens="fondu"]::view-transition-new(root) { animation-duration: 0.2s; animation-timing-function: ease; }
 
