@@ -30,7 +30,7 @@ Aucun identifiant bancaire : un compte ou une carte n'est qu'un nom.
 
 ## Les visuels (0.0.28)
 
-Sobres, un chiffre qui compte par visuel ; règles dans `budget.ts`, dessin dans `src/ui/ecrans/BudgetVisuels.tsx`.
+Sobres, un chiffre qui compte par visuel ; règles dans `budget.ts`, dessin dans `src/ui/ecrans/budget/Visuels.tsx`.
 
 - **Ce mois** : le mot de Jarvis sur le mois écoulé (sept premiers jours, `motDuMois`, calculé sans IA) ;
   la jauge de la carte courses avec le repère du jour et la fin de mois au rythme actuel (`rythmeCourses`) ;
@@ -75,13 +75,13 @@ mois › « Importer un relevé Revolut », un export CSV de l'app Revolut (en a
 Kora lit les sorties terminées, propose décochés les virements, recharges et autres monnaies, et
 laisse de côté ce qui est déjà noté (même montant à un jour près, une dépense pour une ligne). On
 choisit la carte (le pot) du relevé, puis « Ajouter ». Les dépenses sont marquées « relevé ». Règles :
-`src/domaine/releve.ts`, écran `src/ui/ecrans/BudgetReleve.tsx`. Rien n'est gardé du relevé que
+`src/domaine/releve.ts`, écran `src/ui/ecrans/budget/Releve.tsx`. Rien n'est gardé du relevé que
 la date, le montant et le libellé.
 
 ## Où est quoi
 
 - Règles et tests : `src/domaine/budget.ts`, paiements Apple Pay dans `src/domaine/paiements.ts`
-  (écrans dans `src/ui/ecrans/BudgetPaiements.tsx`). Page : `src/ui/ecrans/Budget.tsx`, entrée `budget` de
+  (écrans dans `src/ui/ecrans/budget/Paiements.tsx`). Page : `src/ui/ecrans/budget/` (`Budget.tsx` et un fichier par onglet ou feuille), entrée `budget` de
   `src/ui/modules.tsx`.
 - Données : collection partagée `budget` de la table `documents`. Un document `plan` (personnes,
   charges, comptes, jour de paie, part plaisir, soldes de départ, projet), un `mois-AAAA-MM` par mois

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { formaterMontant, nommerMois, POTS, POTS_SUIVIS, type PlanBudget, type Pot } from "../../domaine/budget";
+import { formaterMontant, nommerMois, POTS, POTS_SUIVIS, type PlanBudget, type Pot } from "../../../domaine/budget";
 import {
   decrireBudgetConseiller,
   finDuMois,
@@ -8,12 +8,12 @@ import {
   QUESTIONS_CONSEILLER,
   type BilanDeMois,
   type ReponseConseiller,
-} from "../../domaine/budgetConseil";
-import { formaterChf } from "../../domaine/jarvis";
-import { Icone } from "../Icone";
-import type { PropsPage } from "../modules";
-import { vibrer } from "../haptique";
-import { nomFee } from "../fee";
+} from "../../../domaine/budgetConseil";
+import { formaterChf } from "../../../domaine/jarvis";
+import { Icone } from "../../Icone";
+import type { PropsPage } from "../../modules";
+import { vibrer } from "../../haptique";
+import { nomFee } from "../../fee";
 
 // Le conseiller du Budget (Kora 0.0.37) : Jarvis lit tout le budget et répond par quelques
 // phrases, un tableau s'il le faut et des conseils chiffrés. Règles dans src/domaine/budgetConseil.ts.

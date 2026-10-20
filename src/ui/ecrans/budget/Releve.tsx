@@ -1,13 +1,13 @@
 import { useState } from "react";
-import { formaterMontant, nomDuMois, POTS, type DocBudget, type PlanBudget, type Pot } from "../../domaine/budget";
-import { POTS_DE_CARTE } from "../../domaine/paiements";
-import { aCocher, factureDeLigne, importerReleve, lireReleve, preparerReleve, type LigneReleve } from "../../domaine/releve";
-import { useAnnoncer } from "../annulation";
-import { contexteReel } from "../contexte";
-import { vibrer } from "../haptique";
-import type { Depot } from "../../donnees/depot";
-import type { Id } from "../../domaine/types";
-import { Feuille } from "../pieces";
+import { formaterMontant, nomDuMois, POTS, type DocBudget, type PlanBudget, type Pot } from "../../../domaine/budget";
+import { POTS_DE_CARTE } from "../../../domaine/paiements";
+import { aCocher, factureDeLigne, importerReleve, lireReleve, preparerReleve, type LigneReleve } from "../../../domaine/releve";
+import { useAnnoncer } from "../../annulation";
+import { contexteReel } from "../../contexte";
+import { vibrer } from "../../haptique";
+import type { Depot } from "../../../donnees/depot";
+import type { Id } from "../../../domaine/types";
+import { Feuille } from "../../pieces";
 
 // L'import du relevé Revolut (CSV) : ce qu'Apple Pay n'a pas vu. Règles dans src/domaine/releve.ts.
 

@@ -9,8 +9,8 @@ import {
   type PointEpargne,
   type PrixQuiMonte,
   type RythmeCourses,
-} from "../../domaine/budget";
-import { Icone } from "../Icone";
+} from "../../../domaine/budget";
+import { Icone } from "../../Icone";
 
 // Les visuels du Budget : sobres, sans légende inutile, un chiffre qui compte par visuel.
 // Les couleurs des pots viennent des variables --pot-* (styles.css), pour les deux thèmes.

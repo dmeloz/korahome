@@ -20,7 +20,7 @@ import type { Depot } from "../donnees/depot";
 import type { ServeurAgenda, ServeurJarvis } from "../donnees/distant";
 import { organiserEntretien } from "../domaine/entretien";
 import { Agenda } from "./ecrans/Agenda";
-import { Budget } from "./ecrans/Budget";
+import { Budget } from "./ecrans/budget/Budget";
 import { Chef } from "./ecrans/Chef";
 import { Jardin } from "./ecrans/Jardin";
 import { Courses } from "./ecrans/Listes";

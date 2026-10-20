@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { formaterMontant, lireMontant, nomDuMois, POTS, reglerFacture, type Depense, type PaiementAClasser, type PlanBudget, type Pot } from "../../domaine/budget";
-import { cartesDuFoyer, choixDeCarte, classerPaiement, demandeRaccourci, paiementsAClasser, POTS_DE_CARTE, retenirCarte, type ChoixCarte } from "../../domaine/paiements";
-import { useAnnoncer } from "../annulation";
-import { contexteReel } from "../contexte";
-import { vibrer } from "../haptique";
-import type { PropsPage } from "../modules";
-import { Feuille } from "../pieces";
+import { formaterMontant, lireMontant, nomDuMois, POTS, reglerFacture, type Depense, type PaiementAClasser, type PlanBudget, type Pot } from "../../../domaine/budget";
+import { cartesDuFoyer, choixDeCarte, classerPaiement, demandeRaccourci, paiementsAClasser, POTS_DE_CARTE, retenirCarte, type ChoixCarte } from "../../../domaine/paiements";
+import { useAnnoncer } from "../../annulation";
+import { contexteReel } from "../../contexte";
+import { vibrer } from "../../haptique";
+import type { PropsPage } from "../../modules";
+import { Feuille } from "../../pieces";
 
 // Les paiements Apple Pay dans le budget : ceux qui attendent leur pot, et la mise en route
 // du raccourci sur chaque iPhone. Les règles sont dans src/domaine/paiements.ts.
