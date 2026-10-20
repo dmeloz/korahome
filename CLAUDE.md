@@ -8,7 +8,7 @@ Fiche projet et plan (sur le Mac de la propriétaire) : `~/Atelier-Claude/Cervea
 - `npm run dev` : serveur de développement (accessible depuis l'iPhone sur le même wifi).
 - `npm test` : tests (Vitest).
 - `npm run typecheck`, `npm run lint` (oxlint, règles dans `.oxlintrc.json`, aussi vérifié par la CI) puis `npm run build` : types, correcteur de code et build de production dans `dist/`.
-- En ligne : https://kora-cassa.netlify.app, publiée sur Netlify par l'action GitHub `Publier` à chaque fusion dans `main` (voir `docs/en-ligne.md`).
+- En ligne : https://dmeloz.github.io/korahome/ (GitHub Pages, dépôt public, action `Pages` à chaque fusion dans `main`, chemin `/korahome/` par `KORAHOME_BASE`). L'ancienne adresse https://kora-cassa.netlify.app (Netlify, crédits épuisés le 20 octobre 2026) reste à la 0.0.63 ; l'action `Publier` ne se lance plus qu'à la main. Voir `docs/en-ligne.md`.
 - `npm run essai` (après `npm run build`) : ouvre chaque écran dans un iPhone simulé (Playwright) et signale toute erreur ; à lancer avant chaque version.
 - `npm run fonction` : régénère les fonctions serveur (rappels, Jarvis, Chef, agenda, paiements, Siri) après une modification de leurs règles (voir `docs/notifications.md`, `docs/jarvis.md`).
 - `npm run serveur` : sert l'app en https sur le wifi depuis le Mac (certificat local dans `.certificats/`, voir `docs/installer-sur-iphone.md`).

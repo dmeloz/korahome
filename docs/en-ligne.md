@@ -11,6 +11,24 @@ Sur les iPhone, une pastille rouge sur les Réglages signale la nouvelle version
   Netlify (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`), jamais dans le dépôt. Elles
   sont lues à la construction : après les avoir changées, il faut republier.
 
+## Depuis le 20 octobre 2026 : GitHub Pages
+
+Le compte Netlify `kora-cassa` a épuisé ses crédits gratuits le 20 octobre au soir (« Account credit
+usage exceeded ») : les versions 0.0.64 à 0.0.66 n'ont pas pu partir. L'app est désormais publiée
+sur **GitHub Pages**, gratuit et sans compteur : **https://dmeloz.github.io/korahome/**.
+
+- Le dépôt est public (l'offre gratuite de GitHub ne sert Pages que pour un dépôt public). Il ne
+  contient aucune donnée du foyer ni aucune clé secrète : les données vivent dans Supabase.
+- L'action `Pages` (`.github/workflows/pages.yml`) construit avec `KORAHOME_BASE=/korahome/`
+  (le chemin de l'app, repris par le manifeste et le service worker) et publie `dist/`.
+- L'adresse et la clé *publishable* de Supabase sont dans l'action (ou dans les variables du dépôt
+  si on les y met) : cette clé est publique par nature, les règles RLS de la base protègent tout.
+- Nouvelle adresse = nouvelle app pour l'iPhone : la réinstaller sur l'écran d'accueil depuis Safari,
+  rejoindre le foyer avec le code, puis réactiver les notifications (Réglages › Notifications). Les
+  données reviennent du serveur ; ce qui n'était que sur l'ancien téléphone (réglages, mémoire
+  personnelle) repart de zéro. Siri et Apple Pay ne changent pas (ils parlent à Supabase).
+- Pour republier sans changement : GitHub › Actions › Pages › Run workflow.
+
 ## Qui publie
 L'offre gratuite de Netlify n'accepte qu'un contributeur sur un dépôt privé : quand un
 commit porte un coauteur (`Co-authored-by: Claude …`), Netlify refuse de construire

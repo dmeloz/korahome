@@ -6,9 +6,9 @@ name: Publier
 # filtre. La construction reprend les variables du projet Netlify (Supabase).
 # Seul secret : NETLIFY_AUTH_TOKEN, réglé dans GitHub (voir docs/en-ligne.md).
 
+# Depuis le 20 octobre 2026, Netlify a épuisé ses crédits : l'app est publiée par l'action « Pages »
+# (GitHub Pages). Celle-ci reste lançable à la main si Netlify revient.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 concurrency:
