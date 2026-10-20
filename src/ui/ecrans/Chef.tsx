@@ -188,20 +188,32 @@ export function Chef(p: PropsPage) {
           </section>
         )}
 
+        {menu && menu.repas.some((r) => !r.recetteId || !recettes.some((x) => x.id === r.recetteId)) && (
+          <p className="discret chef-sans-recette">Ces soirs n'ont pas encore leur recette : relance le Chef pour avoir les ingrédients, les étapes et la fiche de la semaine.</p>
+        )}
+
         {menu && (
           <ol className="chef-repas">
-            {menu.repas.map((r, i) => (
-              <li key={r.titre} className="carte">
+            {menu.repas.map((r, i) => {
+              const recette = r.recetteId && recettes.some((x) => x.id === r.recetteId) ? r.recetteId : null;
+              return (
+              <li
+                key={r.titre}
+                className={`carte${recette ? " chef-repas-ouvrable" : ""}`}
+                // Toute la carte ouvre la recette ; les boutons d'avis gardent leur propre geste.
+                onClick={(e) => recette && !(e.target as HTMLElement).closest("button") && setFicheId(recette)}
+              >
                 <p className="surtitre">Soir {i + 1}</p>
                 <p className="chef-plat">{r.titre}</p>
                 <p className="discret">{r.description}</p>
                 {r.avecLeStock.length > 0 && <p className="chef-stock">Avec {r.avecLeStock.join(", ").toLowerCase()}</p>}
-                {r.recetteId && recettes.some((x) => x.id === r.recetteId) && (
-                  <button type="button" className="lien chef-voir-recette" onClick={() => setFicheId(r.recetteId!)}>Voir la recette</button>
+                {recette && (
+                  <button type="button" className="lien chef-voir-recette" onClick={() => setFicheId(recette)}>Voir la recette</button>
                 )}
                 <AvisChef avis={avisDuPlat(p.souvenirs, r.titre)?.avis ?? null} titre={r.titre} donner={(a) => void donnerAvis(r.titre, a)} />
               </li>
-            ))}
+              );
+            })}
           </ol>
         )}
 
