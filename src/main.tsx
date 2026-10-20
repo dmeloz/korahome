@@ -9,7 +9,7 @@ import { installerJournal } from "./ui/journal";
 import { creerMiseAJour, surveillerMisesAJour } from "./ui/miseAJour";
 import { appliquerVerre } from "./ui/accueilLocal";
 import { appliquerTheme, lireTheme } from "./ui/theme";
-import "./styles.css";
+import "./styles/index.css";
 
 const miseAJour = creerMiseAJour(
   registerSW,

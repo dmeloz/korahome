@@ -1,0 +1,83 @@
+/* ===== Rappels : les notifications du matin, leur aperçu, le centre des rappels ===== */
+
+/* Notifications : les rappels du matin */
+.rappels-intro { margin: 4px 0 20px; line-height: 1.45; }
+.rappels-carte { display: grid; gap: 8px; }
+.rappels-carte p { margin: 0; line-height: 1.45; }
+.rappels-carte .bouton-principal { width: 100%; margin-top: 8px; }
+.rappels-heure {
+  font-family: var(--police-titre);
+  font-size: 64px;
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--texte);
+}
+.rappels-actifs { grid-template-columns: auto 1fr; align-items: center; gap: 12px; }
+.rappels-choix { display: flex; flex-direction: column; gap: 2px; }
+.rappels-choix .discret { font-size: var(--t-legende); line-height: 1.35; }
+.rappels-actions { display: grid; justify-items: center; gap: 4px; margin-top: 20px; }
+.rappels-actions .lien:disabled { opacity: 0.4; }
+.rappels-message { text-align: center; margin-top: 12px; }
+/* L'heure se touche comme une alarme : la roue de l'iPhone s'ouvre par-dessus. */
+.rappels-horloge { position: relative; display: grid; justify-items: center; gap: 6px; padding: 10px 0 6px; }
+.rappels-roue { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; font-size: var(--t-detail); -webkit-appearance: none; appearance: none; }
+.rappels-jours { display: flex; justify-content: space-between; gap: 6px; margin-top: 8px; }
+.rappels-jour {
+  flex: 1;
+  max-width: 40px;
+  aspect-ratio: 1 / 1;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--trait);
+  background: var(--surface-haute);
+  color: var(--discret);
+  font-size: var(--t-detail);
+  font-weight: 600;
+}
+.rappels-jour.actif { background: var(--accent); border-color: var(--accent); color: var(--sur-accent); }
+.rappels-jour:disabled { cursor: default; }
+@media (prefers-reduced-motion: no-preference) { .rappels-jour { transition: background 0.15s ease, color 0.15s ease; } }
+.rappels-raccourcis { justify-content: center; margin-top: 4px; }
+.rappels-vide { margin: 0 4px; }
+
+/* Aperçu façon notification de l'iPhone : verre dépoli, coins très ronds. */
+.notification-ios {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--surface-haute) 82%, transparent);
+  border: 1px solid var(--trait);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  box-shadow: var(--ombre);
+}
+.notification-icone {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--fond);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-family: var(--police-titre);
+  font-weight: 700;
+  font-size: var(--t-legende);
+  letter-spacing: -0.04em;
+}
+.notification-texte { flex: 1; min-width: 0; }
+.notification-texte p { margin: 0; font-size: var(--t-detail); line-height: 1.35; white-space: pre-line; }
+.notification-entete { display: flex; justify-content: space-between; gap: 8px; }
+.notification-entete span { color: var(--discret); font-size: var(--t-legende); }
+
+/* Le centre des rappels. */
+.rappel-recu { align-items: flex-start; }
+.rappel-heure { flex: none; width: 46px; padding-top: 2px; font-size: var(--t-legende); color: var(--discret); font-variant-numeric: tabular-nums; }
+.rappel-recu .ligne-texte { display: flex; flex-direction: column; gap: 2px; }
+.rappel-corps { white-space: pre-line; }
+.rappel-recu.nouveau strong::after { content: ""; display: inline-block; width: 7px; height: 7px; margin-left: 8px; border-radius: 50%; background: var(--accent); vertical-align: middle; }

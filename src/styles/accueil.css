@@ -1,0 +1,254 @@
+/* ===== L'accueil : la date et ses signes, « Ce soir », les widgets en verre, « Tous les espaces » ===== */
+
+/* Tableau de bord : un en-tête compact, le bandeau du couple, « Aujourd'hui », puis des
+   pages de widgets en deux colonnes qu'on feuillette au doigt. */
+/* La date et les boutons sur la première ligne, la salutation en entier dessous. */
+.cache-visuel { position: absolute !important; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.avatar-reglages {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--trait));
+  color: var(--accent);
+  font-weight: 700;
+  font-size: var(--t-corps);
+  padding: 0;
+}
+.alerte.compte {
+  width: auto;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: var(--t-legende);
+  font-weight: 600;
+  line-height: 1;
+}
+
+.widgets-accueil { margin-bottom: 4px; }
+
+/* Deux colonnes : un petit widget prend une case, un grand toute la largeur avec le détail. */
+.widgets { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: row dense; }
+.widget.grand { grid-column: span 2; }
+.widget { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; position: relative; }
+.widget {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  min-height: 108px;
+  padding: 14px;
+  border-radius: 22px;
+  border: 1px solid var(--trait);
+  background: var(--surface);
+  box-shadow: var(--ombre);
+  text-align: left;
+}
+.widget:active:not(.en-edition) { transform: scale(0.97); }
+@media (prefers-reduced-motion: no-preference) { .widget { transition: transform 0.2s var(--courbe); } }
+.widget-haut { display: flex; align-items: center; gap: 8px; color: var(--accent); }
+.widget-titre { flex: 1; min-width: 0; font-size: var(--t-legende); color: var(--discret); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.widget-bas { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.widget-valeur { font-size: var(--t-section); font-weight: 600; line-height: 1.15; color: var(--texte); }
+.widget.urgent .widget-valeur { color: var(--urgent); }
+.widget-apercu { display: flex; flex-direction: column; gap: 2px; font-size: var(--t-legende); color: var(--discret); }
+.widget-apercu span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.widget.grand .widget-apercu { gap: 4px; padding-top: 8px; margin-top: 4px; border-top: 1px solid var(--trait); font-size: var(--t-detail); color: var(--texte); }
+.widget-jauge { display: block; height: 6px; border-radius: 3px; background: var(--surface-haute); overflow: hidden; margin: 4px 0 2px; }
+.widget-jauge > span { display: block; height: 100%; border-radius: 3px; background: var(--accent); }
+
+.pied-accueil { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 14px; margin: 18px 0 8px; }
+.etat-pied { display: inline-flex; align-items: center; gap: 6px; border: none; background: none; padding: 8px 2px; color: var(--discret); font-size: var(--t-legende); }
+.etat-pied.urgent { color: var(--urgent); }
+.bouton-synchro { padding: 6px 12px; border-radius: 999px; background: var(--surface-haute); color: var(--texte); }
+.bouton-synchro.en-cours svg { animation: tourner 0.9s linear infinite; }
+@keyframes tourner { to { transform: rotate(360deg); } }
+
+/* Mode modification : les widgets tremblent comme sur l'iPhone et se glissent. */
+.widget.en-edition { touch-action: none; cursor: grab; }
+.widget.glisse { cursor: grabbing; transform: scale(1.04); box-shadow: 0 24px 48px -20px rgb(0 0 0 / 0.85); z-index: 2; border-color: var(--accent); }
+@media (prefers-reduced-motion: no-preference) {
+  .widget.en-edition:not(.glisse) { animation: trembler 0.28s ease-in-out infinite alternate; }
+  @keyframes trembler { from { rotate: -0.7deg; } to { rotate: 0.7deg; } }
+}
+.badge-widget {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--trait);
+  background: var(--surface-haute);
+  color: var(--texte);
+  box-shadow: 0 4px 10px -4px rgb(0 0 0 / 0.6);
+  padding: 0;
+}
+.badge-widget.retirer { top: -9px; left: -9px; }
+.badge-widget.taille { bottom: -9px; right: -9px; color: var(--accent); }
+.bouton-termine {
+  margin-top: 14px;
+  border: none;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--sur-accent);
+  font-weight: 600;
+  font-size: var(--t-detail);
+  padding: 8px 16px;
+}
+.aide-edition { text-align: center; margin: 18px 0 0; font-size: var(--t-legende); }
+
+.ajout-widgets { margin-top: 8px; }
+.proposition { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; color: var(--accent); }
+.proposition-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; color: var(--texte); }
+
+.vide-tableau { display: grid; gap: 12px; justify-items: start; }
+.vide-tableau p { margin: 0; }
+
+.widget { box-shadow: var(--reflet), var(--ombre); }
+
+/* Kora 0.0.42 : l'accueil façon iOS 27. La grande date, seule, comme l'écran verrouillé. */
+.haut-accueil { position: relative; display: flex; align-items: center; min-height: 64px; margin: 10px 0 18px; }
+.grande-date { flex: 1; display: flex; align-items: center; gap: 10px; min-width: 0; touch-action: pan-y; -webkit-user-select: none; user-select: none; }
+.grande-date.centre { justify-content: center; }
+.date-chiffre { font-family: var(--police-titre); font-size: var(--taille-date, 28px); font-weight: 300; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--texte); }
+.date-mots { display: flex; flex-direction: column; line-height: 1.15; }
+.date-mots b { font-size: max(calc(var(--taille-date, 28px) * 0.5), 15px); font-weight: 600; }
+.date-mots span { font-size: max(calc(var(--taille-date, 28px) * 0.42), 13px); color: var(--discret); }
+@media (prefers-reduced-motion: no-preference) { .grande-date { transition: justify-content 0.3s var(--courbe); } }
+
+/* Les petits signes au bout de la ligne de la date. */
+.signes-accueil { position: absolute; right: 0; top: 50%; transform: translateY(-50%); display: flex; gap: 4px; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.signe { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; min-width: 44px; justify-content: center; padding: 4px 8px; border: none; border-radius: 999px; background: none; color: var(--accent); font-size: var(--t-legende); font-variant-numeric: tabular-nums; }
+.signe:active { background: var(--accent-doux); }
+.signe.urgent { color: var(--urgent); }
+.signe.vide { color: var(--discret); opacity: 0.6; }
+.signe-court { color: var(--texte); font-weight: 500; }
+.signe.urgent .signe-court { color: var(--urgent); }
+.signe-humeur { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); color: var(--accent); }
+.signe-humeur + .signe-humeur { margin-left: -6px; background: var(--fond); }
+.signe-humeur.sans { border-style: dashed; border-color: var(--discret); opacity: 0.6; }
+
+/* La date repliée dans une barre de verre quand on fait défiler. */
+.date-repliee {
+  position: fixed; top: calc(env(safe-area-inset-top) + 6px); left: 50%; z-index: 9; transform: translate(-50%, -140%);
+  padding: 6px 14px; border-radius: 999px; font-size: var(--t-detail); font-weight: 600; pointer-events: none; opacity: 0;
+  background: var(--verre); -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4);
+  box-shadow: var(--reflet), 0 0 0 0.5px var(--verre-trait);
+}
+.date-repliee.visible { transform: translate(-50%, 0); opacity: 1; }
+@media (prefers-reduced-motion: no-preference) { .date-repliee { transition: transform 0.35s var(--courbe), opacity 0.2s ease; } }
+
+/* « Ce soir », sans cadre : un fil relie les ronds, l'heure à gauche quand il y en a une. */
+.ce-moment { margin: 6px 0 22px; --col-heure: 0px; }
+.ce-moment.avec-heures { --col-heure: 44px; }
+.ce-moment-entete { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+.ce-moment-entete h2 { margin: 0; font-family: var(--police-titre); font-size: var(--t-section); font-weight: 650; }
+.ce-moment-entete .discret { font-size: var(--t-legende); }
+.ce-moment-vide { margin: 4px 0; color: var(--discret); font-size: var(--t-detail); }
+.fil { position: relative; list-style: none; margin: 0; padding: 0; }
+.fil > li { position: relative; display: grid; grid-template-columns: var(--col-heure) 34px minmax(0, 1fr); align-items: center; }
+/* Le fil : un trait fin d'un rond au suivant. */
+.fil > li + li::before { content: ""; position: absolute; left: calc(var(--col-heure) + 16.5px); top: -14px; height: 28px; width: 1px; background: color-mix(in srgb, var(--discret) 35%, transparent); }
+.fil > li.phare + li::before { top: -18px; height: 36px; }
+.moment-heure { justify-self: start; padding: 0; border: none; background: none; min-height: 44px; min-width: 40px; text-align: left; font-size: var(--t-legende); color: var(--discret); font-variant-numeric: tabular-nums; }
+.moment-heure.passee { color: var(--urgent); }
+.moment-rond { position: relative; z-index: 1; display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 1.5px solid color-mix(in srgb, var(--discret) 70%, transparent); background: var(--fond); color: transparent; }
+.moment-rond::after { content: ""; position: absolute; inset: -11px; }
+.moment-rond.urgent { border-color: var(--urgent); }
+.moment-rond.jour { border-color: var(--accent); }
+.moment-rond:active { background: var(--accent); border-color: var(--accent); color: var(--sur-accent); }
+.moment-rond.point { width: 9px; height: 9px; margin-left: 6.5px; border: none; background: color-mix(in srgb, var(--discret) 55%, transparent); }
+.moment-rond.point.urgent { background: var(--urgent); }
+.moment-rond.point.jour { background: var(--accent); }
+.moment-corps { display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 46px; padding: 6px 0; border: none; background: none; text-align: left; color: var(--texte); }
+.moment-texte { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.suivante .moment-texte { color: color-mix(in srgb, var(--texte) 78%, transparent); }
+.moment-quand { flex: none; font-size: var(--t-legende); color: var(--discret); }
+.moment-quand.urgent { color: var(--urgent); }
+/* La chose du moment, en grand. */
+.phare { min-height: 64px; touch-action: pan-y; }
+.phare .moment-rond { width: 26px; height: 26px; margin-left: -2px; border-width: 2px; }
+.phare .moment-corps { flex-direction: column; align-items: flex-start; gap: 2px; min-height: 64px; }
+.phare .moment-texte { font-family: var(--police-titre); font-size: var(--t-section); font-weight: 600; width: 100%; }
+.moment-sous { font-size: var(--t-legende); color: var(--discret); }
+.moment-sous.urgent { color: var(--urgent); }
+.moment-geste { color: var(--discret); }
+.phare.glisse .moment-corps, .phare.glisse .moment-rond { transform: translateX(var(--glisse)); }
+.phare.glisse .moment-rond { background: color-mix(in srgb, var(--accent) calc(min(var(--glisse) / 84px, 1) * 100%), var(--fond)); }
+.phare:not(.glisse) .moment-corps, .phare:not(.glisse) .moment-rond { transition: transform 0.3s var(--courbe); }
+.ce-moment-plus { display: block; padding: 6px 0 0 calc(var(--col-heure) + 34px); font-size: var(--t-detail); }
+@media (prefers-reduced-motion: no-preference) { .fil > li { animation: bulle-arrive 0.3s var(--courbe) both; } }
+
+/* L'heure d'une tâche, comme une alarme. */
+.feuille-heure { display: grid; gap: 8px; }
+.rappels-heure.sans { color: var(--discret); }
+.feuille-heure-note { margin: 0; text-align: center; font-size: var(--t-legende); }
+.feuille-heure-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 22px; }
+
+/* Les widgets en verre, réglés par « Verre » dans Ce téléphone. */
+.widget {
+  background: color-mix(in srgb, var(--surface) var(--verre-widget), transparent);
+  -webkit-backdrop-filter: blur(var(--flou-widget)) saturate(1.5);
+  backdrop-filter: blur(var(--flou-widget)) saturate(1.5);
+  border: 0.5px solid var(--verre-trait);
+  box-shadow: var(--reflet), 0 0 0 0.5px color-mix(in srgb, #000 22%, transparent), var(--ombre);
+}
+html[data-leger] .widget { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.widget-picto { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: var(--accent-doux); color: var(--accent); flex: none; }
+
+/* Rangement : OK flotte en haut à droite, comme sur l'iPhone. */
+.accueil .bouton-termine {
+  position: fixed; top: calc(env(safe-area-inset-top) + 10px); right: 16px; z-index: 10; margin: 0; padding: 8px 18px;
+  box-shadow: 0 8px 22px -12px rgb(0 0 0 / 0.6);
+}
+.ajout-widgets { display: grid; gap: 12px; margin-top: 14px; }
+.ajout-widgets .bouton-principal { width: 100%; margin: 0; }
+
+/* « Tous les espaces » : la feuille de verre qui descend du haut. */
+.voile-espaces { z-index: 24; }
+.tous-espaces {
+  position: fixed; left: 0; right: 0; top: 0; z-index: 25; max-width: 640px; margin: 0 auto;
+  display: flex; flex-direction: column; max-height: 88dvh;
+  padding: calc(env(safe-area-inset-top) + 10px) 16px 0; border-radius: 0 0 30px 30px;
+  background: var(--verre); -webkit-backdrop-filter: blur(28px) saturate(1.6); backdrop-filter: blur(28px) saturate(1.6);
+  box-shadow: var(--reflet), 0 0 0 0.5px var(--verre-trait), 0 24px 60px -24px rgb(0 0 0 / 0.7);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .tous-espaces { animation: espaces-descend 0.45s var(--courbe); transition: transform 0.32s var(--courbe), opacity 0.25s ease; }
+  .tous-espaces.tiree { transition: none; }
+}
+@keyframes espaces-descend { from { transform: translateY(-100%); } }
+.tous-espaces.sortie { transform: translateY(-100%); opacity: 0; pointer-events: none; }
+.espaces-haut { display: flex; align-items: center; gap: 8px; }
+.espaces-haut .champ-recherche { flex: 1; min-width: 0; margin: 0; background: color-mix(in srgb, var(--surface-haute) 80%, transparent); }
+.espaces-corps { overflow-y: auto; overscroll-behavior: contain; padding: 6px 2px 4px; }
+.espaces-corps .rayon { margin: 14px 0 8px; }
+.grille-espaces { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 8px; }
+.tuile-espace { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 4px 0; border: none; background: none; color: var(--texte); -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.tuile-picto { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 16px; color: var(--accent); background: color-mix(in srgb, var(--surface-haute) 85%, transparent); box-shadow: var(--reflet), 0 0 0 0.5px var(--verre-trait); }
+.tuile-espace:active .tuile-picto { transform: scale(0.93); }
+.tuile-nom { font-size: var(--t-legende); text-align: center; line-height: 1.2; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.espaces-pied { text-align: center; font-size: var(--t-legende); margin: 16px 0 4px; }
+.espaces-poignee { display: grid; place-items: center; height: 26px; touch-action: none; cursor: grab; }
+.espaces-poignee .poignee { margin: 0; }
+/* La tuile qui part vers l'accueil, sous le doigt. */
+.fantome-widget {
+  position: fixed; left: 0; top: 0; z-index: 30; width: 88px; display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none;
+  filter: drop-shadow(0 14px 22px rgb(0 0 0 / 0.5));
+}
+.fantome-widget .tuile-picto { transform: scale(1.12); background: var(--surface-haute); }
+.fantome-widget .tuile-nom { color: var(--texte); }
+/* L'étiquette qui descend quand on tire l'accueil vers le bas. */
+.tirer-espaces {
+  position: fixed; top: calc(env(safe-area-inset-top) + 6px); left: 50%; z-index: 9; transform: translate(-50%, 0); opacity: 0; pointer-events: none;
+  padding: 5px 12px; border-radius: 999px; font-size: var(--t-legende); color: var(--accent);
+  background: var(--verre); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-shadow: var(--reflet), 0 0 0 0.5px var(--verre-trait);
+}

@@ -588,7 +588,7 @@ function useGlissementRetour(actif: boolean, revenir: () => void) {
   return glisse;
 }
 
-/** La durée de la fin du geste, accordée à `.retour-anime` dans styles.css. */
+/** La durée de la fin du geste, accordée à `.retour-anime` dans styles/pieces.css. */
 const DUREE_RETOUR_MS = 220;
 
 const sansAbonnement = () => () => {};

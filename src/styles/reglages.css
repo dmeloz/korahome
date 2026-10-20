@@ -1,0 +1,85 @@
+/* ===== Réglages : groupes, profil, ce téléphone, sauvegarde, thème, accueil ===== */
+
+/* Réglages épurés, à la manière de l'iPhone */
+.reglages .groupe { margin-bottom: 20px; padding: 0; }
+.profil {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  margin-bottom: 20px;
+  text-align: left;
+  color: var(--texte);
+}
+.profil-initiale { width: 52px; height: 52px; font-size: var(--t-section); }
+.profil-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.profil-texte strong { font-size: var(--t-corps); }
+.ligne-reglage { min-height: 48px; padding: 8px 14px; gap: 12px; }
+.ligne-reglage .chevron { margin-left: -4px; }
+.picto-reglage {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--accent-doux);
+  color: var(--accent);
+}
+.valeur-reglage { font-size: var(--t-detail); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 55%; }
+.alerte-ligne { position: static; flex: none; }
+.coche-reglage { color: var(--accent); display: grid; }
+
+/* « Ce téléphone » verrouillé sur une personne. */
+.verrou {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.verrou .profil-texte { flex: 1; }
+.verrou-cadenas { color: var(--accent); display: grid; }
+
+/* La sauvegarde. */
+.sauvegarde-carte { display: flex; gap: 12px; align-items: flex-start; }
+.sauvegarde-carte p { margin: 4px 0 0; }
+.sauvegarde-carte.due { border-color: var(--carte-jour-trait); background: var(--carte-jour); }
+.pied-court { margin: 10px 0 24px; }
+.alerte-corps { display: flex; flex-direction: column; gap: 10px; }
+.alerte-corps h2 { margin: 0; font-size: var(--t-section); }
+
+/* Le thème de ce téléphone. */
+.choix-theme { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 18px; }
+.theme-carte {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 10px;
+  border-radius: 16px;
+  border: 1px solid var(--trait);
+  background: var(--surface);
+  text-align: left;
+}
+.theme-carte.actif { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.theme-carte strong { font-size: var(--t-detail); }
+.theme-carte .discret { font-size: var(--t-legende); line-height: 1.25; }
+.theme-apercu { display: flex; gap: 3px; margin-bottom: 4px; }
+.theme-apercu span { width: 18px; height: 18px; border-radius: 6px; border: 1px solid rgb(127 127 127 / 0.25); }
+.theme-sombre .theme-apercu span:nth-child(1) { background: #0f1211; }
+.theme-sombre .theme-apercu span:nth-child(2) { background: #181c1a; }
+.theme-sombre .theme-apercu span:nth-child(3) { background: #d3a14a; }
+.theme-clair .theme-apercu span:nth-child(1) { background: #f4efe6; }
+.theme-clair .theme-apercu span:nth-child(2) { background: #fffcf6; }
+.theme-clair .theme-apercu span:nth-child(3) { background: #a5762a; }
+.theme-auto .theme-apercu span:nth-child(1) { background: linear-gradient(135deg, #0f1211 50%, #f4efe6 50%); }
+.theme-auto .theme-apercu span:nth-child(2) { background: linear-gradient(135deg, #181c1a 50%, #fffcf6 50%); }
+.theme-auto .theme-apercu span:nth-child(3) { background: linear-gradient(135deg, #d3a14a 50%, #a5762a 50%); }
+
+/* Ce téléphone › Accueil : le verre et la taille de la date. */
+.reglages-curseurs { display: grid; gap: 14px; padding: 14px 16px; margin-bottom: 20px; }
+.curseur-reglage { display: grid; gap: 8px; }
+.curseur-titre { display: flex; justify-content: space-between; gap: 12px; font-size: var(--t-corps); }
+.curseur-titre .discret { font-size: var(--t-legende); }
+.curseur-reglage input[type="range"] { width: 100%; accent-color: var(--accent); }
+.reglages-curseurs .lien { justify-self: start; padding: 0; font-size: var(--t-detail); }
+.curseur-aide { margin: 0; font-size: var(--t-legende); }

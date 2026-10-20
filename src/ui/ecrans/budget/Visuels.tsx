@@ -13,7 +13,7 @@ import {
 import { Icone } from "../../Icone";
 
 // Les visuels du Budget : sobres, sans légende inutile, un chiffre qui compte par visuel.
-// Les couleurs des pots viennent des variables --pot-* (styles.css), pour les deux thèmes.
+// Les couleurs des pots viennent des variables --pot-* (styles/budget.css), pour les deux thèmes.
 
 const montant = (n: number) => formaterMontant(n);
 const majuscule = (t: string) => t.replace(/^./, (c) => c.toUpperCase());
