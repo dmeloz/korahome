@@ -13,7 +13,8 @@
 // `npm run fonction`. Déploiement : docs/jarvis.md.
 
 import Anthropic from "npm:@anthropic-ai/sdk";
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { preflight, repondre } from "../_shared/http.ts";
+import { estMembre, serveur, utilisateur } from "../_shared/supabase.ts";
 import {
   CONSIGNES_BUDGET,
   CONSIGNES_CONSEIL,
@@ -31,19 +32,6 @@ import {
   OUTIL_BUDGET,
   OUTILS_JARVIS,
 } from "./domaine.js";
-
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-const serveur = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
-  auth: { persistSession: false },
-});
-
-function repondre(corps: unknown, statut = 200): Response {
-  return new Response(JSON.stringify(corps), { status: statut, headers: { ...CORS, "Content-Type": "application/json" } });
-}
 
 /** Le mois en cours à Zurich, « AAAA-MM ». */
 function moisCourant(): string {
@@ -95,21 +83,20 @@ function lireImage(v: unknown): { media_type: "image/jpeg" | "image/png" | "imag
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  const options = preflight(req);
+  if (options) return options;
   try {
     const cle = Deno.env.get("ANTHROPIC_API_KEY");
     if (!cle) return repondre({ erreur: "Jarvis n'est pas encore branché : sa clé manque sur le serveur." }, 503);
 
-    const jeton = req.headers.get("Authorization")?.replace(/^Bearer /, "") ?? "";
-    const { data } = await serveur.auth.getUser(jeton);
-    if (!data.user) return repondre({ erreur: "Connexion requise" }, 401);
+    const user = await utilisateur(req);
+    if (!user) return repondre({ erreur: "Connexion requise" }, 401);
 
     const corps = await req.json().catch(() => ({}));
     const foyerId = texte(corps.foyerId, 100);
     const demande = texte(corps.demande, 1000).trim();
     if (!foyerId || !demande) return repondre({ erreur: "Demande vide" }, 400);
-    const { data: membre } = await serveur.from("membres_foyer").select("user_id").eq("foyer_id", foyerId).eq("user_id", data.user.id).maybeSingle();
-    if (!membre) return repondre({ erreur: "Ce foyer appartient à un autre compte" }, 403);
+    if (!(await estMembre(foyerId, user.id))) return repondre({ erreur: "Ce foyer appartient à un autre compte" }, 403);
 
     const avant = etatBudget(await compter(foyerId, 0));
     if (avant.atteint) {

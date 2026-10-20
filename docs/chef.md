@@ -34,7 +34,7 @@ un document `reglage` de la collection partagée `menus`, valable pour tout le f
 ## Mise en route sur le serveur (une fois)
 
 1. Appliquer `supabase/schema.sql` (ajoute `menus` aux collections et la fonction `prive.programmer_chef`).
-2. Déployer la fonction `chef` (sans vérification du jeton par Supabase, comme `rappels` et `jarvis` :
+2. Déployer la fonction `chef` (fichiers `index.ts`, `domaine.js` et le dossier `_shared`, sans vérification du jeton par Supabase, comme `rappels` et `jarvis` :
    elle vérifie elle-même la session ou la clé du passage horaire).
 3. Programmer le passage de chaque heure :
    `select prive.programmer_chef('https://ffnmyfrzqvhvafnxvyxx.supabase.co');`

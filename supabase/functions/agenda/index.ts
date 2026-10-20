@@ -12,7 +12,8 @@
 // (collection « agenda »). Les décisions viennent de src/domaine/icloud.ts (planSynchro), copié
 // dans domaine.js par `npm run fonction`. Déploiement : docs/agenda.md.
 
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { preflight, repondre } from "../_shared/http.ts";
+import { cleCronValide, echec, estMembre, serveur, utilisateur } from "../_shared/supabase.ts";
 import {
   aRetirerDe,
   aujourdhuiAZurich,
@@ -37,25 +38,7 @@ import {
   texteDe,
 } from "./domaine.js";
 
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 const ICLOUD = "https://caldav.icloud.com/";
-
-const serveur = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
-  auth: { persistSession: false },
-});
-
-function repondre(corps: unknown, statut = 200): Response {
-  return new Response(JSON.stringify(corps), { status: statut, headers: { ...CORS, "Content-Type": "application/json" } });
-}
-
-async function echec<T>(requete: PromiseLike<{ data: T; error: { message: string } | null }>): Promise<T> {
-  const { data, error } = await requete;
-  if (error) throw new Error(error.message);
-  return data;
-}
 
 class ErreurIcloud extends Error {}
 
@@ -294,25 +277,23 @@ async function passage() {
 const texte = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  const options = preflight(req);
+  if (options) return options;
   try {
     const corps = await req.json().catch(() => ({}));
 
     const cleCron = req.headers.get("x-cle-cron");
     if (cleCron) {
-      const [r] = await echec(serveur.rpc("reglages_push"));
-      if (!r?.cle_cron || cleCron !== r.cle_cron) return repondre({ erreur: "Clé inconnue" }, 401);
+      if (!(await cleCronValide(cleCron))) return repondre({ erreur: "Clé inconnue" }, 401);
       return repondre(await passage());
     }
 
-    const jeton = req.headers.get("Authorization")?.replace(/^Bearer /, "") ?? "";
-    const { data } = await serveur.auth.getUser(jeton);
-    if (!data.user) return repondre({ erreur: "Connexion requise" }, 401);
+    const user = await utilisateur(req);
+    if (!user) return repondre({ erreur: "Connexion requise" }, 401);
     const foyerId = texte(corps.foyerId, 100);
     const membreId = texte(corps.membreId, 100);
     if (!foyerId) return repondre({ erreur: "Demande inconnue" }, 400);
-    const { data: membre } = await serveur.from("membres_foyer").select("user_id").eq("foyer_id", foyerId).eq("user_id", data.user.id).maybeSingle();
-    if (!membre) return repondre({ erreur: "Ce foyer appartient à un autre compte" }, 403);
+    if (!(await estMembre(foyerId, user.id))) return repondre({ erreur: "Ce foyer appartient à un autre compte" }, 403);
 
     if (corps.mode === "synchroniser") return repondre(await synchroniserFoyer(foyerId, await comptes(foyerId)));
     if (!membreId) return repondre({ erreur: "Demande inconnue" }, 400);

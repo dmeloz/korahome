@@ -40,5 +40,5 @@ et Siri dit sa réponse, sans ouvrir Kora, même l'iPhone verrouillé.
 ## Déploiement
 
 1. Appliquer la section « Jarvis dans Siri » de `supabase/schema.sql`.
-2. Déployer la fonction `siri` (`index.ts` et `domaine.js`) **sans vérification du JWT** : le
+2. Déployer la fonction `siri` (`index.ts`, `domaine.js` et le dossier `_shared`) **sans vérification du JWT** : le
    raccourci n'a pas de session, il présente son jeton. Elle lit le secret `ANTHROPIC_API_KEY` de Jarvis.

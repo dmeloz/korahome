@@ -65,7 +65,7 @@ l'empreinte SHA-256 du lien (`prive.jetons_paiement`). Les paiements par numéro
 ne passent pas par Wallet : on les écrit dans la barre.
 
 Déploiement : appliquer la fin de `supabase/schema.sql` (jetons), puis déployer
-`supabase/functions/paiements` (index.ts et domaine.js) **sans vérification du JWT** : le raccourci
+`supabase/functions/paiements` (index.ts, domaine.js et le dossier `_shared`) **sans vérification du JWT** : le raccourci
 n'a pas de session, il s'identifie par son lien.
 
 ## Le relevé Revolut (0.0.33)
