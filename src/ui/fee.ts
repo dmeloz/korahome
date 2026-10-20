@@ -171,6 +171,24 @@ export function changerSon(actif: boolean): void {
   else effacer(CLES.feeSon);
 }
 
+/**
+ * Un toucher sur la fée : l'écoute par le micro de Kora, ou le clavier, dont la dictée (le micro
+ * en bas du clavier) ne demande jamais d'autorisation. Sur l'iPhone, une app posée sur l'écran
+ * d'accueil redemande le micro à chaque fois (limite de l'iPhone pour les apps web) : le clavier
+ * y est donc choisi d'office, tant qu'on n'a pas changé le réglage.
+ */
+export function parleAuMicro(): boolean {
+  const choix = lireTexte(CLES.feeParole);
+  if (choix === "micro") return true;
+  if (choix === "clavier") return false;
+  if (typeof window === "undefined") return true;
+  const appInstallee = matchMedia("(display-mode: standalone)").matches || (navigator as { standalone?: boolean }).standalone === true;
+  return !(appInstallee && /iPhone|iPad|iPod/.test(navigator.userAgent));
+}
+export function changerParole(micro: boolean): void {
+  ecrireTexte(CLES.feeParole, micro ? "micro" : "clavier");
+}
+
 let audio: AudioContext | null = null;
 /** Deux notes claires, comme une clochette. Safari ne joue un son qu'après un premier toucher. */
 export function tinter(force = false): void {

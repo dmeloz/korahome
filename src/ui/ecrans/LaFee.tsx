@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { decrireMinute, heuresDiscretes, JOURS_POUR_NUIT, nuitApprise } from "../../domaine/vieFee";
 import { aujourdhuiLocal } from "../contexte";
-import { changerSon, lireRenvois, nomFee, oublierDiscretion, sonActif, tinter } from "../fee";
+import { changerParole, changerSon, lireRenvois, nomFee, oublierDiscretion, parleAuMicro, sonActif, tinter } from "../fee";
 import { Icone } from "../Icone";
 import { lireUsages } from "../usage";
 import { Page } from "../pieces";
@@ -9,8 +9,8 @@ import { Page } from "../pieces";
 // Réglages › La fée : son tintement, la nuit qu'elle a apprise et les heures où elle se tait.
 // Tout reste sur ce téléphone.
 
-const GESTES: [string, string][] = [
-  ["Un toucher", "elle t'écoute"],
+const GESTES = (micro: boolean): [string, string][] => [
+  ["Un toucher", micro ? "elle t'écoute" : "le clavier s'ouvre"],
   ["Appui long", "tu lui écris"],
   ["Deux touchers", "elle se cache un moment"],
   ["La faire glisser", "elle change de place, ou se range contre le bord"],
@@ -18,6 +18,7 @@ const GESTES: [string, string][] = [
 
 export function LaFee() {
   const [son, setSon] = useState(sonActif);
+  const [micro, setMicro] = useState(parleAuMicro);
   const [discretes, setDiscretes] = useState(() => [...heuresDiscretes(lireRenvois())].sort((a, b) => a - b));
   const nuit = nuitApprise(lireUsages(), aujourdhuiLocal());
   const fee = nomFee();
@@ -25,6 +26,34 @@ export function LaFee() {
   return (
     <Page titre={`Réglages de ${fee}`} className="reglages avec-cadre">
       <p className="discret rappels-intro">Ta fée. Elle te dit ce qui presse, l'heure de tes tâches et les mots de l'autre.</p>
+
+      <h2 className="rayon">Lui parler</h2>
+      <ul className="carte groupe">
+        {([
+          [false, "note", "Par la dictée du clavier"],
+          [true, "micro", "Par le micro de Kora"],
+        ] as const).map(([valeur, picto, texte]) => (
+          <li key={picto}>
+            <button
+              className="ligne ligne-reglage"
+              role="radio"
+              aria-checked={micro === valeur}
+              onClick={() => {
+                changerParole(valeur);
+                setMicro(valeur);
+              }}
+            >
+              <span className="picto-reglage"><Icone nom={picto} taille={18} /></span>
+              <span className="ligne-texte">{texte}</span>
+              {micro === valeur && <Icone nom="coche" taille={16} />}
+            </button>
+          </li>
+        ))}
+      </ul>
+      <p className="discret rappels-intro">
+        Le clavier s'ouvre d'un toucher : touche son micro, en bas, pour dicter. L'iPhone ne demande alors jamais l'autorisation. Le micro de
+        Kora écoute tout de suite, mais l'iPhone redemande l'autorisation à chaque fois pour une app posée sur l'écran d'accueil.
+      </p>
 
       <h2 className="rayon">Son</h2>
       <ul className="carte groupe">
@@ -85,7 +114,7 @@ export function LaFee() {
 
       <h2 className="rayon">Ses gestes</h2>
       <ul className="carte groupe">
-        {GESTES.map(([geste, effet]) => (
+        {GESTES(micro).map(([geste, effet]) => (
           <li key={geste} className="ligne ligne-reglage fee-geste">
             <span className="ligne-texte">{geste}</span>
             <span className="discret valeur-reglage">{effet}</span>

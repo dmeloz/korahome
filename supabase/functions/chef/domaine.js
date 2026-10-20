@@ -1376,6 +1376,24 @@ function etatDesAjouts(menu, elements) {
 		element: parId.get(ajout.elementId) ?? null
 	}));
 }
+/** Le menu validé : ses recettes sont gardées pour de bon. */
+function validerMenu(menu, ctx) {
+	return {
+		...menu,
+		valideLe: ctx.maintenant()
+	};
+}
+/**
+* Ce qu'efface « Effacer ce menu » : le menu, les articles du Chef pas encore cochés et, si le
+* menu n'a pas été validé, ses recettes jamais cuisinées ni proposées une autre semaine.
+*/
+function ceQuEfface(menu, recettes, elements) {
+	const duMenu = new Set(menu.repas.map((r) => r.recetteId).filter((id) => !!id));
+	return {
+		recettes: menu.valideLe ? [] : recettes.filter((r) => duMenu.has(r.id) && r.source === "chef" && r.fois === 0 && r.vue <= 1).map((r) => r.id),
+		elements: etatDesAjouts(menu, elements).flatMap(({ element }) => element && !element.coche ? [element.id] : [])
+	};
+}
 /** Le texte de la notification quand les menus sont prêts. */
 function notificationChef(menu) {
 	const n = menu.ajouts.length;
@@ -1411,4 +1429,4 @@ function avisDuPlat(souvenirs, titre) {
 	return null;
 }
 //#endregion
-export { AJOUTS_MAX, CONSIGNES_CHEF, HEURE_DU_CHEF, JOURS_ALERTE_MITSU, JOURS_A_FINIR, JOUR_DU_CHEF, MODELE_CHEF, NOMBRE_REPAS, REGLAGE_DE_DEPART, SCHEMA_CHEF, SOUVENIRS_DU_CHEF, alertesMitsu, articlesARemplacer, avisDuPlat, avisSurPlat, cleAvis, coutChef, estLHeureDuChef, etatBudget, etatDesAjouts, idMenu, jourEtHeure, lireProposition, menuDeLaSemaine, messageChef, moisDe, nomDuJour, notificationChef, nouveauMenu, preparerAjouts, prochainPassage, produitsAFinir, recettesDe, recettesDuChef, reglageChef, reglerChef, retirerAjout };
+export { AJOUTS_MAX, CONSIGNES_CHEF, HEURE_DU_CHEF, JOURS_ALERTE_MITSU, JOURS_A_FINIR, JOUR_DU_CHEF, MODELE_CHEF, NOMBRE_REPAS, REGLAGE_DE_DEPART, SCHEMA_CHEF, SOUVENIRS_DU_CHEF, alertesMitsu, articlesARemplacer, avisDuPlat, avisSurPlat, ceQuEfface, cleAvis, coutChef, estLHeureDuChef, etatBudget, etatDesAjouts, idMenu, jourEtHeure, lireProposition, menuDeLaSemaine, messageChef, moisDe, nomDuJour, notificationChef, nouveauMenu, preparerAjouts, prochainPassage, produitsAFinir, recettesDe, recettesDuChef, reglageChef, reglerChef, retirerAjout, validerMenu };

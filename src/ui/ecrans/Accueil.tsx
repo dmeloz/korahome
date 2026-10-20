@@ -62,7 +62,7 @@ function salutation(heure: number): string {
 
 /** Au-delà de ce déplacement, le doigt fait défiler la page : pas d'appui long. */
 const TOLERANCE_PX = 10;
-/** Tirée vers le bas d'autant, depuis le haut, la page ouvre « Tous les espaces ». */
+/** Tirée vers le bas d'au moins autant (et 13 % de l'écran), depuis le haut, la page ouvre « Tous les espaces » au lâcher. */
 const TIRER_POUR_CHERCHER = 72;
 
 export function Accueil(props: {
@@ -607,19 +607,21 @@ function usePourChercher(actif: boolean, ouvrir: () => void) {
   useEffect(() => {
     if (!actif) return;
     let depart: { x: number; y: number } | null = null;
+    let pret = false;
+    const seuil = () => Math.max(TIRER_POUR_CHERCHER, window.innerHeight * 0.13);
     const etiquette = document.createElement("div");
     etiquette.className = "tirer-espaces";
     etiquette.setAttribute("aria-hidden", "true");
     etiquette.textContent = "Tous les espaces";
     document.body.appendChild(etiquette);
     const montrer = (dy: number) => {
-      const p = Math.min(1, dy / TIRER_POUR_CHERCHER);
+      const p = Math.min(1, dy / seuil());
       etiquette.style.opacity = String(p);
-      etiquette.style.transform = `translate(-50%, ${Math.min(dy, TIRER_POUR_CHERCHER) * 0.6}px)`;
+      etiquette.style.transform = `translate(-50%, ${Math.min(dy, seuil()) * 0.6}px)`;
     };
     const debut = (e: TouchEvent) => {
       const cible = e.target instanceof Element ? e.target : null;
-      depart = window.scrollY <= 0 && e.touches.length === 1 && !cible?.closest(".feuille, .tous-espaces, .barre-zone, input, textarea") ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+      depart = window.scrollY <= 0 && e.touches.length === 1 && !cible?.closest(".feuille, .tous-espaces, .barre-zone, .fil.roulette, .widget.en-edition, input, textarea") ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
     };
     const mouvement = (e: TouchEvent) => {
       if (!depart) return;
@@ -628,16 +630,22 @@ function usePourChercher(actif: boolean, ouvrir: () => void) {
       if (dx > dy) {
         depart = null;
         montrer(0);
-      } else if (dy > TIRER_POUR_CHERCHER && window.scrollY <= 0) {
-        depart = null;
-        montrer(0);
-        vibrer();
-        rappel.current();
-      } else montrer(Math.max(0, dy));
+      } else {
+        // Comme la recherche de l'iPhone : on tire, l'étiquette suit, et c'est au lâcher que la
+        // feuille s'ouvre, si on a tiré assez loin (Kora 0.0.61 ; avant, elle s'ouvrait en route).
+        if (dy >= seuil() && !pret) {
+          pret = true;
+          vibrer();
+        } else if (dy < seuil()) pret = false;
+        montrer(Math.max(0, dy));
+      }
     };
     const fin = () => {
+      const ouvrir = !!depart && pret && window.scrollY <= 0;
       depart = null;
+      pret = false;
       montrer(0);
+      if (ouvrir) rappel.current();
     };
     let molette = 0;
     const tourner = (e: WheelEvent) => {

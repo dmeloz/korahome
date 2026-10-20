@@ -3,6 +3,7 @@ import {
   alertesMitsu,
   avisDuPlat,
   avisSurPlat,
+  ceQuEfface,
   articlesARemplacer,
   AJOUTS_MAX,
   estLHeureDuChef,
@@ -19,6 +20,7 @@ import {
   reglerChef,
   retirerAjout,
   SCHEMA_CHEF,
+  validerMenu,
   type DocChef,
   type MenuSemaine,
 } from "./chef";
@@ -220,5 +222,47 @@ describe("les goûts du foyer", () => {
     const message = messageChef({ produits: [], enCourses: [], aujourdhui: "2026-10-18", souvenirs: [aime, non, { ...aime, id: "x", texte: "Refusé", refuse: true }] });
     expect(message).toContain("Ce que le foyer aime, n'aime pas ou a l'habitude de faire :\n- Plat apprécié, à refaire de temps en temps : Gratin de courge\n- Plat à ne plus proposer : Curry de lentilles");
     expect(message).not.toContain("Refusé");
+  });
+});
+
+describe("effacer ou valider le menu", () => {
+  const menu: MenuSemaine = {
+    id: "m1",
+    type: "menu",
+    semaine: AUJOURDHUI,
+    mot: "",
+    repas: [
+      { titre: "Gratin", description: "", avecLeStock: [], recetteId: "r-gratin" },
+      { titre: "Soupe", description: "", avecLeStock: [], recetteId: "r-soupe" },
+      { titre: "Tarte", description: "", avecLeStock: [], recetteId: "r-tarte" },
+    ],
+    ajouts: [
+      { elementId: "e1", texte: "Lait" },
+      { elementId: "e2", texte: "Œufs" },
+      { elementId: "e3", texte: "Pain" },
+    ] as MenuSemaine["ajouts"],
+    aFinir: [],
+    alertesMitsu: [],
+    lance: "maintenant",
+    creeLe: "2026-10-18T08:00:00.000Z",
+  };
+  const recettes = [
+    { id: "r-gratin", source: "chef", fois: 0, vue: 1 },
+    { id: "r-soupe", source: "chef", fois: 2, vue: 3 },
+    { id: "r-tarte", source: "photo", fois: 0, vue: 1 },
+    { id: "r-autre", source: "chef", fois: 0, vue: 1 },
+  ];
+  const ctx = contexteTest();
+  const el = (id: string, coche: boolean) => ({ ...nouvelElement(courses, id, null, ctx), id, coche });
+  const elements = [el("e1", false), el("e2", true)];
+
+  it("retire les articles pas cochés et les recettes jamais faites venues de ce menu", () => {
+    expect(ceQuEfface(menu, recettes, elements)).toEqual({ recettes: ["r-gratin"], elements: ["e1"] });
+  });
+
+  it("un menu validé garde ses recettes", () => {
+    const valide = validerMenu(menu, ctx);
+    expect(valide.valideLe).toBeTruthy();
+    expect(ceQuEfface(valide, recettes, elements)).toEqual({ recettes: [], elements: ["e1"] });
   });
 });

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { avisDuPlat, avisSurPlat, etatDesAjouts, menuDeLaSemaine, prochainPassage, reglageChef, reglerChef, retirerAjout, type AvisPlat, type MenuSemaine } from "../../domaine/chef";
+import { avisDuPlat, avisSurPlat, ceQuEfface, etatDesAjouts, menuDeLaSemaine, prochainPassage, reglageChef, reglerChef, retirerAjout, validerMenu, type AvisPlat, type MenuSemaine } from "../../domaine/chef";
 import { Icone } from "../Icone";
 import { formaterHeure, HEURE_MAX, HEURE_MIN, JOURS_SEMAINE } from "../../domaine/rappels";
 import { ecartJours } from "../../domaine/taches";
@@ -39,6 +39,7 @@ export function Chef(p: PropsPage) {
   const [erreur, setErreur] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [confirmer, setConfirmer] = useState(false);
+  const [aEffacer, setAEffacer] = useState(false);
   const menu = menuDeLaSemaine(p.menus, p.aujourdhui);
   const reglage = reglageChef(p.menus);
   const [ficheSemaine, setFicheSemaine] = useState(false);
@@ -86,6 +87,30 @@ export function Chef(p: PropsPage) {
     });
   }
 
+  /** Valider : les recettes du menu restent dans la base, même s'il est effacé plus tard. */
+  async function valider(m: MenuSemaine) {
+    vibrer();
+    await p.depot.enregistrerMenu(validerMenu(m, contexteReel));
+    annoncer("Menu validé : ses recettes restent dans Nos recettes.", () => p.depot.enregistrerMenu(m));
+  }
+
+  /** Effacer : le menu, ses articles pas encore achetés et, s'il n'était pas validé, ses recettes jamais faites. */
+  async function effacer(m: MenuSemaine) {
+    setAEffacer(false);
+    const efface = ceQuEfface(m, recettes, p.elements);
+    const recettesParties = recettes.filter((r) => efface.recettes.includes(r.id));
+    const articles = p.elements.filter((e) => efface.elements.includes(e.id));
+    await p.depot.supprimerMenu(m.id);
+    for (const r of recettesParties) await p.depot.supprimerMenu(r.id);
+    if (articles.length) await p.depot.supprimerElements(articles.map((e) => e.id));
+    vibrer();
+    annoncer(articles.length ? `Menu effacé, ${articles.length} article${articles.length > 1 ? "s" : ""} retiré${articles.length > 1 ? "s" : ""} des courses.` : "Menu effacé.", async () => {
+      await p.depot.enregistrerMenu(m);
+      for (const r of recettesParties) await p.depot.enregistrerMenu(r);
+      for (const e of articles) await p.depot.enregistrerElement(e);
+    });
+  }
+
   const regler = (changement: Parameters<typeof reglerChef>[0]) => p.depot.enregistrerMenu(reglerChef(changement, p.menus, contexteReel));
 
   const ajouts = menu ? etatDesAjouts(menu, p.elements) : [];
@@ -115,6 +140,16 @@ export function Chef(p: PropsPage) {
           </div>
         </Feuille>
 
+        <Feuille ouverte={aEffacer} onFermer={() => setAEffacer(false)} titre="Effacer ce menu ?">
+          <div className="formulaire">
+            <p className="discret">
+              Les articles du Chef pas encore cochés quittent la liste de courses.
+              {menu?.valideLe ? " Le menu est validé : ses recettes restent dans Nos recettes." : " Ses recettes jamais cuisinées quittent aussi Nos recettes ; valide le menu d'abord pour les garder."}
+            </p>
+            <button type="button" className="bouton-principal" onClick={() => menu && void effacer(menu)}>Effacer</button>
+          </div>
+        </Feuille>
+
         {!p.jarvis ? (
           <div className="carte">
             <p className="discret">Le Chef passe par le serveur du foyer : il se réveille dès que le partage est activé.</p>
@@ -133,6 +168,16 @@ export function Chef(p: PropsPage) {
             <button type="button" className="bouton-principal" disabled={occupe} onClick={() => (menu ? setConfirmer(true) : void lancer())}>
               {occupe ? "Le Chef cuisine…" : menu ? "Relancer le Chef" : "Lancer le Chef maintenant"}
             </button>
+            {menu && (
+              <div className="chef-actions-menu">
+                {menu.valideLe ? (
+                  <span className="discret chef-valide"><Icone nom="coche" taille={14} /> Validé</span>
+                ) : (
+                  <button type="button" className="lien" onClick={() => void valider(menu)}>Valider ce menu</button>
+                )}
+                <button type="button" className="lien danger" onClick={() => setAEffacer(true)}>Effacer ce menu</button>
+              </div>
+            )}
             {erreur && <p className="erreur">{erreur}</p>}
             {info && <p className="discret">{info}</p>}
           </section>

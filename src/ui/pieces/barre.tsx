@@ -13,7 +13,7 @@ import { ajouterArticles } from "../ajouts";
 import { useAnnoncer } from "../annulation";
 import { contexteReel } from "../contexte";
 import { vibrer } from "../haptique";
-import { direFee, enregistrerVues, lireVues, nomFee } from "../fee";
+import { direFee, enregistrerVues, lireVues, nomFee, parleAuMicro } from "../fee";
 import { Icone } from "../Icone";
 import { ecouter, voixDisponible } from "../jarvis";
 import type { DonneesModule } from "../modules";
@@ -351,7 +351,7 @@ export function BarreJarvis(props: {
     }
     vibrer();
     setMessage(null);
-    if (voix) {
+    if (voix && parleAuMicro()) {
       setOuverte(true);
       parler();
     } else ecrire();

@@ -499,7 +499,7 @@ function useGlissementRetour(actif: boolean, revenir: () => void) {
 
   useEffect(() => {
     if (!actif) return;
-    let geste: { x: number; y: number; t: number; horizontal: boolean; dx: number } | null = null;
+    let geste: { x: number; y: number; t: number; horizontal: boolean; dx: number; bord: boolean } | null = null;
     let image = 0;
     let fini = false;
     const largeur = () => window.innerWidth;
@@ -534,14 +534,14 @@ function useGlissementRetour(actif: boolean, revenir: () => void) {
       const cible = e.target instanceof Element ? e.target : null;
       const libre = e.clientX <= BORD_RETOUR || !cible?.closest(ZONES_A_GESTE);
       geste = libre && e.isPrimary && !document.documentElement.classList.contains("feuille-ouverte")
-        ? { x: e.clientX, y: e.clientY, t: e.timeStamp, horizontal: false, dx: 0 }
+        ? { x: e.clientX, y: e.clientY, t: e.timeStamp, horizontal: false, dx: 0, bord: e.clientX <= BORD_RETOUR }
         : null;
     };
     const mouvement = (e: PointerEvent) => {
       if (!geste) return;
       const dx = e.clientX - geste.x;
       if (!geste.horizontal) {
-        const sens = gesteRetour(dx, e.clientY - geste.y);
+        const sens = gesteRetour(dx, e.clientY - geste.y, geste.bord);
         if (sens === "autre") geste = null;
         if (sens !== "retour" || !geste) return;
         geste.horizontal = true;
@@ -567,7 +567,7 @@ function useGlissementRetour(actif: boolean, revenir: () => void) {
       if (!g?.horizontal) return;
       cancelAnimationFrame(image);
       const dx = e.type === "pointerup" ? Math.max(0, e.clientX - g.x) : g.dx;
-      const part = finRetour(dx, e.timeStamp - g.t, largeur());
+      const part = finRetour(dx, e.timeStamp - g.t, largeur(), g.bord);
       placer(dx);
       // Une image plus tard, pour que l'animation parte bien de la position du doigt.
       requestAnimationFrame(() => {

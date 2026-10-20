@@ -25,6 +25,13 @@ describe("glisser depuis le bord pour revenir", () => {
     expect(finRetour(80, 100, largeur)).toBe(true);
     expect(finRetour(30, 20, largeur)).toBe(false);
   });
+
+  it("parti du milieu de la page, demande un geste plus franc", () => {
+    expect(finRetour(80, 100, largeur, false)).toBe(false);
+    expect(finRetour(150, 1500, largeur, false)).toBe(false);
+    expect(finRetour(110, 120, largeur, false)).toBe(true);
+    expect(finRetour(180, 1500, largeur, false)).toBe(true);
+  });
 });
 
 describe("glisser une ligne pour la supprimer", () => {
@@ -76,5 +83,10 @@ describe("gesteRetour", () => {
     expect(gesteRetour(14, 10)).toBe("autre");
     expect(gesteRetour(-30, 2)).toBe("autre");
     expect(gesteRetour(3, 30)).toBe("autre");
+  });
+  it("loin du bord, attend un geste plus long et plus droit", () => {
+    expect(gesteRetour(16, 2, false)).toBeNull();
+    expect(gesteRetour(30, 12, false)).toBe("autre");
+    expect(gesteRetour(30, 8, false)).toBe("retour");
   });
 });
