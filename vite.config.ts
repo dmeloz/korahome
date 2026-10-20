@@ -11,7 +11,12 @@ const https = dossierHttps
   ? { key: readFileSync(join(dossierHttps, "serveur.key")), cert: readFileSync(join(dossierHttps, "serveur.crt")) }
   : undefined;
 
+// Le chemin où l'app est servie : « / » sur un domaine à elle, « /korahome/ » sur GitHub Pages
+// (https://dmeloz.github.io/korahome/). Réglé par la variable KORAHOME_BASE à la construction.
+const base = process.env.KORAHOME_BASE ?? "/";
+
 export default defineConfig({
+  base,
   define: { __VERSION__: JSON.stringify(paquet.version) },
   preview: { https },
   plugins: [
@@ -34,7 +39,8 @@ export default defineConfig({
         short_name: "KoraHome",
         description: "L'app compagnon de la famille : listes, tâches et tableau de bord partagés.",
         lang: "fr",
-        start_url: "/",
+        start_url: base,
+        scope: base,
         display: "standalone",
         background_color: "#0F1211",
         theme_color: "#0F1211",

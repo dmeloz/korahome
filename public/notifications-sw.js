@@ -2,7 +2,7 @@
 // Chargé par le service worker de l'app (vite.config.ts, workbox.importScripts).
 
 self.addEventListener("push", (event) => {
-  let message = { titre: "KoraHome", corps: "", nombre: 0, url: "/" };
+  let message = { titre: "KoraHome", corps: "", nombre: 0, url: "./" };
   try {
     message = { ...message, ...event.data.json() };
   } catch {
@@ -13,8 +13,9 @@ self.addEventListener("push", (event) => {
       noterRappel(message).catch(() => {}),
       self.registration.showNotification(message.titre, {
         body: message.corps,
-        icon: "/icone-192.png",
-        badge: "/icone-192.png",
+        // Chemins relatifs au service worker : l'app peut vivre sous /korahome/ (GitHub Pages).
+        icon: "icone-192.png",
+        badge: "icone-192.png",
         // Un nouveau rappel remplace celui de la veille au lieu de s'empiler.
         tag: "rappel-du-matin",
         data: { url: message.url },
@@ -27,7 +28,7 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = event.notification.data?.url ?? "/";
+  const url = event.notification.data?.url ?? "./";
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((fenetres) => {
       const ouverte = fenetres.find((f) => "focus" in f);
@@ -39,7 +40,7 @@ self.addEventListener("notificationclick", (event) => {
 // Le centre des rappels de l'accueil (la cloche) relit ce que Kora a envoyé, même une
 // notification balayée : chaque rappel reçu est gardé ici, un mois au plus (src/domaine/centreRappels.ts).
 const CACHE_RAPPELS = "korahome-rappels";
-const ADRESSE_RAPPELS = "/__rappels.json";
+const ADRESSE_RAPPELS = "__rappels.json";
 
 async function noterRappel(message) {
   const cache = await caches.open(CACHE_RAPPELS);

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { expliquerErreur } from "../../domaine/erreurs";
 import type { CompteIcloud } from "../../domaine/agenda";
 import type { Foyer, Id } from "../../domaine/types";
 import type { ServeurAgenda } from "../../donnees/distant";
@@ -38,7 +39,7 @@ export function CalendrierIphone(props: { foyer: Foyer; membreId: Id | null; com
       vibrer();
       suite?.();
     } catch (e) {
-      setErreur(e instanceof Error ? e.message : "Ça n'a pas marché, réessaie.");
+      setErreur(expliquerErreur(e, "Le lien avec iCloud"));
     } finally {
       setEnCours(null);
     }
