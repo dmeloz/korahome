@@ -26,12 +26,13 @@ import { vibrer } from "../../haptique";
 import { Icone } from "../../Icone";
 import type { PropsPage } from "../../modules";
 import { Onglets, Page, useGestionnaireBarre, useInvitationBarre } from "../../pieces";
+import { ouvrirVerrou, verrouOuvert } from "../../verrou";
 import { completerPaiement, paiementsAClasser } from "../../../domaine/paiements";
 import { moisACloturer } from "../../../domaine/budgetConseil";
 import { CarteConseiller, useConseiller } from "./Conseiller";
 import { FeuilleApplePay } from "./Paiements";
 import { TicketDeCaisse } from "../../TicketDeCaisse";
-import { montant } from "./communs";
+import { montant, prenomDe } from "./communs";
 import { CeMois } from "./CeMois";
 import { Depenses } from "./Depenses";
 import { Charges } from "./Charges";
@@ -39,12 +40,14 @@ import { Analyse } from "./Analyse";
 import { FeuillePersonne, FeuillePoste, FeuilleProjet, FeuilleReglages } from "./Feuilles";
 
 type Onglet = "mois" | "depenses" | "charges" | "analyse" | "conseiller";
+const estOnglet = (o: string | undefined): o is Onglet => o === "mois" || o === "depenses" || o === "charges" || o === "analyse" || o === "conseiller";
 
 /** Le budget du foyer : ce mois (les pots, les factures, les dépenses), les charges, l'épargne. */
 export function Budget(p: PropsPage) {
   const { depot, aujourdhui, foyer } = p;
   const annoncer = useAnnoncer();
-  const [onglet, setOnglet] = useState<Onglet>("mois");
+  const [onglet, setOnglet] = useState<Onglet>(estOnglet(p.onglet) ? p.onglet : "mois");
+  const [ferme, setFerme] = useState(() => !verrouOuvert());
   const [reglages, setReglages] = useState(false);
   const [poste, setPoste] = useState<Poste | null>(null);
   const [personne, setPersonne] = useState<Id | null>(null);
@@ -105,6 +108,20 @@ export function Budget(p: PropsPage) {
           <p>Le budget du foyer : chacun son salaire et sa part au compte commun, les courses, les factures, le plaisir et l'épargne. Kora fait les calculs et reporte ce qui reste d'un mois à l'autre.</p>
           <button type="button" className="bouton-principal" onClick={() => void depot.enregistrerBudget(nouveauPlan(foyer.membres.map((m) => m.id), aujourdhui, contexteReel))}>
             Commencer
+          </button>
+        </section>
+      </Page>
+    );
+  }
+
+  if (ferme) {
+    return (
+      <Page titre="Budget" sousTitre="Verrouillé sur ce téléphone" className="budget">
+        <section className="carte budget-verrou">
+          <Icone nom="cadenas" taille={28} />
+          <p>Le Budget s'ouvre avec Face ID. Il reste ouvert dix minutes.</p>
+          <button type="button" className="bouton-principal" onClick={() => void ouvrirVerrou().then((ok) => ok && setFerme(false))}>
+            Ouvrir avec Face ID
           </button>
         </section>
       </Page>
@@ -177,6 +194,7 @@ export function Budget(p: PropsPage) {
       <FeuilleProjet plan={plan} ouverte={projet} fermer={() => setProjet(false)} enregistrer={enregistrer} />
       <FeuilleReglages
         plan={plan}
+        prenom={prenomDe(foyer, p.membreId) || "moi"}
         ouverte={reglages}
         fermer={() => setReglages(false)}
         enregistrer={enregistrer}

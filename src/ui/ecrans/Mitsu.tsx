@@ -609,7 +609,7 @@ function Suivi(props: Props & { animal: Animal }) {
       </Section>
 
       <Section titre="À partager">
-        <Fiches animal={animal} aujourdhui={aujourdhui} informer={setMessage} />
+        <Fiches animal={animal} aujourdhui={aujourdhui} membres={props.foyer.membres} informer={setMessage} />
       </Section>
 
       <Section

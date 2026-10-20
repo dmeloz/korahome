@@ -320,7 +320,19 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
           demanderRepartition();
           ouvrir({ nom: "module", id: "taches" });
         }}
-        aller={(ou) => ouvrir(ou.type === "module" ? { nom: "module", id: ou.id } : ou.type === "liste" ? { nom: "liste", id: ou.id } : { nom: "memoire" })}
+        aller={(ou) =>
+          ouvrir(
+            ou.type === "module"
+              ? { nom: "module", id: ou.id, onglet: ou.onglet }
+              : ou.type === "liste"
+                ? { nom: "liste", id: ou.id }
+                : ou.type === "recette"
+                  ? { nom: "module", id: "chef", onglet: `recette:${ou.id}` }
+                  : ou.type === "mots"
+                    ? { nom: "mots" }
+                    : { nom: "memoire" },
+          )
+        }
         depot={depot}
         jarvis={jarvisPartage}
         nouvelleVersion={nouvelleVersion}

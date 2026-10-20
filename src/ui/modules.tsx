@@ -214,7 +214,9 @@ const ongletMaison = (d: DonneesModule): "mitsu" | "jardin" => (widgetJardin(d).
 
 /** Cuisine : les menus de la semaine, les recettes et le frigo. */
 function PageCuisine(p: PropsPage) {
-  const onglet = p.onglet === "recettes" || p.onglet === "frigo" ? p.onglet : "semaine";
+  // « recette:<id> » : une recette trouvée par la recherche, ouverte sur l'onglet Nos recettes.
+  const recette = p.onglet?.startsWith("recette:") ? p.onglet.slice("recette:".length) : null;
+  const onglet = p.onglet === "recettes" || recette ? "recettes" : p.onglet === "frigo" ? "frigo" : "semaine";
   const aConsommer = resumeStock(p.produits, p.aujourdhui).aConsommer.length;
   return (
     <Espace
@@ -234,7 +236,7 @@ function PageCuisine(p: PropsPage) {
       {onglet === "frigo" ? (
         <Stock depot={p.depot} membreId={p.membreId} produits={p.produits} catalogue={p.catalogue} listes={p.listes} elements={p.elements} aujourdhui={p.aujourdhui} jarvis={p.jarvis} donnees={p} />
       ) : (
-        <Chef {...p} onglet={onglet} />
+        <Chef {...p} onglet={onglet} recette={recette} />
       )}
     </Espace>
   );

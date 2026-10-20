@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { demandeRaccourciSiri, nomPropose } from "../../domaine/siri";
+import { demandeRaccourciEcran, demandeRaccourciSiri, nomPropose, RACCOURCIS_ECRAN } from "../../domaine/siri";
 import type { Foyer, Id } from "../../domaine/types";
 import type { ServeurJarvis } from "../../donnees/distant";
 import { vibrer } from "../haptique";
@@ -111,6 +111,21 @@ export function Siri(props: { foyer: Foyer; membreId: Id | null; distant: { serv
                 Retirer le lien
               </button>
             </div>
+            <p className="surtitre">Des boutons sur l'écran d'accueil</p>
+            <p className="discret">Trois raccourcis prêts, à poser à côté de Kora : un toucher, sans parler ni ouvrir l'app. Copie la demande, colle-la dans « Décrire un raccourci », puis « Ajouter à l'écran d'accueil ».</p>
+            <ul className="siri-raccourcis">
+              {RACCOURCIS_ECRAN.map((r) => (
+                <li key={r.id}>
+                  <span className="ligne-texte">
+                    <strong>{r.nom}</strong>
+                    <span className="discret">{r.resume}</span>
+                  </span>
+                  <button type="button" className="lien" onClick={() => void copier(demandeRaccourciEcran(relie.adresse, relie.nom, r), `Demande « ${r.nom} » copiée : colle-la dans Raccourcis.`)}>
+                    Copier
+                  </button>
+                </li>
+              ))}
+            </ul>
           </>
         ) : (
           <>

@@ -1,7 +1,10 @@
 import { decrireJour, type Evenement } from "./agenda";
+import type { Mot } from "./bandeau";
+import { type Depense, type Pot, POTS } from "./budget";
 import type { Zone } from "./jardin";
 import type { Souvenir } from "./memoire";
 import type { Animal } from "./mitsu";
+import type { Recette } from "./recettes";
 import { decrirePeremption, LIEUX, type Produit } from "./stock";
 import type { WidgetId } from "./tableauDeBord";
 import { decrireEcheance, estTerminee } from "./taches";
@@ -9,10 +12,11 @@ import type { Element, Jour, Liste, Tache } from "./types";
 import { sansAccents } from "./texte";
 
 // Chercher partout depuis l'accueil (on tire la page vers le bas) : un article, un
-// rendez-vous, un produit, un vaccin de Mitsu, un numéro retenu par Jarvis.
+// rendez-vous, un produit, un vaccin de Mitsu, un numéro retenu par Jarvis, et depuis 0.0.66
+// une recette, une dépense du budget, un mot laissé à l'autre.
 // Les accents et les majuscules ne comptent pas ; chaque mot tapé doit se retrouver.
 
-export type OuRecherche = { type: "module"; id: WidgetId } | { type: "liste"; id: string } | { type: "memoire" };
+export type OuRecherche = { type: "module"; id: WidgetId; onglet?: string } | { type: "liste"; id: string } | { type: "memoire" } | { type: "recette"; id: string } | { type: "mots" };
 
 export interface Trouvaille {
   cle: string;
@@ -31,6 +35,10 @@ export interface DonneesRecherche {
   animaux: readonly Animal[];
   zones: readonly Zone[];
   souvenirs: readonly Souvenir[];
+  /** Les recettes du foyer, les dépenses du budget, les mots de l'un à l'autre (vides si le module n'est pas là). */
+  recettes?: readonly Recette[];
+  depenses?: readonly Depense[];
+  mots?: readonly Mot[];
   aujourdhui: Jour;
 }
 
@@ -137,6 +145,45 @@ export function rechercher(d: DonneesRecherche, recherche: string): Trouvaille[]
     d.souvenirs
       .filter((s) => !s.refuse && correspond(s.texte, recherche))
       .map((s) => ({ cle: `souvenir-${s.id}`, titre: s.texte, detail: "Retenu par ta fée", section: "Ce que Kora sait", ou: { type: "memoire" } as const })),
+  );
+
+  sections.push(
+    (d.recettes ?? [])
+      .filter((r) => correspond(`${r.titre} ${r.ingredients.map((i) => i.nom).join(" ")}`, recherche))
+      .sort((a, b) => b.fois - a.fois || b.vue - a.vue)
+      .map((r) => ({
+        cle: `recette-${r.id}`,
+        titre: r.titre,
+        detail: r.fois ? `Faite ${r.fois} fois · ${r.portions} pers.` : `${r.portions} pers.`,
+        section: "Nos recettes",
+        ou: { type: "recette", id: r.id } as const,
+      })),
+  );
+
+  sections.push(
+    (d.depenses ?? [])
+      .filter((x) => correspond(`${x.libelle} ${x.magasin ?? ""}`, recherche))
+      .sort((a, b) => b.jour.localeCompare(a.jour))
+      .map((x) => ({
+        cle: `depense-${x.id}`,
+        titre: `${x.libelle} · ${x.montant.toFixed(2)} CHF`,
+        detail: `${x.jour.slice(8, 10)}.${x.jour.slice(5, 7)}.${x.jour.slice(2, 4)}, ${POTS[x.pot as Pot]?.nom.toLowerCase() ?? x.pot}${x.magasin ? ` · ${x.magasin}` : ""}`,
+        section: "Budget",
+        ou: { type: "module", id: "budget", onglet: "depenses" } as const,
+      })),
+  );
+
+  sections.push(
+    (d.mots ?? [])
+      .filter((m) => correspond(m.texte, recherche))
+      .sort((a, b) => b.creeLe.localeCompare(a.creeLe))
+      .map((m) => ({
+        cle: `mot-${m.id}`,
+        titre: m.texte,
+        detail: `Mot du ${m.creeLe.slice(8, 10)}.${m.creeLe.slice(5, 7)}.${m.creeLe.slice(2, 4)}`,
+        section: "Nos mots",
+        ou: { type: "mots" } as const,
+      })),
   );
 
   return sections.flatMap((s) => s.slice(0, PAR_SECTION));
