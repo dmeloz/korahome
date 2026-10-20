@@ -5,6 +5,7 @@ import { Feuille } from "../Feuille";
 import { vibrer } from "../haptique";
 import { Icone, PICTO_HUMEUR, pictoMeteo, type NomIcone } from "../Icone";
 import { APPUI_LONG_MS } from "../gestes";
+import { toucherFiable } from "../toucher";
 
 // Le haut de l'accueil, comme l'écran verrouillé de l'iPhone : une grande date seule, qu'on
 // glisse à gauche ou au centre, et au bout de sa ligne les petits signes que chacun choisit.
@@ -140,14 +141,14 @@ export function Signes(props: {
             key={v.id}
             className={`signe signe-${v.id}${v.urgent ? " urgent" : ""}`}
             aria-label={v.phrase}
-            onClick={() => {
+            {...toucherFiable(() => {
               if (ignorer.current) {
                 ignorer.current = false;
                 return;
               }
               vibrer();
               props.toucher(v);
-            }}
+            })}
           >
             {v.humeurs?.some(Boolean) ? (
               v.humeurs.map((h, i) => (

@@ -48,6 +48,7 @@ import { fermerRemarque, lireAdaptations, lireDernierBilan, lireUsages, noterUsa
 import { lireDerniereRepartition } from "./Taches";
 import { APPUI_LONG_MS } from "../gestes";
 import { heureMinute } from "../../domaine/texte";
+import { etatRappels } from "../rappels";
 
 /** Combien de choses du jour la carte garde ; trois se voient, les autres se font défiler. */
 const CHOSES_CARTE = 12;
@@ -72,6 +73,7 @@ export function Accueil(props: {
   ouvrirBilan: () => void;
   ouvrirRappels: () => void;
   ouvrirSauvegarde: () => void;
+  ouvrirNotifications: () => void;
   ouvrirPartage: () => void;
   /** Envoie et reçoit les changements tout de suite ; absent sans partage. */
   synchroniser?: () => Promise<void>;
@@ -104,6 +106,20 @@ export function Accueil(props: {
   const haut = useRef<HTMLElement>(null);
   const appui = useRef<{ minuterie: ReturnType<typeof setTimeout>; x: number; y: number } | null>(null);
   const ignorerClic = useRef(false);
+  // Les rappels n'arrivent plus sur ce téléphone (nouvelle installation, autorisation retirée) :
+  // l'accueil le dit, sinon on attend des notifications qui ne viennent jamais.
+  const [notificationsCoupees, setNotificationsCoupees] = useState(false);
+  useEffect(() => {
+    let vivant = true;
+    // Seulement dans l'app installée : c'est là que les rappels arrivent.
+    if (!matchMedia("(display-mode: standalone)").matches) return;
+    void etatRappels()
+      .then((e) => vivant && setNotificationsCoupees(e === "inactifs" || e === "refuses"))
+      .catch(() => {});
+    return () => {
+      vivant = false;
+    };
+  }, [props.auDessus]);
   const { foyer, membreId, aujourdhui } = props.donnees;
   const moi = foyer.membres.find((m) => m.id === membreId);
   const annoncer = useAnnoncer();
@@ -462,10 +478,7 @@ export function Accueil(props: {
       </section>
 
       {edition && (
-        <section className="ajout-widgets">
-          <p className="discret aide-edition">Glisse un widget pour le déplacer, le − le retire de l'accueil (il reste dans « Tous les espaces »).</p>
-          <button className="bouton-principal" onClick={() => setEspaces(true)}>Ajouter un widget</button>
-        </section>
+        <p className="discret aide-edition">Glisse un widget pour le déplacer, le − le retire de l'accueil. Pour en ajouter un, tire l'accueil vers le bas et glisse un espace ici.</p>
       )}
 
       {/* Le partage et la sauvegarde vivent dans Réglages : ici seulement quand il y a un souci. */}
@@ -475,6 +488,12 @@ export function Accueil(props: {
             <button className={`etat-pied ${props.partage.ton}`} onClick={props.ouvrirPartage}>
               <span className={`point-etat ${props.partage.ton}`} aria-hidden />
               {props.partage.texte}
+            </button>
+          )}
+          {notificationsCoupees && (
+            <button className="etat-pied urgent" onClick={props.ouvrirNotifications}>
+              <span className="point-etat urgent" aria-hidden />
+              Notifications coupées sur ce téléphone
             </button>
           )}
           {props.synchroniser && <BoutonSynchro synchroniser={props.synchroniser} />}

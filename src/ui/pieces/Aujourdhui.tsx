@@ -2,6 +2,7 @@ import { useRef, useState, type PointerEvent, type ReactNode } from "react";
 import { choseDuMoment, resteAFaire, type CarteDuJour, type ChoseDuJour } from "../../domaine/aujourdhui";
 import { vibrer } from "../haptique";
 import { Icone } from "../Icone";
+import { toucherFiable } from "../toucher";
 
 // « Ce soir » en haut de l'accueil, sans cadre : posé sur le fond, pour ne pas faire un bloc
 // de plus à côté des widgets. Un fil fin relie les ronds, avec l'heure à gauche quand la chose
@@ -53,7 +54,7 @@ export function CarteAujourdhui(props: {
   };
   const rond = (c: ChoseDuJour) =>
     c.tacheId ? (
-      <button className={`moment-rond ${c.etat}`} onClick={() => props.cocher(c)} aria-label={`Faire « ${c.texte} »`}>
+      <button className={`moment-rond ${c.etat}`} {...toucherFiable(() => props.cocher(c))} aria-label={`Faire « ${c.texte} »`}>
         <Icone nom="coche" taille={13} />
       </button>
     ) : (
