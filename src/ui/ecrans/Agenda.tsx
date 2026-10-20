@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { expliquerErreur } from "../../domaine/erreurs";
 import {
   analyserPhrase,
   CATEGORIES,
@@ -22,7 +23,6 @@ import {
   type Occurrence,
   type Repetition,
 } from "../../domaine/agenda";
-import { ErreurValidation } from "../../domaine/foyer";
 import { decaler } from "../../domaine/taches";
 import type { Foyer, Id, Jour } from "../../domaine/types";
 import type { ServeurAgenda } from "../../donnees/distant";
@@ -520,7 +520,7 @@ function Edition(props: {
       await props.enregistrer(e);
       props.fermer();
     } catch (err) {
-      setErreur(err instanceof ErreurValidation ? err.message : "Impossible d'enregistrer, réessaie.");
+      setErreur(expliquerErreur(err, "Enregistrer"));
     }
   }
 

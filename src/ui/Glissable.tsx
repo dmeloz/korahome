@@ -162,6 +162,15 @@ export function Glissable(props: {
       >
         {props.children}
       </div>
+      {/* Pour VoiceOver et le clavier : les mêmes actions que le geste, en boutons qui n'apparaissent qu'au focus. */}
+      <span className="glissable-sr">
+        {props.onFait && (
+          <button type="button" onClick={() => props.onFait?.()}>
+            {props.libelleFait ?? "Fait"}
+          </button>
+        )}
+        <button type="button" onClick={supprimer}>{props.libelle ?? "Supprimer"}</button>
+      </span>
     </div>
   );
 }

@@ -5,6 +5,8 @@ import { creerFoyer } from "./foyer";
 import { ajouterPlante, nouvellePlante, nouvelleZone } from "./jardin";
 import { ajouterSoin, nouvelAnimal, nouveauSoin } from "./mitsu";
 import {
+  enHeuresCalmes,
+  fenetreMotsCalmes,
   basculerJour,
   decalerHeure,
   decrireJours,
@@ -224,5 +226,19 @@ describe("l'heure des tâches, envoyée par le serveur", () => {
     const t = nouvelleTache("Litière", null, "2026-10-19", contexteTest("2026-10-19T08:00:00.000Z"));
     const coches = ["2026-10-14T17:00:00.000Z", "2026-10-15T17:00:00.000Z", "2026-10-16T17:00:00.000Z"].map((a, i) => ({ le: `2026-10-1${4 + i}`, par: null, retard: 0, a }));
     expect(heureProposee({ ...t, historique: coches }, "Europe/Zurich")).toBe("19:00");
+  });
+});
+
+describe("les heures calmes", () => {
+  it("vont de 22 h à 7 h, heure du foyer", () => {
+    expect(enHeuresCalmes(new Date("2026-10-20T20:30:00Z"))).toBe(true); // 22 h 30 à Zurich
+    expect(enHeuresCalmes(new Date("2026-10-21T04:59:00Z"))).toBe(true); // 6 h 59
+    expect(enHeuresCalmes(new Date("2026-10-21T05:00:00Z"))).toBe(false); // 7 h
+    expect(enHeuresCalmes(new Date("2026-10-21T12:00:00Z"))).toBe(false);
+  });
+  it("à 7 h pile, rattrapent les mots de la nuit depuis 22 h la veille", () => {
+    expect(fenetreMotsCalmes(new Date("2026-10-21T05:00:30Z"))).toEqual({ apres: "2026-10-20T20:00:00.000Z", jusqua: "2026-10-21T05:00:00.000Z" });
+    expect(fenetreMotsCalmes(new Date("2026-10-21T05:01:00Z"))).toBeNull();
+    expect(fenetreMotsCalmes(new Date("2026-10-21T06:00:00Z"))).toBeNull();
   });
 });

@@ -54,6 +54,7 @@ export function lirePreferences(): PreferencesRappels {
       heure: heureValide(brut?.heure) ? brut.heure : PREFERENCES_DE_DEPART.heure,
       minute: minuteValide(brut?.minute) ? brut.minute : 0,
       jours: nettoyerJours(brut?.jours),
+      calme: brut?.calme === true,
     };
   } catch {
     return { ...PREFERENCES_DE_DEPART, jours: [...PREFERENCES_DE_DEPART.jours] };

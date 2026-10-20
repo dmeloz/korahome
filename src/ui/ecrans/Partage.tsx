@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, useSyncExternalStore, type FormEvent } from "react";
+import { expliquerErreur } from "../../domaine/erreurs";
 import { decrireAppareils } from "../../domaine/foyer";
 import { afficherCode, decrireDerniereSynchro, normaliserCode } from "../../domaine/synchro";
 import type { Foyer } from "../../domaine/types";
@@ -21,7 +22,7 @@ export interface ServicesPartage {
 
 const LONGUEUR_MOT_DE_PASSE = 8;
 
-const message = (e: unknown) => (e instanceof Error && e.message ? e.message : "Ça n'a pas marché, réessaie.");
+const message = (e: unknown) => expliquerErreur(e, "Le partage");
 
 /** Partager le foyer entre les deux iPhone : compte, partage ou code pour rejoindre, état de la synchro. */
 export function Partage({ services, foyer }: { services: ServicesPartage | null; foyer: Foyer | null }) {
