@@ -1,5 +1,5 @@
 import { comptesIcloudDe, evenementsDe } from "../domaine/agenda";
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { flushSync } from "react-dom";
 import { meteoFraiche } from "../domaine/meteo";
 import { rappelDuMatin } from "../domaine/rappels";
@@ -12,21 +12,12 @@ import { CoinDev } from "./CoinDev";
 import { aujourdhuiLocal, choisirMembreCourant, lireMembreCourant } from "./contexte";
 import { Accueil } from "./ecrans/Accueil";
 import { Bienvenue } from "./ecrans/Bienvenue";
-import { Conseil } from "./ecrans/Conseil";
-import { Bilan } from "./ecrans/Bilan";
 import { CalendrierIphone, icloudEnErreur } from "./ecrans/CalendrierIphone";
 import { Siri, siriRelie } from "./ecrans/Siri";
-import { LaFee } from "./ecrans/LaFee";
-import { Memoire, type OngletMemoire } from "./ecrans/Memoire";
-import { NosMots } from "./ecrans/NosMots";
 import { Jarvis } from "./ecrans/Jarvis";
 import { DetailListe } from "./ecrans/DetailListe";
-import { Notifications } from "./ecrans/Notifications";
-import { Partage, type ServicesPartage } from "./ecrans/Partage";
 import { Apparence, Reglages, Telephone } from "./ecrans/Reglages";
-import { RetoursTest } from "./ecrans/RetoursTest";
 import { CentreRappels } from "./ecrans/CentreRappels";
-import { Sauvegarde } from "./ecrans/Sauvegarde";
 import { demanderRepartition } from "./ecrans/Taches";
 import { preparerDemande } from "./ecrans/Jarvis";
 import { BarreJarvis, FournisseurSaisie } from "./pieces";
@@ -39,7 +30,9 @@ import type { MiseAJour } from "./miseAJour";
 import { BORD_RETOUR, finRetour, gesteRetour } from "./gestes";
 import { noter } from "./journal";
 import { useMeteo } from "./meteo";
-import { MODULES, type DonneesModule } from "./modules";
+import { MODULES, prechargerPages, type DonneesModule } from "./modules";
+import type { OngletMemoire } from "./ecrans/Memoire";
+import type { ServicesPartage } from "./ecrans/Partage";
 import { enregistrerPastilleVisible, lirePastilleVisible } from "./rapport";
 import { afficherPastilleIcone, enregistrerPreferences, lirePreferences, mettreAJourRappels } from "./rappels";
 import { planifierSynchro, synchroEnDirect } from "./synchroAuto";
@@ -47,6 +40,28 @@ import { avecTransition } from "./transitions";
 import { useDonnees } from "./useDonnees";
 import { demanderVisite } from "./visite";
 import { definirFee, nomFee } from "./fee";
+
+// Les pages qu'on ouvre rarement se chargent à leur première ouverture.
+const PAGES_DIFFEREES = {
+  Bilan: () => import("./ecrans/Bilan").then((m) => ({ default: m.Bilan })),
+  Conseil: () => import("./ecrans/Conseil").then((m) => ({ default: m.Conseil })),
+  LaFee: () => import("./ecrans/LaFee").then((m) => ({ default: m.LaFee })),
+  Memoire: () => import("./ecrans/Memoire").then((m) => ({ default: m.Memoire })),
+  NosMots: () => import("./ecrans/NosMots").then((m) => ({ default: m.NosMots })),
+  Notifications: () => import("./ecrans/Notifications").then((m) => ({ default: m.Notifications })),
+  Partage: () => import("./ecrans/Partage").then((m) => ({ default: m.Partage })),
+  RetoursTest: () => import("./ecrans/RetoursTest").then((m) => ({ default: m.RetoursTest })),
+  Sauvegarde: () => import("./ecrans/Sauvegarde").then((m) => ({ default: m.Sauvegarde })),
+};
+const Bilan = lazy(PAGES_DIFFEREES.Bilan);
+const Conseil = lazy(PAGES_DIFFEREES.Conseil);
+const LaFee = lazy(PAGES_DIFFEREES.LaFee);
+const Memoire = lazy(PAGES_DIFFEREES.Memoire);
+const NosMots = lazy(PAGES_DIFFEREES.NosMots);
+const Notifications = lazy(PAGES_DIFFEREES.Notifications);
+const Partage = lazy(PAGES_DIFFEREES.Partage);
+const RetoursTest = lazy(PAGES_DIFFEREES.RetoursTest);
+const Sauvegarde = lazy(PAGES_DIFFEREES.Sauvegarde);
 
 // Pas de barre d'onglets : tout part du tableau de bord, chaque widget ouvre la
 // page de son module, et chaque page a son retour vers la précédente.
@@ -121,7 +136,18 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     if (!pret) return;
     const rappel = rappelDuMatin({ foyer, membreId: membreRappels, factures: facturesDuJour(budget, aujourdhui), taches, animaux, produits, zones, meteo, aujourdhui, preferences: lirePreferences() });
     afficherPastilleIcone(rappel?.nombre ?? 0);
-  }, [pret, foyer, membreRappels, taches, animaux, produits, zones, meteo, aujourdhui]);
+  }, [pret, foyer, membreRappels, budget, taches, animaux, produits, zones, meteo, aujourdhui]);
+
+  // Une fois l'accueil affiché, les autres pages se chargent en silence : la suivante s'ouvre aussitôt.
+  useEffect(() => {
+    if (!pret) return;
+    const precharger = () => {
+      prechargerPages();
+      for (const charger of Object.values(PAGES_DIFFEREES)) void charger().catch(() => {});
+    };
+    const id = setTimeout(precharger, 1500);
+    return () => clearTimeout(id);
+  }, [pret]);
 
   const page = pile[pile.length - 1];
   // Le glissement du doigt anime déjà la page : sans transition dans ce cas-là.
@@ -416,7 +442,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
             inert
           >
             {retour}
-            {ecranDe(p)}
+            <Suspense fallback={null}>{ecranDe(p)}</Suspense>
           </div>
         );
       }
@@ -426,7 +452,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       className={`contenu page-dessus${glissement ? " retour-glisse" : ""}`}
     >
       {retour}
-      {ecranDe(p)}
+      <Suspense fallback={null}>{ecranDe(p)}</Suspense>
       {bandeauVersion}
     </div>
       );

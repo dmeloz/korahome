@@ -109,7 +109,7 @@ export function lireBrouillon(brut: unknown, source: SourceRecette): BrouillonRe
   if (!titre || !ingredients.length) return null;
   const etapes = (Array.isArray(o.etapes) ? o.etapes : []).map((e: unknown) => chaine(e, 400)).filter(Boolean).slice(0, ETAPES_MAX);
   const lien = chaine(o.lien, 500);
-  return { titre: majuscule(titre), portions: portionsValides(o.portions), ingredients, etapes, source, lien: /^https:\/\//.test(lien) ? lien : null };
+  return { titre: majuscule(titre), portions: portionsValides(o.portions), ingredients, etapes, source, lien: lien.startsWith("https://") ? lien : null };
 }
 
 function majuscule(s: string): string {
