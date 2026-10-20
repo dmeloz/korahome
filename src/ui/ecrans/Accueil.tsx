@@ -468,17 +468,22 @@ export function Accueil(props: {
         </section>
       )}
 
+      {/* Le partage et la sauvegarde vivent dans Réglages : ici seulement quand il y a un souci. */}
       {!edition && (
         <footer className="pied-accueil">
-          <button className={`etat-pied ${props.partage.ton}`} onClick={props.ouvrirPartage}>
-            <span className={`point-etat ${props.partage.ton}`} aria-hidden />
-            {props.partage.texte}
-          </button>
+          {props.partage.ton === "urgent" && (
+            <button className={`etat-pied ${props.partage.ton}`} onClick={props.ouvrirPartage}>
+              <span className={`point-etat ${props.partage.ton}`} aria-hidden />
+              {props.partage.texte}
+            </button>
+          )}
           {props.synchroniser && <BoutonSynchro synchroniser={props.synchroniser} />}
-          <button className="etat-pied" onClick={props.ouvrirSauvegarde}>
-            <Icone nom="sauvegarde" taille={15} />
-            Sauvegarde : {decrireDerniere(derniereSauvegarde, aujourdhui)}
-          </button>
+          {sauvegardeDue(derniereSauvegarde, aujourdhui) && (
+            <button className="etat-pied" onClick={props.ouvrirSauvegarde}>
+              <Icone nom="sauvegarde" taille={15} />
+              Sauvegarde : {decrireDerniere(derniereSauvegarde, aujourdhui)}
+            </button>
+          )}
         </footer>
       )}
 
