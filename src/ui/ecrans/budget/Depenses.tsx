@@ -11,6 +11,9 @@ import { InvitationApplePay } from "./Paiements";
 import { ChampMontant, leJour, majuscule, montant, nomDuPot, Puces } from "./communs";
 import { Ligne, ListeVivante } from "../../moteur/pieces";
 import { Montant } from "../../moteur/Chiffre";
+import { csvDepenses } from "../../../domaine/exports";
+import { partagerFichier } from "../../partage";
+import { ignorer } from "../../journal";
 
 // ----- Les dépenses -----
 
@@ -62,6 +65,19 @@ export function Depenses(p: PropsPage & { plan: PlanBudget; filtre: Pot | null; 
           </button>
         ))}
       </div>
+
+      {duMois.length > 0 && (
+        <button
+          type="button"
+          className="lien budget-export"
+          onClick={() => {
+            partagerFichier(`budget-${mois}${p.filtre ? `-${p.filtre}` : ""}.csv`, csvDepenses(duMois, p.foyer.membres), "text/csv").catch(ignorer);
+          }}
+        >
+          <Icone nom="partage" taille={15} />
+          Envoyer ce mois en tableur ({duMois.length} ligne{duMois.length > 1 ? "s" : ""}, s'ouvre dans Numbers ou Excel)
+        </button>
+      )}
 
       {jours.length ? (
         jours.map((jour) => (

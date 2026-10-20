@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { compterAPrendre, nouvelleListe } from "../../domaine/listes";
+import { compterAPrendre, listesVisibles, nouvelleListe } from "../../domaine/listes";
 import type { Liste } from "../../domaine/types";
 import { useAnnoncer } from "../annulation";
 import { contexteReel } from "../contexte";
@@ -17,7 +17,7 @@ import { Ligne, ListeVivante } from "../moteur/pieces";
 
 export function Courses(p: PropsPage) {
   const courses = p.listes.find((l) => l.type === "courses");
-  const autres = p.listes.filter((l) => l.type !== "courses");
+  const autres = listesVisibles(p.listes, p.membreId).filter((l) => l.type !== "courses");
   const onglet = p.onglet === "listes" || !courses ? "listes" : "courses";
   const onglets = (
     <Onglets
@@ -75,6 +75,7 @@ function AutresListes(props: PropsPage & { avant: ReactNode }) {
                   <button className="ligne" onClick={() => props.ouvrirListe(l.id)}>
                     <span className="pictogramme"><Icone nom="liste" taille={20} /></span>
                     <span className="ligne-texte">{l.nom}</span>
+                    {l.pourMoi && <span className="discret" aria-label="Rien qu'à toi"><Icone nom="cadenas" taille={14} /></span>}
                     {n > 0 && <span className="pastille">{n}</span>}
                     <span className="chevron"><Icone nom="suivant" taille={18} /></span>
                   </button>

@@ -28,10 +28,11 @@ function quand(menu: MenuSemaine, aujourdhui: string): string {
 }
 
 /** Le Chef de la semaine : ses repas, ce qu'il a mis sur la liste, quand il repasse, et les recettes du foyer. */
-export function Chef(p: PropsPage) {
+export function Chef(p: PropsPage & { recette?: string | null }) {
   // Les onglets sont ceux de l'espace Cuisine (Cette semaine, Nos recettes, Frigo).
   const onglet = p.onglet === "recettes" ? "recettes" : "semaine";
-  const [ficheId, setFicheId] = useState<string | null>(null);
+  // Une recette trouvée par la recherche s'ouvre directement.
+  const [ficheId, setFicheId] = useState<string | null>(p.recette ?? null);
   const recettes = recettesDe(p.menus);
   const fiche = recettes.find((r) => r.id === ficheId) ?? null;
   const prevus = soirsPrevus(recettes, p.aujourdhui);

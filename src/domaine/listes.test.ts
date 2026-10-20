@@ -4,6 +4,8 @@ import { listesInitiales } from "./foyer";
 import {
   analyserSaisie,
   basculerCoche,
+  basculerPourMoi,
+  listesVisibles,
   compterAPrendre,
   nouvelElement,
   nouvelleListe,
@@ -83,5 +85,21 @@ describe("nouvelleListe", () => {
     const ctx = contexteTest();
     expect(() => nouvelleListe(" ", "", "simple", ctx)).toThrow();
     expect(nouvelleListe("Cadeaux", "", "simple", ctx).icone).toBe("📝");
+  });
+});
+
+describe("les listes rien qu'à soi", () => {
+  const ctx = contexteTest();
+  it("ne se montrent qu'à leur personne, les communes à tout le monde", () => {
+    const commune = nouvelleListe("Bricolage", "🔧", "simple", ctx);
+    const secrete = basculerPourMoi(nouvelleListe("Cadeau pour Sarah", "🎁", "simple", ctx), "melo");
+    expect(secrete.pourMoi).toBe("melo");
+    expect(listesVisibles([commune, secrete], "melo").map((l) => l.nom)).toEqual(["Bricolage", "Cadeau pour Sarah"]);
+    expect(listesVisibles([commune, secrete], "sarah").map((l) => l.nom)).toEqual(["Bricolage"]);
+    expect(listesVisibles([commune, secrete], null).map((l) => l.nom)).toEqual(["Bricolage"]);
+    expect(basculerPourMoi(secrete, "melo").pourMoi).toBeNull();
+  });
+  it("laisse la liste de courses au foyer", () => {
+    expect(() => basculerPourMoi(nouvelleListe("Courses", "🛒", "courses", ctx), "melo")).toThrow(/foyer/);
   });
 });

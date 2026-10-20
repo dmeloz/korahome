@@ -94,3 +94,14 @@ export function nouvelleListe(nom: string, icone: string, type: Liste["type"], c
   if (n.length === 0) throw new ErreurValidation("La liste doit avoir un nom.");
   return { id: ctx.nouvelId(), nom: n, icone: icone || "📝", type, creeLe: ctx.maintenant() };
 }
+
+/** Les listes que cette personne voit : les communes, et les siennes rien qu'à elle. Sans personne choisie, les communes seulement. */
+export function listesVisibles<L extends Pick<Liste, "pourMoi">>(listes: readonly L[], membreId: Id | null): L[] {
+  return listes.filter((l) => !l.pourMoi || l.pourMoi === membreId);
+}
+
+/** Rend une liste rien qu'à soi, ou la remet en commun. Une liste de courses reste toujours commune. */
+export function basculerPourMoi(liste: Liste, membreId: Id): Liste {
+  if (liste.type === "courses") throw new ErreurValidation("La liste de courses est celle du foyer.");
+  return { ...liste, pourMoi: liste.pourMoi === membreId ? null : membreId };
+}

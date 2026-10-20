@@ -25,7 +25,8 @@ import type { Membre } from "../../domaine/types";
 import { contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
 import { vibrer } from "../haptique";
-import { copierRapport } from "../rapport";
+import { partagerTexte } from "../partage";
+import { texteCarnet } from "../../domaine/exports";
 import { nomFee } from "../fee";
 import { useDessin } from "../moteur";
 import { Ligne, ListeVivante } from "../moteur/pieces";
@@ -241,22 +242,10 @@ export function CarnetPropose({ animal, aujourdhui, modifier }: Commun) {
 
 // ----- Fiches à partager -----
 
-async function partagerTexte(titre: string, texte: string): Promise<"partage" | "copie" | "echec"> {
-  try {
-    if (navigator.share) {
-      await navigator.share({ title: titre, text: texte });
-      return "partage";
-    }
-  } catch {
-    return "echec"; // partage annulé
-  }
-  return (await copierRapport(texte)) ? "copie" : "echec";
-}
-
-export function Fiches({ animal, aujourdhui, informer }: { animal: Animal; aujourdhui: string; informer: (texte: string) => void }) {
-  const [ouverte, setOuverte] = useState<"veto" | "garde" | null>(null);
-  const titre = ouverte === "veto" ? `${animal.nom} : pour le vétérinaire` : `Garder ${animal.nom}`;
-  const texte = ouverte === "veto" ? resumeVeto(animal, aujourdhui) : ouverte === "garde" ? ficheDeGarde(animal, aujourdhui) : "";
+export function Fiches({ animal, aujourdhui, membres, informer }: { animal: Animal; aujourdhui: string; membres: readonly Membre[]; informer: (texte: string) => void }) {
+  const [ouverte, setOuverte] = useState<"veto" | "garde" | "carnet" | null>(null);
+  const titre = ouverte === "veto" ? `${animal.nom} : pour le vétérinaire` : ouverte === "carnet" ? `Carnet de ${animal.nom}` : `Garder ${animal.nom}`;
+  const texte = ouverte === "veto" ? resumeVeto(animal, aujourdhui) : ouverte === "garde" ? ficheDeGarde(animal, aujourdhui) : ouverte === "carnet" ? texteCarnet(animal, membres) : "";
 
   async function partager() {
     const r = await partagerTexte(titre, texte);
@@ -272,8 +261,11 @@ export function Fiches({ animal, aujourdhui, informer }: { animal: Animal; aujou
         <button type="button" className={`puce${ouverte === "garde" ? " active" : ""}`} aria-pressed={ouverte === "garde"} onClick={() => setOuverte("garde")}>
           Pour la garde
         </button>
+        <button type="button" className={`puce${ouverte === "carnet" ? " active" : ""}`} aria-pressed={ouverte === "carnet"} onClick={() => setOuverte("carnet")}>
+          Tout le carnet
+        </button>
       </div>
-      <p className="discret">Un résumé prêt à montrer à la visite, ou à envoyer à qui la garde pendant les vacances.</p>
+      <p className="discret">Un résumé prêt à montrer à la visite, à envoyer à qui la garde pendant les vacances, ou le carnet entier (soins, poids, journal) à garder hors de Kora.</p>
       <Feuille ouverte={ouverte !== null} onFermer={() => setOuverte(null)} titre={titre}>
         <pre className="mitsu-fiche-texte">{texte}</pre>
         <button className="bouton-principal" onClick={partager}>Partager</button>

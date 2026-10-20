@@ -93,6 +93,8 @@ export const CLES = {
   lienPaiements: "korahome.lienPaiements",
   /** « 1 » quand l'invitation Apple Pay a été écartée. */
   applePayVu: "korahome.applePayVu",
+  /** L'identifiant de la clé Face ID qui verrouille le Budget sur ce téléphone (base64). */
+  verrouBudget: "korahome.verrouBudget",
 } as const;
 
 /** Le texte gardé, null s'il n'y en a pas ; `siIndisponible` (null par défaut) si le stockage ne répond pas. */

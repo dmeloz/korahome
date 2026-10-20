@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { ProduitHabituel } from "../../domaine/catalogue";
 import { devinerArticles, noterAchat, oublierAchat, panierHabituel, suggestions } from "../../domaine/habitudes";
-import { analyserSaisie, basculerCoche, nouvelElement, organiserListe } from "../../domaine/listes";
+import { analyserSaisie, basculerCoche, basculerPourMoi, nouvelElement, organiserListe } from "../../domaine/listes";
 import type { Element, Foyer, Liste } from "../../domaine/types";
 import type { Depot } from "../../donnees/depot";
 import { useAnnoncer } from "../annulation";
@@ -151,7 +151,24 @@ export function DetailListe(props: {
     <Page
       titre={props.liste.nom}
       sousTitre={restant ? `${restant} à prendre` : coches.length ? "Tout est pris" : undefined}
-      actions={props.actions}
+      actions={
+        <>
+          {!courses && props.membreId && (
+            <button
+              className={`bouton-icone${props.liste.pourMoi ? " actif" : ""}`}
+              aria-pressed={!!props.liste.pourMoi}
+              aria-label={props.liste.pourMoi ? "Liste rien qu'à toi : la remettre en commun" : "Garder cette liste rien qu'à toi"}
+              onClick={() => {
+                const apres = basculerPourMoi(props.liste, props.membreId!);
+                void props.depot.enregistrerListe(apres).then(() => setMessage(apres.pourMoi ? "Rien qu'à toi : elle n'apparaît que sur tes téléphones (une surprise, un cadeau)." : "Liste remise en commun."));
+              }}
+            >
+              <Icone nom="cadenas" taille={20} />
+            </button>
+          )}
+          {props.actions}
+        </>
+      }
       aide={courses ? { cle: "courses", texte: "Dis-le à ta fée (un appui long sur elle pour l'écrire) : « 2 kg de pommes, du lait et du pain ». Touche un article ou glisse-le vers la droite quand il est pris ; vers la gauche pour le retirer." } : undefined}
     >
       {props.avant}

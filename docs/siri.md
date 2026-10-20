@@ -13,6 +13,14 @@ et Siri dit sa réponse, sans ouvrir Kora, même l'iPhone verrouillé.
    « Énoncer le texte ». Une quatrième redemande une saisie quand la réponse finit par « Oui ou non ? ».
 3. Le nom du raccourci est la phrase à dire après « Dis Siri ».
 
+## Des boutons sur l'écran d'accueil (depuis 0.0.66)
+
+Une fois l'iPhone relié, Réglages › Siri propose trois raccourcis prêts (« Aux courses », « Ce soir »,
+« Dépense ») : un bouton sur l'écran d'accueil qui envoie une demande toute faite à la même adresse,
+sans parler. « Copier » met la demande pour « Décrire un raccourci » dans le presse-papiers ; Raccourcis
+propose ensuite « Ajouter à l'écran d'accueil ». Règles : `RACCOURCIS_ECRAN` et `demandeRaccourciEcran`
+dans `src/domaine/siri.ts`. Le serveur ne change pas : c'est le même lien que Siri.
+
 ## Ce qui change par rapport à l'app
 
 - **Supprimer** attend toujours le oui : Siri pose la question (« Supprimer la tâche … ? Oui ou non ? »)

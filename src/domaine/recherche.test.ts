@@ -6,6 +6,8 @@ import { nouvelAnimal } from "./mitsu";
 import { correspond, grouperTrouvailles, rechercher, type DonneesRecherche } from "./recherche";
 import { nouveauProduit } from "./stock";
 import { nouvelleTache } from "./taches";
+import { nouvelleRecette } from "./recettes";
+import type { Depense } from "./budget";
 
 const ctx = contexteTest();
 const auj = "2026-10-19";
@@ -23,6 +25,9 @@ function donnees(): DonneesRecherche {
     animaux: [mitsu],
     zones: [],
     souvenirs: [{ id: "s", texte: "Le numéro du vétérinaire est le 021 634 00 00", source: "demande", auteur: "melo", creeLe: "" }],
+    recettes: [nouvelleRecette({ titre: "Risotto aux champignons", portions: 2, ingredients: [{ nom: "Riz", quantite: "200 g" }, { nom: "Lait", quantite: "1 dl" }], etapes: [], source: "main", lien: null }, ctx)],
+    depenses: [{ id: "d1", genre: "depense", jour: "2026-10-17", montant: 84.3, pot: "courses", libelle: "Migros", magasin: "Migros Renens", posteId: null, echeance: null, source: "main", par: "melo", creeLe: "" } as Depense],
+    mots: [{ type: "mot", id: "m1", de: "sarah", texte: "Bonne journée mon amour", creeLe: "2026-10-18T07:00:00.000Z", visibleDes: "2026-10-18T07:00:00.000Z", programme: false, coeurs: [] }],
     aujourdhui: auj,
   };
 }
@@ -40,6 +45,7 @@ describe("la recherche partout", () => {
     expect(t.map((x) => [x.section, x.titre])).toEqual([
       ["Listes", "Lait · 2 l"],
       ["Frigo et placards", "Lait d'avoine"],
+      ["Nos recettes", "Risotto aux champignons"],
     ]);
     expect(t[0].ou).toEqual({ type: "module", id: "courses" });
   });
@@ -59,6 +65,17 @@ describe("la recherche partout", () => {
   it("attend deux lettres, et range par section", () => {
     expect(rechercher(donnees(), "l")).toEqual([]);
     const groupes = grouperTrouvailles(rechercher(donnees(), "lait"));
-    expect(groupes.map((g) => g.section)).toEqual(["Listes", "Frigo et placards"]);
+    expect(groupes.map((g) => g.section)).toEqual(["Listes", "Frigo et placards", "Nos recettes"]);
+  });
+
+  it("trouve aussi une recette par un ingrédient, une dépense par son magasin, un mot", () => {
+    expect(rechercher(donnees(), "lait").map((x) => x.section)).toEqual(["Listes", "Frigo et placards", "Nos recettes"]);
+    const migros = rechercher(donnees(), "renens");
+    expect(migros.map((x) => [x.section, x.titre])).toEqual([["Agenda", "Dentiste"], ["Budget", "Migros · 84.30 CHF"]]);
+    expect(migros[1].detail).toBe("17.10.26, courses · Migros Renens");
+    expect(migros[1].ou).toEqual({ type: "module", id: "budget", onglet: "depenses" });
+    const mots = rechercher(donnees(), "amour");
+    expect(mots).toHaveLength(1);
+    expect(mots[0].ou).toEqual({ type: "mots" });
   });
 });

@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { evenementsDe } from "../domaine/agenda";
+import { depenses } from "../domaine/budget";
+import { listesVisibles } from "../domaine/listes";
+import { recettesDe } from "../domaine/recettes";
 import { grouperTrouvailles, rechercher, type OuRecherche } from "../domaine/recherche";
 import { definition, ESPACES, modulesCherches, modulesDeLEspace, type WidgetId } from "../domaine/tableauDeBord";
 import { vibrer } from "./haptique";
@@ -29,6 +32,21 @@ export interface LiensEspaces {
   nouvelleVersion: boolean;
   /** La personne de ce téléphone, pour la pastille des réglages. */
   moi: { prenom: string; couleur: string } | null;
+}
+
+/** Tout ce que la recherche fouille ; les listes rien qu'à l'autre n'y sont pas. */
+function donneesRecherche(d: DonneesModule) {
+  const listes = listesVisibles(d.listes, d.membreId);
+  const ids = new Set(listes.map((l) => l.id));
+  return {
+    ...d,
+    listes,
+    elements: d.elements.filter((e) => ids.has(e.listeId)),
+    evenements: evenementsDe(d.agenda),
+    recettes: recettesDe(d.menus),
+    depenses: depenses(d.budget),
+    mots: d.couple.filter((c) => c.type === "mot"),
+  };
 }
 
 export function TousLesEspaces(props: {
@@ -148,7 +166,7 @@ export function TousLesEspaces(props: {
   const cherche = texte.trim().length >= 2;
   const d = props.donnees;
   const modules = cherche ? modulesCherches(texte) : [];
-  const groupes = cherche ? grouperTrouvailles(rechercher({ ...d, evenements: evenementsDe(d.agenda) }, texte)) : [];
+  const groupes = cherche ? grouperTrouvailles(rechercher(donneesRecherche(d), texte)) : [];
   const { liens } = props;
   const sortie = !props.ouverte || props.repliee;
 

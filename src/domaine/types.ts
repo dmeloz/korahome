@@ -30,6 +30,8 @@ export interface Liste {
   creeLe: string;
   /** Les jours où chaque article a été acheté : Kora devine ce qu'il faudra bientôt racheter. */
   achats?: Achat[];
+  /** Une liste rien qu'à soi : elle n'apparaît que sur les téléphones de cette personne (une surprise, un cadeau pour l'autre). */
+  pourMoi?: Id | null;
 }
 
 export interface Achat {
