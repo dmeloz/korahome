@@ -50,6 +50,9 @@ try {
     await p.waitForTimeout(500);
   };
   const tousLesEspaces = async () => {
+    // L'accueil s'est peut-être allongé (carte de mise en route) : on part du haut.
+    await p.evaluate(() => window.scrollTo(0, 0));
+    await p.waitForTimeout(200);
     await p.mouse.move(200, 300);
     await p.mouse.wheel(0, -400);
     await p.waitForTimeout(700);
@@ -75,6 +78,11 @@ try {
     }
     await revenir();
   }
+  // Le fil du foyer (0.0.65), depuis « Tous les espaces ».
+  await tousLesEspaces();
+  await p.locator(".tous-espaces").getByText("Chez nous", { exact: true }).first().click();
+  await verifier("Chez nous");
+  await revenir();
   await tousLesEspaces();
   await p.getByLabel(/^Réglages/).first().click();
   await verifier("Réglages");

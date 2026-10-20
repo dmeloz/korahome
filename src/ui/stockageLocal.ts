@@ -19,6 +19,8 @@ export const CLES = {
   journal: "korahome.journal",
   /** « 1 » une fois la visite guidée de l'accueil vue ou passée. */
   visiteVue: "korahome.visite.vue",
+  /** « 1 » quand la carte « Prête en 5 étapes » de l'accueil a été rangée (« Plus tard »). */
+  demarrageRange: "korahome.demarrage.range",
   /** Préfixe des petites aides de page déjà rangées (« korahome.aide.<page> » = « 1 »). */
   prefixeAide: "korahome.aide.",
 

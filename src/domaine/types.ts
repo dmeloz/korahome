@@ -8,6 +8,8 @@ export interface Membre {
   id: Id;
   prenom: string;
   couleur: string;
+  /** Le téléphone de cette personne : la version de Kora qu'il a, et la dernière fois qu'il s'est ouvert. */
+  appareil?: { version: string; vuLe: string };
 }
 
 export interface Foyer {

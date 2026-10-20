@@ -441,3 +441,29 @@ html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
 .corbeille-ligne { align-items: center; gap: 12px; padding: 12px 14px; }
 .corbeille-ligne .ligne-texte { display: grid; gap: 2px; }
 .corbeille-ligne strong { font-weight: 600; overflow-wrap: anywhere; }
+
+/* ===== À deux (Kora 0.0.65) : la carte de mise en route, le fil du foyer, les iPhone du foyer ===== */
+.demarrage { display: grid; gap: 10px; padding: 14px 16px; margin-bottom: 16px; }
+.demarrage-entete { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.demarrage-entete > div { display: grid; gap: 1px; }
+.demarrage-entete .lien { padding: 4px 0; flex: none; }
+.demarrage-barre { height: 4px; border-radius: 2px; background: var(--surface-haute); overflow: hidden; }
+.demarrage-barre span { display: block; height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.4s var(--courbe); }
+.demarrage-etapes { list-style: none; margin: 0; padding: 0; display: grid; }
+.demarrage-etape { display: flex; align-items: center; gap: 12px; width: 100%; padding: 9px 0; border: none; background: none; color: var(--texte); text-align: left; }
+.demarrage-etape:disabled { cursor: default; }
+.demarrage-etape.faite { color: var(--discret); }
+.demarrage-etape.faite .ligne-texte > span:first-child { text-decoration: line-through; }
+.demarrage-etape .ligne-texte { display: grid; gap: 1px; }
+.rond-etape { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--trait-fort, var(--trait)); flex: none; display: grid; place-items: center; }
+.rond-etape.plein { background: var(--coche); border-color: var(--coche); color: var(--sur-accent); }
+
+.fil-ligne { align-items: flex-start; gap: 10px; padding: 10px 14px; }
+.fil-heure { font-family: var(--police-fixe); font-size: var(--t-legende); color: var(--discret); min-width: 40px; padding-top: 3px; font-variant-numeric: tabular-nums; }
+.fil-picto { color: var(--accent); padding-top: 2px; flex: none; }
+.fil-ligne .ligne-texte { display: grid; gap: 1px; }
+.fil-espace { font-size: var(--t-legende); }
+
+.partage-appareils { margin: 0 0 16px; }
+.partage-appareils .ligne { padding: 10px 14px; }
+.partage-appareils .ligne-texte { display: grid; gap: 1px; }
