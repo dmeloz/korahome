@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { Feuille } from "./Feuille";
 import { ErreurValidation } from "../domaine/foyer";
 import { GENRES, nouveauRetour, type GenreRetour } from "../domaine/retours";
 import type { Depot } from "../donnees/depot";
 import { contexteReel } from "./contexte";
+import { Message, RepereOnglet } from "./moteur/pieces";
 import { lireJournal, noter } from "./journal";
 
 // La pastille « Dev », présente sur chaque écran : une note de test en deux
@@ -19,6 +20,7 @@ export function CoinDev(props: {
   dansLaBarre?: boolean;
 }) {
   const [ouverte, setOuverte] = useState(false);
+  const repere = useId();
   const [texte, setTexte] = useState("");
   const [genre, setGenre] = useState<GenreRetour>("bug");
   const [confirmation, setConfirmation] = useState<string | null>(null);
@@ -66,7 +68,7 @@ export function CoinDev(props: {
           Dev{props.ouvertes > 0 && <span className="pastille-dev-compte">{props.ouvertes}</span>}
         </button>
       )}
-      {confirmation && <div className="toast" role="status">{confirmation}</div>}
+      <Message visible={!!confirmation} cle={confirmation ?? undefined}>{confirmation}</Message>
       <Feuille ouverte={ouverte} onFermer={() => setOuverte(false)}>
           <form className="feuille-formulaire" onSubmit={enregistrer} data-journal="non">
             <p className="surtitre feuille-surtitre">
@@ -82,6 +84,7 @@ export function CoinDev(props: {
                   className={genre === g ? "actif" : ""}
                   onClick={() => setGenre(g)}
                 >
+                  {genre === g && <RepereOnglet groupe={repere} />}
                   {GENRES[g]}
                 </button>
               ))}

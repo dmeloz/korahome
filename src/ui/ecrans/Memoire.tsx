@@ -12,6 +12,7 @@ import { Icone } from "../Icone";
 import type { DonneesModule } from "../modules";
 import { Onglets, Page, useGestionnaireBarre } from "../pieces";
 import { changerAdaptations, effacerUsages, lireAdaptations, lireDecisionsPerso, oublierDecisionPerso, useApprentissageLocal } from "../usage";
+import { Ligne, ListeVivante } from "../moteur/pieces";
 
 // Tout ce que Kora et la fée savent de vous, sur une seule page : le bilan de la semaine en
 // haut, puis ce qui concerne le foyer (partagé), ce qui ne concerne que toi (sur ce téléphone)
@@ -206,17 +207,17 @@ function RienQuATOi() {
         />
       </ul>
       {gardes.length > 0 && (
-        <ul className="carte groupe">
+        <ListeVivante className="carte groupe">
           {gardes.map(([cle, d]) => (
-            <li key={cle}>
+            <Ligne key={cle}>
               <Glissable onSupprimer={() => oublierDecisionPerso(cle)} libelle="Oublier">
                 <div className="ligne">
                   <span className="ligne-texte">{d.fait}</span>
                 </div>
               </Glissable>
-            </li>
+            </Ligne>
           ))}
-        </ul>
+        </ListeVivante>
       )}
       <button className="lien appris-effacer" onClick={() => { effacerUsages(); annoncer("Ton usage noté est effacé.", () => {}); }}>
         Effacer ce que Kora a noté de mon usage

@@ -31,8 +31,13 @@ Kora range l'interface en quelques pièces qui se répètent sur toutes les page
 | `BarreJarvis` (la saisie de la fée) | `src/ui/pieces/barre.tsx` | `.safeAreaInset(edge: .bottom)` avec un `TextField` et un `AppIntent`, ouvert par l'appui long |
 | `AuDessusDeLaBarre` | `src/ui/pieces/barre.tsx` | Contenu du même `safeAreaInset`, au-dessus du champ |
 | `Glissable` | `src/ui/Glissable.tsx` | `.swipeActions(edge: .leading / .trailing)` et `.contextMenu` |
-| Mouvement (Anime.js : ressorts, graphiques qui se dessinent) | `src/ui/mouvement.ts` | `.animation(.spring(duration:bounce:))` ; un trait en `.trim(from: 0, to: avancee)` animé |
-| `Feuille` | `src/ui/Feuille.tsx` | `.sheet` avec `presentationDetents` |
+| Moteur de mouvement : ressorts nommés | `src/ui/moteur/ressorts.ts` | `.spring(duration:bounce:)`, un par nom |
+| `ListeVivante` / `Ligne` | `src/ui/moteur/pieces.tsx` | Une `List` : insertions et suppressions animées d'office, `.animation(.spring, value:)` |
+| `Apparait`, `Message` | `src/ui/moteur/pieces.tsx` | `.transition(.scale.combined(with: .opacity))` dans un `withAnimation` |
+| `RepereOnglet` | `src/ui/moteur/pieces.tsx` | `Picker` en `.segmented` ; sinon `.matchedGeometryEffect` |
+| « Ce soir » : la suivante prend la place | `src/ui/pieces/Aujourdhui.tsx` | `.matchedGeometryEffect(id:in:)` |
+| Graphiques qui se dessinent (Anime.js) | `src/ui/moteur/anime.ts` | Un trait en `.trim(from: 0, to: avancee)` animé |
+| `Feuille` | `src/ui/Feuille.tsx` (Motion : glisser et ressort « feuille ») | `.sheet` avec `presentationDetents` |
 | Tous les espaces (tirer vers le bas) | `src/ui/TousLesEspaces.tsx` | `.searchable` sur une grille `LazyVGrid` |
 | Réglages › La fée | `src/ui/ecrans/LaFee.tsx` | Un `Form` avec `Toggle` (son) et un bouton de remise à zéro |
 | Thème, verre | `src/ui/theme.ts`, `src/ui/accueilLocal.ts` | `.preferredColorScheme`, `.glassEffect` et un `Asset Catalog` de couleurs |

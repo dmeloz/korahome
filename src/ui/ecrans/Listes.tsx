@@ -8,6 +8,7 @@ import { Icone } from "../Icone";
 import type { PropsPage } from "../modules";
 import { Onglets, Page, useGestionnaireBarre } from "../pieces";
 import { DetailListe } from "./DetailListe";
+import { Ligne, ListeVivante } from "../moteur/pieces";
 
 // Les courses et les autres listes, sur une seule page : l'onglet « Courses » montre la liste
 // du foyer, l'onglet « Autres listes » les cadeaux, le bricolage… Le widget Listes ouvre
@@ -62,11 +63,11 @@ function AutresListes(props: PropsPage & { avant: ReactNode }) {
       {props.listes.length === 0 ? (
         <p className="vide">Aucune autre liste. Dis à ta fée « liste cadeaux de Noël ».</p>
       ) : (
-        <ul className="carte groupe">
+        <ListeVivante className="carte groupe">
           {props.listes.map((l) => {
             const n = compterAPrendre(l, props.elements);
             return (
-              <li key={l.id}>
+              <Ligne key={l.id}>
                 <Glissable onSupprimer={() => void supprimer(l)}>
                   <button className="ligne" onClick={() => props.ouvrirListe(l.id)}>
                     <span className="pictogramme"><Icone nom="liste" taille={20} /></span>
@@ -75,10 +76,10 @@ function AutresListes(props: PropsPage & { avant: ReactNode }) {
                     <span className="chevron"><Icone nom="suivant" taille={18} /></span>
                   </button>
                 </Glissable>
-              </li>
+              </Ligne>
             );
           })}
-        </ul>
+        </ListeVivante>
       )}
     </Page>
   );

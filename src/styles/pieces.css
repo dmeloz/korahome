@@ -188,7 +188,10 @@
   font-size: var(--t-detail);
   color: var(--discret);
 }
-.segments button.actif { background: var(--surface-haute); color: var(--texte); font-weight: 600; box-shadow: inset 0 0 0 1px var(--trait); }
+.segments button { position: relative; isolation: isolate; transition: color 0.2s ease; }
+.segments button.actif { color: var(--texte); font-weight: 600; }
+/* Le repère de l'onglet actif, qui glisse d'un onglet à l'autre (RepereOnglet, ui/moteur). */
+.segments-repere { position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--surface-haute); box-shadow: inset 0 0 0 1px var(--trait); }
 
 .lien.danger { color: var(--urgent); font-weight: 600; }
 
@@ -234,9 +237,9 @@
   border-radius: 20px 20px 0 0;
   box-shadow: 0 -20px 40px -24px rgb(0 0 0 / 0.7);
 }
-/* Toutes les feuilles montent du bas et redescendent de la même façon, comme sur l'iPhone. */
-.feuille { max-height: calc(100dvh - env(safe-area-inset-top) - 24px); transition: transform 0.3s var(--courbe); }
-.feuille.tiree { transition: none; }
+/* Toutes les feuilles montent du bas et redescendent de la même façon, comme sur l'iPhone.
+   Leur montée, leur descente et le doigt qui les tire : Motion (Feuille.tsx, ressort « feuille »). */
+.feuille { max-height: calc(100dvh - env(safe-area-inset-top) - 24px); }
 .feuille-prise { touch-action: none; display: grid; gap: 6px; padding-top: 2px; }
 .feuille-entete { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .feuille-entete h2 { margin: 0; font-size: var(--t-corps); }
@@ -244,26 +247,11 @@
 .feuille-corps { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
 html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
 @media (prefers-reduced-motion: no-preference) {
-  .voile { animation: voile-apparait var(--duree-feuille) var(--courbe); }
-  .voile.sortie { animation: voile-disparait 0.3s var(--courbe) forwards; }
-  .feuille { animation: feuille-monte var(--duree-feuille) var(--courbe); }
-  .voile.sortie .feuille { animation: feuille-descend 0.3s var(--courbe) forwards; }
   /* La page derrière recule un peu, comme sous une feuille de l'iPhone. */
   .page-dessus { transition: transform var(--duree-feuille) var(--courbe), border-radius var(--duree-feuille) var(--courbe), filter var(--duree-feuille) var(--courbe); transform-origin: 50% 0; }
     .page-dessus.retour-glisse { transition: none; }
   html.feuille-ouverte .page-dessus { transform: scale(0.94) translateY(calc(env(safe-area-inset-top) + 8px)); border-radius: 18px; filter: brightness(0.85); overflow: hidden; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .voile, .feuille { animation: fondu 0.2s ease; }
-  .voile.sortie, .voile.sortie .feuille { animation: fondu-sort 0.2s ease forwards; }
-  @keyframes fondu { from { opacity: 0; } }
-  @keyframes fondu-sort { to { opacity: 0; } }
-  @keyframes voile-apparait { from { background: rgb(0 0 0 / 0); } }
-  @keyframes voile-disparait { to { background: rgb(0 0 0 / 0); } }
-  @keyframes feuille-monte { from { transform: translateY(100%); } }
-  @keyframes feuille-descend { to { transform: translateY(100%); } }
-}
-.voile.sortie { pointer-events: none; }
 .poignee { width: 36px; height: 5px; border-radius: 3px; background: var(--trait); margin: 0 auto 4px; }
 .feuille-surtitre { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .champ-note {

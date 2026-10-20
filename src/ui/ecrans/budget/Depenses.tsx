@@ -9,6 +9,7 @@ import { Feuille } from "../../pieces";
 import { FeuilleReleve } from "./Releve";
 import { InvitationApplePay } from "./Paiements";
 import { ChampMontant, leJour, majuscule, montant, nomDuPot, Puces } from "./communs";
+import { Ligne, ListeVivante } from "../../moteur/pieces";
 
 // ----- Les dépenses -----
 
@@ -65,11 +66,11 @@ export function Depenses(p: PropsPage & { plan: PlanBudget; filtre: Pot | null; 
         jours.map((jour) => (
           <section key={jour}>
             <h2 className="rayon">{nomDuJour(jour)}</h2>
-            <ul className="carte groupe">
+            <ListeVivante className="carte groupe">
               {duMois
                 .filter((d) => d.jour === jour)
                 .map((d) => (
-                  <li key={d.id}>
+                  <Ligne key={d.id}>
                     <Glissable onSupprimer={() => void retirer(d)} libelle="Retirer">
                       <button type="button" className="ligne" onClick={() => setOuverte(d)} aria-haspopup="dialog">
                         <span className={`budget-pastille pot-${d.pot}`} aria-hidden />
@@ -87,9 +88,9 @@ export function Depenses(p: PropsPage & { plan: PlanBudget; filtre: Pot | null; 
                         <span className="budget-montant">{montant(d.montant)}</span>
                       </button>
                     </Glissable>
-                  </li>
+                  </Ligne>
                 ))}
-            </ul>
+            </ListeVivante>
           </section>
         ))
       ) : (

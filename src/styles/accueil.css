@@ -182,7 +182,7 @@
 .moment-geste { color: var(--discret); }
 .phare.glisse .moment-corps, .phare.glisse .moment-rond { transform: translateX(var(--glisse)); }
 .phare.glisse .moment-rond { background: color-mix(in srgb, var(--accent) calc(min(var(--glisse) / 84px, 1) * 100%), var(--fond)); }
-.phare:not(.glisse) .moment-corps, .phare:not(.glisse) .moment-rond { transition: transform 0.3s var(--courbe); }
+.phare:not(.glisse) .moment-corps, .phare:not(.glisse) .moment-rond { transition: transform var(--ressort-ligne-duree, 0.3s) var(--ressort-ligne, var(--courbe)); }
 .ce-moment-plus { display: block; padding: 6px 0 0 calc(var(--col-heure) + 34px); font-size: var(--t-detail); }
 @media (prefers-reduced-motion: no-preference) { .fil > li { animation: bulle-arrive 0.3s var(--courbe) both; } }
 
@@ -219,7 +219,7 @@ html[data-leger] .widget { background: var(--surface); -webkit-backdrop-filter: 
   box-shadow: var(--reflet), 0 0 0 0.5px var(--verre-trait), 0 24px 60px -24px rgb(0 0 0 / 0.7);
 }
 @media (prefers-reduced-motion: no-preference) {
-  .tous-espaces { animation: espaces-descend 0.45s var(--courbe); transition: transform 0.32s var(--courbe), opacity 0.25s ease; }
+  .tous-espaces { animation: espaces-descend var(--ressort-feuille-duree, 0.45s) var(--ressort-feuille, var(--courbe)); transition: transform 0.32s var(--courbe), opacity 0.25s ease; }
   .tous-espaces.tiree { transition: none; }
 }
 @keyframes espaces-descend { from { transform: translateY(-100%); } }

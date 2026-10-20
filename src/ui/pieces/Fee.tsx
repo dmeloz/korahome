@@ -1,9 +1,11 @@
-import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { createPortal } from "react-dom";
 import type { Attente, TeinteFee } from "../../domaine/fee";
 import { decrireMinute, estCaressee, estSecouee } from "../../domaine/vieFee";
 import { changerEtatFee, direFee, enregistrerPlace, lirePlace, noterRenvoi, reveillerFee, taireFee, useEtatFee, useFee, useParoleFee, type Parole, type PlaceFee } from "../fee";
 import { vibrer } from "../haptique";
+import { m, Presence } from "../moteur/pieces";
+import { ressortMotion } from "../moteur/ressorts";
 import { APPUI_LONG_MS } from "../gestes";
 
 // La fée, en bas de chaque page où l'on ajoute quelque chose : une boule de lumière à quatre
@@ -320,7 +322,7 @@ export function Fee(props: {
         <div className="etincelles" aria-hidden><i /><i /><i /><i /><i /></div>
         <DessinFee />
       </div>
-      {parole && !glisse && <Bulle parole={parole} pos={pos} />}
+      <Presence>{parole && !glisse && <Bulle key={`${parole.cle}:${parole.texte}`} parole={parole} pos={pos} />}</Presence>
     </>,
     document.body,
   );
@@ -328,7 +330,6 @@ export function Fee(props: {
 
 /** La bulle : petite, sans cadre de couleur, le nom seulement pour un message de l'autre. */
 function Bulle({ parole, pos }: { parole: Parole; pos: Position }) {
-  const ref = useRef<HTMLDivElement>(null);
   const actions = parole.actions ?? [];
   useEffect(() => {
     const fermer = () => {
@@ -361,12 +362,14 @@ function Bulle({ parole, pos }: { parole: Parole; pos: Position }) {
   if (dessous) style.top = pos.y + TAILLE - 6;
   else style.bottom = Math.max(10, h - pos.y - 14);
 
-  useLayoutEffect(() => {
-    ref.current?.animate([{ opacity: 0, transform: "scale(.4)" }, { opacity: 1, transform: "scale(1)" }], { duration: 380, easing: "cubic-bezier(.2,.9,.3,1.25)" });
-  }, [parole]);
-
+  // Elle naît de la fée et y retourne, avec le ressort « apparition » du moteur.
   return (
-    <div ref={ref} className={`hey${aGauche ? " gauche" : ""}${dessous ? " dessous" : ""}${parole.crie ? " crie" : ""}${parole.de ? ` fee-${parole.de.teinte}` : ""}`} style={style} role="status">
+    <m.div
+      initial={{ opacity: 0, scale: 0.4 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.6 }}
+      transition={ressortMotion("apparition")}
+      className={`hey${aGauche ? " gauche" : ""}${dessous ? " dessous" : ""}${parole.crie ? " crie" : ""}${parole.de ? ` fee-${parole.de.teinte}` : ""}`} style={style} role="status">
       {parole.de && <span className="de">{parole.de.prenom}</span>}
       <span className="hey-texte">{parole.texte}</span>
       {actions.length > 0 && (
@@ -384,7 +387,7 @@ function Bulle({ parole, pos }: { parole: Parole; pos: Position }) {
           ))}
         </span>
       )}
-    </div>
+    </m.div>
   );
 }
 

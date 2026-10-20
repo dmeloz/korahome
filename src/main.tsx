@@ -5,6 +5,7 @@ import { creerDepotLocal } from "./donnees/depotLocal";
 import { configurationSupabase, creerServicesSupabase } from "./donnees/supabase";
 import { creerSynchro } from "./donnees/synchro";
 import { App, ecranAffiche } from "./ui/App";
+import { Moteur } from "./ui/moteur/Moteur";
 import { installerJournal } from "./ui/journal";
 import { creerMiseAJour, surveillerMisesAJour } from "./ui/miseAJour";
 import { appliquerVerre } from "./ui/accueilLocal";
@@ -23,7 +24,7 @@ appliquerVerre();
 
 installerJournal(ecranAffiche);
 // Les ressorts d'Anime.js arrivent juste après le premier écran, sans l'alourdir.
-void import("./ui/mouvement").then((m) => m.installerRessorts());
+void import("./ui/moteur/anime").then((m) => m.installerRessorts());
 
 // Au retour dans l'app, on regarde si une version attend.
 const auRetour: (() => void)[] = [];
@@ -40,6 +41,8 @@ const partage = distant ? { compte: distant, synchro: creerSynchro(depot, distan
 
 createRoot(document.getElementById("racine")!).render(
   <StrictMode>
-    <App depot={depot} miseAJour={miseAJour} partage={partage} />
+    <Moteur>
+      <App depot={depot} miseAJour={miseAJour} partage={partage} />
+    </Moteur>
   </StrictMode>,
 );

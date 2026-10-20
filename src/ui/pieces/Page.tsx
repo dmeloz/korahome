@@ -1,5 +1,6 @@
-import { useState, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { Icone } from "../Icone";
+import { RepereOnglet } from "../moteur/pieces";
 import { CLES, ecrireTexte, lireTexte } from "../stockageLocal";
 
 // Le gabarit unique d'une page : un grand titre (30), une ligne de contexte, des actions
@@ -58,11 +59,14 @@ export function AideUneFois({ cle, texte }: { cle: string; texte: string }) {
 }
 
 /** Des onglets en segments, comme le Picker segmenté de l'iPhone. */
+/** Les onglets d'une page : le repère de l'onglet actif glisse jusqu'au nouveau (moteur, ressort « onglet »). */
 export function Onglets<T extends string>(props: { onglets: readonly { id: T; libelle: string; compte?: number }[]; actif: T; changer: (id: T) => void; libelle: string }) {
+  const groupe = useId();
   return (
     <div className="segments" role="tablist" aria-label={props.libelle}>
       {props.onglets.map((o) => (
         <button key={o.id} role="tab" aria-selected={o.id === props.actif} className={o.id === props.actif ? "actif" : ""} onClick={() => props.changer(o.id)}>
+          {o.id === props.actif && <RepereOnglet groupe={groupe} />}
           {o.libelle}
           {o.compte ? <span className="segment-compte">{o.compte}</span> : null}
         </button>

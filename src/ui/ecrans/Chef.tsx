@@ -14,6 +14,7 @@ import { Onglets, Page } from "../pieces";
 import { recettesDe, soirsPrevus } from "../../domaine/recettes";
 import { FicheRecette, nomDuSoir, OngletRecettes } from "./Recettes";
 import { nomFee } from "../fee";
+import { Ligne, ListeVivante } from "../moteur/pieces";
 
 const HEURES = Array.from({ length: HEURE_MAX - HEURE_MIN + 1 }, (_, i) => HEURE_MIN + i);
 
@@ -184,9 +185,9 @@ export function Chef(p: PropsPage) {
         {menu && ajouts.length > 0 && (
           <>
             <h2 className="rayon">Ajouté aux courses</h2>
-            <ul className="carte groupe">
+            <ListeVivante className="carte groupe">
               {ajouts.map(({ ajout, element }) => (
-                <li key={ajout.elementId}>
+                <Ligne key={ajout.elementId}>
                   {element && !element.coche ? (
                     <Glissable onSupprimer={() => void retirer(menu, element)} libelle="Retirer">
                       <div className="ligne">
@@ -203,9 +204,9 @@ export function Chef(p: PropsPage) {
                       <span className="discret">{element ? "acheté" : "retiré"}</span>
                     </div>
                   )}
-                </li>
+                </Ligne>
               ))}
-            </ul>
+            </ListeVivante>
             <p className="discret">Glisse un article vers la gauche pour le retirer de la liste.</p>
           </>
         )}

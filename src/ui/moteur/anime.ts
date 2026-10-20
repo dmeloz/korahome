@@ -2,27 +2,16 @@ import { useEffect, useRef } from "react";
 import { spring } from "animejs/easings/spring";
 import { stagger } from "animejs/utils";
 import { waapi } from "animejs/waapi";
+import { moinsDAnimations, RESSORTS, type NomRessort } from "./ressorts";
 
-// Le mouvement de Kora, avec Anime.js (seul fichier qui l'importe) :
+// La part d'Anime.js dans le moteur de mouvement (seul fichier qui l'importe), avec les
+// ressorts de ressorts.ts :
 // - les ressorts : la fée lâchée et les lignes qui reviennent rebondissent comme sur l'iPhone.
 //   Ils sont donnés aux styles en variables CSS (--ressort-*), sous forme de courbe linear() ;
 // - les graphiques qui se dessinent : un trait marqué data-dessin se trace, les éléments
 //   data-cascade montent l'un après l'autre, data-apparait arrive en fondu.
 // Si l'iPhone demande moins d'animations, rien ne rebondit ni ne se dessine.
-// Équivalents natifs : .spring(duration:bounce:) et .trim(from:to:) animé dans SwiftUI.
-
-const RESSORTS = {
-  /** La fée lâchée : un rebond franc, comme un objet qu'on lance. */
-  fee: { bounce: 0.35, duration: 450 },
-  /** Une ligne qui se referme ou s'ouvre : un rebond léger. */
-  ligne: { bounce: 0.15, duration: 350 },
-  /** Une barre de graphique qui monte. */
-  barre: { bounce: 0.25, duration: 500 },
-} as const;
-
-type NomRessort = keyof typeof RESSORTS;
-
-const moinsDAnimations = () => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+// Équivalent natif d'un trait qui se dessine : .trim(from:to:) animé dans SwiftUI.
 
 /** La courbe CSS d'un ressort et sa durée réelle (jusqu'à l'arrêt). */
 export function courbeRessort(nom: NomRessort, points = 60): { courbe: string; duree: number } {

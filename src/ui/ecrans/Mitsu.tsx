@@ -46,6 +46,7 @@ import type { Depot } from "../../donnees/depot";
 import { useAnnoncer } from "../annulation";
 import { aujourdhuiLocal, contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
+import { Ligne, ListeVivante, Message } from "../moteur/pieces";
 import { CarnetPropose, CourbePoids, Fiches, Infos, Journal } from "./MitsuSuivi";
 import { Onglets, Page, useGestionnaireBarre } from "../pieces";
 import { Icone } from "../Icone";
@@ -501,13 +502,13 @@ function Suivi(props: Props & { animal: Animal }) {
         {animal.provisions.length === 0 ? (
           <p className="carte discret">Ajoute le sac de croquettes et la litière en cours : l'app te dira quand commander.</p>
         ) : (
-          <ul className="carte groupe">
+          <ListeVivante className="carte groupe">
             {animal.provisions.map((p) => {
               const prev = prevoir(p, animal, aujourdhui);
               const suivie = articleDe(p, animal) !== undefined;
               const alerte = suivie ? vides.some((v) => v.provision.id === p.id) : !!prev && prev.etat !== "ok";
               return (
-                <li key={p.id}>
+                <Ligne key={p.id}>
                   <Glissable className="mitsu-provision" libelle="Retirer" onSupprimer={() => retirer(retirerProvision(animal, p.id), `« ${p.nom} » retiré.`)}>
                   <div className="ligne-texte">
                     <strong>{p.nom}</strong>
@@ -533,10 +534,10 @@ function Suivi(props: Props & { animal: Animal }) {
                     <button className="lien" onClick={() => paquetTermine(p)}>Paquet fini</button>
                   </div>
                   </Glissable>
-                </li>
+                </Ligne>
               );
             })}
-          </ul>
+          </ListeVivante>
         )}
       </Section>
 
@@ -571,9 +572,9 @@ function Suivi(props: Props & { animal: Animal }) {
         </Feuille>
         <CarnetPropose animal={animal} aujourdhui={aujourdhui} modifier={modifier} />
         {soinsAVenir(animal).length > 0 && (
-          <ul className="carte groupe">
+          <ListeVivante className="carte groupe">
             {soinsAVenir(animal).map((s) => (
-              <li key={s.id}>
+              <Ligne key={s.id}>
                 <Glissable className="mitsu-provision" libelle="Retirer" onSupprimer={() => retirer(retirerSoin(animal, s.id), `« ${s.libelle} » retiré du carnet.`)}>
                 <div className="ligne-texte">
                   <strong>{s.libelle}</strong>
@@ -585,9 +586,9 @@ function Suivi(props: Props & { animal: Animal }) {
                   <button className="lien" onClick={() => enregistrer(marquerSoinFait(animal, s.id, aujourdhui, contexteReel))}>Fait aujourd'hui</button>
                 </div>
                 </Glissable>
-              </li>
+              </Ligne>
             ))}
-          </ul>
+          </ListeVivante>
         )}
         {soinsFaits(animal).length > 0 && (
           // Ce qui est fait (les vaccins de chaton, les vermifuges passés) se range ici, replié.
@@ -677,12 +678,10 @@ function Suivi(props: Props & { animal: Animal }) {
       </>
       )}
 
-      {(erreur || message) && (
-        <div className="toast" role={erreur ? "alert" : "status"}>
-          <span>{erreur ?? message}</span>
-          <button className="lien" onClick={() => { setErreur(null); setMessage(null); }}>OK</button>
-        </div>
-      )}
+      <Message visible={!!(erreur || message)} cle={erreur ?? message ?? undefined} role={erreur ? "alert" : "status"}>
+        <span>{erreur ?? message}</span>
+        <button className="lien" onClick={() => { setErreur(null); setMessage(null); }}>OK</button>
+      </Message>
     </Page>
   );
 }

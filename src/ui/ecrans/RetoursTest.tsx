@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { GENRES, basculerRegle, etatRetour, grouperParEcran, heureCourte, type EtatRetour, type RetourTest } from "../../domaine/retours";
 import type { Foyer } from "../../domaine/types";
 import type { DepotLocal } from "../../donnees/depotLocal";
@@ -7,6 +7,7 @@ import { contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
 import { effacerJournal, lireJournal } from "../journal";
 import { construireRapport, copierRapport, partagerRapport } from "../rapport";
+import { RepereOnglet } from "../moteur/pieces";
 import { Page } from "../pieces";
 
 // Les notes de test, rangées comme dans Sanji : nouvelles (pas encore parties),
@@ -20,6 +21,7 @@ const GROUPES: { etat: EtatRetour; titre: string }[] = [
 
 export function RetoursTest(props: { depot: DepotLocal; foyer: Foyer; retours: RetourTest[]; partageActif: boolean }) {
   const [etat, setEtat] = useState<string | null>(null);
+  const repere = useId();
   const [ouvert, setOuvert] = useState<EtatRetour>("nouvelle");
   const [enAttente, setEnAttente] = useState<ReadonlySet<string>>(new Set());
   const [, rafraichir] = useState(0);
@@ -103,6 +105,7 @@ export function RetoursTest(props: { depot: DepotLocal; foyer: Foyer; retours: R
             className={ouvert === g.etat ? "actif" : ""}
             onClick={() => setOuvert(g.etat)}
           >
+            {ouvert === g.etat && <RepereOnglet groupe={repere} />}
             {g.titre} <span className="discret">{parEtat(g.etat).length}</span>
           </button>
         ))}

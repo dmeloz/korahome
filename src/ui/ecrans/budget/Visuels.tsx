@@ -11,7 +11,7 @@ import {
   type RythmeCourses,
 } from "../../../domaine/budget";
 import { Icone } from "../../Icone";
-import { useDessin } from "../../mouvement";
+import { useDessin } from "../../moteur";
 
 // Les visuels du Budget : sobres, sans légende inutile, un chiffre qui compte par visuel.
 // Les couleurs des pots viennent des variables --pot-* (styles/budget.css), pour les deux thèmes.
