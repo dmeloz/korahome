@@ -11,6 +11,7 @@ import {
   type RythmeCourses,
 } from "../../../domaine/budget";
 import { Icone } from "../../Icone";
+import { useDessin } from "../../mouvement";
 
 // Les visuels du Budget : sobres, sans légende inutile, un chiffre qui compte par visuel.
 // Les couleurs des pots viennent des variables --pot-* (styles/budget.css), pour les deux thèmes.
@@ -24,14 +25,15 @@ const court = (mois: string) => COURTS[Number(mois.slice(5, 7)) - 1] ?? mois;
 /** L'anneau du mois : où part l'argent du compte commun. Toucher une part en montre le détail. */
 export function AnneauDuCommun(props: { parts: PartDuCommun[]; entree: number; noms: (pot: PartDuCommun["pot"]) => string }) {
   const [choisi, setChoisi] = useState<PartDuCommun["pot"] | null>(null);
+  const dessin = useDessin<HTMLElement>();
   const rayon = 52;
   const tour = 2 * Math.PI * rayon;
   let depart = 0;
   const actif = props.parts.find((x) => x.pot === choisi) ?? null;
   return (
-    <section className="carte budget-anneau">
+    <section ref={dessin} className="carte budget-anneau">
       <div className="budget-anneau-dessin">
-        <svg viewBox="0 0 140 140" role="img" aria-label="Répartition du compte commun">
+        <svg viewBox="0 0 140 140" role="img" aria-label="Répartition du compte commun" data-apparait="">
           <circle cx="70" cy="70" r={rayon} className="budget-anneau-fond" />
           {props.parts.map((x) => {
             const longueur = Math.max(0, x.part * tour - 3);
@@ -107,13 +109,14 @@ export function phraseRythme(r: RythmeCourses): string {
 /** Les douze mois du pot factures : une barre par mois, les mois lourds ressortent. */
 export function MoisLourds({ mois, aujourdhui }: { mois: MoisDeFactures[]; aujourdhui: string }) {
   const [choisi, setChoisi] = useState<string | null>(null);
+  const dessin = useDessin<HTMLElement>();
   if (!mois.length) return null;
   const max = Math.max(1, ...mois.map((m) => m.sorties));
   const moyenne = mois.reduce((t, m) => t + m.sorties, 0) / mois.length;
   const manque = mois.find((m) => m.solde < 0);
   const actif = mois.find((m) => m.mois === choisi) ?? null;
   return (
-    <section className="carte budget-mois-lourds">
+    <section ref={dessin} className="carte budget-mois-lourds">
       <div className="budget-barres" role="group" aria-label="Factures des douze mois qui viennent">
         {mois.map((m) => (
           <button
@@ -123,7 +126,7 @@ export function MoisLourds({ mois, aujourdhui }: { mois: MoisDeFactures[]; aujou
             onClick={() => setChoisi(choisi === m.mois ? null : m.mois)}
             aria-label={`${nommerMois(m.mois, aujourdhui)} : ${montant(m.sorties)}`}
           >
-            <span className="budget-barre-trait" style={{ height: `${Math.max(3, Math.round((m.sorties / max) * 78))}%` }} />
+            <span className="budget-barre-trait" data-cascade="" style={{ height: `${Math.max(3, Math.round((m.sorties / max) * 78))}%` }} />
             <span className="budget-barre-nom">{initiale(m.mois)}</span>
           </button>
         ))}
@@ -166,6 +169,7 @@ export function TrajetSalaire({ b }: { b: BilanPersonne }) {
 
 /** La courbe de l'épargne : le trait plein pour ce qui est fait, pointillé pour la suite au rythme prévu. */
 export function CourbeEpargne({ points, objectif, aujourdhui }: { points: PointEpargne[]; objectif: number | null; aujourdhui: string }) {
+  const dessin = useDessin<HTMLElement>();
   if (points.length < 2) return null;
   const l = 300;
   const h = 110;
@@ -179,13 +183,13 @@ export function CourbeEpargne({ points, objectif, aujourdhui }: { points: PointE
   const dernier = faits[faits.length - 1];
   const fin = points[points.length - 1];
   return (
-    <section className="carte budget-courbe">
+    <section ref={dessin} className="carte budget-courbe">
       <svg viewBox={`0 0 ${l} ${h}`} role="img" aria-label={`Épargne : ${montant(dernier.p.solde)} aujourd'hui, ${montant(fin.solde)} en ${nommerMois(fin.mois, aujourdhui)} au rythme prévu`}>
         {objectif ? <line x1="0" x2={l} y1={y(objectif)} y2={y(objectif)} className="budget-courbe-objectif" /> : null}
-        <path d={`${trace(faits)} L${x(dernier.i).toFixed(1)} ${h - 8} L${x(0).toFixed(1)} ${h - 8} Z`} className="budget-courbe-aire" />
-        <path d={trace(faits)} className="budget-courbe-trait" />
-        {prevus.length > 1 && <path d={trace(prevus)} className="budget-courbe-trait prevu" />}
-        <circle cx={x(dernier.i)} cy={y(dernier.p.solde)} r="3.5" className="budget-courbe-point" />
+        <path d={`${trace(faits)} L${x(dernier.i).toFixed(1)} ${h - 8} L${x(0).toFixed(1)} ${h - 8} Z`} className="budget-courbe-aire" data-apparait="" />
+        <path d={trace(faits)} className="budget-courbe-trait" pathLength={1} data-dessin="" />
+        {prevus.length > 1 && <path d={trace(prevus)} className="budget-courbe-trait prevu" data-apparait="" />}
+        <circle cx={x(dernier.i)} cy={y(dernier.p.solde)} r="3.5" className="budget-courbe-point" data-apparait="" />
       </svg>
       <p className="discret">
         {fin.prevu ? `Au rythme prévu : ${montant(fin.solde)} en ${nommerMois(fin.mois, aujourdhui)}.` : `${montant(dernier.p.solde)} aujourd'hui.`}
@@ -196,15 +200,16 @@ export function CourbeEpargne({ points, objectif, aujourdhui }: { points: PointE
 
 /** Les courses mois par mois : des barres fines, le mois en cours en laiton. */
 export function CoursesParMois({ mois, budget, aujourdhui }: { mois: { mois: string; total: number }[]; budget: number; aujourdhui: string }) {
+  const dessin = useDessin<HTMLElement>();
   const max = Math.max(1, budget, ...mois.map((m) => m.total));
   return (
-    <section className="carte">
+    <section ref={dessin} className="carte">
       <div className="budget-barres larges" role="img" aria-label={mois.map((m) => `${nommerMois(m.mois, aujourdhui)} ${montant(m.total)}`).join(", ")}>
         {budget > 0 && <span className="budget-barres-repere" style={{ bottom: `calc(${((budget / max) * 78).toFixed(1)}% + 17px)` }} />}
         {mois.map((m, i) => (
           <div key={m.mois} className={`budget-barre${i === mois.length - 1 ? " actif" : ""}${budget > 0 && m.total > budget ? " manque" : ""}`}>
             <span className="budget-barre-valeur">{m.total ? Math.round(m.total) : ""}</span>
-            <span className="budget-barre-trait" style={{ height: `${Math.max(2, Math.round((m.total / max) * 70))}%` }} />
+            <span className="budget-barre-trait" data-cascade="" style={{ height: `${Math.max(2, Math.round((m.total / max) * 70))}%` }} />
             <span className="budget-barre-nom">{court(m.mois)}</span>
           </div>
         ))}

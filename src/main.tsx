@@ -22,6 +22,8 @@ appliquerTheme(lireTheme());
 appliquerVerre();
 
 installerJournal(ecranAffiche);
+// Les ressorts d'Anime.js arrivent juste après le premier écran, sans l'alourdir.
+void import("./ui/mouvement").then((m) => m.installerRessorts());
 
 // Au retour dans l'app, on regarde si une version attend.
 const auRetour: (() => void)[] = [];

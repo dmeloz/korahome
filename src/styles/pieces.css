@@ -343,7 +343,7 @@ html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
   position: relative;
   background: var(--surface);
   touch-action: pan-y;
-  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: transform var(--ressort-ligne-duree, 0.25s) var(--ressort-ligne, cubic-bezier(0.2, 0.8, 0.2, 1));
 }
 .glissable-contenu.glisse { transition: none; }
 
@@ -358,6 +358,9 @@ html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .glissable-contenu, .contenu.retour-anime { transition: none; }
 }
+
+/* Un trait de graphique qui se dessine à l'arrivée (dessinerGraphique, ui/mouvement.ts), avec pathLength="1". */
+[data-dessin] { stroke-dasharray: 1 1; }
 
 .feuille-alerte { text-align: center; }
 .feuille-formulaire { display: flex; flex-direction: column; gap: 10px; }

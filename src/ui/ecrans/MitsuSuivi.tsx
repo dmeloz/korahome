@@ -27,6 +27,7 @@ import { Glissable } from "../Glissable";
 import { vibrer } from "../haptique";
 import { copierRapport } from "../rapport";
 import { nomFee } from "../fee";
+import { useDessin } from "../mouvement";
 
 // Les ajouts de la 0.0.14 au suivi de Mitsu : journal du quotidien, courbe de poids,
 // carnet prérempli, fiches à partager (vétérinaire, garde) et informations pratiques.
@@ -131,6 +132,7 @@ export function Journal(props: Commun & { membres: Membre[]; membreId: string | 
 
 /** Ses pesées sur la zone habituelle d'un chat de son âge, de la naissance à au moins 1 an. */
 export function CourbePoids({ animal, aujourdhui }: { animal: Animal; aujourdhui: string }) {
+  const dessin = useDessin<HTMLElement>();
   const pesees = historiquePesees(animal).reverse();
   const unAn = decaler(animal.naissance, { unite: "mois", tous: 13 });
   const fin = [aujourdhui, unAn, ...pesees.map((p) => p.jour)].reduce((a, b) => (a > b ? a : b));
@@ -151,7 +153,7 @@ export function CourbePoids({ animal, aujourdhui }: { animal: Animal; aujourdhui
   const kg = Array.from({ length: Math.floor(haut / 1000) }, (_, i) => (i + 1) * 1000);
 
   return (
-    <figure className="mitsu-courbe">
+    <figure ref={dessin} className="mitsu-courbe">
       <svg viewBox={`-28 -6 ${L + 36} ${H + 24}`} role="img" aria-label={`Courbe de poids de ${animal.nom} comparée au poids habituel d'un chat de son âge`}>
         {kg.map((g) => (
           <g key={g}>
@@ -159,16 +161,16 @@ export function CourbePoids({ animal, aujourdhui }: { animal: Animal; aujourdhui
             <text x={-6} y={y(g) + 4} textAnchor="end" className="mitsu-courbe-texte">{g / 1000} kg</text>
           </g>
         ))}
-        <polygon points={bande} className="mitsu-courbe-bande" />
-        <polyline points={mediane} className="mitsu-courbe-mediane" />
+        <polygon points={bande} className="mitsu-courbe-bande" data-apparait="" />
+        <polyline points={mediane} className="mitsu-courbe-mediane" data-apparait="" />
         <line x1={x(aujourdhui)} x2={x(aujourdhui)} y1={0} y2={H} className="mitsu-courbe-aujourdhui" />
         {[6, 12].filter((m) => m <= mois).map((m) => {
           const jour = decaler(animal.naissance, { unite: "mois", tous: m });
           return <text key={m} x={x(jour)} y={H + 16} textAnchor="middle" className="mitsu-courbe-texte">{m === 12 ? "1 an" : `${m} mois`}</text>;
         })}
-        {pesees.length > 1 && <polyline points={trace} className="mitsu-courbe-trace" />}
+        {pesees.length > 1 && <polyline points={trace} className="mitsu-courbe-trace" pathLength={1} data-dessin="" />}
         {pesees.map((p) => (
-          <circle key={p.id} cx={x(p.jour)} cy={y(p.grammes)} r={4} className="mitsu-courbe-point" />
+          <circle key={p.id} cx={x(p.jour)} cy={y(p.grammes)} r={4} className="mitsu-courbe-point" data-apparait="" />
         ))}
       </svg>
       <figcaption className="discret">La zone claire est le poids habituel d'un chat de son âge : un repère, les chats varient beaucoup.</figcaption>

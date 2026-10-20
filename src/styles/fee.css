@@ -90,7 +90,8 @@ html[data-fee="bleue"], .fee-bleue { --fee-teinte: #1e96d4; --fee-lueur: #8fe3ff
 .fee {
   position: fixed; left: 0; top: 0; z-index: 9; width: 60px; height: 60px;
   touch-action: none; cursor: grab; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
-  transition: transform .55s cubic-bezier(.2, .9, .3, 1.15), opacity .4s;
+  /* Le ressort de la fée vient d'Anime.js (ui/mouvement.ts) ; sans lui, la courbe d'avant. */
+  transition: transform var(--ressort-fee-duree, .55s) var(--ressort-fee, cubic-bezier(.2, .9, .3, 1.15)), opacity .4s;
   outline: none;
 }
 .fee svg { width: 100%; height: 100%; overflow: visible; display: block; transition: transform .4s cubic-bezier(.2, .9, .3, 1.2); }
