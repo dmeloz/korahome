@@ -38,6 +38,11 @@ export function noter(type: TypeEvenement, detail: string, ecran = ecranCourant(
   }
 }
 
+/** Pour un `.catch` qu'on laissait vide : l'erreur ne gêne pas l'app, mais elle est notée. */
+export function ignorer(erreur: unknown): void {
+  noter("erreur", erreur instanceof Error ? erreur.message : String(erreur));
+}
+
 export function effacerJournal(): void {
   memoire = [];
   vider();

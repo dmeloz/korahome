@@ -6,6 +6,7 @@ import type { DocChef } from "../domaine/chef";
 import type { Souvenir } from "../domaine/memoire";
 import type { RetourTest } from "../domaine/retours";
 import type { ProduitHabituel } from "../domaine/catalogue";
+import type { EntreeCorbeille } from "../domaine/corbeille";
 import type { Zone } from "../domaine/jardin";
 import type { Produit } from "../domaine/stock";
 import type { Element, Foyer, Id, Liste, Tache } from "../domaine/types";
@@ -80,6 +81,13 @@ export interface Depot {
   lireRetours(): Promise<RetourTest[]>;
   enregistrerRetour(retour: RetourTest): Promise<void>;
   supprimerRetour(id: Id): Promise<void>;
+
+  /** La corbeille du foyer : ce qui a été effacé ces trente derniers jours (voir domaine/corbeille.ts). */
+  lireCorbeille(): Promise<EntreeCorbeille[]>;
+  /** Remet le document (et les articles d'une liste) là où il était, et le retire de la corbeille. */
+  remettre(entree: EntreeCorbeille): Promise<void>;
+  /** Retire des entrées de la corbeille pour de bon. */
+  viderCorbeille(ids: Id[]): Promise<void>;
 
   /** Prévient l'abonné à chaque changement, y compris venant d'un autre onglet ou appareil. */
   abonner(rappel: () => void): () => void;

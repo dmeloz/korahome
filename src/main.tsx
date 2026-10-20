@@ -9,6 +9,7 @@ import { Moteur } from "./ui/moteur/Moteur";
 import { installerJournal } from "./ui/journal";
 import { creerMiseAJour, surveillerMisesAJour } from "./ui/miseAJour";
 import { appliquerVerre } from "./ui/accueilLocal";
+import { lireMembreCourant } from "./ui/contexte";
 import { appliquerTheme, lireTheme } from "./ui/theme";
 import "./styles/index.css";
 
@@ -33,7 +34,7 @@ document.addEventListener("visibilitychange", () => {
 });
 surveillerMisesAJour(miseAJour, (f) => auRetour.push(f), (f, ms) => setInterval(f, ms));
 
-const depot = creerDepotLocal();
+const depot = creerDepotLocal(undefined, undefined, undefined, lireMembreCourant);
 // Sans adresse de serveur (.env.local sur le Mac), l'app reste sur ce téléphone seulement.
 const config = configurationSupabase();
 const distant = config ? creerServicesSupabase(config.url, config.cle) : null;

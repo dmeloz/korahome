@@ -344,3 +344,44 @@ describe("dépôt local : passage à la version 6", () => {
     expect((await depot.lireEnAttente()).map((c) => [c.collection, c.id])).toEqual([["retours", "n1"]]);
   });
 });
+
+describe("la corbeille du dépôt", () => {
+  it("garde ce qu'on efface, avec qui l'a effacé, et le remet", async () => {
+    const ctx = contexteTest();
+    let t = Date.parse("2026-10-20T10:00:00.000Z");
+    const depot = creerDepotLocal("test-corbeille", new IDBFactory(), () => new Date((t += 1000)).toISOString(), () => "melo");
+    const foyer = creerFoyer("Maison", ["Melo"], ctx);
+    const [courses, maison] = listesInitiales(ctx);
+    await depot.enregistrerFoyer(foyer);
+    await depot.enregistrerListe(courses);
+    await depot.enregistrerListe(maison);
+    await depot.enregistrerElement(nouvelElement(maison, "ampoule", null, ctx));
+    const [tache] = tachesDeDepart("2026-10-20", ctx);
+    await depot.enregistrerTache(tache);
+
+    await depot.supprimerListe(maison.id);
+    await depot.supprimerTache(tache.id);
+    const corbeille = await depot.lireCorbeille();
+    expect(corbeille.map((e) => [e.collection, e.effacePar])).toEqual([["listes", "melo"], ["taches", "melo"]]);
+    expect(corbeille[0].elements?.map((e) => e.texte)).toEqual(["Ampoule"]);
+    // La corbeille se partage comme le reste.
+    expect((await depot.lireEnAttente()).some((c) => c.collection === "corbeille" && c.donnees !== null)).toBe(true);
+
+    await depot.remettre(corbeille[0]);
+    expect((await depot.lireListes()).map((l) => l.nom).sort()).toEqual(["Courses", "Maison"]);
+    expect((await depot.lireElements()).map((e) => e.texte)).toEqual(["Ampoule"]);
+    expect((await depot.lireCorbeille()).map((e) => e.collection)).toEqual(["taches"]);
+
+    await depot.viderCorbeille([corbeille[1].id]);
+    expect(await depot.lireCorbeille()).toEqual([]);
+  });
+
+  it("n'y met pas un ajout annulé dans la minute", async () => {
+    const ctx = contexteTest("2026-10-20T10:00:00.000Z");
+    const depot = creerDepotLocal("test-annulation", new IDBFactory(), () => "2026-10-20T10:00:30.000Z");
+    const [tache] = tachesDeDepart("2026-10-20", ctx);
+    await depot.enregistrerTache(tache);
+    await depot.supprimerTache(tache.id);
+    expect(await depot.lireCorbeille()).toEqual([]);
+  });
+});

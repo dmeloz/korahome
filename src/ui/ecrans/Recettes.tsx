@@ -37,6 +37,7 @@ import type { PropsPage } from "../modules";
 import { useGestionnaireBarre, useInvitationBarre } from "../pieces";
 import { nomFee } from "../fee";
 import { Ligne, ListeVivante } from "../moteur/pieces";
+import { ignorer } from "../journal";
 
 // Les recettes du foyer, dans « Menus de la semaine » : la base qui se remplit seule (le Chef,
 // les liens et photos lus par Jarvis, ce qu'on écrit), ce qu'on peut faire ce soir avec le
@@ -487,7 +488,7 @@ function ModeCuisine(props: { titre: string; portions: number; ingredients: Ingr
           if (fini) void v.release();
           else verrou = v;
         })
-        .catch(() => {});
+        .catch(ignorer);
     };
     demander();
     const revenir = () => document.visibilityState === "visible" && demander();

@@ -37,11 +37,11 @@ describe("l'état du partage", () => {
   const base = { disponible: true, etat: "ok" as const, enAttente: 0, derniere: "2026-10-19T17:55:00.000Z", enLigne: true, maintenant: "2026-10-19T18:00:00.000Z" };
 
   it("dit « À jour » quand tout est parti", () => {
-    expect(decrireEtatPartage(base)).toEqual({ ton: "calme", texte: "À jour", detail: "Partagé avec l'autre iPhone il y a 5 min." });
+    expect(decrireEtatPartage(base)).toEqual({ ton: "calme", texte: "À jour", detail: "Partagé avec l'autre iPhone il y a 5 min.", horsLigne: false });
   });
 
   it("compte ce qui attend, hors ligne ou en route", () => {
-    expect(decrireEtatPartage({ ...base, enLigne: false, enAttente: 2 })).toMatchObject({ ton: "jour", texte: "2 changements en attente" });
+    expect(decrireEtatPartage({ ...base, enLigne: false, enAttente: 2 })).toMatchObject({ ton: "jour", texte: "2 changements en attente du réseau", horsLigne: true });
     expect(decrireEtatPartage({ ...base, enAttente: 1 })).toMatchObject({ ton: "jour", texte: "1 changement en route" });
     expect(decrireEtatPartage({ ...base, etat: "erreur", enAttente: 3 })).toMatchObject({ ton: "urgent", texte: "Partage en panne" });
   });

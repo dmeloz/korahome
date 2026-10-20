@@ -49,6 +49,7 @@ const TRACES = {
   thermometre: "M14 14.8V4.5a2 2 0 0 0-4 0v10.3a4 4 0 1 0 4 0zM12 17.5v-6",
   sourire: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM8.5 14a4.5 4.5 0 0 0 7 0M9 9.5h.01M15 9.5h.01",
   sablier: "M7 3h10M7 21h10M8 3c0 4.5 8 5 8 9s-8 4.5-8 9M16 3c0 4.5-8 5-8 9s8 4.5 8 9",
+  corbeille: "M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6",
 } as const;
 
 export type NomIcone = keyof typeof TRACES;
