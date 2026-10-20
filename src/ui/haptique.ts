@@ -8,6 +8,8 @@ function moteur(): HTMLLabelElement {
   if (interrupteur) return interrupteur;
   const label = document.createElement("label");
   label.setAttribute("aria-hidden", "true");
+  // Pas dans le journal des tests : chaque vibration y laissait un « checkbox » trompeur.
+  label.dataset.journal = "non";
   label.style.cssText = "position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden;left:-10px;top:0";
   const champ = document.createElement("input");
   champ.type = "checkbox";

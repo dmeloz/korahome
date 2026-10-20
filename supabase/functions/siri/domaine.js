@@ -2081,6 +2081,7 @@ const SOURCES_RECETTE = {
 	chef: "Proposée par le Chef",
 	lien: "Lue sur un site",
 	photo: "Lue sur une photo",
+	pdf: "Lue dans un PDF",
 	jarvis: "Dictée à la fée",
 	main: "Écrite à la main"
 };

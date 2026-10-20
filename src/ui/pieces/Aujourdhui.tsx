@@ -105,7 +105,7 @@ export function CarteAujourdhui(props: {
     c.tacheId ? (
       <button
         className={`moment-rond ${c.etat}${valider.enCours(c) ? " coche" : ""}`}
-        {...toucherFiable(() => valider.basculer(c))}
+        {...toucherFiable(() => valider.basculer(c), 11)}
         role="checkbox"
         aria-checked={valider.enCours(c)}
         aria-label={`Faire « ${c.texte} »`}

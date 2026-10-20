@@ -23,12 +23,13 @@ export interface IngredientRecette {
   quantite: string | null;
 }
 
-export type SourceRecette = "chef" | "lien" | "photo" | "jarvis" | "main";
+export type SourceRecette = "chef" | "lien" | "photo" | "pdf" | "jarvis" | "main";
 
 export const SOURCES_RECETTE: Record<SourceRecette, string> = {
   chef: "Proposée par le Chef",
   lien: "Lue sur un site",
   photo: "Lue sur une photo",
+  pdf: "Lue dans un PDF",
   jarvis: "Dictée à la fée",
   main: "Écrite à la main",
 };

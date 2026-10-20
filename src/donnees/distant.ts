@@ -68,8 +68,14 @@ export interface DemandeJarvis {
   historique: TourJarvis[];
   /** « conseil » : le conseil du dimanche ; « budget » : le conseiller du Budget. Tous deux avec le modèle plus réfléchi. */
   mode?: "conseil" | "budget";
-  /** Une photo à lire (lettre, carte de rendez-vous), en JPEG base64. */
-  image?: { type: "image/jpeg" | "image/png" | "image/webp"; donnees: string };
+  /** Une photo ou un PDF à lire (lettre, carte de rendez-vous, recette), en base64. */
+  image?: PieceJointe;
+}
+
+/** Ce que Jarvis lit en plus de la demande : une photo (JPEG, PNG, WebP) ou un PDF. */
+export interface PieceJointe {
+  type: "image/jpeg" | "image/png" | "image/webp" | "application/pdf";
+  donnees: string;
 }
 
 /** Sa réponse : ce qu'il dit, les actions qu'il demande (à vérifier et appliquer sur le téléphone), son budget. */

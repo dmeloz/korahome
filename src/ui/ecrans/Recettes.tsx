@@ -31,7 +31,8 @@ import { Feuille } from "../Feuille";
 import { Glissable } from "../Glissable";
 import { vibrer } from "../haptique";
 import { Icone } from "../Icone";
-import { annulerModifications, enregistrerModifications, photoPourJarvis } from "../jarvis";
+import { annulerModifications, enregistrerModifications, pdfPourJarvis, photoPourJarvis } from "../jarvis";
+import type { PieceJointe } from "../../donnees/distant";
 import type { PropsPage } from "../modules";
 import { useGestionnaireBarre, useInvitationBarre } from "../pieces";
 import { nomFee } from "../fee";
@@ -85,9 +86,9 @@ export function OngletRecettes(p: PropsPage & { recettes: Recette[]; ouvrir: (id
     return true;
   });
 
-  async function lireParJarvis(demande: string, image: { type: "image/jpeg"; donnees: string } | null, source: Recette["source"]) {
+  async function lireParJarvis(demande: string, image: PieceJointe | null, source: Recette["source"]) {
     if (!p.jarvis) return;
-    setLecture(image ? `${nomFee()} lit la recette sur la photo…` : `${nomFee()} range la recette…`);
+    setLecture(image?.type === "application/pdf" ? `${nomFee()} lit la recette dans le PDF…` : image ? `${nomFee()} lit la recette sur la photo…` : `${nomFee()} range la recette…`);
     try {
       const r = await p.jarvis.serveur.demanderJarvis({ foyerId: p.jarvis.foyerId, demande, etat: decrireFoyer(p, p.membreId, p.aujourdhui), historique: [], ...(image ? { image } : {}) });
       const actions = lireActions(r.appels)
@@ -128,7 +129,17 @@ export function OngletRecettes(p: PropsPage & { recettes: Recette[]; ouvrir: (id
       {(p.jarvis || p.recettes.length < 3) && (
       <section className="carte recettes-ajout">
         {p.recettes.length < 3 && <p className="discret">Le Chef range ici chaque repas qu'il propose, et {nomFee()} chaque recette que tu lui donnes. Écris un titre à ta fée (appui long sur elle) pour en ajouter une à la main, ou colle une recette entière.</p>}
-        {p.jarvis && <PhotoRecette occupe={lecture !== null} lire={(image) => void lireParJarvis("Voici une recette en photo (page de livre, fiche ou écran). Range-la dans nos recettes avec tous ses ingrédients, leurs quantités et ses étapes.", image, "photo")} />}
+        {p.jarvis && (
+          <PhotoRecette
+            occupe={lecture !== null}
+            lire={(fichier) =>
+              void (fichier.type === "application/pdf"
+                ? lireParJarvis("Voici une recette en PDF. Range-la dans nos recettes avec tous ses ingrédients, leurs quantités et ses étapes. S'il y en a plusieurs, range chacune.", fichier, "pdf")
+                : lireParJarvis("Voici une recette en photo (page de livre, fiche ou écran). Range-la dans nos recettes avec tous ses ingrédients, leurs quantités et ses étapes.", fichier, "photo"))
+            }
+            erreur={(message) => annoncer(message, () => {})}
+          />
+        )}
         {lecture && <p className="discret recettes-lecture">{lecture}</p>}
       </section>
       )}
@@ -192,23 +203,30 @@ export function OngletRecettes(p: PropsPage & { recettes: Recette[]; ouvrir: (id
   );
 }
 
-function PhotoRecette(props: { occupe: boolean; lire: (image: { type: "image/jpeg"; donnees: string }) => void }) {
+function PhotoRecette(props: { occupe: boolean; lire: (fichier: PieceJointe) => void; erreur: (message: string) => void }) {
   const choix = useRef<HTMLInputElement>(null);
   return (
     <>
       <button type="button" className="bouton-secondaire recettes-photo" disabled={props.occupe} onClick={() => choix.current?.click()}>
         <Icone nom="photo" taille={18} />
-        Photographier une recette
+        Photo ou PDF d'une recette
       </button>
+      {/* L'iPhone propose alors l'appareil photo, la photothèque et « Choisir un fichier » (les PDF de Fichiers). */}
       <input
         ref={choix}
         type="file"
-        accept="image/*"
+        accept="image/*,application/pdf,.pdf"
         hidden
         onChange={async (e) => {
           const fichier = e.target.files?.[0];
           e.target.value = "";
-          if (fichier) props.lire(await photoPourJarvis(fichier));
+          if (!fichier) return;
+          const pdf = fichier.type === "application/pdf" || /\.pdf$/i.test(fichier.name);
+          try {
+            props.lire(pdf ? await pdfPourJarvis(fichier) : await photoPourJarvis(fichier));
+          } catch (err) {
+            props.erreur(err instanceof Error && err.message ? err.message : "Ce fichier n'a pas pu être ouvert.");
+          }
         }}
       />
     </>

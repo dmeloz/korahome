@@ -48,6 +48,21 @@ describe("la barre Jarvis", () => {
     expect(comprendrePhrase("Mitsu a mangé moins ce matin", "mitsu", auj).type).toBe("jarvis");
   });
 
+  it("une tâche avec une heure devient un rappel, comme dans Rappels", () => {
+    expect(analyserTache("Prendre médicaments tous les jours à 20h", auj)).toEqual({ titre: "Prendre médicaments", recurrence: { unite: "jour", tous: 1 }, echeance: auj, heure: "20:00" });
+    expect(analyserTache("Appeler le garage demain à 8h30", auj)).toMatchObject({ titre: "Appeler le garage", echeance: "2026-10-20", heure: "08:30" });
+    expect(analyserTache("Sortir le chien 18:15", auj)).toMatchObject({ titre: "Sortir le chien", heure: "18:15" });
+    expect(analyserTache("Arroser le basilic", auj)).not.toHaveProperty("heure");
+    expect(analyserTache("Détartrer la bouilloire tous les 3 mois", auj)).not.toHaveProperty("heure");
+    const rappel = comprendrePhrase("Rappelle-moi de prendre mes médicaments à 21h", "accueil", auj, membres);
+    expect(rappel).toMatchObject({ type: "tache", titre: "Prendre mes médicaments", heure: "21:00" });
+    expect(comprendrePhrase("Prendre mes vitamines chaque jour à 8h", "accueil", auj, membres)).toMatchObject({ type: "tache", heure: "08:00" });
+    expect(comprendrePhrase("Appeler le garage jeudi à 14h", "accueil", auj, membres)).toMatchObject({ type: "tache", echeance: "2026-10-22", heure: "14:00" });
+    expect(decrireIntention(rappel)).toBe("Rappel « Prendre mes médicaments » à 21:00.");
+    // Un rendez-vous, sans verbe, reste dans l'agenda.
+    expect(comprendrePhrase("Dentiste jeudi 14h30", "accueil", auj, membres).type).toBe("agenda");
+  });
+
   it("lit les rythmes des tâches", () => {
     expect(analyserTache("Linge chaque mercredi", auj)).toEqual({ titre: "Linge", recurrence: { unite: "semaine", tous: 1 }, echeance: "2026-10-21" });
     expect(analyserTache("Détartrer la bouilloire tous les 3 mois", auj)).toEqual({ titre: "Détartrer la bouilloire", recurrence: { unite: "mois", tous: 3 }, echeance: auj });

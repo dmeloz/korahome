@@ -2,6 +2,8 @@ import { changerHeure, heureApprise, heureDe, heureProposee } from "../../domain
 import type { Tache } from "../../domaine/types";
 import { Feuille } from "../Feuille";
 import { vibrer } from "../haptique";
+import { etatRappels, type EtatRappels } from "../rappels";
+import { useEffect, useState } from "react";
 
 // L'heure d'une tâche, réglée d'un toucher : la roue de l'iPhone, comme pour une alarme, et
 // « Sans heure » dessous. Kora propose l'heure où la tâche est faite d'habitude ; une heure
@@ -11,6 +13,18 @@ import { vibrer } from "../haptique";
 export function FeuilleHeure(props: { tache: Tache | null; enregistrer: (t: Tache) => void; fermer: () => void }) {
   const t = props.tache;
   const heure = t ? heureDe(t) : null;
+  // Comme dans Rappels, l'heure sert à prévenir : on dit si ce téléphone recevra la notification.
+  const [rappels, setRappels] = useState<EtatRappels | null>(null);
+  useEffect(() => {
+    if (!t) return;
+    let vivant = true;
+    void etatRappels()
+      .then((e) => vivant && setRappels(e))
+      .catch(() => {});
+    return () => {
+      vivant = false;
+    };
+  }, [t?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const proposee = t ? heureProposee(t) : null;
   const choisir = (valeur: string | null | undefined) => {
     if (!t) return;
@@ -41,6 +55,13 @@ export function FeuilleHeure(props: { tache: Tache | null; enregistrer: (t: Tach
                   ? "Après trois fois, Kora proposera l'heure où elle est faite d'habitude."
                   : ""}
           </p>
+          {heure && (
+            <p className="discret feuille-heure-note">
+              {rappels === "actifs" || rappels === null
+                ? `Une notification arrivera à ${heure} sur le téléphone de qui s'en occupe, comme dans Rappels.`
+                : "Les notifications sont coupées sur ce téléphone : active-les dans Réglages › Notifications pour être prévenu à l’heure."}
+            </p>
+          )}
           <div className="feuille-heure-actions">
             {heure !== null && (
               <button className="lien" onClick={() => choisir(null)}>Sans heure</button>
