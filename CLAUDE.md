@@ -10,6 +10,7 @@ Fiche projet et plan (sur le Mac de la propriétaire) : `~/Atelier-Claude/Cervea
 - `npm run typecheck`, `npm run lint` (oxlint, règles dans `.oxlintrc.json`, aussi vérifié par la CI) puis `npm run build` : types, correcteur de code et build de production dans `dist/`.
 - En ligne : https://kora-cassa.netlify.app, publiée sur Netlify par l'action GitHub `Publier` à chaque fusion dans `main` (voir `docs/en-ligne.md`).
 - `npm run essai` (après `npm run build`) : ouvre chaque écran dans un iPhone simulé (Playwright) et signale toute erreur ; à lancer avant chaque version.
+- `npm run atelier` (à chaque version publiée) : capture chaque écran et ses états, sur les 4 appareils du foyer, en sombre et en clair, avec la carte de chaque élément et les différences avec la version d'avant, pour la page « Atelier de finition » où Melo pose ses notes au point près (voir `docs/atelier-de-finition.md`).
 - `npm run fonction` : régénère les fonctions serveur (rappels, Jarvis, Chef, agenda, paiements, Siri) après une modification de leurs règles (voir `docs/notifications.md`, `docs/jarvis.md`).
 - `npm run serveur` : sert l'app en https sur le wifi depuis le Mac (certificat local dans `.certificats/`, voir `docs/installer-sur-iphone.md`).
 
