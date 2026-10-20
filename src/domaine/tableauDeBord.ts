@@ -129,7 +129,7 @@ export function modulesDeLEspace(id: EspaceId): WidgetId[] {
 
 /** Les autres mots qu'on emploie pour chaque module, pour le retrouver dans « Tous les espaces ». */
 export const MOTS_DES_MODULES: Record<WidgetId, readonly string[]> = {
-  taches: ["ménage", "corvées", "à faire", "litière", "poubelles", "linge"],
+  taches: ["ménage", "corvées", "à faire", "litière", "poubelles", "linge", "administratif", "impôts", "démarches"],
   courses: ["acheter", "supermarché", "coop", "migros", "panier"],
   listes: ["cadeaux", "bricolage", "idées"],
   agenda: ["calendrier", "rendez-vous", "rdv", "anniversaire", "vacances", "icloud"],

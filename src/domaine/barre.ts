@@ -9,7 +9,7 @@ import { NOMS_JOURS, sansAccents as retirerAccents } from "./texte";
 // et confie le reste à Jarvis. Sur une page, la phrase va d'abord à cette page.
 
 /** Où l'on écrit : l'accueil, un module, une liste ouverte, la mémoire de la fée ou Nos mots. */
-export type LieuBarre = "accueil" | "liste" | "memoire" | "mots" | WidgetId;
+export type LieuBarre = "accueil" | "liste" | "memoire" | "mots" | "administratif" | WidgetId;
 
 export type Intention =
   | { type: "courses"; articles: string[] }
@@ -129,7 +129,7 @@ export function comprendrePhrase(texte: string, lieu: LieuBarre, aujourdhui: Jou
   if (lieu === "courses") return { type: "courses", articles: decouperArticles(sansVerbeDeCourses(phrase)) };
   if (lieu === "liste") return { type: "liste", articles: decouperArticles(sansVerbeDeCourses(phrase)) };
   if (lieu === "stock") return { type: "stock", texte: phrase };
-  if (lieu === "taches" || lieu === "entretien") return { type: "tache", ...analyserTache(phrase, aujourdhui) };
+  if (lieu === "taches" || lieu === "entretien" || lieu === "administratif") return { type: "tache", ...analyserTache(phrase, aujourdhui) };
   if (lieu === "agenda") return { type: "agenda", brouillon: analyserPhrase(phrase, aujourdhui, membres) };
   if (lieu !== "accueil") return { type: "jarvis", demande: phrase };
 
@@ -162,6 +162,8 @@ export function invitation(lieu: LieuBarre): string {
       return "Une tâche, ex. linge chaque mercredi";
     case "entretien":
       return "Un entretien, ex. détartrer tous les 3 mois";
+    case "administratif":
+      return "Une démarche, ex. renouveler l'assurance chaque année";
     case "agenda":
       return "Ex. dentiste jeudi 14h30";
     case "stock":

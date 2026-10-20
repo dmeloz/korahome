@@ -94,8 +94,11 @@ export interface Tache {
   faiteLe: string | null;
   faitePar: Id | null;
   creeLe: string;
-  /** « entretien » : un geste d'entretien de la maison, qui revient tous les quelques mois. */
-  categorie?: "entretien";
+  /**
+   * « entretien » : un geste d'entretien de la maison, qui revient tous les quelques mois.
+   * « administratif » : les papiers, les factures et les démarches (impôts, assurances…).
+   */
+  categorie?: "entretien" | "administratif";
   /** Les dernières fois où elle a été faite : par qui, et avec combien de jours de retard. */
   historique?: FoisFaite[];
   /**
