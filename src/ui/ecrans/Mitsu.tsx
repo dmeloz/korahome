@@ -48,6 +48,7 @@ import { aujourdhuiLocal, contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
 import { CarnetPropose, CourbePoids, Fiches, Infos, Journal } from "./MitsuSuivi";
 import { Onglets, Page, useGestionnaireBarre } from "../pieces";
+import { Icone } from "../Icone";
 import { lirePesee } from "../../domaine/barre";
 import { nomFee } from "../fee";
 
@@ -388,7 +389,7 @@ function Suivi(props: Props & { animal: Animal }) {
               {jourPesee === aujourdhui ? "Aujourd'hui" : dateCourte(jourPesee)}
               <input type="date" value={jourPesee} max={aujourdhui} onChange={(e) => setJourPesee(e.target.value || aujourdhui)} aria-label="Jour de la pesée" />
             </label>
-            <button type="submit" disabled={!poids.trim()} aria-label="Enregistrer le poids">+</button>
+            <button type="submit" disabled={!poids.trim()} aria-label="Enregistrer le poids"><Icone nom="coche" taille={18} /></button>
           </form>
         </Feuille>
         <div className="carte">

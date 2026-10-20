@@ -23,9 +23,10 @@ import { equilibreDesTaches, equilibreVisible } from "../../domaine/apprentissag
 import { noterUsage } from "../usage";
 import { Onglets, Page } from "../pieces";
 import { Icone } from "../Icone";
+import { Entretien } from "./Entretien";
 
-// Les tâches de la maison. On en ajoute d'une phrase dans la barre Jarvis (« linge chaque
-// mercredi ») ; on glisse une tâche vers la droite pour la marquer faite, vers la gauche
+// Les tâches de la maison, et l'onglet Entretien. On en ajoute d'une phrase à la fée (« linge
+// chaque mercredi ») ; on glisse une tâche vers la droite pour la marquer faite, vers la gauche
 // pour la supprimer ; un appui long ouvre sa fiche. Le dimanche, on se répartit la semaine.
 
 const CLE_REPARTITION = "korahome.derniereRepartition";
@@ -53,13 +54,22 @@ export const demanderRepartition = () => {
   repartitionDemandee = true;
 };
 
-const FILTRES: { id: Filtre; libelle: string }[] = [
+const FILTRES: { id: Filtre | "entretien"; libelle: string }[] = [
   { id: "toutes", libelle: "Toutes" },
   { id: "miennes", libelle: "Les miennes" },
   { id: "libres", libelle: "Libres" },
+  { id: "entretien", libelle: "Entretien" },
 ];
 
-export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | null; taches: Tache[] }) {
+export function Taches(props: {
+  depot: Depot;
+  foyer: Foyer;
+  membreId: string | null;
+  taches: Tache[];
+  /** « entretien » : l'onglet de l'entretien de la maison. */
+  onglet?: string;
+  changerOnglet: (onglet: string | undefined) => void;
+}) {
   const aujourdhui = aujourdhuiLocal();
   const [filtre, setFiltre] = useState<Filtre>("toutes");
   const [ouverte, setOuverte] = useState<string | null>(null);
@@ -175,11 +185,12 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
   const etalement = etalementPropose(props.taches, aujourdhui);
   const dues = groupes.filter((g) => g.cle === "retard" || g.cle === "aujourdhui").reduce((n, g) => n + g.taches.length, 0);
   const autre = props.foyer.membres.find((m) => m.id !== moi);
+  const entretien = props.onglet === "entretien";
   return (
     <Page
       titre="Tâches"
-      sousTitre={vide ? undefined : dues ? `${dues} à faire aujourd'hui` : "Rien ne presse aujourd'hui"}
-      actions={plusieurs && !vide ? <button className="lien" onClick={() => setRepartir(true)}>Répartir</button> : undefined}
+      sousTitre={entretien ? "Ce qui revient pour la maison" : vide ? undefined : dues ? `${dues} à faire aujourd'hui` : "Rien ne presse aujourd'hui"}
+      actions={plusieurs && !vide && !entretien ? <button className="lien" onClick={() => setRepartir(true)}>Répartir</button> : undefined}
       aide={{ cle: "taches", texte: "Dis une tâche à ta fée, avec son rythme : « linge chaque mercredi ». Glisse une tâche vers la droite quand elle est faite, vers la gauche pour la supprimer. Un appui long ouvre sa fiche." }}
     >
       <Repartition ouverte={repartir} fermer={() => setRepartir(false)} foyer={props.foyer} taches={props.taches} aujourdhui={aujourdhui} depot={props.depot} />
@@ -223,7 +234,21 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
       </Feuille>
 
 
-      {!vide && <Onglets libelle="Afficher" onglets={FILTRES.filter((f) => f.id !== "miennes" || moi)} actif={filtre} changer={setFiltre} />}
+      <Onglets
+        libelle="Afficher"
+        onglets={FILTRES.filter((f) => (f.id !== "miennes" || moi) && (!vide || f.id === "toutes" || f.id === "entretien"))}
+        actif={entretien ? "entretien" : filtre}
+        changer={(id) => {
+          if (id === "entretien") return props.changerOnglet("entretien");
+          props.changerOnglet(undefined);
+          setFiltre(id);
+        }}
+      />
+
+      {entretien ? (
+        <Entretien depot={props.depot} membreId={moi} taches={props.taches} aujourdhui={aujourdhui} />
+      ) : (
+      <>
 
       {etalement.length > 0 && (
         <button className="carte proposition" onClick={() => void props.depot.enregistrerTaches(appliquerEtalement(etalement))}>
@@ -267,6 +292,9 @@ export function Taches(props: { depot: Depot; foyer: Foyer; membreId: string | n
           </div>
           <ul className="carte groupe">{terminees.map(ligne)}</ul>
         </section>
+      )}
+
+      </>
       )}
 
       {annulable && (

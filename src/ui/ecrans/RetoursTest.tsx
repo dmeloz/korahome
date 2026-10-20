@@ -7,6 +7,7 @@ import { contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
 import { effacerJournal, lireJournal } from "../journal";
 import { construireRapport, copierRapport, partagerRapport } from "../rapport";
+import { Page } from "../pieces";
 
 // Les notes de test, rangées comme dans Sanji : nouvelles (pas encore parties),
 // transmises (sur le serveur du foyer, où Claude les lit) et réglées.
@@ -78,9 +79,7 @@ export function RetoursTest(props: { depot: DepotLocal; foyer: Foyer; retours: R
   const nouvelles = parEtat("nouvelle").length;
 
   return (
-    <main>
-      <p className="surtitre">Kora {__VERSION__}</p>
-      <h1>Retours de test</h1>
+    <Page titre="Retours de test" sousTitre={`Kora ${__VERSION__}`} className="avec-cadre">
 
       <div className="carte rapport">
         {props.partageActif ? (
@@ -150,6 +149,6 @@ export function RetoursTest(props: { depot: DepotLocal; foyer: Foyer; retours: R
       >
         Effacer le journal
       </button>
-    </main>
+    </Page>
   );
 }

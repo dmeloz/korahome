@@ -1,7 +1,7 @@
 // L'entretien de la maison : les gestes qu'on oublie parce qu'ils ne reviennent que tous
 // les quelques mois (détartrer, changer un filtre, tester le détecteur de fumée). Chacun
-// est une tâche qui revient, marquée « entretien » : elle a sa page et son widget, et ne
-// rejoint la liste des tâches que la semaine où elle est due.
+// est une tâche qui revient, marquée « entretien » : elle a son onglet dans Tâches et son
+// widget, et ne rejoint la liste des tâches que la semaine où elle est due.
 
 import { decaler, decrireEcheance, ecartJours, estTerminee, nouvelleTache } from "./taches";
 import type { Contexte, Jour, Recurrence, Tache } from "./types";

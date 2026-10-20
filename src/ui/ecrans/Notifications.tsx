@@ -26,6 +26,7 @@ import {
   mettreAJourRappels,
   type EtatRappels,
 } from "../rappels";
+import { Page } from "../pieces";
 
 const CHOIX: { cle: "agenda" | "budget" | "taches" | "mitsu" | "stock" | "jardin" | "mots"; titre: string; detail: string }[] = [
   { cle: "agenda", titre: "Agenda", detail: "Les rendez-vous, anniversaires et sorties du jour, les tiens et ceux de nous deux." },
@@ -168,8 +169,7 @@ export function Notifications(props: {
   );
 
   return (
-    <main className="rappels">
-      <h1>Notifications</h1>
+    <Page titre="Notifications" className="rappels avec-cadre">
       <p className="discret rappels-intro">
         Aux jours et à l'heure que tu choisis, un seul rappel avec ce qui t'attend dans la journée. Rien à faire : pas
         de notification. Chacun règle les siens sur son iPhone.
@@ -280,6 +280,6 @@ export function Notifications(props: {
           {message.texte}
         </p>
       )}
-    </main>
+    </Page>
   );
 }

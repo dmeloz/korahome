@@ -21,11 +21,9 @@ import type { ServeurAgenda, ServeurJarvis } from "../donnees/distant";
 import { organiserEntretien } from "../domaine/entretien";
 import { Agenda } from "./ecrans/Agenda";
 import { Budget } from "./ecrans/Budget";
-import { DetailListe } from "./ecrans/DetailListe";
 import { Chef } from "./ecrans/Chef";
-import { Entretien } from "./ecrans/Entretien";
 import { Jardin } from "./ecrans/Jardin";
-import { Listes } from "./ecrans/Listes";
+import { Courses } from "./ecrans/Listes";
 import { Mitsu } from "./ecrans/Mitsu";
 import { Stock } from "./ecrans/Stock";
 import { Taches } from "./ecrans/Taches";
@@ -75,6 +73,9 @@ export interface PropsPage extends DonneesModule {
   ouvrirPartage: () => void;
   /** Ouvre Réglages › Calendrier de l'iPhone. */
   ouvrirCalendrier: () => void;
+  /** L'onglet ouvert, quand la page en a (« listes » dans Courses, « entretien » dans Tâches). */
+  onglet?: string;
+  changerOnglet: (onglet: string | undefined) => void;
 }
 
 /** Ce qu'un widget montre sur le tableau de bord. */
@@ -96,7 +97,9 @@ export interface ModuleUI {
   /** Le nom court affiché sur le bouton de retour. */
   libelle: string;
   widget: (d: DonneesModule) => ApercuWidget;
-  page: (p: PropsPage) => ReactNode;
+  /** Sa page ; un widget sans page propre ouvre un onglet de la page d'un autre module. */
+  page?: (p: PropsPage) => ReactNode;
+  ouvre?: { id: WidgetId; onglet: string };
 }
 
 const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? "s" : ""}`;
@@ -125,7 +128,7 @@ export const MODULES: Partial<Record<WidgetId, ModuleUI>> = {
         urgent: total > 0,
       };
     },
-    page: (p) => <Taches depot={p.depot} foyer={p.foyer} membreId={p.membreId} taches={p.taches} />,
+    page: (p) => <Taches depot={p.depot} foyer={p.foyer} membreId={p.membreId} taches={p.taches} onglet={p.onglet} changerOnglet={p.changerOnglet} />,
   },
 
   courses: {
@@ -145,14 +148,7 @@ export const MODULES: Partial<Record<WidgetId, ModuleUI>> = {
         urgent: false,
       };
     },
-    page: (p) => {
-      const courses = listeCourses(p);
-      return courses ? (
-        <DetailListe depot={p.depot} foyer={p.foyer} membreId={p.membreId} liste={courses} elements={p.elements} catalogue={p.catalogue} />
-      ) : (
-        <main><p className="vide">La liste de courses n'existe plus.</p></main>
-      );
-    },
+    page: (p) => <Courses {...p} />,
   },
 
   listes: {
@@ -171,7 +167,7 @@ export const MODULES: Partial<Record<WidgetId, ModuleUI>> = {
         urgent: false,
       };
     },
-    page: (p) => <Listes depot={p.depot} listes={p.listes} elements={p.elements} ouvrirListe={p.ouvrirListe} />,
+    ouvre: { id: "courses", onglet: "listes" },
   },
 
   agenda: {
@@ -257,7 +253,7 @@ export const MODULES: Partial<Record<WidgetId, ModuleUI>> = {
         urgent: lignes.some((l) => l.quand.startsWith("en retard")),
       };
     },
-    page: (p) => <Entretien depot={p.depot} membreId={p.membreId} taches={p.taches} aujourdhui={p.aujourdhui} />,
+    ouvre: { id: "taches", onglet: "entretien" },
   },
 
   jardin: {

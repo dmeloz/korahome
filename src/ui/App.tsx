@@ -14,17 +14,16 @@ import { Accueil } from "./ecrans/Accueil";
 import { Bienvenue } from "./ecrans/Bienvenue";
 import { Conseil } from "./ecrans/Conseil";
 import { Bilan } from "./ecrans/Bilan";
-import { CeQueKoraSait } from "./ecrans/CeQueKoraSait";
 import { CalendrierIphone, icloudEnErreur } from "./ecrans/CalendrierIphone";
 import { Siri, siriRelie } from "./ecrans/Siri";
 import { LaFee } from "./ecrans/LaFee";
-import { MemoireJarvis } from "./ecrans/MemoireJarvis";
+import { Memoire, type OngletMemoire } from "./ecrans/Memoire";
 import { NosMots } from "./ecrans/NosMots";
 import { Jarvis } from "./ecrans/Jarvis";
 import { DetailListe } from "./ecrans/DetailListe";
 import { Notifications } from "./ecrans/Notifications";
 import { Partage, type ServicesPartage } from "./ecrans/Partage";
-import { Reglages, Telephone } from "./ecrans/Reglages";
+import { Apparence, Reglages, Telephone } from "./ecrans/Reglages";
 import { RetoursTest } from "./ecrans/RetoursTest";
 import { CentreRappels } from "./ecrans/CentreRappels";
 import { Sauvegarde } from "./ecrans/Sauvegarde";
@@ -53,19 +52,19 @@ import { definirFee, nomFee } from "./fee";
 // page de son module, et chaque page a son retour vers la précédente.
 type Page =
   | { nom: "accueil" }
-  | { nom: "module"; id: WidgetId }
+  | { nom: "module"; id: WidgetId; onglet?: string }
   | { nom: "liste"; id: string }
   | { nom: "reglages" }
   | { nom: "partage" }
   | { nom: "notifications" }
   | { nom: "telephone" }
+  | { nom: "apparence" }
   | { nom: "retours" }
   | { nom: "jarvis" }
   | { nom: "conseil" }
-  | { nom: "memoire" }
+  | { nom: "memoire"; onglet?: OngletMemoire }
   | { nom: "mots" }
   | { nom: "bilan" }
-  | { nom: "appris" }
   | { nom: "rappels" }
   | { nom: "sauvegarde" }
   | { nom: "calendrier" }
@@ -146,18 +145,18 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     if (p.nom === "partage") return "Partage";
     if (p.nom === "notifications") return "Notifications";
     if (p.nom === "telephone") return "Ce téléphone";
+    if (p.nom === "apparence") return "Apparence";
     if (p.nom === "jarvis") return nomFee();
     if (p.nom === "conseil") return "Conseil";
     if (p.nom === "memoire") return `Ce que ${nomFee()} sait`;
     if (p.nom === "mots") return "Nos mots";
     if (p.nom === "bilan") return "Bilan";
-    if (p.nom === "appris") return "Ce que Kora sait";
     if (p.nom === "rappels") return "Rappels";
     if (p.nom === "sauvegarde") return "Sauvegarde";
     if (p.nom === "calendrier") return "Calendrier de l'iPhone";
     if (p.nom === "siri") return "Siri";
     if (p.nom === "fee") return `Réglages de ${nomFee()}`;
-    if (p.nom === "module") return MODULES[p.id]?.libelle ?? "Retour";
+    if (p.nom === "module") return p.id === "courses" && p.onglet === "listes" ? "Listes" : (MODULES[p.id]?.libelle ?? "Retour");
     return listes.find((l) => l.id === p.id)?.nom ?? "Liste";
   }
   /** Le nom de l'écran tel qu'il apparaît dans les notes et le journal. */
@@ -200,10 +199,20 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   definirFee(foyer.membres.find((m) => m.id === membre)?.prenom);
   const donnees: DonneesModule = { foyer, membreId: membre, listes, elements, taches, animaux, produits, catalogue, zones, meteo, aujourdhui: aujourdhuiLocal(), souvenirs, retours, couple, menus, agenda, budget };
 
-  const ouvrir = (p: Page) =>
+  const ouvrir = (demandee: Page) => {
+    // Le widget Listes ouvre l'onglet des listes de Courses, Entretien celui de Tâches.
+    const vers = demandee.nom === "module" ? MODULES[demandee.id]?.ouvre : undefined;
+    const p: Page = vers ? { nom: "module", id: vers.id, onglet: vers.onglet } : demandee;
     avecTransition("avant", () => {
       const defilement = window.scrollY;
       setPile((avant) => [...avant.slice(0, -1), { ...avant[avant.length - 1], defilement }, p]);
+    });
+  };
+  /** Change l'onglet de la page du dessus, gardé dans la pile comme sa position. */
+  const changerOnglet = (onglet: string | undefined) =>
+    setPile((avant) => {
+      const haut = avant[avant.length - 1];
+      return haut.nom === "module" ? [...avant.slice(0, -1), { ...haut, onglet }] : avant;
     });
   const ouvrirListe = (id: string) => ouvrir({ nom: "liste", id });
   const ouvertes = retours.filter((r) => !r.regleLe).length;
@@ -246,7 +255,17 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       />
     );
   } else if (page.nom === "module") {
-    ecran = MODULES[page.id]?.page({ ...donnees, depot, ouvrirListe, jarvis: jarvisPartage, agendaDistant: agendaPartage, ouvrirPartage: () => ouvrir({ nom: "partage" }), ouvrirCalendrier: () => ouvrir({ nom: "calendrier" }) });
+    ecran = MODULES[page.id]?.page?.({
+      ...donnees,
+      depot,
+      ouvrirListe,
+      jarvis: jarvisPartage,
+      agendaDistant: agendaPartage,
+      ouvrirPartage: () => ouvrir({ nom: "partage" }),
+      ouvrirCalendrier: () => ouvrir({ nom: "calendrier" }),
+      onglet: page.onglet,
+      changerOnglet,
+    });
   } else if (page.nom === "liste") {
     const liste = listes.find((l) => l.id === page.id);
     ecran = liste ? (
@@ -285,6 +304,8 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         }}
       />
     );
+  } else if (page.nom === "apparence") {
+    ecran = <Apparence />;
   } else if (page.nom === "conseil" && partage && foyerPartage) {
     ecran = <Conseil donnees={donnees} depot={depot} serveur={partage.jarvis} foyerPartage={foyerPartage} />;
   } else if (page.nom === "jarvis" || page.nom === "conseil") {
@@ -300,11 +321,9 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       />
     );
   } else if (page.nom === "memoire") {
-    ecran = <MemoireJarvis depot={depot} foyer={leFoyer} membreId={membre} souvenirs={souvenirs} retours={retours} />;
+    ecran = <Memoire donnees={donnees} depot={depot} ouvrirBilan={() => ouvrir({ nom: "bilan" })} onglet={page.onglet} />;
   } else if (page.nom === "bilan") {
-    ecran = <Bilan depot={depot} donnees={donnees} changerHeureRappel={changerHeureRappel} ouvrirAppris={() => ouvrir({ nom: "appris" })} />;
-  } else if (page.nom === "appris") {
-    ecran = <CeQueKoraSait donnees={donnees} depot={depot} ouvrirBilan={() => ouvrir({ nom: "bilan" })} ouvrirMemoire={() => ouvrir({ nom: "memoire" })} />;
+    ecran = <Bilan depot={depot} donnees={donnees} changerHeureRappel={changerHeureRappel} ouvrirAppris={() => ouvrir({ nom: "memoire" })} />;
   } else if (page.nom === "mots") {
     const notifier =
       partage && foyerPartage ? (m: { id: string; de: string | null; texte: string }) => partage.rappels.notifierMot({ foyerId: foyerPartage, id: m.id, de: m.de, texte: m.texte }) : null;
@@ -334,7 +353,8 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         ouvrirRetours={() => ouvrir({ nom: "retours" })}
         ouvrirPartage={() => ouvrir({ nom: "partage" })}
         ouvrirNotifications={() => ouvrir({ nom: "notifications" })}
-        ouvrirAppris={() => ouvrir({ nom: "appris" })}
+        ouvrirAppris={() => ouvrir({ nom: "memoire" })}
+        ouvrirApparence={() => ouvrir({ nom: "apparence" })}
         ouvrirSauvegarde={() => ouvrir({ nom: "sauvegarde" })}
         ouvrirCalendrier={() => ouvrir({ nom: "calendrier" })}
         ouvrirSiri={() => ouvrir({ nom: "siri" })}
@@ -360,10 +380,13 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   return ecran;
   }
 
-  // La fée, en bas de l'accueil et de chaque module : là où l'on ajoute quelque chose.
-  // Les autres pages (Réglages, Nos mots, la conversation) ont leurs propres champs.
-  const lieuBarre: LieuBarre | null = page.nom === "accueil" ? "accueil" : page.nom === "module" ? page.id : page.nom === "liste" ? "liste" : null;
-  const cleBarre = page.nom === "module" ? `module:${page.id}` : page.nom === "liste" ? `liste:${page.id}` : page.nom;
+  // La fée, sur l'accueil, chaque module, chaque liste, la mémoire et Nos mots : là où l'on
+  // ajoute quelque chose. Les réglages et la conversation ont leurs propres champs.
+  // Sur l'onglet Entretien ou Autres listes, la phrase va à cet onglet.
+  const ongletBarre = page.nom === "module" && (page.onglet === "entretien" || page.onglet === "listes") ? page.onglet : null;
+  const lieuBarre: LieuBarre | null =
+    page.nom === "accueil" ? "accueil" : page.nom === "module" ? (ongletBarre ?? page.id) : page.nom === "liste" || page.nom === "memoire" || page.nom === "mots" ? page.nom : null;
+  const cleBarre = page.nom === "module" ? `module:${page.id}${ongletBarre ? `:${ongletBarre}` : ""}` : page.nom === "liste" ? `liste:${page.id}` : page.nom;
   const coinDev = pastille && !nouvelleVersion && page.nom !== "retours" && (
     <CoinDev depot={depot} ecran={nomEcran} membreId={membre} ouvertes={ouvertes} voirRetours={() => ouvrir({ nom: "retours" })} />
   );

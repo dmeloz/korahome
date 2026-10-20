@@ -1,21 +1,42 @@
+import type { ReactNode } from "react";
 import { compterAPrendre, nouvelleListe } from "../../domaine/listes";
-import type { Element, Liste } from "../../domaine/types";
-import type { Depot } from "../../donnees/depot";
+import type { Liste } from "../../domaine/types";
 import { useAnnoncer } from "../annulation";
 import { contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
 import { Icone } from "../Icone";
-import { Page, useGestionnaireBarre } from "../pieces";
+import type { PropsPage } from "../modules";
+import { Onglets, Page, useGestionnaireBarre } from "../pieces";
+import { DetailListe } from "./DetailListe";
 
-export function Listes(props: {
-  depot: Depot;
-  listes: Liste[];
-  elements: Element[];
-  ouvrirListe: (id: string) => void;
-}) {
+// Les courses et les autres listes, sur une seule page : l'onglet « Courses » montre la liste
+// du foyer, l'onglet « Autres listes » les cadeaux, le bricolage… Le widget Listes ouvre
+// directement le second onglet.
+
+export function Courses(p: PropsPage) {
+  const courses = p.listes.find((l) => l.type === "courses");
+  const autres = p.listes.filter((l) => l.type !== "courses");
+  const onglet = p.onglet === "listes" || !courses ? "listes" : "courses";
+  const onglets = (
+    <Onglets
+      libelle="Listes"
+      onglets={[
+        { id: "courses", libelle: "Courses", compte: courses ? compterAPrendre(courses, p.elements) : 0 },
+        { id: "listes", libelle: "Autres listes", compte: autres.length },
+      ]}
+      actif={onglet}
+      changer={(id) => p.changerOnglet(id === "listes" ? "listes" : undefined)}
+    />
+  );
+  if (onglet === "courses" && courses) {
+    return <DetailListe depot={p.depot} foyer={p.foyer} membreId={p.membreId} liste={courses} elements={p.elements} catalogue={p.catalogue} avant={onglets} />;
+  }
+  return <AutresListes {...p} listes={autres} avant={onglets} />;
+}
+
+function AutresListes(props: PropsPage & { avant: ReactNode }) {
   const annoncer = useAnnoncer();
 
-  // La liste de courses est celle de tout le foyer : elle ne se supprime pas.
   async function supprimer(l: Liste) {
     const siens = props.elements.filter((e) => e.listeId === l.id);
     await props.depot.supprimerListe(l.id);
@@ -25,8 +46,8 @@ export function Listes(props: {
     });
   }
 
-  // Sur cette page, la barre crée une liste du nom écrit ; une question part chez Jarvis.
-  useGestionnaireBarre("module:listes", async (texte) => {
+  // Sur cet onglet, la fée crée une liste du nom dit ; une question part dans la conversation.
+  useGestionnaireBarre("module:courses:listes", async (texte) => {
     const nom = texte.trim().replace(/^(nouvelle |une )?liste\s*(de |des |du |pour )?/i, "");
     if (!nom || nom.endsWith("?")) return false;
     const liste = nouvelleListe(nom.charAt(0).toUpperCase() + nom.slice(1), "📝", "simple", contexteReel);
@@ -36,25 +57,29 @@ export function Listes(props: {
   });
 
   return (
-    <Page titre="Listes" sousTitre="Les courses et vos autres listes" aide={{ cle: "listes", texte: "Dis le nom d'une nouvelle liste à ta fée (cadeaux, bricolage, vacances). Glisse une liste vers la gauche pour la retirer." }}>
-      <ul className="carte groupe">
-        {props.listes.map((l) => {
-          const n = compterAPrendre(l, props.elements);
-          const ligne = (
-            <button className="ligne" onClick={() => props.ouvrirListe(l.id)}>
-              <span className="pictogramme"><Icone nom={l.type === "courses" ? "panier" : "liste"} taille={20} /></span>
-              <span className="ligne-texte">{l.nom}</span>
-              {n > 0 && <span className="pastille">{n}</span>}
-              <span className="chevron"><Icone nom="suivant" taille={18} /></span>
-            </button>
-          );
-          return (
-            <li key={l.id}>
-              {l.type === "courses" ? ligne : <Glissable onSupprimer={() => void supprimer(l)}>{ligne}</Glissable>}
-            </li>
-          );
-        })}
-      </ul>
+    <Page titre="Listes" sousTitre="Cadeaux, bricolage, vacances…" aide={{ cle: "listes", texte: "Dis le nom d'une nouvelle liste à ta fée (cadeaux, bricolage, vacances). Glisse une liste vers la gauche pour la retirer." }}>
+      {props.avant}
+      {props.listes.length === 0 ? (
+        <p className="vide">Aucune autre liste. Dis à ta fée « liste cadeaux de Noël ».</p>
+      ) : (
+        <ul className="carte groupe">
+          {props.listes.map((l) => {
+            const n = compterAPrendre(l, props.elements);
+            return (
+              <li key={l.id}>
+                <Glissable onSupprimer={() => void supprimer(l)}>
+                  <button className="ligne" onClick={() => props.ouvrirListe(l.id)}>
+                    <span className="pictogramme"><Icone nom="liste" taille={20} /></span>
+                    <span className="ligne-texte">{l.nom}</span>
+                    {n > 0 && <span className="pastille">{n}</span>}
+                    <span className="chevron"><Icone nom="suivant" taille={18} /></span>
+                  </button>
+                </Glissable>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </Page>
   );
 }

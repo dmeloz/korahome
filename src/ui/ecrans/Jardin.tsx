@@ -346,7 +346,7 @@ function CarteZone(
 
       <form onSubmit={planter} className="ajout">
         <input value={plante} onChange={(e) => setPlante(e.target.value)} placeholder="Ajouter une plante : basilic, menthe…" aria-label={`Ajouter une plante dans ${zone.nom}`} autoComplete="off" />
-        <button type="submit" disabled={!plante.trim()} aria-label="Ajouter la plante">+</button>
+        <button type="submit" disabled={!plante.trim()} aria-label="Ajouter la plante"><Icone nom="coche" taille={18} /></button>
       </form>
 
       <Feuille ouverte={detail !== null} onFermer={() => setDetail(null)} titre={planteOuverte?.nom}>

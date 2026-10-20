@@ -75,7 +75,7 @@ export function effacerUsages(): void {
 
 export interface DecisionPerso {
   decision: "garde" | "refuse";
-  /** Ce qui a été appris, pour la page « Ce que Kora sait de nous ». */
+  /** Ce qui a été appris, pour la page « Ce que Tael sait » (onglet « Rien qu'à toi »). */
   fait: string;
   le: Jour;
 }

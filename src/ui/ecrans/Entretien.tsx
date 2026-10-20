@@ -10,9 +10,8 @@ import { contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
 import { Feuille } from "../Feuille";
 import { vibrer } from "../haptique";
-import { Page } from "../pieces";
 
-/** L'entretien de la maison : ce qui revient tous les quelques mois, du plus pressé au plus lointain. */
+/** L'onglet Entretien de Tâches : ce qui revient tous les quelques mois, du plus pressé au plus lointain. */
 export function Entretien(props: { depot: Depot; membreId: string | null; taches: Tache[]; aujourdhui: Jour }) {
   const { depot, aujourdhui } = props;
   const annoncer = useAnnoncer();
@@ -36,7 +35,7 @@ export function Entretien(props: { depot: Depot; membreId: string | null; taches
 
   const t = props.taches.find((x) => x.id === ouverte);
   return (
-    <Page titre="Entretien" sousTitre="Ce qui revient pour la maison" aide={{ cle: "entretien", texte: "Dis-le à ta fée : « Détartrer la bouilloire tous les 3 mois ». Glisse une ligne vers la droite quand c'est fait, vers la gauche pour la retirer." }}>
+    <>
       <Feuille ouverte={!!t} onFermer={() => setOuverte(null)} titre={t?.titre}>
         {t && (
           <div className="formulaire tache-feuille">
@@ -54,7 +53,7 @@ export function Entretien(props: { depot: Depot; membreId: string | null; taches
           </div>
         )}
       </Feuille>
-      <p className="discret">Les gestes qui reviennent tous les quelques mois. Kora les rappelle la semaine où ils sont dus.</p>
+      <p className="discret">Les gestes qui reviennent tous les quelques mois, à dire à ta fée : « détartrer la bouilloire tous les 3 mois ». Kora les met dans les tâches la semaine où ils sont dus.</p>
 
       {lignes.length > 0 && (
         <ul className="carte groupe">
@@ -88,6 +87,6 @@ export function Entretien(props: { depot: Depot; membreId: string | null; taches
           </div>
         </section>
       )}
-    </Page>
+    </>
   );
 }

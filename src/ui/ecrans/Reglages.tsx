@@ -12,6 +12,7 @@ import { lireDerniereSauvegarde } from "../sauvegarde";
 import { nomFee, sonActif } from "../fee";
 import { choisirTheme, lireTheme, THEMES, type Theme } from "../theme";
 import { enregistrerDate, enregistrerVerre, lireDate, lireVerre, TAILLE_DATE } from "../accueilLocal";
+import { Page } from "../pieces";
 
 const ETATS_PARTAGE = { indisponible: "Bientôt", inactif: "Désactivé", actif: "Activé" } as const;
 
@@ -44,6 +45,7 @@ export function Reglages(props: {
   ouvrirPartage: () => void;
   ouvrirNotifications: () => void;
   ouvrirAppris: () => void;
+  ouvrirApparence: () => void;
   ouvrirSauvegarde: () => void;
   ouvrirCalendrier: () => void;
   ouvrirSiri: () => void;
@@ -68,8 +70,7 @@ export function Reglages(props: {
   };
 
   return (
-    <main className="reglages">
-      <h1>Réglages</h1>
+    <Page titre="Réglages" className="reglages avec-cadre">
 
       <button className="carte profil" onClick={props.ouvrirTelephone}>
         <span className="initiale profil-initiale" style={{ background: moi?.couleur ?? "var(--surface-haute)" }}>
@@ -84,6 +85,10 @@ export function Reglages(props: {
       </button>
 
       <ul className="carte groupe">
+        <Ligne picto="lune" titre="Apparence" valeur={THEMES.find((t) => t.id === lireTheme())?.libelle} onClick={props.ouvrirApparence} />
+      </ul>
+
+      <ul className="carte groupe">
         <Ligne picto="partage" titre="Partage" valeur={props.partage === "actif" ? props.etatPartage.texte : ETATS_PARTAGE[props.partage]} alerte={props.etatPartage.ton === "urgent"} onClick={props.ouvrirPartage} />
         <Ligne picto="sauvegarde" titre="Sauvegarde" valeur={decrireDerniere(lireDerniereSauvegarde(), aujourdhuiLocal())} onClick={props.ouvrirSauvegarde} />
         <Ligne
@@ -95,7 +100,7 @@ export function Reglages(props: {
         <Ligne picto="calendrier" titre="Calendrier de l'iPhone" valeur={props.calendrier} alerte={props.calendrierEnErreur} onClick={props.ouvrirCalendrier} />
         <Ligne picto="jarvis" titre={nomFee()} valeur={sonActif() ? "Son activé" : "Sans son"} onClick={props.ouvrirFee} />
         <Ligne picto="micro" titre="Siri" valeur={props.siri} onClick={props.ouvrirSiri} />
-        <Ligne picto="appris" titre="Ce que Kora sait de nous" onClick={props.ouvrirAppris} />
+        <Ligne picto="appris" titre={`Ce que ${nomFee()} sait`} onClick={props.ouvrirAppris} />
       </ul>
 
       <ul className="carte groupe">
@@ -131,7 +136,7 @@ export function Reglages(props: {
           </button>
         </li>
       </ul>
-    </main>
+    </Page>
   );
 }
 
@@ -144,31 +149,9 @@ export function Telephone(props: { foyer: Foyer; membreId: string | null; choisi
   const moi = props.foyer.membres.find((m) => m.id === props.membreId);
   const [deverrouille, setDeverrouille] = useState(!moi);
   const [confirmer, setConfirmer] = useState(false);
-  const [theme, setTheme] = useState<Theme>(lireTheme);
 
   return (
-    <main className="reglages">
-      <h1>Ce téléphone</h1>
-      <h2 className="rayon">Thème</h2>
-      <div className="choix-theme" role="radiogroup" aria-label="Thème de ce téléphone">
-        {THEMES.map((t) => (
-          <button
-            key={t.id}
-            role="radio"
-            aria-checked={theme === t.id}
-            className={`theme-carte theme-${t.id}${theme === t.id ? " actif" : ""}`}
-            onClick={() => {
-              choisirTheme(t.id);
-              setTheme(t.id);
-            }}
-          >
-            <span className="theme-apercu" aria-hidden><span /><span /><span /></span>
-            <strong>{t.libelle}</strong>
-            <span className="discret">{t.detail}</span>
-          </button>
-        ))}
-      </div>
-      <ReglagesAccueil theme={theme} />
+    <Page titre="Ce téléphone" className="reglages avec-cadre">
       <h2 className="rayon">Qui l'utilise</h2>
       {moi && !deverrouille ? (
         <>
@@ -233,11 +216,40 @@ export function Telephone(props: { foyer: Foyer; membreId: string | null; choisi
             </div>
         </Feuille>
       )}
-    </main>
+    </Page>
   );
 }
 
-/** Le verre des widgets et la taille de la date, propres à ce téléphone. */
+/** « Apparence » : le thème, le verre des widgets et la taille de la date, propres à ce téléphone. */
+export function Apparence() {
+  const [theme, setTheme] = useState<Theme>(lireTheme);
+  return (
+    <Page titre="Apparence" sousTitre="Sur ce téléphone seulement" className="reglages avec-cadre">
+      <h2 className="rayon">Thème</h2>
+      <div className="choix-theme" role="radiogroup" aria-label="Thème de ce téléphone">
+        {THEMES.map((t) => (
+          <button
+            key={t.id}
+            role="radio"
+            aria-checked={theme === t.id}
+            className={`theme-carte theme-${t.id}${theme === t.id ? " actif" : ""}`}
+            onClick={() => {
+              choisirTheme(t.id);
+              setTheme(t.id);
+            }}
+          >
+            <span className="theme-apercu" aria-hidden><span /><span /><span /></span>
+            <strong>{t.libelle}</strong>
+            <span className="discret">{t.detail}</span>
+          </button>
+        ))}
+      </div>
+      <ReglagesAccueil theme={theme} />
+    </Page>
+  );
+}
+
+/** Le verre des widgets et la taille de la date. */
 function ReglagesAccueil({ theme }: { theme: Theme }) {
   const sombre = theme === "sombre" || (theme === "auto" && window.matchMedia?.("(prefers-color-scheme: dark)").matches);
   const [verre, setVerre] = useState<number | null>(lireVerre);

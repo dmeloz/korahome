@@ -14,6 +14,7 @@ import {
   nouveauMot,
   type Mot,
 } from "../../domaine/bandeau";
+import { analyserPhrase } from "../../domaine/agenda";
 import { ErreurValidation } from "../../domaine/foyer";
 import type { Depot } from "../../donnees/depot";
 import { useAnnoncer } from "../annulation";
@@ -21,8 +22,7 @@ import { contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
 import { vibrer } from "../haptique";
 import { Icone, PICTO_HUMEUR } from "../Icone";
-import { Page } from "../pieces";
-
+import { Page, useGestionnaireBarre } from "../pieces";
 import type { DonneesModule } from "../modules";
 
 type Quand = "maintenant" | "soir" | "matin";
@@ -56,7 +56,6 @@ export function NosMots(props: {
   const annoncer = useAnnoncer();
   const [texte, setTexte] = useState("");
   const [quand, setQuand] = useState<Quand>("maintenant");
-  const [compte, setCompte] = useState({ titre: "", jour: "" });
   const [erreur, setErreur] = useState<string | null>(null);
   const maintenant = new Date().toISOString();
   const autre = foyer.membres.find((m) => m.id !== moi);
@@ -90,17 +89,22 @@ export function NosMots(props: {
     else await depot.enregistrerCouple(noterHumeur(moi, aujourdhui, emoji));
   }
 
-  async function ajouterCompte(e: FormEvent) {
-    e.preventDefault();
+  // Dit à la fée sur cette page, un moment daté (« vacances au Portugal le 12 juillet ») devient un compte à rebours.
+  useGestionnaireBarre("mots", async (phrase) => {
+    const b = analyserPhrase(phrase, aujourdhui, foyer.membres);
+    if (!b.jour || b.jour <= aujourdhui || !b.titre) return false;
     try {
-      await depot.enregistrerCouple(nouveauCompte(compte.titre, compte.jour, moi, aujourdhui, contexteReel));
+      const c = nouveauCompte(b.titre, b.jour, moi, aujourdhui, contexteReel);
+      await depot.enregistrerCouple(c);
       vibrer();
-      setCompte({ titre: "", jour: "" });
       setErreur(null);
+      annoncer(`Compte à rebours « ${c.titre} » ajouté.`, () => depot.supprimerCouple(c.id));
+      return true;
     } catch (err) {
       setErreur(err instanceof ErreurValidation ? err.message : "Le compte à rebours n'a pas été ajouté.");
+      return true;
     }
-  }
+  });
 
   async function retirer(doc: Mot | (typeof comptes)[number], message: string) {
     await depot.supprimerCouple(doc.id);
@@ -158,6 +162,7 @@ export function NosMots(props: {
       </div>
 
       <h2 className="rayon">Comptes à rebours</h2>
+      {comptes.length === 0 && <p className="discret">Dis à ta fée le moment attendu et sa date : « vacances au Portugal le 12 juillet ».</p>}
       {comptes.length > 0 && (
         <ul className="carte groupe">
           {comptes.map((c) => (
@@ -174,11 +179,6 @@ export function NosMots(props: {
           ))}
         </ul>
       )}
-      <form className="ajout compte-nouveau" onSubmit={(e) => void ajouterCompte(e)}>
-        <input value={compte.titre} onChange={(e) => setCompte({ ...compte, titre: e.target.value })} placeholder="Ex. Vacances au Portugal" aria-label="Le moment attendu" enterKeyHint="next" />
-        <input type="date" value={compte.jour} min={aujourdhui} onChange={(e) => setCompte({ ...compte, jour: e.target.value })} aria-label="La date" />
-        <button type="submit" disabled={!compte.titre.trim() || !compte.jour} aria-label="Ajouter le compte à rebours">+</button>
-      </form>
 
       <h2 className="rayon">Tous nos mots</h2>
       {mots.length === 0 ? (

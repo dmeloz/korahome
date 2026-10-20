@@ -7,8 +7,8 @@ import type { Foyer, Jour, Recurrence } from "./types";
 // On écrit comme on parle ; Kora comprend seul ce qui est simple (sans internet ni frais)
 // et confie le reste à Jarvis. Sur une page, la phrase va d'abord à cette page.
 
-/** Où l'on écrit : l'accueil, un module, ou une liste ouverte. */
-export type LieuBarre = "accueil" | "liste" | WidgetId;
+/** Où l'on écrit : l'accueil, un module, une liste ouverte, la mémoire de la fée ou Nos mots. */
+export type LieuBarre = "accueil" | "liste" | "memoire" | "mots" | WidgetId;
 
 export type Intention =
   | { type: "courses"; articles: string[] }
@@ -168,6 +168,10 @@ export function invitation(lieu: LieuBarre): string {
       return "Ex. 2 yaourts au frigo jusqu'au 25";
     case "budget":
       return "Une dépense, ex. Migros 84.30";
+    case "memoire":
+      return "Retiens que…";
+    case "mots":
+      return "Un mot doux, ou un compte à rebours";
     case "accueil":
       return "Ajouter, demander à Jarvis…";
     default:

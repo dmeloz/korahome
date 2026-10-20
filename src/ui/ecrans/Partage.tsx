@@ -3,6 +3,7 @@ import { afficherCode, decrireDerniereSynchro, normaliserCode } from "../../doma
 import type { Foyer } from "../../domaine/types";
 import type { Compte, FoyerPartage, ServeurAgenda, ServeurJarvis, ServeurRappels, TempsReel } from "../../donnees/distant";
 import type { StatutSynchro, Synchro } from "../../donnees/synchro";
+import { Page } from "../pieces";
 
 export interface ServicesPartage {
   compte: Compte;
@@ -25,13 +26,12 @@ const message = (e: unknown) => (e instanceof Error && e.message ? e.message : "
 export function Partage({ services, foyer }: { services: ServicesPartage | null; foyer: Foyer | null }) {
   if (!services) {
     return (
-      <main>
-        <h1>Partage</h1>
+      <Page titre="Partage" className="avec-cadre">
         <div className="carte partage-intro">
           <p>Le partage entre vos deux iPhone n'est pas encore activé sur cette version.</p>
           <p className="discret">Il le sera dès que le serveur du foyer sera prêt. Vos données restent sur ce téléphone en attendant.</p>
         </div>
-      </main>
+      </Page>
     );
   }
   return <PartageActif {...services} foyer={foyer} />;
@@ -81,8 +81,7 @@ function PartageActif({ compte, synchro, foyer }: ServicesPartage & { foyer: Foy
   };
 
   return (
-    <main className="partage">
-      <h1>Partage</h1>
+    <Page titre="Partage" className="partage avec-cadre">
       <p className="discret partage-intro-texte">
         Vos deux iPhone partagent les listes, les tâches et le suivi de Mitsu. Chacun garde tout sur son téléphone,
         même sans réseau ; les modifications se rejoignent dès que possible.
@@ -155,7 +154,7 @@ function PartageActif({ compte, synchro, foyer }: ServicesPartage & { foyer: Foy
           </p>
         </div>
       )}
-    </main>
+    </Page>
   );
 }
 

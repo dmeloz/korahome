@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Feuille } from "../Feuille";
+import { Icone } from "../Icone";
 import {
   ecarterProposition,
   ficheDeGarde,
@@ -96,7 +97,7 @@ export function Journal(props: Commun & { membres: Membre[]; membreId: string | 
       {autre !== null && (
         <form onSubmit={noterAutre} className="ajout">
           <input value={autre} onChange={(e) => setAutre(e.target.value)} placeholder="Ce qui s'est passé" aria-label="Ce qui s'est passé" />
-          <button type="submit" disabled={!autre.trim()} aria-label="Noter">+</button>
+          <button type="submit" disabled={!autre.trim()} aria-label="Noter"><Icone nom="coche" taille={18} /></button>
         </form>
       )}
       <p className="discret">

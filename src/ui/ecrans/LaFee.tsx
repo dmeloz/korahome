@@ -4,6 +4,7 @@ import { aujourdhuiLocal } from "../contexte";
 import { changerSon, lireRenvois, nomFee, oublierDiscretion, sonActif, tinter } from "../fee";
 import { Icone } from "../Icone";
 import { lireUsages } from "../usage";
+import { Page } from "../pieces";
 
 // Réglages › La fée : son tintement, la nuit qu'elle a apprise et les heures où elle se tait.
 // Tout reste sur ce téléphone.
@@ -22,8 +23,7 @@ export function LaFee() {
   const fee = nomFee();
 
   return (
-    <main className="reglages">
-      <h1>{fee}</h1>
+    <Page titre={`Réglages de ${fee}`} className="reglages avec-cadre">
       <p className="discret rappels-intro">Ta fée. Elle te dit ce qui presse, l'heure de tes tâches et les mots de l'autre.</p>
 
       <h2 className="rayon">Son</h2>
@@ -92,6 +92,6 @@ export function LaFee() {
           </li>
         ))}
       </ul>
-    </main>
+    </Page>
   );
 }
