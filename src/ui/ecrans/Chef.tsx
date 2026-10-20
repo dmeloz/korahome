@@ -10,7 +10,7 @@ import { Feuille } from "../Feuille";
 import { Glissable } from "../Glissable";
 import { vibrer } from "../haptique";
 import type { PropsPage } from "../modules";
-import { Onglets, Page } from "../pieces";
+import { Page } from "../pieces";
 import { recettesDe, soirsPrevus } from "../../domaine/recettes";
 import { ficheDeLaSemaine, platsDeLaSemaine } from "../../domaine/ficheSemaine";
 import { FicheSemaine } from "./FicheSemaine";
@@ -29,7 +29,8 @@ function quand(menu: MenuSemaine, aujourdhui: string): string {
 
 /** Le Chef de la semaine : ses repas, ce qu'il a mis sur la liste, quand il repasse, et les recettes du foyer. */
 export function Chef(p: PropsPage) {
-  const [onglet, setOnglet] = useState<"semaine" | "recettes">("semaine");
+  // Les onglets sont ceux de l'espace Cuisine (Cette semaine, Nos recettes, Frigo).
+  const onglet = p.onglet === "recettes" ? "recettes" : "semaine";
   const [ficheId, setFicheId] = useState<string | null>(null);
   const recettes = recettesDe(p.menus);
   const fiche = recettes.find((r) => r.id === ficheId) ?? null;
@@ -116,16 +117,6 @@ export function Chef(p: PropsPage) {
   const ajouts = menu ? etatDesAjouts(menu, p.elements) : [];
   return (
     <Page titre="Menus de la semaine" className="chef" aide={{ cle: "chef", texte: `Le Chef prépare les repas du soir avec ce qui reste au frigo et ajoute le manquant aux courses, marqué « Chef ». Chaque repas rejoint vos recettes, avec celles que tu donnes à ${nomFee()}.` }}>
-      <Onglets
-        libelle="Menus ou recettes"
-        onglets={[{ id: "semaine", libelle: "Cette semaine" }, { id: "recettes", libelle: "Nos recettes", compte: recettes.length }]}
-        actif={onglet}
-        changer={(o) => {
-          vibrer();
-          setOnglet(o);
-        }}
-      />
-
       <FicheRecette {...p} recette={fiche} fermer={() => setFicheId(null)} />
 
       {onglet === "recettes" ? (

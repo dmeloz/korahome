@@ -18,8 +18,26 @@ import {
 } from "./tableauDeBord";
 
 describe("tableau de bord", () => {
-  it("commence avec les tâches, les courses et les autres listes", () => {
-    expect(DISPOSITION_DE_DEPART).toEqual(["taches", "courses", "listes"]);
+  it("commence avec les tâches, les courses et la cuisine", () => {
+    expect(DISPOSITION_DE_DEPART).toEqual(["taches", "courses", "chef"]);
+  });
+
+  it("range les anciens widgets dans leurs six espaces, à la place du premier", () => {
+    expect(nettoyerDisposition(["taches", "courses", "listes", "agenda", "mitsu", "stock", "entretien", "jardin", "chef", "budget"])).toEqual([
+      "taches",
+      "courses",
+      "agenda",
+      "maison",
+      "chef",
+      "budget",
+    ]);
+    expect(nettoyerDisposition(["jardin", "taches"])).toEqual(["maison", "taches"]);
+  });
+
+  it("ajoute l'espace d'une section fusionnée, une seule fois", () => {
+    expect(ajouterWidget(["taches"], "stock")).toEqual(["taches", "chef"]);
+    expect(ajouterWidget(["maison"], "jardin")).toEqual(["maison"]);
+    expect(poserWidget(["taches", "courses"], "mitsu", "courses")).toEqual(["taches", "maison", "courses"]);
   });
 
   it("relit une disposition enregistrée sans garder l'inconnu ni les doublons", () => {
@@ -30,8 +48,8 @@ describe("tableau de bord", () => {
 
   it("ajoute et retire un widget", () => {
     const sansCourses = retirerWidget(DISPOSITION_DE_DEPART, "courses");
-    expect(sansCourses).toEqual(["taches", "listes"]);
-    expect(ajouterWidget(sansCourses, "courses")).toEqual(["taches", "listes", "courses"]);
+    expect(sansCourses).toEqual(["taches", "chef"]);
+    expect(ajouterWidget(sansCourses, "courses")).toEqual(["taches", "chef", "courses"]);
     expect(ajouterWidget(sansCourses, "taches")).toBe(sansCourses);
   });
 
@@ -68,14 +86,14 @@ describe("taille et glisser des widgets", () => {
 });
 
 describe("tous les espaces", () => {
-  it("range chaque module dans un seul espace", () => {
+  it("range chaque widget dans un seul espace, sans les sections fusionnées", () => {
     const ranges = ESPACES.flatMap((e) => e.widgets);
     expect(new Set(ranges).size).toBe(ranges.length);
-    expect([...ranges].sort()).toEqual(CATALOGUE.map((w) => w.id).sort());
+    expect([...ranges].sort()).toEqual(CATALOGUE.filter((w) => !w.fusionneDans).map((w) => w.id).sort());
   });
 
   it("ne garde que les modules prêts de chaque espace", () => {
-    expect(modulesDeLEspace("cuisine")).toEqual(["chef", "stock"]);
+    expect(modulesDeLEspace("cuisine")).toEqual(["chef"]);
     expect(modulesDeLEspace("budget")).toEqual(["budget"]);
   });
 

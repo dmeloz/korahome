@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { depenses, moisDe, nommerMois, type Depense, type PlanBudget, type Pot } from "../../../domaine/budget";
+import { depenses, moisBudget, nommerMois, type Depense, type PlanBudget, type Pot } from "../../../domaine/budget";
 import { decaler, ecartJours } from "../../../domaine/taches";
 import { useAnnoncer } from "../../annulation";
 import { Glissable } from "../../Glissable";
@@ -18,12 +18,12 @@ import { Montant } from "../../moteur/Chiffre";
 export function Depenses(p: PropsPage & { plan: PlanBudget; filtre: Pot | null; filtrer: (pot: Pot | null) => void; ouvrirApplePay: () => void }) {
   const { plan, depot, aujourdhui } = p;
   const annoncer = useAnnoncer();
-  const [mois, setMois] = useState(moisDe(aujourdhui));
+  const [mois, setMois] = useState(moisBudget(plan, aujourdhui));
   const [releve, setReleve] = useState(false);
   const [ouverte, setOuverte] = useState<Depense | null>(null);
   const toutes = depenses(p.budget);
-  const premier = [plan.depart.mois, ...toutes.map((d) => moisDe(d.jour))].sort()[0];
-  const duMois = toutes.filter((d) => moisDe(d.jour) === mois && (!p.filtre || d.pot === p.filtre));
+  const premier = [plan.depart.mois, ...toutes.map((d) => moisBudget(plan, d.jour))].sort()[0];
+  const duMois = toutes.filter((d) => moisBudget(plan, d.jour) === mois && (!p.filtre || d.pot === p.filtre));
   const jours = [...new Set(duMois.map((d) => d.jour))];
   const total = duMois.reduce((t, d) => t + d.montant, 0);
   const decaleMois = (n: number) => setMois(decaler(`${mois}-01`, { unite: "mois", tous: n }).slice(0, 7));
@@ -48,7 +48,7 @@ export function Depenses(p: PropsPage & { plan: PlanBudget; filtre: Pot | null; 
           <span className="surtitre">{majuscule(nommerMois(mois, aujourdhui))}</span>
           <span className="budget-solde"><Montant valeur={total} /></span>
         </p>
-        <button type="button" className="bouton-icone" onClick={() => decaleMois(1)} disabled={mois >= moisDe(aujourdhui)} aria-label="Mois suivant">
+        <button type="button" className="bouton-icone" onClick={() => decaleMois(1)} disabled={mois >= moisBudget(plan, aujourdhui)} aria-label="Mois suivant">
           <Icone nom="suivant" taille={18} />
         </button>
       </div>

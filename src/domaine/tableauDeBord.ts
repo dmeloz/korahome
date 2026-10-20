@@ -4,7 +4,7 @@
 
 import { sansAccents as retirerAccents } from "./texte";
 
-export type WidgetId = "taches" | "courses" | "listes" | "agenda" | "mitsu" | "stock" | "entretien" | "jardin" | "chef" | "budget" | "infos";
+export type WidgetId = "taches" | "courses" | "listes" | "agenda" | "maison" | "mitsu" | "stock" | "entretien" | "jardin" | "chef" | "budget" | "infos";
 
 export interface DefinitionWidget {
   id: WidgetId;
@@ -12,19 +12,26 @@ export interface DefinitionWidget {
   description: string;
   /** Faux tant que la section n'existe pas encore dans l'app. */
   disponible: boolean;
+  /**
+   * Depuis Kora 0.0.62, l'accueil tient en six espaces : une section fusionnée devient un onglet
+   * de la page d'un autre (Frigo dans Cuisine, Mitsu et Jardin dans Maison). Elle se cherche et
+   * s'ouvre encore, mais son widget est celui de l'espace qui l'accueille.
+   */
+  fusionneDans?: WidgetId;
 }
 
 // Le titre d'un widget est aussi celui de sa page : on retrouve toujours le même nom.
 export const CATALOGUE: readonly DefinitionWidget[] = [
-  { id: "taches", titre: "Tâches", description: "Ce qui est à faire aujourd'hui et ce qui est en retard.", disponible: true },
-  { id: "courses", titre: "Courses", description: "Ce qu'il reste à acheter.", disponible: true },
-  { id: "listes", titre: "Listes", description: "Cadeaux, bricolage et toutes vos autres listes, à côté des courses.", disponible: true },
+  { id: "taches", titre: "Tâches", description: "Ce qui est à faire aujourd'hui, l'entretien de la maison et l'administratif.", disponible: true },
+  { id: "courses", titre: "Courses", description: "Ce qu'il reste à acheter, et vos autres listes à côté.", disponible: true },
+  { id: "listes", titre: "Listes", description: "Cadeaux, bricolage et toutes vos autres listes, à côté des courses.", disponible: true, fusionneDans: "courses" },
   { id: "agenda", titre: "Agenda", description: "Rendez-vous, anniversaires, vacances et sorties, à deux, relié au calendrier de l'iPhone.", disponible: true },
-  { id: "mitsu", titre: "Mitsu", description: "Croquettes, litière, poids et vétérinaire.", disponible: true },
-  { id: "stock", titre: "Frigo et placards", description: "Ce qu'il y a à la maison et ce qui arrive à sa date.", disponible: true },
-  { id: "entretien", titre: "Entretien", description: "Détartrer, changer les filtres, tester le détecteur : un onglet des tâches, rien ne s'oublie.", disponible: true },
-  { id: "jardin", titre: "Jardin", description: "Arrosage selon la pluie, alerte gel, calendrier du mois et plantes reconnues en photo.", disponible: true },
-  { id: "chef", titre: "Menus de la semaine", description: "Cinq repas du soir qui finissent le frigo, et les courses qui manquent.", disponible: true },
+  { id: "mitsu", titre: "Mitsu", description: "Croquettes, litière, poids et vétérinaire.", disponible: true, fusionneDans: "maison" },
+  { id: "stock", titre: "Frigo et placards", description: "Ce qu'il y a à la maison et ce qui arrive à sa date.", disponible: true, fusionneDans: "chef" },
+  { id: "entretien", titre: "Entretien", description: "Détartrer, changer les filtres, tester le détecteur : un onglet des tâches, rien ne s'oublie.", disponible: true, fusionneDans: "taches" },
+  { id: "jardin", titre: "Jardin", description: "Arrosage selon la pluie, alerte gel, calendrier du mois et plantes reconnues en photo.", disponible: true, fusionneDans: "maison" },
+  { id: "maison", titre: "Maison", description: "Mitsu et le jardin : ce qui presse chez l'un ou chez l'autre remonte ici.", disponible: true },
+  { id: "chef", titre: "Cuisine", description: "Les menus de la semaine, vos recettes et ce qu'il y a au frigo.", disponible: true },
   { id: "budget", titre: "Budget", description: "La carte courses, le plaisir, l'épargne et les factures à payer, calculés comme dans votre Excel.", disponible: true },
   { id: "infos", titre: "Infos de la maison", description: "Contrats, garanties et numéros utiles ; une photo d'un document et Jarvis note l'échéance.", disponible: false },
 ];
@@ -38,25 +45,32 @@ export function definition(id: WidgetId): DefinitionWidget {
 /** Les widgets posés sur le tableau, dans l'ordre choisi. */
 export type Disposition = WidgetId[];
 
-export const DISPOSITION_DE_DEPART: Disposition = ["taches", "courses", "listes"];
+export const DISPOSITION_DE_DEPART: Disposition = ["taches", "courses", "chef"];
+
+/** Le widget qui montre une section : elle-même, ou l'espace où elle a été fusionnée. */
+export function widgetDe(id: WidgetId): WidgetId {
+  return PAR_ID.get(id)?.fusionneDans ?? id;
+}
 
 /**
  * Relit une disposition enregistrée : ignore ce qui n'existe pas (ou plus),
- * les sections pas encore prêtes et les doublons.
+ * les sections pas encore prêtes et les doublons. Une section fusionnée laisse sa place à
+ * son espace, là où elle était (Mitsu, puis Jardin : Maison prend la place de Mitsu).
  */
 export function nettoyerDisposition(brute: unknown): Disposition {
   if (!Array.isArray(brute)) return [...DISPOSITION_DE_DEPART];
   const vus = new Set<WidgetId>();
   for (const x of brute) {
     const w = PAR_ID.get(x as WidgetId);
-    if (w && w.disponible) vus.add(w.id);
+    if (w && w.disponible) vus.add(widgetDe(w.id));
   }
   return [...vus];
 }
 
 export function ajouterWidget(d: Disposition, id: WidgetId): Disposition {
-  if (d.includes(id) || !definition(id)?.disponible) return d;
-  return [...d, id];
+  const w = widgetDe(id);
+  if (d.includes(w) || !definition(w)?.disponible) return d;
+  return [...d, w];
 }
 
 export function retirerWidget(d: Disposition, id: WidgetId): Disposition {
@@ -80,7 +94,7 @@ export function nettoyerTailles(brutes: unknown): Tailles {
   const tailles: Tailles = {};
   if (!brutes || typeof brutes !== "object") return tailles;
   for (const [id, taille] of Object.entries(brutes)) {
-    if (PAR_ID.has(id as WidgetId) && taille === "grand") tailles[id as WidgetId] = "grand";
+    if (PAR_ID.has(id as WidgetId) && taille === "grand") tailles[widgetDe(id as WidgetId)] = "grand";
   }
   return tailles;
 }
@@ -99,7 +113,8 @@ export function basculerTaille(tailles: Tailles, id: WidgetId): Tailles {
 // ----- Tous les espaces -----
 // Tirer l'accueil vers le bas ouvre « Tous les espaces » : chaque module, rangé par usage du
 // quotidien, avec la recherche. Aucune catégorie ne disparaît : un widget retiré de l'accueil
-// reste ici. On glisse une tuile sur l'accueil pour en faire un widget.
+// reste ici. On glisse une tuile sur l'accueil pour en faire un widget. Les sections fusionnées
+// ne font plus de tuile : on les trouve en cherchant, ou dans l'onglet de leur espace.
 
 export type EspaceId = "menage" | "courses" | "cuisine" | "budget" | "agenda";
 
@@ -111,9 +126,9 @@ export interface Espace {
 }
 
 export const ESPACES: readonly Espace[] = [
-  { id: "menage", titre: "Ménage", description: "Les tâches, l'entretien, Mitsu et le jardin.", widgets: ["taches", "entretien", "mitsu", "jardin"] },
-  { id: "courses", titre: "Courses", description: "Ce qu'il reste à acheter et vos autres listes.", widgets: ["courses", "listes"] },
-  { id: "cuisine", titre: "Cuisine", description: "Les menus de la semaine, les recettes et ce qu'il y a à la maison.", widgets: ["chef", "stock"] },
+  { id: "menage", titre: "Ménage", description: "Les tâches et l'entretien, Mitsu et le jardin.", widgets: ["taches", "maison"] },
+  { id: "courses", titre: "Courses", description: "Ce qu'il reste à acheter et vos autres listes.", widgets: ["courses"] },
+  { id: "cuisine", titre: "Cuisine", description: "Les menus de la semaine, les recettes et ce qu'il y a à la maison.", widgets: ["chef"] },
   { id: "budget", titre: "Budget", description: "Le budget du foyer et les papiers de la maison.", widgets: ["budget", "infos"] },
   { id: "agenda", titre: "Agenda", description: "Rendez-vous, anniversaires et vacances.", widgets: ["agenda"] },
 ];
@@ -133,6 +148,7 @@ export const MOTS_DES_MODULES: Record<WidgetId, readonly string[]> = {
   courses: ["acheter", "supermarché", "coop", "migros", "panier"],
   listes: ["cadeaux", "bricolage", "idées"],
   agenda: ["calendrier", "rendez-vous", "rdv", "anniversaire", "vacances", "icloud"],
+  maison: ["animaux", "logement", "appartement"],
   mitsu: ["chat", "croquettes", "vétérinaire", "véto", "litière", "zooplus"],
   stock: ["frigo", "placards", "congélateur", "date", "périmé", "réserve"],
   entretien: ["maison", "filtre", "détartrer", "réparer"],
@@ -159,7 +175,7 @@ export function modulesCherches(recherche: string): WidgetId[] {
  */
 export function poserWidget(d: Disposition, id: WidgetId, cible: WidgetId | null): Disposition {
   const avec = ajouterWidget(d, id);
-  return cible ? deplacerVers(avec, id, cible) : avec;
+  return cible ? deplacerVers(avec, widgetDe(id), cible) : avec;
 }
 
 /** Glisse un widget à la place d'un autre, comme sur l'écran d'accueil de l'iPhone. */

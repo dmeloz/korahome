@@ -8,10 +8,13 @@ import {
   depenses,
   etatDesPots,
   formaterMontant,
-  jourDuMois,
+  avanceeMoisBudget,
+  debutMoisBudget,
+  finMoisBudget,
   moisAConfirmer,
-  moisDe,
+  moisBudget,
   moisDocs,
+  moisPrecedent,
   previsionFactures,
   prixQuiMontent,
   POTS,
@@ -21,13 +24,11 @@ import {
   type Pot,
 } from "./budget";
 import { OUTIL_BUDGET } from "./jarvisModele";
-import { decaler } from "./taches";
 import type { Id, Jour } from "./types";
 
 // Le Budget qui conseille (Kora 0.0.37) : la clôture du mois, les tableaux des mois passés, la fin
 // du mois à ce rythme, et ce que le conseiller (Jarvis, mode « budget ») reçoit et renvoie.
 
-const moisPrecedent = (mois: string) => decaler(`${mois}-01`, { unite: "mois", tous: -1 }).slice(0, 7);
 
 // ----- La clôture du mois -----
 
@@ -50,7 +51,7 @@ export interface BilanDeMois {
 
 /** Un mois tel qu'il s'est passé : pot par pot, versé, dépensé et reporté. */
 export function bilanDeMois(plan: PlanBudget, docs: readonly DocBudget[], mois: string): BilanDeMois {
-  const etat = etatDesPots(plan, docs, jourDuMois(mois, 31));
+  const etat = etatDesPots(plan, docs, finMoisBudget(plan, mois));
   const doc = moisDocs(docs).find((m) => m.mois === mois);
   const pots = {} as Record<Pot, PotDuMois>;
   for (const pot of Object.keys(POTS) as Pot[]) {
@@ -73,7 +74,7 @@ export function moisACloturer(plan: PlanBudget, docs: readonly DocBudget[], aujo
 /** Les `combien` derniers mois depuis le départ du budget (le mois en cours compris), du plus ancien au plus récent. */
 export function tableauDesMois(plan: PlanBudget, docs: readonly DocBudget[], aujourdhui: Jour, combien = 6): BilanDeMois[] {
   const resultat: BilanDeMois[] = [];
-  for (let mois = moisDe(aujourdhui), i = 0; i < combien && mois >= plan.depart.mois; i++, mois = moisPrecedent(mois)) {
+  for (let mois = moisBudget(plan, aujourdhui), i = 0; i < combien && mois >= plan.depart.mois; i++, mois = moisPrecedent(mois)) {
     resultat.unshift(bilanDeMois(plan, docs, mois));
   }
   return resultat;
@@ -98,9 +99,8 @@ export interface FinDeMoisPot {
  */
 export function finDuMois(plan: PlanBudget, docs: readonly DocBudget[], aujourdhui: Jour): FinDeMoisPot[] {
   const pots = etatDesPots(plan, docs, aujourdhui);
-  const jour = Number(aujourdhui.slice(8, 10));
-  const jours = Number(jourDuMois(moisDe(aujourdhui), 31).slice(8, 10));
-  const confirme = moisDocs(docs).some((m) => m.mois === moisDe(aujourdhui));
+  const { jour, jours } = avanceeMoisBudget(plan, aujourdhui);
+  const confirme = moisDocs(docs).some((m) => m.mois === moisBudget(plan, aujourdhui));
   const versementAVenir = (pot: Pot) => (confirme ? 0 : bilanDuMois(plan).versements[pot]);
   return POTS_SUIVIS.map((pot) => {
     const e = pots[pot];
@@ -133,7 +133,7 @@ export function decrireBudgetConseiller(docs: readonly DocBudget[], prenoms: (id
   if (!plan) return "Le budget n'est pas encore en place.";
   const chf = (n: number) => formaterMontant(n, false);
   const nom = (pot: Pot) => plan.comptes[pot] || POTS[pot].nom;
-  const lignes = [`Aujourd'hui : ${aujourdhui}. Budget suivi depuis ${plan.depart.mois}.`, ...decrireBudget(docs, prenoms, aujourdhui)];
+  const lignes = [`Aujourd'hui : ${aujourdhui}. Budget suivi depuis ${plan.depart.mois}.${plan.jourDePaie ? ` Un mois de budget va d'une paie (le ${plan.jourDePaie}) à la suivante et porte le nom du mois qu'il paie.` : ""}`, ...decrireBudget(docs, prenoms, aujourdhui)];
   const bilan = bilanDuMois(plan);
   lignes.push(
     `Salaires : ${bilan.personnes.map((b) => `${prenoms(b.membreId)} ${chf(b.revenu)} (charges perso ${chf(b.charges)}, verse ${chf(b.versement)} au commun, reste ${chf(b.reste)})`).join(" ; ")}.`,
@@ -152,7 +152,7 @@ export function decrireBudgetConseiller(docs: readonly DocBudget[], prenoms: (id
   if (mois.length) {
     lignes.push(
       "Mois passés (dépensé par pot ; versé ; solde de fin) :",
-      ...mois.map((m) => `- ${m.mois}${m.mois === moisDe(aujourdhui) ? " (en cours)" : ""} : ${POTS_SUIVIS.map((pot) => `${nom(pot)} ${chf(m.pots[pot].depense)} (versé ${chf(m.pots[pot].verse)}, fin ${chf(m.pots[pot].solde)})`).join(", ")}`),
+      ...mois.map((m) => `- ${m.mois}${m.mois === moisBudget(plan, aujourdhui) ? " (en cours)" : ""} : ${POTS_SUIVIS.map((pot) => `${nom(pot)} ${chf(m.pots[pot].depense)} (versé ${chf(m.pots[pot].verse)}, fin ${chf(m.pots[pot].solde)})`).join(", ")}`),
     );
   }
   const magasins = coursesParMagasin(docs, aujourdhui);
@@ -165,7 +165,7 @@ export function decrireBudgetConseiller(docs: readonly DocBudget[], prenoms: (id
   if (projet) lignes.push(`Projet : ${projet.projet.nom}, ${chf(projet.epargne)} sur ${chf(projet.projet.objectif)}${projet.projet.date ? `, pour ${projet.projet.date} (${chf(projet.parMoisPourLaDate ?? 0)} par mois)` : ""}${projet.atteintVers ? `, atteint vers ${projet.atteintVers} au rythme prévu` : ""}.`);
 
   // Les dépenses détaillées des trois derniers mois, tant qu'il reste de la place.
-  const depuis = `${moisPrecedent(moisPrecedent(moisDe(aujourdhui)))}-01`;
+  const depuis = debutMoisBudget(plan, moisPrecedent(moisPrecedent(moisBudget(plan, aujourdhui))));
   const detail = depenses(docs).filter((d) => d.jour >= depuis && d.jour <= aujourdhui);
   let texte = lignes.join("\n");
   if (detail.length) {

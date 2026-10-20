@@ -411,7 +411,13 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   // La fée, sur l'accueil, chaque module, chaque liste, la mémoire et Nos mots : là où l'on
   // ajoute quelque chose. Les réglages et la conversation ont leurs propres champs.
   // Sur l'onglet Entretien ou Autres listes, la phrase va à cet onglet.
-  const ongletBarre = page.nom === "module" && (page.onglet === "entretien" || page.onglet === "administratif" || page.onglet === "listes") ? page.onglet : null;
+  // Dans Cuisine et Maison, l'onglet Frigo, Mitsu ou Jardin reçoit la phrase comme sa page d'avant.
+  const ongletBarre =
+    page.nom === "module" && (page.onglet === "entretien" || page.onglet === "administratif" || page.onglet === "listes" || page.onglet === "mitsu" || page.onglet === "jardin")
+      ? page.onglet
+      : page.nom === "module" && page.onglet === "frigo"
+        ? "stock"
+        : null;
   const lieuBarre: LieuBarre | null =
     page.nom === "accueil" ? "accueil" : page.nom === "module" ? (ongletBarre ?? page.id) : page.nom === "liste" || page.nom === "memoire" || page.nom === "mots" ? page.nom : null;
   const cleBarre = page.nom === "module" ? `module:${page.id}${ongletBarre ? `:${ongletBarre}` : ""}` : page.nom === "liste" ? `liste:${page.id}` : page.nom;

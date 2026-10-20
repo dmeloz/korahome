@@ -6,7 +6,7 @@ import {
   facturesAPayer,
   lireDepense,
   lireMontant,
-  moisDe,
+  moisBudget,
   nommerMois,
   nouveauPlan,
   nouveauPoste,
@@ -124,7 +124,7 @@ export function Budget(p: PropsPage) {
   return (
     <Page
       titre="Budget"
-      sousTitre={`${nommerMois(moisDe(aujourdhui)).replace(/^./, (c) => c.toUpperCase())} · ${montant(bilanDuMois(plan).resteCommun)} de reste au commun`}
+      sousTitre={`${nommerMois(moisBudget(plan, aujourdhui)).replace(/^./, (c) => c.toUpperCase())} · ${montant(bilanDuMois(plan).resteCommun)} de reste au commun`}
       actions={
         <button className="bouton-icone" onClick={() => setReglages(true)} aria-label="Comptes et réglages du budget">
           <Icone nom="reglages" taille={20} />

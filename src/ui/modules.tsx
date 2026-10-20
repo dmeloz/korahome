@@ -1,4 +1,4 @@
-import { lazy, type ReactNode } from "react";
+import { lazy, useEffect, type ReactNode } from "react";
 import { evenementsDe, ligneWidget, resumeAgenda, type DocAgenda } from "../domaine/agenda";
 import type { DocCouple } from "../domaine/bandeau";
 import { paiementsAClasser } from "../domaine/paiements";
@@ -21,7 +21,9 @@ import type { ServeurAgenda, ServeurJarvis } from "../donnees/distant";
 import { organiserEntretien } from "../domaine/entretien";
 import { Courses } from "./ecrans/Listes";
 import { Taches } from "./ecrans/Taches";
+import { vibrer } from "./haptique";
 import type { NomIcone } from "./Icone";
+import { Espace } from "./pieces";
 
 // Les pages les plus lourdes ne se chargent qu'à leur première ouverture : l'app démarre plus
 // vite sur l'iPhone. Elles sont préchargées en silence une fois l'accueil affiché.
@@ -89,7 +91,7 @@ export interface PropsPage extends DonneesModule {
   ouvrirPartage: () => void;
   /** Ouvre Réglages › Calendrier de l'iPhone. */
   ouvrirCalendrier: () => void;
-  /** L'onglet ouvert, quand la page en a (« listes » dans Courses, « entretien » dans Tâches). */
+  /** L'onglet ouvert, quand la page en a (« listes » dans Courses, « entretien » dans Tâches, « frigo » dans Cuisine, « jardin » dans Maison). */
   onglet?: string;
   changerOnglet: (onglet: string | undefined) => void;
 }
@@ -120,6 +122,155 @@ export interface ModuleUI {
 
 const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? "s" : ""}`;
 const listeCourses = (d: DonneesModule) => d.listes.find((l) => l.type === "courses");
+
+
+// Les widgets des sections fusionnées : Cuisine et Maison les reprennent.
+const widgetMitsu = (d: DonneesModule): ApercuWidget => {
+  const animal = d.animaux[0];
+  if (!animal) return { chiffre: 0, legende: "Créer sa fiche", lignes: [], urgent: false };
+  const aFaire = choseAFaire(animal, d.aujourdhui);
+  const poids = poidsActuel(animal);
+  const ration = rationDuJour(animal, d.aujourdhui);
+  const portrait = [decrireAge(animal.naissance, d.aujourdhui), poids && formaterPoids(poids.grammes), ration && `${ration.grammes} g par jour`]
+    .filter(Boolean)
+    .join(" · ");
+  return {
+    chiffre: aFaire.length,
+    legende: aFaire.length ? "à faire" : portrait,
+    lignes: aFaire.length ? aFaire.slice(0, 3).map((c) => c.texte) : [],
+    urgent: aFaire.some((c) => c.urgent),
+  };
+};
+
+const widgetStock = (d: DonneesModule): ApercuWidget => {
+  const { aConsommer, urgent } = resumeStock(d.produits, d.aujourdhui);
+  return {
+    chiffre: aConsommer.length,
+    legende:
+      d.produits.length === 0
+        ? "Ajoute ce qu'il y a au frigo"
+        : aConsommer.length
+          ? "à consommer bientôt"
+          : `${pluriel(d.produits.length, "produit")}, rien ne presse`,
+    lignes: aConsommer.slice(0, 3).map((p) => `${p.nom} · ${decrirePeremption(p, d.aujourdhui)}`),
+    urgent,
+  };
+};
+
+const widgetMenus = (d: DonneesModule): ApercuWidget => {
+  const menu = menuDeLaSemaine(d.menus, d.aujourdhui);
+  const passage = prochainPassage(reglageChef(d.menus), new Date());
+  const ceSoir = recetteDuSoir(recettesDe(d.menus), d.aujourdhui);
+  const soir = ceSoir ? [`Ce soir : ${ceSoir.titre}`] : [];
+  if (!menu) return { chiffre: 0, legende: passage ? `Prochains menus ${passage}` : "Lance le Chef pour la semaine", lignes: soir, urgent: false };
+  return {
+    chiffre: menu.repas.length,
+    legende: "repas cette semaine",
+    lignes: [...soir, ...menu.alertesMitsu.slice(0, 1), ...menu.repas.map((r) => r.titre)].slice(0, 3),
+    urgent: false,
+  };
+};
+
+const widgetJardin = (d: DonneesModule): ApercuWidget => {
+  const jour = meteoDu(d.meteo, d.aujourdhui);
+  const temps = jour ? `${decrireTemps(jour.code)} · ${formaterTemperatures(jour)}` : null;
+  if (d.zones.length === 0) return { chiffre: 0, legende: "Ajoute tes pots et tes bacs", lignes: temps ? [temps] : [], urgent: false };
+  const gestes = gestesDuJardin(d.zones, d.meteo, d.aujourdhui);
+  const urgents = gestes.filter((g) => g.urgent);
+  return {
+    chiffre: urgents.length,
+    legende: urgents.length ? "à faire au jardin" : (temps ?? "Rien à faire aujourd'hui"),
+    lignes: gestes.slice(0, 3).map((g) => g.texte),
+    urgent: urgents.length > 0,
+  };
+};
+
+/** Maison : Mitsu et le jardin, ce qui presse d'abord. */
+function widgetMaison(d: DonneesModule): ApercuWidget {
+  const mitsu = widgetMitsu(d);
+  const jardin = widgetJardin(d);
+  const [premier, second] = jardin.urgent && !mitsu.urgent ? [jardin, mitsu] : [mitsu, jardin];
+  const chiffre = mitsu.chiffre + jardin.chiffre;
+  const nom = d.animaux[0]?.nom ?? "Mitsu";
+  return {
+    chiffre,
+    legende: !chiffre ? mitsu.legende : mitsu.chiffre && jardin.chiffre ? `à faire pour ${nom} et au jardin` : premier.chiffre ? premier.legende : second.legende,
+    lignes: [...premier.lignes, ...second.lignes].slice(0, 3),
+    urgent: mitsu.urgent || jardin.urgent,
+  };
+}
+
+/** Cuisine : les menus de la semaine, et ce qui arrive à sa date au frigo. */
+function widgetCuisine(d: DonneesModule): ApercuWidget {
+  const menus = widgetMenus(d);
+  const frigo = widgetStock(d);
+  if (!frigo.urgent) return menus;
+  return { ...menus, lignes: [...frigo.lignes.slice(0, 1).map((l) => `Frigo : ${l}`), ...menus.lignes].slice(0, 3), urgent: true };
+}
+
+/** L'onglet de Maison qui s'ouvre : le jardin quand lui seul presse, sinon Mitsu. */
+const ongletMaison = (d: DonneesModule): "mitsu" | "jardin" => (widgetJardin(d).urgent && !widgetMitsu(d).urgent ? "jardin" : "mitsu");
+
+/** Cuisine : les menus de la semaine, les recettes et le frigo. */
+function PageCuisine(p: PropsPage) {
+  const onglet = p.onglet === "recettes" || p.onglet === "frigo" ? p.onglet : "semaine";
+  const aConsommer = resumeStock(p.produits, p.aujourdhui).aConsommer.length;
+  return (
+    <Espace
+      titre="Cuisine"
+      libelle="Menus, recettes ou frigo"
+      onglets={[
+        { id: "semaine", libelle: "Cette semaine" },
+        { id: "recettes", libelle: "Nos recettes", compte: recettesDe(p.menus).length },
+        { id: "frigo", libelle: "Frigo", compte: aConsommer },
+      ] as const}
+      actif={onglet}
+      changer={(o) => {
+        vibrer();
+        p.changerOnglet(o === "semaine" ? undefined : o);
+      }}
+    >
+      {onglet === "frigo" ? (
+        <Stock depot={p.depot} membreId={p.membreId} produits={p.produits} catalogue={p.catalogue} listes={p.listes} elements={p.elements} aujourdhui={p.aujourdhui} jarvis={p.jarvis} donnees={p} />
+      ) : (
+        <Chef {...p} onglet={onglet} />
+      )}
+    </Espace>
+  );
+}
+
+/** Maison : Mitsu et le jardin, chacun dans son onglet. */
+function PageMaison(p: PropsPage) {
+  const onglet = p.onglet === "jardin" || p.onglet === "mitsu" ? p.onglet : null;
+  const { changerOnglet } = p;
+  const parDefaut = ongletMaison(p);
+  // L'onglet choisi à l'ouverture reste en place, même si l'urgence change en route.
+  useEffect(() => {
+    if (!onglet) changerOnglet(parDefaut);
+  }, [onglet, parDefaut, changerOnglet]);
+  const actif = onglet ?? parDefaut;
+  return (
+    <Espace
+      titre="Maison"
+      libelle="Mitsu ou jardin"
+      onglets={[
+        { id: "mitsu", libelle: p.animaux[0]?.nom ?? "Mitsu" },
+        { id: "jardin", libelle: "Jardin" },
+      ] as const}
+      actif={actif}
+      changer={(o) => {
+        vibrer();
+        changerOnglet(o);
+      }}
+    >
+      {actif === "jardin" ? (
+        <Jardin {...p} />
+      ) : (
+        <Mitsu depot={p.depot} foyer={p.foyer} membreId={p.membreId} animaux={p.animaux} listes={p.listes} elements={p.elements} />
+      )}
+    </Espace>
+  );
+}
 
 export const MODULES: Partial<Record<WidgetId, ModuleUI>> = {
   taches: {
@@ -207,52 +358,28 @@ export const MODULES: Partial<Record<WidgetId, ModuleUI>> = {
     page: (p) => <Agenda {...p} />,
   },
 
+  maison: {
+    id: "maison",
+    picto: "maison",
+    libelle: "Maison",
+    widget: widgetMaison,
+    page: (p) => <PageMaison {...p} />,
+  },
+
   mitsu: {
     id: "mitsu",
     picto: "chat",
     libelle: "Mitsu",
-    widget: (d) => {
-      const animal = d.animaux[0];
-      if (!animal) return { chiffre: 0, legende: "Créer sa fiche", lignes: [], urgent: false };
-      const aFaire = choseAFaire(animal, d.aujourdhui);
-      const poids = poidsActuel(animal);
-      const ration = rationDuJour(animal, d.aujourdhui);
-      const portrait = [decrireAge(animal.naissance, d.aujourdhui), poids && formaterPoids(poids.grammes), ration && `${ration.grammes} g par jour`]
-        .filter(Boolean)
-        .join(" · ");
-      return {
-        chiffre: aFaire.length,
-        legende: aFaire.length ? "à faire" : portrait,
-        lignes: aFaire.length ? aFaire.slice(0, 3).map((c) => c.texte) : [],
-        urgent: aFaire.some((c) => c.urgent),
-      };
-    },
-    page: (p) => (
-      <Mitsu depot={p.depot} foyer={p.foyer} membreId={p.membreId} animaux={p.animaux} listes={p.listes} elements={p.elements} />
-    ),
+    widget: widgetMitsu,
+    ouvre: { id: "maison", onglet: "mitsu" },
   },
 
   stock: {
     id: "stock",
     picto: "frigo",
     libelle: "Frigo et placards",
-    widget: (d) => {
-      const { aConsommer, urgent } = resumeStock(d.produits, d.aujourdhui);
-      return {
-        chiffre: aConsommer.length,
-        legende:
-          d.produits.length === 0
-            ? "Ajoute ce qu'il y a au frigo"
-            : aConsommer.length
-              ? "à consommer bientôt"
-              : `${pluriel(d.produits.length, "produit")}, rien ne presse`,
-        lignes: aConsommer.slice(0, 3).map((p) => `${p.nom} · ${decrirePeremption(p, d.aujourdhui)}`),
-        urgent,
-      };
-    },
-    page: (p) => (
-      <Stock depot={p.depot} membreId={p.membreId} produits={p.produits} catalogue={p.catalogue} listes={p.listes} elements={p.elements} aujourdhui={p.aujourdhui} jarvis={p.jarvis} donnees={p} />
-    ),
+    widget: widgetStock,
+    ouvre: { id: "chef", onglet: "frigo" },
   },
 
   entretien: {
@@ -276,40 +403,16 @@ export const MODULES: Partial<Record<WidgetId, ModuleUI>> = {
     id: "jardin",
     picto: "feuille",
     libelle: "Jardin",
-    widget: (d) => {
-      const jour = meteoDu(d.meteo, d.aujourdhui);
-      const temps = jour ? `${decrireTemps(jour.code)} · ${formaterTemperatures(jour)}` : null;
-      if (d.zones.length === 0) return { chiffre: 0, legende: "Ajoute tes pots et tes bacs", lignes: temps ? [temps] : [], urgent: false };
-      const gestes = gestesDuJardin(d.zones, d.meteo, d.aujourdhui);
-      const urgents = gestes.filter((g) => g.urgent);
-      return {
-        chiffre: urgents.length,
-        legende: urgents.length ? "à faire au jardin" : (temps ?? "Rien à faire aujourd'hui"),
-        lignes: gestes.slice(0, 3).map((g) => g.texte),
-        urgent: urgents.length > 0,
-      };
-    },
-    page: (p) => <Jardin {...p} />,
+    widget: widgetJardin,
+    ouvre: { id: "maison", onglet: "jardin" },
   },
 
   chef: {
     id: "chef",
     picto: "toque",
-    libelle: "Menus de la semaine",
-    widget: (d) => {
-      const menu = menuDeLaSemaine(d.menus, d.aujourdhui);
-      const passage = prochainPassage(reglageChef(d.menus), new Date());
-      const ceSoir = recetteDuSoir(recettesDe(d.menus), d.aujourdhui);
-      const soir = ceSoir ? [`Ce soir : ${ceSoir.titre}`] : [];
-      if (!menu) return { chiffre: 0, legende: passage ? `Prochains menus ${passage}` : "Lance le Chef pour la semaine", lignes: soir, urgent: false };
-      return {
-        chiffre: menu.repas.length,
-        legende: "repas cette semaine",
-        lignes: [...soir, ...menu.alertesMitsu.slice(0, 1), ...menu.repas.map((r) => r.titre)].slice(0, 3),
-        urgent: false,
-      };
-    },
-    page: (p) => <Chef {...p} />,
+    libelle: "Cuisine",
+    widget: widgetCuisine,
+    page: (p) => <PageCuisine {...p} />,
   },
 
   budget: {
@@ -347,6 +450,7 @@ export const PICTOS: Record<WidgetId, NomIcone> = {
   courses: "panier",
   listes: "liste",
   agenda: "calendrier",
+  maison: "maison",
   mitsu: "chat",
   stock: "frigo",
   entretien: "outil",
