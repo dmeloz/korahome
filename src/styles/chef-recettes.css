@@ -108,3 +108,18 @@
 .mode-cuisine-bas { display: grid; grid-template-columns: 1fr 1.6fr; gap: 10px; }
 .mode-cuisine-bas .bouton-principal { margin: 0; }
 @media (prefers-reduced-motion: reduce) { .mode-cuisine { animation: none; } }
+
+/* La fiche de la semaine (Menus de la semaine › Cette semaine) : les repas côte à côte, un ingrédient par ligne. */
+.fiche-semaine-entree { margin: 16px 0 0; padding: 0; }
+.fiche-semaine { display: grid; gap: 10px; }
+.fiche-semaine .surtitre { margin: 0; }
+.fiche-semaine h3 { margin: 14px 0 0; font-size: var(--t-section); font-family: var(--police-titre); letter-spacing: -0.01em; }
+.fiche-semaine > .discret { margin: 0; }
+.fiche-semaine-plats { margin: 0; padding: 0; }
+.fiche-semaine-plats .ligne-texte { display: grid; gap: 2px; }
+.fiche-semaine-code { flex: none; min-width: 30px; font-family: var(--police-fixe); font-size: var(--t-legende); color: var(--accent); }
+.fiche-semaine-lignes { margin: 0; padding: 0; }
+.fiche-semaine-lignes .ligne { min-height: 44px; padding: 8px 14px; gap: 10px; }
+.fiche-semaine-lignes .ligne-texte { display: grid; gap: 2px; }
+.fiche-semaine-lignes .ligne-texte .discret { font-size: var(--t-legende); font-variant-numeric: tabular-nums; }
+.fiche-semaine-lignes .quantite { flex: none; font-variant-numeric: tabular-nums; }

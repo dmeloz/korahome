@@ -63,3 +63,15 @@ Rangement : documents `type: "recette"` (id `recette-…`) dans la collection `m
 et du réglage : pas de nouvelle table. Règles et tests : `src/domaine/recettes.ts`. Écrans :
 `src/ui/ecrans/Recettes.tsx`. Après une modification : `npm run fonction`, puis redéployer `chef` et
 `jarvis`.
+
+## La fiche de la semaine (0.0.55)
+
+La version légère de la « fiche de production croisée » de la cuisine pro (le modèle complet est rangé dans Sanji, `savoir/modeles/`). Dans « Cette semaine », une carte « La fiche de la semaine » apparaît dès qu'il y a deux repas : les recettes posées sur un soir des sept prochains jours, puis celles du menu du Chef (sept au plus, codées P1, P2…).
+
+- Chaque ingrédient n'apparaît qu'une fois, avec sa quantité par repas (« P1 200 g · P3 150 g ») et le total quand les unités s'additionnent (g et kg, ml à l, gousses…). Sinon, pas de total inventé.
+- « À préparer en une fois » : ce qui sert à au moins deux repas.
+- « Mettre aux courses ce qui manque » ajoute le total de la semaine, une ligne par ingrédient, sans ce qui est déjà sur la liste.
+- « Partager la fiche » l'envoie en texte (Notes, message, impression).
+- Les quantités restent celles de chaque recette, pour son nombre de personnes. Pas de serveur ni de Jarvis : tout se calcule sur le téléphone.
+
+Règles : `src/domaine/ficheSemaine.ts` (tests à côté). Écran : `src/ui/ecrans/FicheSemaine.tsx`.

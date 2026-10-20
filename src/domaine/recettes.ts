@@ -117,7 +117,7 @@ function majuscule(s: string): string {
 }
 
 const FRACTIONS: Record<string, number> = { "½": 0.5, "¼": 0.25, "¾": 0.75, "⅓": 1 / 3, "⅔": 2 / 3 };
-const NOMBRE = String.raw`(\d+\s*\/\s*\d+|\d+(?:[.,]\d+)?\s*[½¼¾⅓⅔]?|[½¼¾⅓⅔])`;
+export const NOMBRE = String.raw`(\d+\s*\/\s*\d+|\d+(?:[.,]\d+)?\s*[½¼¾⅓⅔]?|[½¼¾⅓⅔])`;
 const UNITES_RECETTE = String.raw`(?:\s*(?:kg|g|mg|l|dl|cl|ml|c\.?\s*à\s*(?:soupe|café|s\.|c\.)|cs|cc|càs|càc|cuillères?\s+à\s+(?:soupe|café)|tasses?|verres?|pincées?|gousses?|tranches?|branches?|bottes?|brins?|feuilles?|boîtes?|sachets?|paquets?|pots?|morceaux?|filets?|pièces?|pc)\b\.?)?`;
 const LIGNE_DEBUT = new RegExp(`^(${NOMBRE}${UNITES_RECETTE})\\s+(?:de\\s+|d['’]\\s*)?(.+)$`, "i");
 
@@ -136,7 +136,7 @@ export function ecrireIngredient(i: IngredientRecette): string {
   return i.quantite ? `${i.quantite} ${i.nom.charAt(0).toLowerCase()}${i.nom.slice(1)}` : i.nom;
 }
 
-function lireNombre(t: string): number | null {
+export function lireNombre(t: string): number | null {
   const s = t.replace(/\s+/g, "");
   if (s in FRACTIONS) return FRACTIONS[s];
   const fraction = s.match(/^(\d+)\/(\d+)$/);
