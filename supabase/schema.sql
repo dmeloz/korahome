@@ -147,7 +147,9 @@ create index if not exists tentatives_recentes on prive.tentatives (user_id, qua
 revoke all on prive.tentatives from public, anon, authenticated;
 
 -- Rejoindre un foyer avec son code. Renvoie null si le code est inconnu ; au-delà de 10 codes
--- inconnus en une heure, le téléphone doit attendre. Un foyer accueille au plus 6 membres.
+-- inconnus en une heure, le téléphone doit attendre. Un foyer accueille au plus 10 comptes
+-- (chaque installation de l'app en crée un) ; plein, il libère d'abord les places des anciennes
+-- installations restées sans activité depuis 30 jours.
 create or replace function public.rejoindre_foyer(p_code text)
 returns text
 language plpgsql security definer set search_path = public, prive as $$
@@ -166,8 +168,14 @@ begin
     insert into tentatives (user_id) values (auth.uid());
     return null;
   end if;
-  if not est_membre(trouve) and (select count(*) from membres_foyer m where m.foyer_id = trouve) >= 6 then
-    raise exception 'Ce foyer est complet';
+  if not est_membre(trouve) and (select count(*) from membres_foyer m where m.foyer_id = trouve) >= 10 then
+    delete from membres_foyer m where m.foyer_id = trouve and not exists (
+      select 1 from auth.sessions s
+      where s.user_id = m.user_id and coalesce(s.refreshed_at, s.updated_at, s.created_at) > now() - interval '30 days'
+    );
+    if (select count(*) from membres_foyer m where m.foyer_id = trouve) >= 10 then
+      raise exception 'Ce foyer est complet';
+    end if;
   end if;
   insert into membres_foyer (foyer_id, user_id) values (trouve, auth.uid()) on conflict do nothing;
   return trouve;
