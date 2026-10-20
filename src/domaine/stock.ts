@@ -183,7 +183,7 @@ const parDate = (a: Produit, b: Produit) =>
   (a.peremption ?? "9999-12-31").localeCompare(b.peremption ?? "9999-12-31") || a.nom.localeCompare(b.nom, "fr");
 
 /** « périmé depuis 2 jours », « aujourd'hui », « demain », « dans 3 jours », « jusqu'au 12.11 ». */
-export function decrirePeremption(p: Produit, aujourdhui: Jour): string | null {
+export function decrirePeremption(p: Pick<Produit, "peremption">, aujourdhui: Jour): string | null {
   if (!p.peremption) return null;
   const ecart = ecartJours(aujourdhui, p.peremption);
   if (ecart < -1) return `périmé depuis ${-ecart} jours`;

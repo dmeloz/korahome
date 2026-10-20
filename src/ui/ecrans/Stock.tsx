@@ -289,10 +289,7 @@ export function Stock(props: {
           <span>Scanner</span>
         </button>
         {props.donnees && props.jarvis && (
-          <span className="carte outil-ajout">
-            <TicketDeCaisse jarvis={props.jarvis} donnees={props.donnees} depot={depot} catalogue={catalogue} classe="outil-ticket" />
-            <span>Ticket</span>
-          </span>
+          <TicketDeCaisse jarvis={props.jarvis} donnees={props.donnees} depot={depot} catalogue={catalogue} classe="carte outil-ajout" libelle="Ticket" />
         )}
       </div>
       {recherche && <p className="discret composer-aide">Lecture de la fiche du produit…</p>}

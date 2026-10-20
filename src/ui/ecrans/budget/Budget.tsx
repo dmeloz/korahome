@@ -30,7 +30,7 @@ import { completerPaiement, paiementsAClasser } from "../../../domaine/paiements
 import { moisACloturer } from "../../../domaine/budgetConseil";
 import { CarteConseiller, useConseiller } from "./Conseiller";
 import { FeuilleApplePay } from "./Paiements";
-import { nomFee } from "../../fee";
+import { TicketDeCaisse } from "../../TicketDeCaisse";
 import { montant } from "./communs";
 import { CeMois } from "./CeMois";
 import { Depenses } from "./Depenses";
@@ -119,16 +119,19 @@ export function Budget(p: PropsPage) {
       ? "La fin du mois prévue, les derniers mois, l'année des factures et l'épargne, calculés depuis vos dépenses."
       : onglet === "charges"
       ? "Dis une charge à ta fée : « Netflix 20 », « Assurance maison 118 par an ». Touche une ligne pour la régler."
-      : `Dis une dépense à ta fée : « Migros 84.30 », « 32 cinéma ». Le ticket de caisse photographié par ${nomFee()} compte aussi dans les courses.`;
+      : `Dis une dépense à ta fée : « Migros 84.30 », « 32 cinéma ». Le bouton ticket en haut lit un ticket de caisse (photo ou PDF) : le total compte dans les courses, les produits vont au Frigo.`;
 
   return (
     <Page
       titre="Budget"
       sousTitre={`${nommerMois(moisBudget(plan, aujourdhui)).replace(/^./, (c) => c.toUpperCase())} · ${montant(bilanDuMois(plan).resteCommun)} de reste au commun`}
       actions={
-        <button className="bouton-icone" onClick={() => setReglages(true)} aria-label="Comptes et réglages du budget">
-          <Icone nom="reglages" taille={20} />
-        </button>
+        <>
+          {p.jarvis && <TicketDeCaisse jarvis={p.jarvis} donnees={p} depot={depot} catalogue={p.catalogue} classe="bouton-icone" />}
+          <button className="bouton-icone" onClick={() => setReglages(true)} aria-label="Comptes et réglages du budget">
+            <Icone nom="reglages" taille={20} />
+          </button>
+        </>
       }
       aide={{ cle: "budget", texte: aide }}
       className="budget"

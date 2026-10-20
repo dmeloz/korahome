@@ -19,8 +19,12 @@ se partage entre le **plaisir** (30 %) et l'**épargne** (70 %).
   échéance. Celles « prélevées seules » sortent du pot sans qu'on les coche ; les autres se cochent
   « payée ». La carte « Aujourd'hui » les montre la veille et le jour même, le rappel du matin dans les
   trois jours (Notifications › Factures).
-- **Les tickets de caisse** : quand Jarvis lit un ticket, il range les produits au stock et compte le
-  total dans la carte courses (on peut décocher).
+- **Les tickets de caisse** : le bouton ticket (en haut du Budget, des Courses, et dans Frigo et
+  placards) lit une photo ou le PDF d'un ticket numérique. La feuille « Sur le ticket » montre tout
+  avant d'enregistrer : les produits pour le stock (lieu et date devinée), les courses à cocher, et le
+  total, corrigeable (montant, magasin, jour), compté dans la carte courses. Si le même montant est
+  arrivé ce jour-là par Apple Pay, la feuille le dit et le ticket complète ce paiement au lieu de
+  compter deux fois. Règles : `src/domaine/ticket.ts` (depuis 0.0.63).
 - **La barre** : « Migros 84.30 », « 32 cinéma », « payé électricité 61.20 », « 200 épargne ». Sur
   l'onglet Charges : « Netflix 20 », « Assurance maison 118 par an ».
 - **Jarvis** : il lit le budget (« combien il reste sur la carte courses ? ») et note les dépenses et les

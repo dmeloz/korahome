@@ -8,6 +8,7 @@ import { Icone } from "../Icone";
 import type { PropsPage } from "../modules";
 import { Onglets, Page, useGestionnaireBarre } from "../pieces";
 import { DetailListe } from "./DetailListe";
+import { TicketDeCaisse } from "../TicketDeCaisse";
 import { Ligne, ListeVivante } from "../moteur/pieces";
 
 // Les courses et les autres listes, sur une seule page : l'onglet « Courses » montre la liste
@@ -30,7 +31,9 @@ export function Courses(p: PropsPage) {
     />
   );
   if (onglet === "courses" && courses) {
-    return <DetailListe depot={p.depot} foyer={p.foyer} membreId={p.membreId} liste={courses} elements={p.elements} catalogue={p.catalogue} avant={onglets} />;
+    // Le ticket de caisse coche ce qui a été acheté, range le reste au stock et compte le total.
+    const ticket = p.jarvis ? <TicketDeCaisse jarvis={p.jarvis} donnees={p} depot={p.depot} catalogue={p.catalogue} classe="bouton-icone" /> : undefined;
+    return <DetailListe depot={p.depot} foyer={p.foyer} membreId={p.membreId} liste={courses} elements={p.elements} catalogue={p.catalogue} avant={onglets} actions={ticket} />;
   }
   return <AutresListes {...p} listes={autres} avant={onglets} />;
 }
