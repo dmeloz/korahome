@@ -4,6 +4,7 @@
 
 import { ErreurValidation } from "./foyer";
 import type { Contexte, Id, Membre } from "./types";
+import { deuxChiffres } from "./texte";
 
 export type GenreRetour = "bug" | "gene" | "idee";
 
@@ -151,8 +152,7 @@ const TYPES_JOURNAL: Record<TypeEvenement, string> = {
 /** « 2026-10-08T14:03:12Z » → « 08.10 14:03 » (heure du téléphone). */
 export function heureCourte(iso: string): string {
   const d = new Date(iso);
-  const deux = (n: number) => String(n).padStart(2, "0");
-  return `${deux(d.getDate())}.${deux(d.getMonth() + 1)} ${deux(d.getHours())}:${deux(d.getMinutes())}`;
+  return `${deuxChiffres(d.getDate())}.${deuxChiffres(d.getMonth() + 1)} ${deuxChiffres(d.getHours())}:${deuxChiffres(d.getMinutes())}`;
 }
 
 function ligneJournal(e: EvenementJournal): string {
@@ -220,7 +220,6 @@ export function rapportVersion(source: SourceRapport): string {
 /** Nom du fichier du rapport : « kora-0.0.2-2026-10-08-1403.md » (heure du téléphone). */
 export function nomFichierRapport(version: string, maintenant: string): string {
   const d = new Date(maintenant);
-  const deux = (n: number) => String(n).padStart(2, "0");
-  const jour = `${d.getFullYear()}-${deux(d.getMonth() + 1)}-${deux(d.getDate())}`;
-  return `kora-${version.replace(/[^0-9A-Za-z.-]/g, "")}-${jour}-${deux(d.getHours())}${deux(d.getMinutes())}.md`;
+  const jour = `${d.getFullYear()}-${deuxChiffres(d.getMonth() + 1)}-${deuxChiffres(d.getDate())}`;
+  return `kora-${version.replace(/[^0-9A-Za-z.-]/g, "")}-${jour}-${deuxChiffres(d.getHours())}${deuxChiffres(d.getMinutes())}.md`;
 }

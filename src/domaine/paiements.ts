@@ -1,5 +1,6 @@
 import { auCentime, depenses, formaterMontant, planDe, POTS, reglerFacture, type DocBudget, type Depense, type PaiementAClasser, type PlanBudget, type Pot } from "./budget";
 import type { Contexte, Id, Jour } from "./types";
+import { sansAccents } from "./texte";
 
 // Les paiements Apple Pay arrivent seuls dans le budget (Kora 0.0.29).
 //
@@ -56,7 +57,7 @@ export function nomDeCommercant(valeur: unknown): string | null {
   return texte.toLowerCase().replace(/(^|[\s'’.-])(\p{L})/gu, (_, avant: string, l: string) => avant + l.toUpperCase());
 }
 
-const cleDeCarte = (carte: string) => carte.toLowerCase().normalize("NFD").replace(/\p{M}/gu, "").trim();
+const cleDeCarte = (carte: string) => sansAccents(carte.toLowerCase()).trim();
 
 /** Ce que le foyer a décidé pour cette carte ; undefined si elle est encore inconnue. */
 export function choixDeCarte(plan: PlanBudget, carte: string): ChoixCarte | undefined {

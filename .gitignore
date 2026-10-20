@@ -7,3 +7,4 @@ dist/
 .certificats-serveur.log
 .srl
 retours-de-test/
+.claude/worktrees/

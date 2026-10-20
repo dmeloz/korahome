@@ -1,5 +1,6 @@
 import { ecartJours } from "./taches";
 import type { Jour } from "./types";
+import { NOMS_MOIS } from "./texte";
 
 // Le centre des rappels : la cloche de l'accueil garde ce que Kora a envoyé (le rappel
 // du matin, un mot de l'autre, une alerte du Chef), pour le relire après avoir
@@ -53,9 +54,8 @@ export function grouperParJour(journal: readonly RappelRecu[], aujourdhui: Jour,
 }
 
 const JOURS = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
-const MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
 
 function nomDuJour(jour: Jour): string {
   const [a, m, j] = jour.split("-").map(Number);
-  return `${JOURS[new Date(Date.UTC(a, m - 1, j)).getUTCDay()]} ${j} ${MOIS[m - 1]}`;
+  return `${JOURS[new Date(Date.UTC(a, m - 1, j)).getUTCDay()]} ${j} ${NOMS_MOIS[m - 1]}`;
 }

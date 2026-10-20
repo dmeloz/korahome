@@ -5,6 +5,7 @@
 import { normaliser } from "./rayons";
 import { ecartJours } from "./taches";
 import type { Achat, Element, Jour, Liste } from "./types";
+import { NOMS_JOURS } from "./texte";
 
 /** Les dates gardées par article : assez pour un rythme, sans alourdir la liste. */
 const DATES_GARDEES = 8;
@@ -92,7 +93,7 @@ export function devinerArticles(liste: Liste, elements: readonly Element[], tape
     .slice(0, max);
 }
 
-const NOMS_JOURS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
+
 const jourDeSemaine = (jour: Jour) => new Date(`${jour}T12:00:00Z`).getUTCDay();
 
 /** Les courses « comme d'habitude » : le jour où le foyer fait ses courses, et ce qu'il y prend presque à chaque fois. */

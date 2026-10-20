@@ -6,6 +6,8 @@
 export const BORD_RETOUR = 24;
 /** En dessous de 8 px, on ne sait pas encore si le doigt part de côté ou fait défiler. */
 const SEUIL_DIRECTION = 8;
+/** L'appui long, le même partout (fée, lignes, widgets, date) : comme sur l'iPhone. */
+export const APPUI_LONG_MS = 450;
 /** La largeur du bouton « Supprimer » révélé derrière une ligne. */
 export const LARGEUR_ACTION = 104;
 

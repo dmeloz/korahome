@@ -11,6 +11,7 @@ import type { RetourTest } from "./retours";
 import type { Produit } from "./stock";
 import { ecartJours } from "./taches";
 import type { Element, Foyer, Jour, Liste, Tache } from "./types";
+import { NOMS_JOURS } from "./texte";
 
 // La sauvegarde de la semaine : tout le foyer dans un seul fichier, que l'iPhone range
 // dans Fichiers (iCloud Drive, le dossier de l'Atelier sur le Mac). Un toucher pour
@@ -105,7 +106,6 @@ export function sauvegardeDue(derniere: string | null, aujourdhui: Jour): boolea
   return ecartJours(derniere.slice(0, 10), aujourdhui) >= JOURS_ENTRE_SAUVEGARDES;
 }
 
-const JOURS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
 
 /** « Jamais », « aujourd'hui », « hier », « dimanche », « le 12.10 ». */
 export function decrireDerniere(derniere: string | null, aujourdhui: Jour): string {
@@ -116,7 +116,7 @@ export function decrireDerniere(derniere: string | null, aujourdhui: Jour): stri
   if (ecart === 1) return "hier";
   if (ecart < 7) {
     const [a, m, j] = jour.split("-").map(Number);
-    return JOURS[new Date(Date.UTC(a, m - 1, j)).getUTCDay()];
+    return NOMS_JOURS[new Date(Date.UTC(a, m - 1, j)).getUTCDay()];
   }
   return `le ${jour.slice(8, 10)}.${jour.slice(5, 7)}`;
 }

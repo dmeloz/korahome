@@ -4,13 +4,13 @@ import { enregistrerDate, enregistrerSignes, lireDate, type ReglageDate } from "
 import { Feuille } from "../Feuille";
 import { vibrer } from "../haptique";
 import { Icone, PICTO_HUMEUR, pictoMeteo, type NomIcone } from "../Icone";
+import { APPUI_LONG_MS } from "../gestes";
 
 // Le haut de l'accueil, comme l'écran verrouillé de l'iPhone : une grande date seule, qu'on
 // glisse à gauche ou au centre, et au bout de sa ligne les petits signes que chacun choisit.
 // En défilant, la date se replie dans une petite barre de verre.
 // Équivalent natif : un Text en .largeTitle et une HStack de SF Symbols, toolbar(.principal).
 
-const APPUI_LONG_MS = 450;
 /** Au-delà, le doigt a glissé la date. */
 const GLISSE_DATE_PX = 40;
 

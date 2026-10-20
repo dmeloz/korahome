@@ -44,6 +44,7 @@ import { nouveauRetour, type RetourTest } from "./retours";
 import { decrirePeremption, LIEUX, nouveauProduit, type Lieu, type Produit } from "./stock";
 import { decaler, decrireEcheance, decrireRecurrence, ecartJours, estTerminee, marquerFaite, nouvelleTache } from "./taches";
 import type { Contexte, Element, Foyer, Id, Jour, Liste, Recurrence, Tache } from "./types";
+import { NOMS_JOURS } from "./texte";
 export {
   coutMicroChf,
   etatBudget,
@@ -84,11 +85,10 @@ export interface DonneesFoyer {
 
 const listeCourses = (d: DonneesFoyer) => d.listes.find((l) => l.type === "courses") ?? null;
 const prenomDe = (foyer: Foyer, id: Id | null) => foyer.membres.find((m) => m.id === id)?.prenom ?? null;
-const JOURS_SEMAINE = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
 
 function nomDuJour(jour: Jour): string {
   const [a, m, j] = jour.split("-").map(Number);
-  return JOURS_SEMAINE[new Date(Date.UTC(a, m - 1, j)).getUTCDay()];
+  return NOMS_JOURS[new Date(Date.UTC(a, m - 1, j)).getUTCDay()];
 }
 
 /** L'état du foyer, en quelques lignes, envoyé avec chaque demande. */

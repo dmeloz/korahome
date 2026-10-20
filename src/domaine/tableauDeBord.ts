@@ -2,6 +2,8 @@
 // Chaque téléphone garde sa disposition. L'ordre choisi reste stable, mais un
 // widget qui a quelque chose d'urgent à montrer remonte en haut.
 
+import { sansAccents as retirerAccents } from "./texte";
+
 export type WidgetId = "taches" | "courses" | "listes" | "agenda" | "mitsu" | "stock" | "entretien" | "jardin" | "chef" | "budget" | "infos";
 
 export interface DefinitionWidget {
@@ -140,7 +142,7 @@ export const MOTS_DES_MODULES: Record<WidgetId, readonly string[]> = {
   infos: ["papiers", "contrats", "garanties", "documents"],
 };
 
-const sansAccents = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+const sansAccents = (t: string) => retirerAccents(t).toLowerCase().trim();
 
 /** Les modules prêts dont le nom, la description ou un mot habituel commence comme la recherche. */
 export function modulesCherches(recherche: string): WidgetId[] {

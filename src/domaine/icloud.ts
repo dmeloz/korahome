@@ -12,6 +12,7 @@
 import { devinerCategorie, evenementsDesAnimaux, type Evenement, type Repetition } from "./agenda";
 import { decaler } from "./taches";
 import type { Foyer, Id, Jour } from "./types";
+import { deuxChiffres } from "./texte";
 
 export const FUSEAU = "Europe/Zurich";
 export const NOM_CALENDRIER_KORA = "Kora";
@@ -35,7 +36,6 @@ export function empreinte(texte: string): string {
   return a.toString(36) + b.toString(36);
 }
 
-const deux = (n: number) => String(n).padStart(2, "0");
 
 /** Le décalage d'un fuseau à un instant, en minutes (Zurich en été : +120). */
 function decalage(instant: number, fuseau: string): number {
@@ -63,7 +63,7 @@ export function versZurich(jour: Jour, heure: string, fuseau: string | "UTC"): {
     }
   }
   const local = new Date(instant + decalage(instant, FUSEAU) * 60000);
-  return { jour: `${local.getUTCFullYear()}-${deux(local.getUTCMonth() + 1)}-${deux(local.getUTCDate())}`, heure: `${deux(local.getUTCHours())}:${deux(local.getUTCMinutes())}` };
+  return { jour: `${local.getUTCFullYear()}-${deuxChiffres(local.getUTCMonth() + 1)}-${deuxChiffres(local.getUTCDate())}`, heure: `${deuxChiffres(local.getUTCHours())}:${deuxChiffres(local.getUTCMinutes())}` };
 }
 
 // ----- Écrire au format iCalendar -----
@@ -265,7 +265,7 @@ function versEvenementLu(props: Propriete[]): EvenementLu | null {
     const duree = une("DURATION")?.valeur.match(/^P(?:T(?:(\d+)H)?(?:(\d+)M)?)$/);
     if (duree && (duree[1] || duree[2])) {
       const minutes = Number(debut.heure.slice(0, 2)) * 60 + Number(debut.heure.slice(3)) + Number(duree[1] ?? 0) * 60 + Number(duree[2] ?? 0);
-      if (minutes < 24 * 60) heureFin = `${deux(Math.floor(minutes / 60))}:${deux(minutes % 60)}`;
+      if (minutes < 24 * 60) heureFin = `${deuxChiffres(Math.floor(minutes / 60))}:${deuxChiffres(minutes % 60)}`;
     }
   }
 

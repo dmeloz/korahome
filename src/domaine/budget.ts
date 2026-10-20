@@ -1,5 +1,6 @@
 import { decaler, ecartJours } from "./taches";
 import type { Contexte, Id, Jour } from "./types";
+import { NOMS_MOIS, sansAccents as retirerAccents } from "./texte";
 
 // Le budget du foyer, repris de l'Excel de Melo et Sarah : deux salaires, chacun ses
 // charges et sa part versée au compte commun ; le commun paie le loyer, les courses
@@ -544,7 +545,7 @@ export function payerFacture(f: Facture, jour: Jour, par: Id | null, ctx: Contex
 }
 
 const MAGASINS = ["Migros", "Coop", "Lidl", "Denner", "Aldi", "Manor", "Volg", "Spar", "Aligro", "Prodega"];
-const sansAccents = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const sansAccents = (t: string) => retirerAccents(t).toLowerCase();
 
 export interface SaisieDepense {
   montant: number;
@@ -853,7 +854,6 @@ export function motDuMois(plan: PlanBudget, docs: readonly DocBudget[], aujourdh
   return phrases.length ? phrases.join(" ") : null;
 }
 
-const NOMS_MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
 
 /** « octobre », « mars 2027 » (l'année quand ce n'est pas l'année en cours). */
 export function nommerMois(mois: string, aujourdhui?: Jour): string {

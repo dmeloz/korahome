@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type PointerEvent, type ReactNode } from "react";
-import { BORD_RETOUR, LARGEUR_ACTION, borner, directionGeste, finFait, finLigne } from "./gestes";
+import { APPUI_LONG_MS, BORD_RETOUR, borner, directionGeste, finFait, finLigne, LARGEUR_ACTION } from "./gestes";
 import { vibrer } from "./haptique";
 
 // Une ligne, avec les mêmes gestes partout (comme Mail et Rappels) :
@@ -10,7 +10,6 @@ import { vibrer } from "./haptique";
 // Équivalent natif : swipeActions(edge: .leading / .trailing) et contextMenu.
 
 const OUVERTURE = "korahome:ligne-ouverte";
-const APPUI_LONG_MS = 450;
 
 export function Glissable(props: {
   children: ReactNode;

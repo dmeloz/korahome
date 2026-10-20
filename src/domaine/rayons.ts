@@ -1,4 +1,5 @@
 import type { Rayon } from "./types";
+import { sansAccents } from "./texte";
 
 // Mots-clés par rayon, en minuscules et sans accents. L'ordre compte :
 // le premier rayon qui reconnaît un mot l'emporte.
@@ -18,10 +19,7 @@ const MOTS_CLES: [Rayon, string[]][] = [
 ];
 
 export function normaliser(texte: string): string {
-  return texte
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+  return sansAccents(texte.toLowerCase())
     .replace(/œ/g, "oe")
     .trim();
 }

@@ -2,6 +2,7 @@ import { analyserPhrase, devinerCategorie, type Brouillon } from "./agenda";
 import { modulesCherches, type WidgetId } from "./tableauDeBord";
 import { decaler } from "./taches";
 import type { Foyer, Jour, Recurrence } from "./types";
+import { NOMS_JOURS, sansAccents as retirerAccents } from "./texte";
 
 // La barre Jarvis, en bas de chaque page : une seule façon d'ajouter quoi que ce soit.
 // On écrit comme on parle ; Kora comprend seul ce qui est simple (sans internet ni frais)
@@ -22,7 +23,7 @@ export type Intention =
 /** Où « ouvre le budget » emmène : un module, Nos mots ou les réglages. */
 export type OuOuvrir = WidgetId | "mots" | "reglages";
 
-const sansAccents = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[’]/g, "'");
+const sansAccents = (t: string) => retirerAccents(t).toLowerCase().replace(/[’]/g, "'");
 const majuscule = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 
 const QUESTION = /^(qu'est|qu est|est-ce|est ce|combien|quand|ou |où |pourquoi|comment|quel|quelle|quels|quelles|que |qui |dis-moi|dis moi|rappelle-moi ce|on a |il reste|reste-t-il|y a-t-il)/;
@@ -68,7 +69,6 @@ function sansVerbeDeCourses(texte: string): string {
   return m ? mots.slice(m[0].length) : mots;
 }
 
-const JOURS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
 
 /** Le prochain jour nommé à partir d'aujourd'hui compris (« lundi » un lundi : aujourd'hui). */
 function prochainJour(numero: number, aujourdhui: Jour): Jour {
@@ -94,7 +94,7 @@ export function analyserTache(texte: string, aujourdhui: Jour): { titre: string;
   };
   retirer(/\b(?:tous les|chaque) (lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)s?\b/i, (m) => {
     recurrence = { unite: "semaine", tous: 1 };
-    echeance = prochainJour(JOURS.indexOf(m[1].toLowerCase()), aujourdhui);
+    echeance = prochainJour(NOMS_JOURS.indexOf(m[1].toLowerCase()), aujourdhui);
   });
   retirer(/\b(?:tous les|toutes les) (\d+) (jours|semaines|mois)\b/i, (m) => {
     const unite = m[2].startsWith("jour") ? "jour" : m[2].startsWith("sem") ? "semaine" : "mois";
@@ -107,7 +107,7 @@ export function analyserTache(texte: string, aujourdhui: Jour): { titre: string;
   retirer(/\bdemain\b/i, () => void (echeance = decaler(aujourdhui, { unite: "jour", tous: 1 })));
   retirer(/\b(?:aujourd'hui|aujourd’hui|ce soir|ce matin)\b/i, () => void (echeance = aujourdhui));
   retirer(/(?:(?:à|a) partir (?:de |du )|dès )?\b(?:ce |le )?(lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)( prochain)?\b/i, (m) => {
-    echeance = prochainJour(JOURS.indexOf(m[1].toLowerCase()), aujourdhui);
+    echeance = prochainJour(NOMS_JOURS.indexOf(m[1].toLowerCase()), aujourdhui);
   });
   const titre = reste
     .replace(/\s+/g, " ")

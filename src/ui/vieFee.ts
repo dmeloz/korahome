@@ -18,13 +18,14 @@ import {
 } from "../domaine/vieFee";
 import { changerEtatFee, direSiCalme, estEveillee, feteFee, lireEtatFee, tinter, type Parole } from "./fee";
 import { lireUsages } from "./usage";
+import { heureMinute } from "../domaine/texte";
 
 // Le moteur de la vie de la fée, sur l'accueil : il regarde le foyer toutes les vingt secondes
 // et décide si elle dort, scintille près d'un widget, rappelle une tâche à son heure, fête un
 // jour J ou dit bonjour au réveil. Les règles sont dans `domaine/vieFee.ts`.
 
 const minuteDuJour = (d: Date) => d.getHours() * 60 + d.getMinutes();
-const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+
 
 /** La nuit en ce moment, et le jour que l'accueil montre (demain, une fois la nuit tombée le soir). */
 export function nuitDeCeTelephone(aujourdhui: Jour, maintenant = new Date()): { nuit: boolean; montrer: "demain" | "aujourdhui" } {
@@ -116,7 +117,7 @@ export function useVieFee(e: EntreeVie): void {
       const vie = lireEtatFee();
       changerEtatFee({
         nuit: false,
-        eclat: eclatDuFoyer(x.carte, hhmm(maintenant)),
+        eclat: eclatDuFoyer(x.carte, heureMinute(maintenant)),
         allure: allureMeteo(x.meteo, jour),
         cible: vie.cible === SUR_LA_DATE ? null : vie.cible,
       });
@@ -143,7 +144,7 @@ export function useVieFee(e: EntreeVie): void {
 
       // L'heure d'une tâche : elle le dit tout de suite, même à une heure où elle se tait.
       const dites = lireDuJour(CLE_HEURES, jour);
-      const t = tacheDeLHeure(x.carte, x.taches, x.membreId, hhmm(maintenant), dites);
+      const t = tacheDeLHeure(x.carte, x.taches, x.membreId, heureMinute(maintenant), dites);
       if (t) {
         const parole: Parole = {
           cle: `heure:${t.cle}`,

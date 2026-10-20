@@ -4,6 +4,7 @@ import type { Attente, TeinteFee } from "../../domaine/fee";
 import { decrireMinute, estCaressee, estSecouee } from "../../domaine/vieFee";
 import { changerEtatFee, direFee, enregistrerPlace, lirePlace, noterRenvoi, reveillerFee, taireFee, useEtatFee, useFee, useParoleFee, type Parole, type PlaceFee } from "../fee";
 import { vibrer } from "../haptique";
+import { APPUI_LONG_MS } from "../gestes";
 
 // La fée, en bas de chaque page où l'on ajoute quelque chose : une boule de lumière à quatre
 // ailes de libellule, comme les fées de Zelda. Toucher : elle écoute. Garder le doigt : on lui
@@ -13,7 +14,6 @@ import { vibrer } from "../haptique";
 
 const TAILLE = 60;
 const MARGE = 6;
-const APPUI_LONG_MS = 450;
 /** Au-delà, le doigt la déplace. */
 const SEUIL_GLISSE = 7;
 /** Pas plus bas, pour laisser la pastille Dev et la barre de l'iPhone. */

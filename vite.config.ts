@@ -46,5 +46,6 @@ export default defineConfig({
       },
     }),
   ],
-  test: { environment: "node" },
+  // Les copies de travail des assistants (.claude/worktrees) ne sont pas testées avec l'app.
+  test: { environment: "node", exclude: ["**/node_modules/**", ".claude/**"] },
 });
