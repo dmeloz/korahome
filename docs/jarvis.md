@@ -30,9 +30,10 @@ aussi par Siri (« Dis Siri, Tael… ») : voir `docs/siri.md`.
   1600 pixels en JPEG sur le téléphone avant de partir, et n'est gardée nulle part.
 - **Ticket de caisse** : la même photo range les achats au stock, avec leur quantité ; sans date
   écrite, la durée habituelle du foyer (ou celle que Kora connaît) donne la date de péremption, et
-  les courses correspondantes se cochent. La part budget viendra avec le module Budget. Dans Frigo
-  et placards, le bouton ticket à côté du scanner fait la même chose avec une relecture d'abord :
-  on décoche une ligne, on change son lieu d'un toucher, puis « Tout ranger » (avec Annuler).
+  les courses correspondantes se cochent, et le total compte dans la carte courses du Budget. Le
+  bouton ticket (Frigo et placards, Budget, Courses ; photo ou PDF) fait la même chose avec une
+  relecture d'abord : on décoche une ligne ou une course, on change un lieu, on corrige le total,
+  puis « Tout ranger » (avec Annuler). Voir `docs/budget.md`.
 - **Clin d'œil du jour** : une phrase chaleureuse par jour, que la fée dit à l'accueil (voir
   `docs/bandeau-couple.md`).
 - **Recette** : coller le lien d'une recette (Betty Bossi, Fooby, Marmiton…). Le serveur ouvre la page

@@ -32,6 +32,8 @@ export function DetailListe(props: {
   catalogue?: ProduitHabituel[];
   /** Ce qui vient sous le titre (les onglets de la page Courses). */
   avant?: ReactNode;
+  /** Les boutons à côté du titre (le ticket de caisse dans Courses). */
+  actions?: ReactNode;
 }) {
   const { texte: saisie, changer: setSaisie } = useSaisieBarre();
   const [message, setMessage] = useState<string | null>(null);
@@ -149,6 +151,7 @@ export function DetailListe(props: {
     <Page
       titre={props.liste.nom}
       sousTitre={restant ? `${restant} à prendre` : coches.length ? "Tout est pris" : undefined}
+      actions={props.actions}
       aide={courses ? { cle: "courses", texte: "Dis-le à ta fée (un appui long sur elle pour l'écrire) : « 2 kg de pommes, du lait et du pain ». Touche un article ou glisse-le vers la droite quand il est pris ; vers la gauche pour le retirer." } : undefined}
     >
       {props.avant}
