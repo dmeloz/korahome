@@ -41,7 +41,17 @@ const themes = arg("themes", Object.keys(THEMES).join(",")).split(",");
 const POLICES = `:root{--police:"Inter",system-ui,sans-serif!important;--police-titre:"Inter Display","Inter",system-ui,sans-serif!important;--police-fixe:"JetBrains Mono",monospace!important}`;
 
 // Tout tombe au même endroit d'une version à l'autre : heure, hasard et identifiants fixés.
-const DETERMINISTE = () => {
+// L'heure avance normalement depuis l'heure fictive (l'horloge de Playwright fige aussi
+// performance.now, et Motion n'avance plus) ; « atelier:heure » la change pour la nuit.
+const DETERMINISTE = (heure) => {
+  let fictive = heure;
+  try { fictive = sessionStorage.getItem("atelier:heure") ?? heure; } catch { /* rien */ }
+  const Vraie = Date, ecart = new Vraie(fictive).getTime() - Vraie.now();
+  class Fictive extends Vraie {
+    constructor(...a) { if (a.length) super(...a); else super(Vraie.now() + ecart); }
+    static now() { return Vraie.now() + ecart; }
+  }
+  globalThis.Date = Fictive;
   let graine = 20261020;
   Math.random = () => {
     graine = (graine * 1664525 + 1013904223) % 4294967296;
@@ -58,7 +68,7 @@ function indexComposants() {
     for (const nom of readdirSync(dossier)) {
       const chemin = join(dossier, nom);
       if (statSync(chemin).isDirectory()) parcourir(chemin);
-      else if (/\.tsx$/.test(nom) && !/\.test\./.test(nom)) {
+      else if (nom.endsWith(".tsx") && !/\.test\./.test(nom)) {
         readFileSync(chemin, "utf8").split("\n").forEach((ligne, i) => {
           const m = ligne.match(/^(?:export\s+)?(?:default\s+)?function\s+([A-Z]\w*)|^(?:export\s+)?const\s+([A-Z]\w*)\s*=\s*(?:memo\(|forwardRef\(|\()/);
           const n = m && (m[1] ?? m[2]);
@@ -332,7 +342,8 @@ async function parcourir(p, capter) {
 
   await espace("Tâches");
   await capter("taches", "Tâches", "Tâches");
-  await p.locator(".tache-texte").first().click().catch(() => {});
+  // Le clic de Playwright passe par Glissable, qui le prend pour un début de geste : clic direct.
+  await p.locator(".tache-texte").first().evaluate((b) => b.click()).catch(() => {});
   await attendre(700);
   await capter("taches-feuille", "Tâches, détail d'une tâche", "Tâches");
   await fermerFeuille();
@@ -342,13 +353,14 @@ async function parcourir(p, capter) {
 
   await espace("Courses");
   await capter("courses", "Courses", "Courses");
-  const champ = p.locator(".page-dessus input, .page input").first();
-  if (await champ.count()) {
-    await champ.fill("2 kg de pommes");
+  if (await fee.count()) {
+    await fee.click();
     await attendre(500);
-    await capter("courses-saisie", "Courses, phrase en cours", "Courses");
-    await champ.fill("");
+    await p.locator("input:visible, textarea:visible").last().fill("2 kg de pommes et du pain").catch(() => {});
+    await attendre(500);
+    await capter("courses-saisie", "Courses, phrase dite à Tael", "Courses");
     await p.keyboard.press("Escape");
+    await attendre(500);
   }
   await onglet("Autres listes"); await capter("courses-autres", "Courses › Autres listes", "Courses");
   await revenir();
@@ -387,7 +399,7 @@ async function parcourir(p, capter) {
   await revenir();
 
   // La nuit de la fée : le même accueil à 23 h 40.
-  await p.clock.setFixedTime(new Date("2026-10-20T23:40:00+02:00"));
+  await p.evaluate(() => sessionStorage.setItem("atelier:heure", "2026-10-20T23:40:00+02:00"));
   await p.reload();
   await attendre(1500);
   await capter("accueil-nuit", "Accueil, la nuit", "Accueil");
@@ -407,7 +419,7 @@ const manifeste = { version, date: new Date().toISOString(), heureFictive: "2026
 const manifesteAvant = avant && existsSync(join(avant, "atelier.json")) ? JSON.parse(readFileSync(join(avant, "atelier.json"), "utf8")) : null;
 if (manifesteAvant) manifeste.avant = manifesteAvant.version;
 
-const navigateur = await chromium.launch({ executablePath: NAVIGATEUR });
+const navigateur = await chromium.launch({ executablePath: NAVIGATEUR, args: ["--lang=fr-CH"] });
 const outil = await (await navigateur.newContext()).newPage();
 const versWebp = (png) => outil.evaluate(async (b64) => {
   const img = await createImageBitmap(await (await fetch(`data:image/png;base64,${b64}`)).blob());
@@ -441,9 +453,8 @@ try {
         locale: "fr-CH",
         timezoneId: "Europe/Zurich",
       });
-      await ctx.addInitScript(DETERMINISTE);
+      await ctx.addInitScript(DETERMINISTE, manifeste.heureFictive);
       const p = await ctx.newPage();
-      await p.clock.install({ time: new Date(manifeste.heureFictive) });
       p.on("pageerror", (e) => manifeste.erreurs.push(`${groupe} : ${e.message}`));
       await p.goto(`http://localhost:${port}/`);
       await p.addStyleTag({ content: POLICES });
