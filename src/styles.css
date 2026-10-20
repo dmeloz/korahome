@@ -1392,7 +1392,7 @@ html[data-sens="fondu"]::view-transition-old(root), html[data-sens="fondu"]::vie
 .chef-note { margin: 12px 0 0; font-size: var(--t-legende); line-height: 1.45; }
 .etiquette-chef { margin-left: 6px; font-family: var(--police-fixe); font-size: var(--t-legende); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
 
-/* ===== Kora apprend : bilan du dimanche, « Ce que Kora sait de nous », mot du jour ===== */
+/* ===== Kora apprend : bilan du dimanche, « Ce que Tael sait », mot du jour ===== */
 .bouton-secondaire {
   border: 1px solid var(--trait);
   border-radius: 12px;
@@ -2399,17 +2399,17 @@ html.nuit-kora .page-dessus .accueil { filter: brightness(.72) saturate(.85); tr
 
 /* ---------- Kora 0.0.45 : les pages sans cadre ---------- */
 /* Comme « Ce soir » sur l'accueil : les listes perdent leur cadre, seuls de fins traits les
-   séparent. Les cartes visuelles gardent leurs graphiques, sans bordure. Les Réglages, eux,
-   gardent leurs groupes, comme ceux de l'iPhone. */
-main.page .carte { background: none; border: 0; box-shadow: none; border-radius: 0; padding-left: 0; padding-right: 0; }
-main.page .carte.groupe { padding: 0; }
-main.page .groupe li + li { border-top: .5px solid var(--trait); }
-main.page .carte.proposition, main.page .carte.bientot { background: var(--surface); border-radius: 16px; padding: 14px 16px; }
+   séparent. Les cartes visuelles gardent leurs graphiques, sans bordure. Les Réglages et les pages
+   « avec-cadre » gardent leurs groupes, comme ceux de l'iPhone. */
+main.page:not(.avec-cadre) .carte { background: none; border: 0; box-shadow: none; border-radius: 0; padding-left: 0; padding-right: 0; }
+main.page:not(.avec-cadre) .carte.groupe { padding: 0; }
+main.page:not(.avec-cadre) .groupe li + li { border-top: .5px solid var(--trait); }
+main.page:not(.avec-cadre) .carte.proposition, main.page:not(.avec-cadre) .carte.bientot { background: var(--surface); border-radius: 16px; padding: 14px 16px; }
 /* La chose du moment en grand : la première ligne pas encore faite du groupe qui presse. */
-main.page .phare-ligne .ligne-texte { font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
-main.page .phare-ligne .ligne { min-height: 64px; }
+main.page:not(.avec-cadre) .phare-ligne .ligne-texte { font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+main.page:not(.avec-cadre) .phare-ligne .ligne { min-height: 64px; }
 /* Sans cadre, la ligne est transparente ; elle ne prend le fond qu'en glissant, pour couvrir l'action. */
-main.page .glissable-contenu { background: transparent; }
-main.page .glissable-contenu.glisse, main.page .glissable.ouverte .glissable-contenu { background: var(--fond); }
-main.page .glissable:not(.ouverte):not(:has(.glisse)) :is(.glissable-action, .glissable-fait) { opacity: 0; }
+main.page:not(.avec-cadre) .glissable-contenu { background: transparent; }
+main.page:not(.avec-cadre) .glissable-contenu.glisse, main.page:not(.avec-cadre) .glissable.ouverte .glissable-contenu { background: var(--fond); }
+main.page:not(.avec-cadre) .glissable:not(.ouverte):not(:has(.glisse)) :is(.glissable-action, .glissable-fait) { opacity: 0; }
 .agenda-lien-iphone { display: block; margin: 20px auto 0; font-size: var(--t-detail); }

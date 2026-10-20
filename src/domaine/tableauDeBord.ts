@@ -16,11 +16,11 @@ export interface DefinitionWidget {
 export const CATALOGUE: readonly DefinitionWidget[] = [
   { id: "taches", titre: "Tâches", description: "Ce qui est à faire aujourd'hui et ce qui est en retard.", disponible: true },
   { id: "courses", titre: "Courses", description: "Ce qu'il reste à acheter.", disponible: true },
-  { id: "listes", titre: "Listes", description: "Cadeaux, bricolage et toutes vos autres listes.", disponible: true },
+  { id: "listes", titre: "Listes", description: "Cadeaux, bricolage et toutes vos autres listes, à côté des courses.", disponible: true },
   { id: "agenda", titre: "Agenda", description: "Rendez-vous, anniversaires, vacances et sorties, à deux, relié au calendrier de l'iPhone.", disponible: true },
   { id: "mitsu", titre: "Mitsu", description: "Croquettes, litière, poids et vétérinaire.", disponible: true },
   { id: "stock", titre: "Frigo et placards", description: "Ce qu'il y a à la maison et ce qui arrive à sa date.", disponible: true },
-  { id: "entretien", titre: "Entretien", description: "Détartrer, changer les filtres, tester le détecteur : rien ne s'oublie.", disponible: true },
+  { id: "entretien", titre: "Entretien", description: "Détartrer, changer les filtres, tester le détecteur : un onglet des tâches, rien ne s'oublie.", disponible: true },
   { id: "jardin", titre: "Jardin", description: "Arrosage selon la pluie, alerte gel, calendrier du mois et plantes reconnues en photo.", disponible: true },
   { id: "chef", titre: "Menus de la semaine", description: "Cinq repas du soir qui finissent le frigo, et les courses qui manquent.", disponible: true },
   { id: "budget", titre: "Budget", description: "La carte courses, le plaisir, l'épargne et les factures à payer, calculés comme dans votre Excel.", disponible: true },

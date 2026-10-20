@@ -6,6 +6,7 @@ import { vibrer } from "../haptique";
 import { Icone } from "../Icone";
 import { noterBilanVu, useApprentissageLocal } from "../usage";
 import { nomFee } from "../fee";
+import { Page } from "../pieces";
 
 // Le bilan du dimanche : deux ou trois choses que Kora a remarquées dans la semaine. On les
 // garde ou on les refuse d'un geste ; rien n'est retenu sans accord.
@@ -31,9 +32,7 @@ export function Bilan(props: ServicesApprentissage & { ouvrirAppris: () => void 
   }
 
   return (
-    <main className="bilan">
-      <p className="surtitre">Bilan de la semaine</p>
-      <h1>Ce que Kora a remarqué</h1>
+    <Page titre="Bilan de la semaine" sousTitre="Ce que Kora a remarqué" className="bilan avec-cadre">
       <p className="discret">Rien n'est retenu sans toi. Ce qui vient du foyer sert aussi à {nomFee()} et au Chef ; ce qui ne concerne que toi reste sur ce téléphone.</p>
 
       {cartes.length === 0 ? (
@@ -67,6 +66,6 @@ export function Bilan(props: ServicesApprentissage & { ouvrirAppris: () => void 
       )}
 
       <button className="lien bilan-lien" onClick={props.ouvrirAppris}>Tout ce que Kora sait de nous</button>
-    </main>
+    </Page>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { ProduitHabituel } from "../../domaine/catalogue";
 import { devinerArticles, noterAchat, oublierAchat, panierHabituel, suggestions } from "../../domaine/habitudes";
 import { analyserSaisie, basculerCoche, nouvelElement, organiserListe } from "../../domaine/listes";
@@ -12,7 +12,7 @@ import { Icone } from "../Icone";
 import { ajouterArticles } from "../ajouts";
 import { AuDessusDeLaBarre, Page, useSaisieBarre } from "../pieces";
 
-// Une liste (les courses ou une autre). On ajoute dans la barre Jarvis, en bas ; ce qui
+// Une liste (les courses ou une autre). On ajoute en le disant à la fée ; ce qui
 // est tapé fait apparaître les articles déjà achetés. Toucher ou glisser vers la droite
 // coche ; la ligne reste barrée deux secondes avant de rejoindre le panier, pour voir ce
 // qu'on vient de cocher et se rattraper.
@@ -28,6 +28,8 @@ export function DetailListe(props: {
   elements: Element[];
   /** La Base du stock : ce qui finit souvent périmé y est compté. */
   catalogue?: ProduitHabituel[];
+  /** Ce qui vient sous le titre (les onglets de la page Courses). */
+  avant?: ReactNode;
 }) {
   const { texte: saisie, changer: setSaisie } = useSaisieBarre();
   const [message, setMessage] = useState<string | null>(null);
@@ -144,6 +146,7 @@ export function DetailListe(props: {
       sousTitre={restant ? `${restant} à prendre` : coches.length ? "Tout est pris" : undefined}
       aide={courses ? { cle: "courses", texte: "Dis-le à ta fée (un appui long sur elle pour l'écrire) : « 2 kg de pommes, du lait et du pain ». Touche un article ou glisse-le vers la droite quand il est pris ; vers la gauche pour le retirer." } : undefined}
     >
+      {props.avant}
       {enSaisie.length > 0 && (
         <AuDessusDeLaBarre>
         <div className="puces saisie-devinee" aria-label="Déjà acheté">

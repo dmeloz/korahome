@@ -59,7 +59,7 @@ import { FeuilleApplePay, InvitationApplePay, PaiementsAClasser } from "./Budget
 import { AnneauDuCommun, CourbeEpargne, CoursesParMois, JaugeRythme, Magasins, MoisLourds, MotDeJarvis, phraseRythme, PrixQuiMontent, TrajetSalaire } from "./BudgetVisuels";
 import { nomFee } from "../fee";
 
-type Onglet = "mois" | "depenses" | "charges" | "conseiller";
+type Onglet = "mois" | "depenses" | "charges" | "analyse" | "conseiller";
 
 const prenomDe = (foyer: Foyer, id: Id | null) => (id ? (foyer.membres.find((m) => m.id === id)?.prenom ?? "") : "Commun");
 const montant = (n: number) => formaterMontant(n);
@@ -139,6 +139,8 @@ export function Budget(p: PropsPage) {
   const aide =
     onglet === "conseiller"
       ? "Pose ta question au conseiller par ta fée : « Où peut-on économiser ? », « Nos courses mois par mois ». Il répond avec des chiffres, un tableau et des conseils."
+      : onglet === "analyse"
+      ? "La fin du mois prévue, les derniers mois, l'année des factures et l'épargne, calculés depuis vos dépenses."
       : onglet === "charges"
       ? "Dis une charge à ta fée : « Netflix 20 », « Assurance maison 118 par an ». Touche une ligne pour la régler."
       : `Dis une dépense à ta fée : « Migros 84.30 », « 32 cinéma ». Le ticket de caisse photographié par ${nomFee()} compte aussi dans les courses.`;
@@ -163,6 +165,7 @@ export function Budget(p: PropsPage) {
           { id: "mois", libelle: "Ce mois", compte: facturesAPayer(plan, p.budget, aujourdhui, 7).length + paiementsAClasser(p.budget).length + (moisACloturer(plan, p.budget, aujourdhui) ? 1 : 0) },
           { id: "depenses", libelle: "Dépenses" },
           { id: "charges", libelle: "Charges" },
+          { id: "analyse", libelle: "Analyse" },
           { id: "conseiller", libelle: "Conseiller" },
         ]}
       />
@@ -173,7 +176,7 @@ export function Budget(p: PropsPage) {
           plan={plan}
           voirCharges={() => setOnglet("charges")}
           voirPot={(pot) => {
-            if (pot === "epargne") setOnglet("conseiller");
+            if (pot === "epargne") setOnglet("analyse");
             else {
               setFiltre(pot);
               setOnglet("depenses");
@@ -187,9 +190,9 @@ export function Budget(p: PropsPage) {
       )}
       {onglet === "depenses" && <Depenses {...p} plan={plan} filtre={filtre} filtrer={setFiltre} ouvrirApplePay={() => setApplePay(true)} />}
       {onglet === "charges" && <Charges {...p} plan={plan} ouvrirPoste={setPoste} ouvrirPersonne={setPersonne} />}
-      {onglet === "conseiller" && (
+      {onglet === "conseiller" && <CarteConseiller conseiller={conseiller} disponible={!!p.jarvis} />}
+      {onglet === "analyse" && (
         <>
-          <CarteConseiller conseiller={conseiller} disponible={!!p.jarvis} />
           <h2 className="rayon">La fin du mois</h2>
           <FinDuMois {...p} plan={plan} />
           {tableauDesMois(plan, p.budget, aujourdhui).length > 1 && (

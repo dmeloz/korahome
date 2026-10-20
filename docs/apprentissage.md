@@ -8,7 +8,7 @@ Depuis Kora 0.0.20. Tout se calcule sur le téléphone, sans IA et donc sans co�
 
 ## Ce qu'il en fait
 1. **Bilan du dimanche** (page « Bilan ») : chaque semaine, deux ou trois choses apprises, à garder ou refuser. Gardé ou refusé, un apprentissage du foyer va dans la collection `memoire` (`source: "bilan"`, `cle`, `refuse`) ; un refus n'est jamais relu par Jarvis ni le Chef, il sert seulement à ne pas reproposer. Ce qui est personnel reste dans `korahome.appris`.
-2. **« Ce que Kora sait de nous »** (Réglages) : tout ce qui a été appris, à oublier d'un glissement, les réglages personnels, l'accord pour l'équilibre des tâches.
+2. **« Ce que Tael sait »** (Réglages, `src/ui/ecrans/Memoire.tsx`, le nom suit la fée du téléphone) : une seule page depuis Kora 0.0.50, le bilan en carte en haut, puis trois onglets. « Le foyer » : tout ce qui a été confié, gardé au bilan ou appris par le Chef, à corriger d'un toucher et oublier d'un glissement, avec l'accord pour l'équilibre des tâches. « Rien qu'à toi » : les réglages personnels. « Souhaits » : ce que la fée a noté pour Claude. Ce qu'on dit à la fée sur cette page, elle le retient.
 3. **Accueil vivant** : après ce qui presse, les widgets les plus ouverts à ce moment de la journée passent devant. Un widget pas ouvert depuis trois semaines est proposé au retrait au bilan.
 4. **Rappels au bon moment** : une heure avant le moment où la personne fait d'habitude ses tâches.
 5. **« Comme d'habitude »** sur la liste de courses : le panier du jour des courses en un toucher.

@@ -4,6 +4,7 @@ import type { Foyer, Id } from "../../domaine/types";
 import type { ServeurAgenda } from "../../donnees/distant";
 import { Feuille } from "../Feuille";
 import { vibrer } from "../haptique";
+import { Page } from "../pieces";
 
 // Le calendrier de l'iPhone, rangé dans les Réglages : relier son iCloud, choisir les
 // calendriers à voir dans Kora, synchroniser ou délier. L'agenda garde toute la place.
@@ -45,8 +46,7 @@ export function CalendrierIphone(props: { foyer: Foyer; membreId: Id | null; com
 
   const d = props.distant;
   return (
-    <main className="reglages">
-      <h1>Calendrier de l'iPhone</h1>
+    <Page titre="Calendrier de l'iPhone" className="reglages avec-cadre">
       <div className="carte agenda-icloud">
         {!d ? (
           <>
@@ -168,6 +168,6 @@ export function CalendrierIphone(props: { foyer: Foyer; membreId: Id | null; com
           </div>
         )}
       </Feuille>
-    </main>
+    </Page>
   );
 }

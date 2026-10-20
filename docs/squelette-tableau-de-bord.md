@@ -29,7 +29,7 @@ C'est la structure de toutes les apps de la maison, à reprendre telle quelle po
 3. Écrire sa page dans `src/ui/ecrans/<Module>.tsx`.
 4. Ajouter une entrée dans `MODULES` (`src/ui/modules.tsx`) :
    - `widget` dit ce que le module montre sur l'accueil : un chiffre, une légende, jusqu'à trois lignes, et s'il est urgent ;
-   - `page` affiche sa page.
+   - `page` affiche sa page ; ou bien `ouvre` envoie vers l'onglet d'une autre page (le widget Listes ouvre l'onglet « Autres listes » de Courses, Entretien celui de Tâches). L'onglet ouvert est gardé dans la pile (`onglet`, `changerOnglet`).
 5. Dans ses listes, envelopper chaque ligne supprimable dans `<Glissable onSupprimer={…}>` et proposer « Annuler » avec `useAnnoncer()`.
 
 Un test vérifie que chaque widget disponible a son module.

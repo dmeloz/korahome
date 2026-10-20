@@ -3,6 +3,7 @@ import { demandeRaccourciSiri, nomPropose } from "../../domaine/siri";
 import type { Foyer, Id } from "../../domaine/types";
 import type { ServeurJarvis } from "../../donnees/distant";
 import { vibrer } from "../haptique";
+import { Page } from "../pieces";
 
 // Jarvis dans Siri, rangé dans les Réglages : créer le lien de cet iPhone et copier la demande
 // à coller dans Raccourcis. Les règles sont dans src/domaine/siri.ts.
@@ -93,8 +94,7 @@ export function Siri(props: { foyer: Foyer; membreId: Id | null; distant: { serv
   }
 
   return (
-    <main className="reglages">
-      <h1>Siri</h1>
+    <Page titre="Siri" className="reglages avec-cadre">
       <div className="carte formulaire">
         <p className="discret">
           « Dis Siri, {relie?.nom ?? (nom.trim() || "Tael")} » : tu parles à l'assistant de Kora sans ouvrir l'app, même l'iPhone verrouillé. Il agit comme dans l'app et répond à voix haute ; ce qui supprime attend ton oui.
@@ -144,6 +144,6 @@ export function Siri(props: { foyer: Foyer; membreId: Id | null; distant: { serv
           </>
         )}
       </div>
-    </main>
+    </Page>
   );
 }

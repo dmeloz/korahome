@@ -15,6 +15,7 @@ import { annulerModifications, enregistrerModifications } from "../jarvis";
 import type { DonneesModule } from "../modules";
 import { vibrer } from "../haptique";
 import { nomFee } from "../fee";
+import { Page } from "../pieces";
 
 interface Proposition {
   resume: string;
@@ -86,8 +87,7 @@ export function Conseil(props: { donnees: DonneesModule; depot: Depot; serveur: 
   const nombre = proposition?.retenues.filter(Boolean).length ?? 0;
 
   return (
-    <main className="conseil">
-      <h1>Conseil de la semaine</h1>
+    <Page titre="Conseil de la semaine" className="conseil avec-cadre">
 
       {validee && (
         <div className="carte conseil-valide" role="status">
@@ -154,6 +154,6 @@ export function Conseil(props: { donnees: DonneesModule; depot: Depot; serveur: 
         </>
       )}
       {alerte && <p className="discret jarvis-alerte">{alerte}</p>}
-    </main>
+    </Page>
   );
 }
