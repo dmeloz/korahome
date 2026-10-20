@@ -11,7 +11,8 @@
     "typecheck": "tsc -b",
     "lint": "oxlint --deny-warnings",
     "serveur": "bash scripts/serveur-mac.sh",
-    "fonction": "node scripts/construire-fonction.mjs"
+    "fonction": "node scripts/construire-fonction.mjs",
+    "essai": "node scripts/essai-ecrans.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.3",
