@@ -75,3 +75,13 @@ La version légère de la « fiche de production croisée » de la cuisine pro (
 - Les quantités restent celles de chaque recette, pour son nombre de personnes. Pas de serveur ni de Jarvis : tout se calcule sur le téléphone.
 
 Règles : `src/domaine/ficheSemaine.ts` (tests à côté). Écran : `src/ui/ecrans/FicheSemaine.tsx`.
+
+## Le savoir et la variété (0.0.67)
+
+Deux ajouts pour que les menus soient plus justes et ne se répètent pas.
+
+- **Le savoir de cuisine** (`src/domaine/savoirCuisine.ts`) : un extrait choisi à la main du référentiel culinaire de Sanji (brevet fédéral de chef de cuisine, validé le 2026-10-04, dans l'Atelier `Projets-code/sanji/savoir/`). Il donne au Chef la saison des légumes suisses du mois, les bases et leurs quantités pour deux (repères de portion de Sanji), les cuissons sûres (volaille 72 °C à cœur, œuf mollet 6 min…) et la durée des restes (riz cuit 1 jour, légumineuses 3 jours). Chaque valeur garde l'identifiant de son entrée. Ce qui ne sert qu'en cuisine pro reste dans Sanji. Environ 1 000 jetons de plus par passage, quelques centimes par an.
+- **La trame tirée au sort** (`src/domaine/variete.ts`) : avant d'appeler Claude, la fonction tire pour chaque soir une base (pâtes, riz, risotto, pommes de terre, gnocchi, polenta, couscous, quinoa, lentilles, pois chiches, tarte…), une protéine et deux légumes de saison. Le tirage est pondéré : ce qui est passé la semaine dernière a dix fois moins de chances de revenir, puis de moins en moins de retenue jusqu'à quatre semaines. Dans la semaine, pas deux fois la même base ni les mêmes légumes, une protéine deux fois au plus et jamais deux soirs de suite, un soir sans viande ni poisson au moins. Le Chef compose sur cette trame et peut l'échanger contre un produit à finir ou un plat aimé.
+- La trame est gardée dans le menu (`trame`) pour que les semaines suivantes s'en souviennent ; pour les menus plus anciens, Kora reconnaît bases, protéines et légumes aux mots des titres.
+
+Après une modification : `npm run fonction`, puis redéployer `chef`.

@@ -2997,6 +2997,51 @@ function decrirePeremption(p, aujourdhui) {
 	const jourMois = `${p.peremption.slice(8, 10)}.${p.peremption.slice(5, 7)}`;
 	return ecart > 180 ? `jusqu'au ${jourMois}.${p.peremption.slice(2, 4)}` : `jusqu'au ${jourMois}`;
 }
+//#endregion
+//#region src/domaine/savoirCuisine.ts
+const DE = (debut, fin) => {
+	const mois = [];
+	for (let m = debut;; m = m % 12 + 1) {
+		mois.push(m);
+		if (m === fin) return mois;
+	}
+};
+const TOUTE_L_ANNEE = DE(1, 12);
+[
+	...[
+		"carotte",
+		"céleri-rave",
+		"chou blanc",
+		"chou rouge",
+		"oignon",
+		"pomme de terre"
+	].map((nom) => ({
+		nom,
+		mois: TOUTE_L_ANNEE,
+		source: "legumes.saison.stockage-toute-annee"
+	})),
+	DE(4, 6),
+	DE(5, 7),
+	DE(5, 7),
+	DE(4, 10),
+	DE(4, 10),
+	[...DE(3, 5), ...DE(9, 11)],
+	DE(6, 9),
+	DE(6, 9),
+	DE(6, 9),
+	DE(7, 9),
+	DE(7, 9),
+	DE(7, 10),
+	DE(8, 9),
+	DE(9, 3),
+	DE(9, 3),
+	DE(9, 4),
+	DE(10, 3),
+	DE(10, 2),
+	DE(9, 4),
+	DE(9, 12),
+	DE(6, 11)
+];
 /** Les menus en cours : le plus récent préparé dans les 7 derniers jours. */
 function menuDeLaSemaine(docs, aujourdhui) {
 	return docs.filter((d) => d.type === "menu").filter((m) => {
