@@ -36,6 +36,8 @@ const APPAREILS = {
 const THEMES = { sombre: "dark", clair: "light" };
 const appareils = arg("appareils", Object.keys(APPAREILS).join(",")).split(",");
 const themes = arg("themes", Object.keys(THEMES).join(",")).split(",");
+// La capture d'avant n'est gardée que pour ces appareils : une page publiée tient au plus 511 fichiers.
+const avecAvant = arg("avant-appareils", "air,pro").split(",");
 
 // L'iPhone dessine en SF Pro, absente ici : Inter en est la plus proche (mêmes proportions).
 const POLICES = `:root{--police:"Inter",system-ui,sans-serif!important;--police-titre:"Inter Display","Inter",system-ui,sans-serif!important;--police-fixe:"JetBrains Mono",monospace!important}`;
@@ -80,6 +82,48 @@ function indexComposants() {
   parcourir(join(RACINE, "src", "ui"));
   return index;
 }
+
+// ---- Les règles CSS : sélecteur → fichier, pour dire où retoucher ----
+function indexRegles() {
+  const index = {};
+  const dossier = join(RACINE, "src", "styles");
+  for (const nom of readdirSync(dossier).filter((n) => n.endsWith(".css"))) {
+    const lignes = readFileSync(join(dossier, nom), "utf8").split("\n");
+    let attente = "", debut = 0;
+    lignes.forEach((ligne, i) => {
+      const sansCommentaire = ligne.replace(/\/\*.*?\*\//g, "");
+      if (!attente) debut = i + 1;
+      if (sansCommentaire.includes("{")) {
+        const selecteur = (attente + sansCommentaire.split("{")[0]).trim();
+        attente = "";
+        if (selecteur && !selecteur.startsWith("@") && !/^(from|to|\d+%)$/.test(selecteur)) {
+          for (const un of selecteur.split(",").map((x) => x.trim().replace(/\s+/g, " ")).filter(Boolean)) {
+            (index[un] ??= []).push(`src/styles/${nom}:${debut}`);
+          }
+        }
+      } else if (/[,\w\]):>]\s*$/.test(sansCommentaire) && !sansCommentaire.includes(";") && !sansCommentaire.includes("}")) attente += sansCommentaire + " ";
+      else attente = "";
+    });
+  }
+  return index;
+}
+
+// L'horloge de l'app vivante dans l'atelier : la même heure fictive que les captures.
+const HORLOGE = `(() => {
+  const q = new URLSearchParams(location.search);
+  let fictive = q.get("heure");
+  try { fictive = fictive || sessionStorage.getItem("atelier:heure"); } catch {}
+  fictive = fictive || "2026-10-20T09:15:00+02:00";
+  const Vraie = Date, ecart = new Vraie(fictive).getTime() - Vraie.now();
+  class Fictive extends Vraie {
+    constructor(...a) { if (a.length) super(...a); else super(Vraie.now() + ecart); }
+    static now() { return Vraie.now() + ecart; }
+  }
+  globalThis.Date = Fictive;
+  // Pas de service de fond dans l'atelier : l'app se recharge telle quelle.
+  try { Object.defineProperty(navigator, "serviceWorker", { value: undefined }); } catch {}
+})();
+`;
 
 // ---- Les données d'essai : un foyer rempli, toujours le même ----
 const JOUR = "2026-10-20";
@@ -294,7 +338,7 @@ function comparerElements(carteAvant, carteApres) {
 }
 
 // ---- Le parcours : chaque écran et ses états ----
-async function parcourir(p, capter) {
+async function parcourir(p, capter, apresRemplissage) {
   const attendre = (ms = 650) => p.waitForTimeout(ms);
   const revenir = async () => { await p.locator(".page-dessus .retour").first().click().catch(() => {}); await attendre(500); };
   const fermerFeuille = async () => { await p.keyboard.press("Escape"); await attendre(300); const b = p.locator(".feuille-entete button").first(); if (await b.count()) await b.click().catch(() => {}); await attendre(400); };
@@ -320,6 +364,7 @@ async function parcourir(p, capter) {
   await remplir(p);
   await p.reload();
   await attendre(1500);
+  await apresRemplissage?.(p);
   await capter("accueil", "Accueil", "Accueil");
   await p.mouse.wheel(0, 2000);
   await attendre(700);
@@ -409,13 +454,29 @@ async function parcourir(p, capter) {
 mkdirSync(join(sortie, "cartes"), { recursive: true });
 const dist = mkdtempSync(join(tmpdir(), "kora-atelier-"));
 console.log("Construction non minifiée…");
-execFileSync("npx", ["vite", "build", "--minify", "false", "--outDir", dist, "--emptyOutDir"], { cwd: RACINE, stdio: "ignore" });
+execFileSync("npx", ["vite", "build", "--base", "./", "--minify", "false", "--outDir", dist, "--emptyOutDir"], { cwd: RACINE, stdio: "ignore" });
 const port = 4800 + Math.floor(Math.random() * 400);
 const serveur = spawn("npx", ["vite", "preview", "--outDir", dist, "--port", String(port), "--strictPort"], { cwd: RACINE, stdio: "ignore" });
 await new Promise((ok) => setTimeout(ok, 2500));
 
 const composantsFichiers = indexComposants();
-const manifeste = { version, date: new Date().toISOString(), heureFictive: "2026-10-20T09:15:00+02:00", police: "Inter (à la place de SF Pro)", appareils: {}, themes: Object.keys(THEMES), ecrans: [], captures: {}, composants: composantsFichiers, avant: null, erreurs: [] };
+let etatEssai = null;
+const sauverEtat = async (p) => {
+  if (etatEssai) return;
+  etatEssai = await p.evaluate(async () => {
+    const base = await new Promise((ok, ko) => { const r = indexedDB.open("korahome"); r.onsuccess = () => ok(r.result); r.onerror = () => ko(r.error); });
+    const magasins = {}, cles = {};
+    for (const m of base.objectStoreNames) {
+      cles[m] = base.transaction(m).objectStore(m).keyPath;
+      magasins[m] = await new Promise((ok) => { const r = base.transaction(m).objectStore(m).getAll(); r.onsuccess = () => ok(r.result); });
+    }
+    base.close();
+    const local = {};
+    for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k.startsWith("korahome.")) local[k] = localStorage.getItem(k); }
+    return { version: base.version, magasins, cles, local };
+  });
+};
+const manifeste = { version, date: new Date().toISOString(), heureFictive: "2026-10-20T09:15:00+02:00", police: "Inter (à la place de SF Pro)", appareils: {}, themes: Object.keys(THEMES), ecrans: [], captures: {}, composants: composantsFichiers, regles: indexRegles(), avant: null, erreurs: [] };
 const manifesteAvant = avant && existsSync(join(avant, "atelier.json")) ? JSON.parse(readFileSync(join(avant, "atelier.json"), "utf8")) : null;
 if (manifesteAvant) manifeste.avant = manifesteAvant.version;
 
@@ -482,7 +543,7 @@ try {
         if (ancienne && existsSync(join(avant, ancienne.image))) {
           const d = await comparer(outil, `data:image/webp;base64,${readFileSync(join(avant, ancienne.image)).toString("base64")}`, `data:image/webp;base64,${webp.toString("base64")}`, app.densite);
           info.difference = d;
-          if (d.part > 0) {
+          if (d.part > 0 && avecAvant.includes(a)) {
             const copie = join("avant", groupe, `${cle}.webp`);
             mkdirSync(join(sortie, "avant", groupe), { recursive: true });
             cpSync(join(avant, ancienne.image), join(sortie, copie));
@@ -495,7 +556,7 @@ try {
         console.log(`${groupe.padEnd(16)} ${cle}${info.difference?.part ? `  (${(info.difference.part * 100).toFixed(2)} % changé)` : ""}`);
       };
       try {
-        await parcourir(p, capter);
+        await parcourir(p, capter, sauverEtat);
       } catch (e) {
         manifeste.erreurs.push(`${groupe} : parcours interrompu (${e.message.split("\n")[0]})`);
         console.log(`!! ${groupe} : ${e.message.split("\n")[0]}`);
@@ -509,11 +570,20 @@ try {
   serveur.kill();
 }
 
+// L'app vivante pour la retouche en direct : la même copie, avec l'horloge fictive et le foyer d'essai.
+const dossierApp = join(sortie, "app");
+cpSync(dist, dossierApp, { recursive: true, filter: (f) => !/(^|\/)(sw\.js|workbox-[^/]*\.js|registerSW\.js)$|\.wasm$|\.map$/.test(f) });
+writeFileSync(join(dossierApp, "atelier-horloge.js"), HORLOGE);
+const page = readFileSync(join(dossierApp, "index.html"), "utf8");
+writeFileSync(join(dossierApp, "index.html"), page.replace("<title>", '<script src="./atelier-horloge.js"></script>\n    <title>'));
+if (etatEssai) writeFileSync(join(dossierApp, "etat-essai.json"), JSON.stringify(etatEssai));
+manifeste.app = { etat: etatEssai ? "app/etat-essai.json" : null, page: "app/index.html" };
+
 writeFileSync(join(sortie, "atelier.json"), JSON.stringify(manifeste));
 // La liste des fichiers à publier avec la page (paramètre `files` de l'outil Artifact).
 const fichiers = {};
 const lister = (d) => { for (const n of readdirSync(join(sortie, d))) { const r = join(d, n); if (statSync(join(sortie, r)).isDirectory()) lister(r); else fichiers[`donnees/${r}`] = join(sortie, r); } };
-for (const d of ["captures", "cartes", "avant"]) if (existsSync(join(sortie, d))) lister(d);
+for (const d of ["captures", "cartes", "avant", "app"]) if (existsSync(join(sortie, d))) lister(d);
 fichiers["donnees/atelier.json"] = join(sortie, "atelier.json");
 writeFileSync(join(sortie, "publication.json"), JSON.stringify(fichiers, null, 1));
 console.log(`\n${Object.keys(manifeste.captures).length} captures, ${Object.keys(fichiers).length} fichiers dans ${sortie}`);

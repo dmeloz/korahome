@@ -45,6 +45,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { height: 100%; }
 body { background: var(--fond); color: var(--texte); font: 14px/1.45 var(--police); margin: 0; }
 button, input, textarea, select { font: inherit; color: inherit; }
@@ -185,6 +186,51 @@ button { cursor: pointer; }
 .type { font-size: 12px; color: var(--discret); }
 .importance-genant { color: var(--change); font-size: 12px; font-weight: 600; }
 
+
+/* ---- La retouche en direct : la vraie app au centre, les réglages à droite ---- */
+.direct { display: grid; grid-template-columns: 270px minmax(0, 1fr) 400px; height: calc(100% - 64px); min-height: 0; }
+.direct > * { min-height: 0; }
+.colonne { overflow-y: auto; padding: 16px 16px 40px; display: flex; flex-direction: column; gap: 18px; }
+.colonne.gauche { border-right: 1px solid var(--trait); }
+.colonne.droite { border-left: 1px solid var(--trait); }
+.vivant { position: relative; flex: none; border-radius: 28px; overflow: hidden; box-shadow: var(--ombre), 0 0 0 1px var(--trait); background: var(--surface); }
+.vivant.ipad { border-radius: 18px; }
+.vivant iframe { position: absolute; top: 0; left: 0; border: 0; transform-origin: 0 0; background: var(--surface); }
+.vivant .prise { position: absolute; inset: 0; cursor: crosshair; }
+.vivant .prise[hidden] { display: none; }
+.vivant svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.retouche { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; padding: 9px 10px; border: 1px solid var(--trait); border-radius: 10px; background: var(--surface); }
+.retouche .cible { font: 11.5px var(--police-fixe); color: var(--laiton); overflow-wrap: anywhere; }
+.retouche .valeur { font: 12px var(--police-fixe); overflow-wrap: anywhere; grid-column: 1; }
+.retouche .valeur s { color: var(--discret); }
+.retouche button { grid-row: 1 / span 2; grid-column: 2; align-self: center; border: 0; background: none; color: var(--discret); font-size: 12px; }
+.reglage { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 4px 10px; align-items: center; }
+.reglage > label { color: var(--discret); font-size: 12.5px; }
+.saisie { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.saisie input[type=number], .saisie input[type=text], .saisie select { width: 100%; min-width: 0; background: var(--fond); border: 1px solid var(--trait); border-radius: 7px; padding: 4px 7px; font: 12px var(--police-fixe); }
+.saisie input.change { border-color: var(--laiton); color: var(--laiton); }
+.saisie button { border: 1px solid var(--trait); background: var(--surface); border-radius: 6px; width: 24px; height: 24px; flex: none; padding: 0; color: var(--discret); }
+.saisie input[type=color] { width: 28px; height: 24px; padding: 0; border: 1px solid var(--trait); border-radius: 6px; background: none; flex: none; }
+.source { grid-column: 2; font: 10.5px var(--police-fixe); color: var(--discret); overflow-wrap: anywhere; }
+.nuancier { display: flex; flex-wrap: wrap; gap: 4px; grid-column: 2; }
+.nuancier button { width: 18px; height: 18px; border-radius: 5px; border: 1px solid var(--trait); padding: 0; }
+.nuancier button[aria-pressed="true"] { outline: 2px solid var(--laiton); outline-offset: 1px; }
+.jeton-ligne { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 8px; align-items: center; }
+.jeton-ligne input { width: 28px; height: 22px; padding: 0; border: 1px solid var(--trait); border-radius: 6px; background: none; }
+.jeton-ligne span { font: 11.5px var(--police-fixe); overflow-wrap: anywhere; }
+.jeton-ligne span.change { color: var(--laiton); }
+.regles { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.regles li { font: 11.5px/1.45 var(--police-fixe); overflow-wrap: anywhere; }
+.regles li span { color: var(--discret); }
+pre.diff { margin: 0; font: 11.5px/1.5 var(--police-fixe); white-space: pre-wrap; overflow-wrap: anywhere; background: var(--fond); border: 1px solid var(--trait); border-radius: 8px; padding: 8px 10px; max-height: 180px; overflow: auto; }
+.carte-note.sans-image { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 1100px) {
+  .direct { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .colonne.gauche, .colonne.droite { border: 0; border-top: 1px solid var(--trait); }
+  .direct .centre { order: -1; }
+  .direct .plan { min-height: 75vh; }
+}
+
 @media (max-width: 1100px) {
   .etabli { grid-template-columns: 210px minmax(0, 1fr); height: auto; }
   .inspecteur { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--trait); }
@@ -212,6 +258,7 @@ button { cursor: pointer; }
   </div>
   <div class="groupe onglets-vue" role="group" aria-label="Vue">
     <button id="vue-ecrans" aria-pressed="true">Écrans</button>
+    <button id="vue-direct" aria-pressed="false">Retouche en direct</button>
     <button id="vue-notes" aria-pressed="false">Notes <span class="compte" id="compte-notes">0</span></button>
   </div>
   <div class="groupe" role="group" aria-label="Appareil" id="appareils"></div>
@@ -255,6 +302,28 @@ button { cursor: pointer; }
       <p class="aide" style="margin-top:8px"><kbd>←</kbd> <kbd>→</kbd> écran précédent ou suivant · <kbd>↑</kbd> élément parent · <kbd>Échap</kbd> tout lâcher</p>
     </div>
   </aside>
+</main>
+
+
+<main class="direct" id="direct" hidden>
+  <aside class="colonne gauche" aria-label="Tes retouches et les couleurs de Kora">
+    <div class="bloc" id="bloc-retouches"></div>
+    <div class="bloc" id="bloc-jetons"></div>
+  </aside>
+  <section class="centre">
+    <div class="outils">
+      <div class="titre-ecran" id="titre-direct">Kora en vrai<small>Chargement…</small></div>
+      <div class="groupe" role="group" aria-label="Ce que fait le doigt" id="mode-direct">
+        <button data-v="retoucher" aria-pressed="true">Retoucher</button>
+        <button data-v="naviguer" aria-pressed="false">Utiliser Kora</button>
+      </div>
+      <button class="bascule" id="b-avant-apres" aria-pressed="false" title="Voir Kora sans tes retouches">Sans mes retouches</button>
+      <button class="bascule" id="b-grille-direct" aria-pressed="false">Grille</button>
+      <button class="bascule" id="b-recommencer" title="Remettre le foyer d'essai et revenir à l'accueil">Recommencer</button>
+    </div>
+    <div class="plan" id="plan-direct"><div class="scene" id="scene-direct"></div></div>
+  </section>
+  <aside class="colonne droite" id="inspecteur-direct" aria-label="Réglages de l'élément"></aside>
 </main>
 
 <div class="loupe" id="loupe" hidden><canvas id="loupe-canvas" width="220" height="220"></canvas><div class="lecture"><span class="pastille" id="loupe-pastille"></span><span id="loupe-texte"></span></div></div>
@@ -486,7 +555,7 @@ function ligne(svg, x1, y1, x2, y2, attrs) {
   svg.append(l); return l;
 }
 function texte(svg, x, y, t, attrs = {}) {
-  const z = echelle();
+  const z = etat.vue === "direct" ? direct.z || 1 : echelle();
   const g = document.createElementNS(NS, "g");
   const s = document.createElementNS(NS, "text");
   s.textContent = t;
@@ -908,22 +977,24 @@ async function envoyer(e, cc, f) {
 
 // ---------- La vue des notes ----------
 function carteNote(n, compacte) {
-  const d = document.createElement("article"); d.className = "carte-note";
-  const img = document.createElement("img"); img.alt = ""; if (n.vignette) img.src = n.vignette;
+  const d = document.createElement("article"); d.className = `carte-note${n.vignette ? "" : " sans-image"}`;
+  const img = document.createElement("img"); img.alt = ""; if (n.vignette) img.src = n.vignette; else img.hidden = true;
   const corps = document.createElement("div"); corps.className = "corps";
   const haut = document.createElement("div"); haut.className = "haut";
   const st = document.createElement("span"); st.className = `statut ${n.statut}`; st.textContent = n.statut === "reglee" && n.regleeEn ? `Réglée en ${n.regleeEn}` : STATUTS[n.statut] ?? n.statut;
-  const ty = document.createElement("span"); ty.className = "type"; ty.textContent = TYPES.find(([v]) => v === n.type)?.[1] ?? n.type;
+  const ty = document.createElement("span"); ty.className = "type"; ty.textContent = n.type === "retouche" ? `Retouche en direct · ${n.changements?.length ?? 0} changement${(n.changements?.length ?? 0) > 1 ? "s" : ""}` : TYPES.find(([v]) => v === n.type)?.[1] ?? n.type;
   haut.append(st, ty);
   if (n.importance === "genant") { const g = document.createElement("span"); g.className = "importance-genant"; g.textContent = "Gênant"; haut.append(g); }
   const p = document.createElement("p"); p.textContent = n.texte;
   const ou = document.createElement("div"); ou.className = "ou";
   ou.textContent = `${n.titreEcran} · ${etat.manifeste?.appareils[n.appareil]?.nom ?? n.appareil} · ${n.theme} · ${n.version}${n.element?.fichier ? ` · ${n.element.fichier}` : ""}`;
   corps.append(haut, p, ou);
+  if (n.diff) { const pre = document.createElement("pre"); pre.className = "diff"; pre.textContent = n.diff; corps.append(pre); }
   if (n.reponse) { const r = document.createElement("p"); r.className = "discret"; r.style.fontSize = "12.5px"; r.textContent = n.reponse; corps.append(r); }
   const actions = document.createElement("div"); actions.className = "actions";
   const voir = document.createElement("button"); voir.textContent = "Voir sur l'écran";
-  voir.onclick = () => { etat.appareil = n.appareil; etat.theme = n.theme; etat.vue = "ecrans"; etat.point = [n.x, n.y]; etat.zone = n.zone; ouvrir(n.ecran, true); };
+  voir.onclick = () => { etat.appareil = n.appareil; etat.theme = n.theme; if (n.type === "retouche") { etat.vue = "direct"; tout(); return; } etat.vue = "ecrans"; etat.point = [n.x, n.y]; etat.zone = n.zone; ouvrir(n.ecran, true); };
+  if (n.type === "retouche") voir.hidden = true;
   actions.append(voir);
   if (etat.db && !compacte) {
     const suivant = n.statut === "reglee" ? ["ouverte", "Rouvrir"] : ["reglee", "C'est réglé"];
@@ -958,6 +1029,431 @@ function dessinerNotes() {
   return v;
 }
 
+// ---------- La retouche en direct : la vraie app, ses styles changés sous les yeux ----------
+const direct = { cadre: null, doc: null, mode: "retoucher", choisi: null, survol: null, retouches: [], jetons: {}, sans: false, grille: false, portee: "auto", pret: false, compteur: 0 };
+const REGLAGES = [
+  ["Espacement", [["padding-top", "marge intérieure haut"], ["padding-right", "marge intérieure droite"], ["padding-bottom", "marge intérieure bas"], ["padding-left", "marge intérieure gauche"], ["margin-top", "marge haut"], ["margin-bottom", "marge bas"], ["margin-left", "marge gauche"], ["margin-right", "marge droite"], ["gap", "écart"]]],
+  ["Texte", [["font-size", "taille"], ["font-weight", "graisse"], ["line-height", "interligne"], ["letter-spacing", "approche"], ["text-align", "alignement"], ["color", "couleur"]]],
+  ["Forme", [["background-color", "fond"], ["border-radius", "arrondi"], ["opacity", "opacité"], ["width", "largeur"], ["height", "hauteur"]]],
+];
+const CHOIX = { "font-weight": ["300", "400", "500", "600", "700", "800"], "text-align": ["left", "center", "right", "start", "end"] };
+const COULEURS = new Set(["color", "background-color"]);
+const SANS_UNITE = new Set(["opacity", "font-weight"]);
+
+async function semer(force) {
+  const m = etat.manifeste;
+  if (!m.app?.etat) return false;
+  if (!force && lire("atelier:seme", "") === m.version) return true;
+  const e = await (await fetch(`donnees/${m.app.etat}`)).json();
+  await new Promise((ok) => { const r = indexedDB.deleteDatabase("korahome"); r.onsuccess = r.onerror = r.onblocked = () => ok(); });
+  const base = await new Promise((ok, ko) => {
+    const r = indexedDB.open("korahome", e.version);
+    r.onupgradeneeded = () => { for (const nom of Object.keys(e.magasins)) r.result.createObjectStore(nom, { keyPath: e.cles?.[nom] ?? (nom === "attente" ? "cle" : "id") }); };
+    r.onsuccess = () => ok(r.result); r.onerror = () => ko(r.error);
+  });
+  const tx = base.transaction(Object.keys(e.magasins), "readwrite");
+  for (const [nom, docs] of Object.entries(e.magasins)) for (const d of docs) tx.objectStore(nom).put(d);
+  await new Promise((ok) => { tx.oncomplete = ok; tx.onerror = ok; });
+  base.close();
+  try {
+    for (const k of Object.keys(localStorage)) if (k.startsWith("korahome.")) localStorage.removeItem(k);
+    for (const [k, v] of Object.entries(e.local)) localStorage.setItem(k, v);
+  } catch { /* sans stockage, l'app repart de son accueil */ }
+  garder("atelier:seme", m.version);
+  return true;
+}
+
+function themeKora() { try { localStorage.setItem("korahome.theme", etat.theme); } catch { /* le thème suit le Mac */ } }
+
+async function ouvrirDirect(recommencer) {
+  const scene = $("scene-direct"), a = appareil();
+  if (recommencer || !direct.cadre || direct.cadre.dataset.appareil !== etat.appareil) {
+    scene.replaceChildren();
+    direct.cadre = null; direct.doc = null; direct.choisi = null;
+    const ok = await semer(recommencer);
+    if (!ok) { scene.textContent = "Cette série de captures n'a pas encore l'app vivante : elle arrive avec la prochaine version."; return; }
+    themeKora();
+    const boite = document.createElement("div"); boite.className = `vivant${a.largeur > 600 ? " ipad" : ""}`;
+    const f = document.createElement("iframe");
+    f.title = "Kora, l'app vivante"; f.dataset.appareil = etat.appareil;
+    f.src = `donnees/${etat.manifeste.app.page}?heure=${encodeURIComponent(etat.manifeste.heureFictive)}`;
+    f.style.width = `${a.largeur}px`; f.style.height = `${a.hauteur}px`;
+    const prise = document.createElement("div"); prise.className = "prise"; prise.hidden = direct.mode !== "retoucher";
+    const svg = document.createElementNS(NS, "svg"); svg.setAttribute("viewBox", `0 0 ${a.largeur} ${a.hauteur}`); svg.setAttribute("preserveAspectRatio", "none"); svg.id = "calque-direct";
+    boite.append(f, svg, prise);
+    scene.append(boite);
+    direct.cadre = f;
+    f.onload = () => {
+      direct.doc = f.contentDocument;
+      if (!direct.doc) { $("titre-direct").lastChild.textContent = "Le cadre refuse l'accès : la retouche ne peut pas lire l'app."; return; }
+      const st = direct.doc.createElement("style"); st.id = "atelier-retouches"; direct.doc.head.append(st);
+      appliquerRetouches();
+      direct.doc.addEventListener("scroll", () => dessinerDirect(), true);
+      brancherPrise(prise);
+      direct.pret = true;
+      lireJetons();
+      setTimeout(() => { lireJetons(); dessinerInspecteurDirect(); }, 1200);
+    };
+  }
+  appliquerTheme();
+  mettreAEchelle();
+  dessinerRetouches();
+  dessinerInspecteurDirect();
+}
+
+function appliquerTheme() {
+  const html = direct.doc?.documentElement;
+  if (html) { html.dataset.theme = etat.theme; themeKora(); setTimeout(lireJetons, 300); }
+}
+
+function mettreAEchelle() {
+  const f = direct.cadre; if (!f) return;
+  const a = appareil(), plan = $("plan-direct");
+  const z = Math.max(0.3, Math.min(1.25, (plan.clientWidth - 80) / a.largeur, (plan.clientHeight - 80) / a.hauteur));
+  f.style.transform = `scale(${z})`;
+  f.parentElement.style.width = `${a.largeur * z}px`; f.parentElement.style.height = `${a.hauteur * z}px`;
+  direct.z = z;
+  dessinerDirect();
+}
+
+function elementAuPoint(ev) {
+  const r = direct.cadre.getBoundingClientRect(), z = direct.z;
+  const el = direct.doc.elementFromPoint((ev.clientX - r.left) / z, (ev.clientY - r.top) / z);
+  return el && el !== direct.doc.documentElement && el !== direct.doc.body ? el : null;
+}
+function brancherPrise(prise) {
+  prise.onpointermove = (ev) => { const el = elementAuPoint(ev); if (el !== direct.survol) { direct.survol = el; dessinerDirect(); } };
+  prise.onpointerleave = () => { direct.survol = null; dessinerDirect(); };
+  prise.onclick = (ev) => { direct.choisi = elementAuPoint(ev); direct.portee = "auto"; dessinerDirect(); dessinerInspecteurDirect(); };
+  prise.onwheel = (ev) => { direct.doc.scrollingElement?.scrollBy(0, ev.deltaY / direct.z); const s = direct.doc.querySelector(".page-dessus, .page"); s?.scrollBy?.(0, ev.deltaY / direct.z); dessinerDirect(); };
+}
+
+function dessinerDirect() {
+  const svg = $("calque-direct"); if (!svg || !direct.doc) return;
+  const a = appareil(), fin = 1 / (direct.z || 1);
+  svg.replaceChildren();
+  if (direct.grille) for (let x = 8; x < a.largeur; x += 8) ligne(svg, x, 0, x, a.hauteur, { stroke: "rgb(111 183 232 / 0.22)", "stroke-width": fin });
+  if (direct.grille) for (let y = 8; y < a.hauteur; y += 8) ligne(svg, 0, y, a.largeur, y, { stroke: "rgb(111 183 232 / 0.22)", "stroke-width": fin });
+  const boite = (el) => { const r = el.getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map((v) => Math.round(v * 2) / 2); };
+  if (direct.survol && direct.survol !== direct.choisi && direct.survol.isConnected) rect(svg, boite(direct.survol), { fill: "rgb(111 183 232 / 0.12)", stroke: "var(--mesure)", "stroke-width": fin });
+  if (direct.choisi?.isConnected) {
+    const b = boite(direct.choisi), s = direct.doc.defaultView.getComputedStyle(direct.choisi);
+    const px = (k) => parseFloat(s.getPropertyValue(k)) || 0;
+    const [x, y, w, h] = b, pt = px("padding-top"), pr = px("padding-right"), pb = px("padding-bottom"), pl = px("padding-left");
+    const vert = { fill: "rgb(127 179 154 / 0.28)" }, orange = { fill: "rgb(226 145 106 / 0.22)" };
+    if (pt) rect(svg, [x, y, w, pt], vert); if (pb) rect(svg, [x, y + h - pb, w, pb], vert);
+    if (pl) rect(svg, [x, y + pt, pl, h - pt - pb], vert); if (pr) rect(svg, [x + w - pr, y + pt, pr, h - pt - pb], vert);
+    const mt = px("margin-top"), mb = px("margin-bottom");
+    if (mt > 0) rect(svg, [x, y - mt, w, mt], orange); if (mb > 0) rect(svg, [x, y + h, w, mb], orange);
+    rect(svg, b, { fill: "none", stroke: "var(--laiton)", "stroke-width": 1.5 * fin });
+    texte(svg, x + w / 2, y + h + 11 * fin, `${w} × ${h}`);
+  }
+}
+
+// Les règles CSS de Kora qui touchent l'élément, avec leur fichier.
+function reglesDe(el) {
+  const out = [], vue = direct.doc.defaultView;
+  const parcourir = (liste, media) => {
+    for (const r of liste) {
+      if (r.selectorText) {
+        let un = null;
+        try { if (!el.matches(r.selectorText)) continue; un = r.selectorText.split(",").map((x) => x.trim()).find((x) => { try { return el.matches(x); } catch { return false; } }); } catch { continue; }
+        out.push({ regle: r, selecteur: un ?? r.selectorText, media, fichier: etat.manifeste.regles?.[(un ?? "").replace(/\s+/g, " ")]?.[0] ?? null });
+      } else if (r.cssRules) {
+        if (r.media && !vue.matchMedia(r.media.mediaText).matches) continue;
+        parcourir(r.cssRules, r.media ? r.media.mediaText : media);
+      }
+    }
+  };
+  for (const f of direct.doc.styleSheets) { if (f.ownerNode?.id === "atelier-retouches") continue; try { parcourir(f.cssRules, null); } catch { /* feuille étrangère */ } }
+  return out;
+}
+const regleQuiDonne = (regles, prop) => [...regles].reverse().find((r) => r.regle.style.getPropertyValue(prop) || (prop.startsWith("padding") && r.regle.style.getPropertyValue("padding")) || (prop.startsWith("margin") && r.regle.style.getPropertyValue("margin")));
+// Une valeur héritée (taille, couleur…) vient souvent d'un parent : on remonte jusqu'à la règle qui la donne.
+const HERITEES = new Set(["font-size", "font-weight", "line-height", "letter-spacing", "text-align", "color"]);
+function donneur(el, prop) {
+  for (let e = el, n = 0; e && e !== direct.doc.documentElement && n < 8; e = e.parentElement, n++) {
+    // Les règles de base (« button », « * ») valent pour toute l'app : on cherche la règle propre à l'élément.
+    const r = regleQuiDonne(reglesDe(e).filter((x) => /[.#[]/.test(x.selecteur) && !/^:root/.test(x.selecteur)), prop);
+    if (r) return r;
+    if (!HERITEES.has(prop)) return null;
+  }
+  return null;
+}
+function cheminDe(el) {
+  const m = [];
+  for (let e = el; e && e !== direct.doc.body && m.length < 5; e = e.parentElement) {
+    let x = e.tagName.toLowerCase();
+    const c = [...e.classList].slice(0, 2); if (c.length) x += "." + c.join(".");
+    m.unshift(x);
+  }
+  return m.join(" > ");
+}
+function composantVivant(el) {
+  const cle = Object.keys(el).find((k) => k.startsWith("__reactFiber$"));
+  const noms = [];
+  for (let f = cle ? el[cle] : null; f && noms.length < 5; f = f.return) {
+    const t = f.type, n = typeof t === "function" ? t.displayName || t.name : t && typeof t === "object" ? (t.type?.name || t.render?.name) : null;
+    if (n && /^[A-Z]/.test(n) && !ENVELOPPES.test(n) && noms[noms.length - 1] !== n) noms.push(n);
+  }
+  return { noms, fichier: noms.map((n) => etat.manifeste.composants[n]).find(Boolean) ?? null };
+}
+function cibleDe(el, prop, regles) {
+  if (direct.portee === "element") {
+    if (!el.dataset.atelier) el.dataset.atelier = `e${++direct.compteur}`;
+    return { cible: `[data-atelier="${el.dataset.atelier}"]`, fichier: null, media: null, seul: true };
+  }
+  const voulu = direct.portee !== "auto" ? regles.find((r) => r.selecteur === direct.portee) : null;
+  const r = voulu ?? donneur(el, prop) ?? [...regles].reverse().find((x) => x.selecteur.includes("."));
+  if (!r) { if (!el.dataset.atelier) el.dataset.atelier = `e${++direct.compteur}`; return { cible: `[data-atelier="${el.dataset.atelier}"]`, fichier: null, media: null, seul: true }; }
+  return { cible: r.selecteur, fichier: r.fichier, media: r.media, seul: false };
+}
+
+function retoucher(el, prop, valeur, avant) {
+  const regles = reglesDe(el), c = cibleDe(el, prop, regles), { noms, fichier } = composantVivant(el);
+  const deja = direct.retouches.find((x) => x.cible === c.cible && x.propriete === prop && x.media === c.media);
+  if (deja) { deja.apres = valeur; if (deja.apres === deja.avant) direct.retouches.splice(direct.retouches.indexOf(deja), 1); }
+  else direct.retouches.push({ id: `r${Date.now().toString(36)}${direct.retouches.length}`, cible: c.cible, fichierCss: c.fichier, media: c.media, seul: c.seul, propriete: prop, avant, apres: valeur, composant: noms.slice(0, 3).join(" › "), fichier, chemin: cheminDe(el), texte: (el.textContent || "").trim().slice(0, 60), ecran: titreVivant() });
+  appliquerRetouches();
+  dessinerRetouches();
+}
+function appliquerRetouches() {
+  const st = direct.doc?.getElementById("atelier-retouches"); if (!st) return;
+  const lignes = [];
+  for (const r of direct.retouches.filter((x) => x.propriete !== "texte")) {
+    const regle = `${r.cible} { ${r.propriete}: ${r.apres} !important; }`;
+    lignes.push(r.media ? `@media ${r.media} { ${regle} }` : regle);
+  }
+  const jetons = Object.entries(direct.jetons).filter(([, v]) => v.apres !== v.avant).map(([k, v]) => `${k}: ${v.apres} !important;`);
+  if (jetons.length) lignes.push(`:root, :root[data-theme] { ${jetons.join(" ")} }`);
+  st.textContent = lignes.join("\n");
+  st.disabled = direct.sans;
+  for (const r of direct.retouches.filter((x) => x.propriete === "texte")) {
+    const el = direct.doc.querySelector(r.cible);
+    if (el && el.textContent !== (direct.sans ? r.avant : r.apres)) el.textContent = direct.sans ? r.avant : r.apres;
+  }
+  setTimeout(dessinerDirect, 30);
+}
+const titreVivant = () => direct.doc?.querySelector(".page-dessus h1, h1")?.textContent?.trim() || "Accueil";
+
+function lireJetons() {
+  if (!direct.doc) return;
+  const racine = direct.doc.defaultView.getComputedStyle(direct.doc.documentElement);
+  const noms = new Set();
+  for (const f of direct.doc.styleSheets) { try { const tour = (l) => { for (const r of l) { if (r.style && /:root/.test(r.selectorText || "")) for (const k of r.style) if (k.startsWith("--")) noms.add(k); if (r.cssRules) tour(r.cssRules); } }; tour(f.cssRules); } catch { /* rien */ } }
+  for (const k of noms) {
+    const v = racine.getPropertyValue(k).trim(), c = rgba(v);
+    if (!c) continue;
+    if (!direct.jetons[k]) direct.jetons[k] = { avant: v, apres: v };
+    else if (direct.jetons[k].apres === direct.jetons[k].avant) direct.jetons[k] = { avant: v, apres: v };
+  }
+  dessinerJetons();
+}
+function dessinerJetons() {
+  const b = $("bloc-jetons"); b.replaceChildren();
+  const h = document.createElement("h3"); h.textContent = `Couleurs de Kora · ${etat.theme}`; b.append(h);
+  const aide = document.createElement("p"); aide.className = "aide"; aide.style.marginBottom = "10px"; aide.textContent = "Changer une couleur ici la change partout dans l'app.";
+  b.append(aide);
+  const liste = document.createElement("div"); liste.style.cssText = "display:grid;gap:6px";
+  for (const [k, v] of Object.entries(direct.jetons)) {
+    const c = rgba(v.apres); if (!c || c[3] < 1) continue;
+    const l = document.createElement("label"); l.className = "jeton-ligne";
+    const i = document.createElement("input"); i.type = "color"; i.value = hex(c).slice(0, 7);
+    const t = document.createElement("span"); t.textContent = `${k} ${v.apres !== v.avant ? `${v.avant} → ${v.apres}` : hex(c)}`; if (v.apres !== v.avant) t.className = "change";
+    i.oninput = () => { v.apres = i.value; appliquerRetouches(); t.textContent = `${k} ${v.avant} → ${v.apres}`; t.className = "change"; dessinerRetouches(); };
+    l.append(i, t); liste.append(l);
+  }
+  b.append(liste);
+}
+
+function dessinerRetouches() {
+  const b = $("bloc-retouches"); b.replaceChildren();
+  const jetons = Object.entries(direct.jetons).filter(([, v]) => v.apres !== v.avant);
+  const n = direct.retouches.length + jetons.length;
+  const h = document.createElement("h3"); h.textContent = "Tes retouches"; const c = document.createElement("span"); c.textContent = String(n); h.append(c); b.append(h);
+  if (!n) { const p = document.createElement("p"); p.className = "aide"; p.textContent = "Touche un élément de Kora, puis change sa marge, sa taille, sa couleur ou son texte à droite. Chaque retouche s'ajoute ici, et l'écran change aussitôt."; b.append(p); return; }
+  const liste = document.createElement("div"); liste.style.cssText = "display:grid;gap:6px";
+  for (const r of direct.retouches) {
+    const d = document.createElement("div"); d.className = "retouche";
+    const ci = document.createElement("div"); ci.className = "cible"; ci.textContent = r.seul ? `${r.composant || "élément"} seulement` : `${r.cible}${r.fichierCss ? ` · ${r.fichierCss.replace("src/styles/", "")}` : ""}`;
+    const va = document.createElement("div"); va.className = "valeur";
+    const s = document.createElement("s"); s.textContent = r.avant; va.append(document.createTextNode(`${r.propriete === "texte" ? "texte" : r.propriete} `), s, document.createTextNode(` → ${r.apres}`));
+    const x = document.createElement("button"); x.textContent = "Annuler"; x.onclick = () => { direct.retouches.splice(direct.retouches.indexOf(r), 1); if (r.propriete === "texte") { const el = direct.doc.querySelector(r.cible); if (el) el.textContent = r.avant; } appliquerRetouches(); dessinerRetouches(); dessinerInspecteurDirect(); };
+    d.append(ci, va, x); liste.append(d);
+  }
+  for (const [k, v] of jetons) {
+    const d = document.createElement("div"); d.className = "retouche";
+    const ci = document.createElement("div"); ci.className = "cible"; ci.textContent = `${k} · couleurs ${etat.theme}`;
+    const va = document.createElement("div"); va.className = "valeur"; const s = document.createElement("s"); s.textContent = v.avant; va.append(s, document.createTextNode(` → ${v.apres}`));
+    const x = document.createElement("button"); x.textContent = "Annuler"; x.onclick = () => { v.apres = v.avant; appliquerRetouches(); dessinerRetouches(); dessinerJetons(); };
+    d.append(ci, va, x); liste.append(d);
+  }
+  b.append(liste);
+  // L'envoi : une note « retouche » que Patch applique dans le code.
+  const f = document.createElement("form"); f.className = "note"; f.style.marginTop = "12px";
+  const ta = document.createElement("textarea"); ta.id = "texte-retouches"; ta.placeholder = "Un mot pour Patch, si besoin (facultatif)"; ta.style.minHeight = "60px"; ta.maxLength = 800;
+  const bouton = document.createElement("button"); bouton.className = "principal"; bouton.type = "submit"; bouton.textContent = `Envoyer ${n} retouche${n > 1 ? "s" : ""} à Patch`; bouton.disabled = !etat.db;
+  const msg = document.createElement("div"); msg.className = "message";
+  if (!etat.db) { msg.className = "message erreur"; msg.textContent = "L'envoi marche quand tu es connecté à claude.ai."; }
+  f.onsubmit = (ev) => { ev.preventDefault(); void envoyerRetouches(ta.value.trim(), bouton, msg); };
+  f.append(ta, bouton, msg); b.append(f);
+}
+
+function diffDe(changements) {
+  return changements.map((r) => r.propriete === "texte" ? `texte de ${r.composant || r.chemin} (${r.fichier ?? "?"}) : « ${r.avant} » → « ${r.apres} »` : `${r.media ? `@media ${r.media} ` : ""}${r.cible}${r.fichierCss ? ` (${r.fichierCss})` : r.seul ? ` (seulement ${r.composant || r.chemin}${r.fichier ? `, ${r.fichier}` : ""})` : ""} { ${r.propriete}: ${r.avant} → ${r.apres} }`).join("\n");
+}
+async function envoyerRetouches(mot, bouton, msg) {
+  bouton.disabled = true; msg.className = "message"; msg.textContent = "Envoi…";
+  const jetons = Object.entries(direct.jetons).filter(([, v]) => v.apres !== v.avant).map(([k, v]) => ({ cible: ":root", fichierCss: "src/styles/base.css", media: null, seul: false, propriete: k, avant: v.avant, apres: v.apres, composant: "", fichier: null, chemin: ":root", theme: etat.theme }));
+  const changements = [...direct.retouches.map(({ id, ...r }) => r), ...jetons];
+  const id = `r${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  const note = {
+    type: "retouche", ecran: "direct", titreEcran: [...new Set(changements.map((r) => r.ecran).filter(Boolean))].join(", ") || titreVivant(),
+    appareil: etat.appareil, theme: etat.theme, version: etat.manifeste.version, partout: true, x: 0, y: 0, zone: null, element: null,
+    importance: "a-revoir", texte: mot || `${changements.length} retouche${changements.length > 1 ? "s" : ""} faite${changements.length > 1 ? "s" : ""} en direct`,
+    changements, diff: diffDe(changements), statut: "ouverte", creeLe: new Date().toISOString(), auteur: etat.user ? await etat.user.id().catch(() => null) : null,
+  };
+  try { await etat.db.collection("notes").doc(id).set(note); }
+  catch (err) { msg.className = "message erreur"; msg.textContent = `Pas envoyé (${err?.code ?? "erreur"}). Tes retouches restent là.`; bouton.disabled = false; return; }
+  msg.textContent = "Retouches gardées.";
+  try {
+    if (etat.comments && (await etat.comments.canSendToClaude()) === "available") {
+      const anchor = await etat.comments.anchorFor($("bloc-retouches"));
+      const texteClaude = [`Retouches en direct ${id} pour le fil Patch (Kora ${note.version}, ${appareil().nom}, ${etat.theme}). À appliquer dans le code, puis à marquer réglées.`, mot ? `Mot de Melo : ${mot}` : "", note.diff].filter(Boolean).join("\n").slice(0, 3900);
+      await etat.comments.sendToClaude({ anchor, text: texteClaude });
+      msg.textContent = "Retouches envoyées à Claude, qui les passe au fil Patch.";
+    } else msg.textContent = "Retouches gardées. Patch les appliquera à la prochaine série de corrections.";
+  } catch { msg.textContent = "Retouches gardées. Patch les appliquera à la prochaine série de corrections."; }
+  direct.retouches = [];
+  for (const v of Object.values(direct.jetons)) v.avant = v.apres;
+  setTimeout(() => { dessinerRetouches(); dessinerJetons(); }, 2000);
+}
+
+function dessinerInspecteurDirect() {
+  const insp = $("inspecteur-direct"); insp.replaceChildren();
+  const t = $("titre-direct");
+  if (t) { t.replaceChildren(document.createTextNode("Kora en vrai")); const sm = document.createElement("small"); const a = appareil(); sm.textContent = `${a.nom} · ${a.largeur} × ${a.hauteur} pt · ${etat.theme} · ${direct.doc ? titreVivant() : "chargement"}`; t.append(sm); }
+  const el = direct.choisi;
+  if (!el?.isConnected || !direct.doc) {
+    const b = bloc("Comment faire");
+    const p = document.createElement("p"); p.className = "aide";
+    p.textContent = "C'est le vrai Kora, avec le foyer d'essai. En mode « Retoucher », touche un élément : ses réglages s'ouvrent ici. Change une valeur, l'écran suit aussitôt. En mode « Utiliser Kora », tu navigues normalement pour aller sur un autre écran, ouvrir une feuille ou cocher une tâche.";
+    const p2 = document.createElement("p"); p2.className = "aide"; p2.style.marginTop = "8px";
+    p2.textContent = "Une retouche s'applique à la règle de style qui donne la valeur (par exemple toutes les lignes de tâche) ; tu peux aussi la limiter à cet élément seulement.";
+    b.append(p, p2); insp.append(b); return;
+  }
+  const vue = direct.doc.defaultView, s = vue.getComputedStyle(el), regles = reglesDe(el), { noms, fichier } = composantVivant(el);
+  const b1 = bloc("Élément");
+  const nom = document.createElement("p"); nom.className = "composant"; nom.textContent = noms[0] ?? el.tagName.toLowerCase(); b1.append(nom);
+  if (noms.length > 1) { const d = document.createElement("div"); d.className = "selecteur"; d.textContent = `dans ${noms.slice(1, 4).join(" › ")}`; b1.append(d); }
+  if (fichier) { const d = document.createElement("div"); d.className = "fichier"; d.textContent = fichier; b1.append(d); }
+  const ch = document.createElement("div"); ch.className = "selecteur"; ch.textContent = cheminDe(el); b1.append(ch);
+  const fil = document.createElement("div"); fil.className = "fil";
+  const parents = []; for (let e = el; e && e !== direct.doc.body && parents.length < 6; e = e.parentElement) parents.unshift(e);
+  for (const e of parents) { const bt = document.createElement("button"); bt.textContent = (e.tagName.toLowerCase() + (e.classList[0] ? "." + e.classList[0] : "")).slice(0, 26); if (e === el) bt.className = "ici"; bt.onclick = () => { direct.choisi = e; direct.portee = "auto"; dessinerDirect(); dessinerInspecteurDirect(); }; fil.append(bt); }
+  b1.append(fil); insp.append(b1);
+
+  // Où va la retouche.
+  const b2 = bloc("Où appliquer");
+  const sel = document.createElement("select"); sel.id = "portee"; sel.style.cssText = "width:100%;background:var(--fond);border:1px solid var(--trait);border-radius:8px;padding:6px 8px;font:12px var(--police-fixe)";
+  const opts = [["auto", "La règle qui donne chaque valeur"], ...[...new Map(regles.map((r) => [r.selecteur, r])).values()].reverse().map((r) => [r.selecteur, `${r.selecteur}${r.fichier ? ` · ${r.fichier.replace("src/styles/", "")}` : ""}`]), ["element", "Cet élément seulement"]];
+  for (const [v, l] of opts) { const o = document.createElement("option"); o.value = v; o.textContent = l; o.selected = v === direct.portee; sel.append(o); }
+  sel.onchange = () => { direct.portee = sel.value; };
+  b2.append(sel); insp.append(b2);
+
+  for (const [titre, props] of REGLAGES) {
+    const b = bloc(titre); const g = document.createElement("div"); g.style.cssText = "display:grid;gap:8px";
+    for (const [prop, libelle] of props) g.append(ligneReglage(el, prop, libelle, s, regles));
+    b.append(g); insp.append(b);
+  }
+  // Le texte, s'il y en a un à cet endroit.
+  const direct1 = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
+  if (direct1) {
+    const b = bloc("Texte");
+    const i = document.createElement("textarea"); i.id = "texte-element"; i.value = el.textContent; i.style.cssText = "width:100%;min-height:54px;background:var(--fond);border:1px solid var(--trait);border-radius:8px;padding:8px;font:13px var(--police)";
+    const avant = direct.retouches.find((r) => r.propriete === "texte" && r.cible === cheminUnique(el))?.avant ?? el.textContent;
+    i.oninput = () => {
+      const cible = cheminUnique(el), r = direct.retouches.find((x) => x.propriete === "texte" && x.cible === cible), { noms: n2, fichier: f2 } = composantVivant(el);
+      el.textContent = i.value;
+      if (r) { r.apres = i.value; if (r.apres === r.avant) direct.retouches.splice(direct.retouches.indexOf(r), 1); }
+      else if (i.value !== avant) direct.retouches.push({ id: `t${Date.now().toString(36)}`, cible, fichierCss: null, media: null, seul: true, propriete: "texte", avant, apres: i.value, composant: n2.slice(0, 3).join(" › "), fichier: f2, chemin: cheminDe(el), texte: avant.slice(0, 60), ecran: titreVivant() });
+      dessinerRetouches(); dessinerDirect();
+    };
+    b.append(i); insp.append(b);
+  }
+  if (regles.length) {
+    const b = bloc("Règles de style", String(regles.length));
+    const ul = document.createElement("ul"); ul.className = "regles";
+    for (const r of [...regles].reverse().slice(0, 12)) { const li = document.createElement("li"); li.textContent = r.selecteur + " "; const sp = document.createElement("span"); sp.textContent = (r.fichier ?? "") + (r.media ? ` · @media ${r.media}` : ""); li.append(sp); ul.append(li); }
+    b.append(ul); insp.append(b);
+  }
+}
+function cheminUnique(el) { if (!el.dataset.atelier) el.dataset.atelier = `e${++direct.compteur}`; return `[data-atelier="${el.dataset.atelier}"]`; }
+
+function ligneReglage(el, prop, libelle, s, regles) {
+  const d = document.createElement("div"); d.className = "reglage";
+  const id = `r-${prop}`;
+  const l = document.createElement("label"); l.htmlFor = id; l.textContent = libelle;
+  const saisie = document.createElement("div"); saisie.className = "saisie";
+  const actuelle = s.getPropertyValue(prop).trim();
+  const enCours = direct.retouches.find((r) => r.propriete === prop && (r.cible === cibleDe(el, prop, regles).cible));
+  const avant = enCours?.avant ?? actuelle;
+  const appliquer = (v) => { retoucher(el, prop, v, avant); i.classList.toggle("change", v !== avant); src.textContent = sourceTexte(); };
+  let i;
+  if (CHOIX[prop]) {
+    i = document.createElement("select"); i.id = id;
+    for (const v of CHOIX[prop]) { const o = document.createElement("option"); o.value = v; o.textContent = v; o.selected = actuelle === v; i.append(o); }
+    i.onchange = () => appliquer(i.value);
+    saisie.append(i);
+  } else if (COULEURS.has(prop)) {
+    i = document.createElement("input"); i.type = "text"; i.id = id; i.value = hex(rgba(actuelle) ?? [0, 0, 0, 0]);
+    const pick = document.createElement("input"); pick.type = "color"; pick.value = hex(rgba(actuelle) ?? [0, 0, 0, 1]).slice(0, 7); pick.setAttribute("aria-label", `${libelle} au choix`);
+    pick.oninput = () => { i.value = pick.value; appliquer(pick.value); };
+    i.onchange = () => appliquer(i.value);
+    saisie.append(pick, i);
+  } else {
+    const nombre = parseFloat(actuelle), unite = SANS_UNITE.has(prop) ? "" : (actuelle.match(/[a-z%]+$/)?.[0] ?? "px");
+    i = document.createElement("input"); i.type = Number.isFinite(nombre) ? "number" : "text"; i.id = id; i.value = Number.isFinite(nombre) ? String(+nombre.toFixed(2)) : actuelle;
+    i.step = prop === "opacity" ? "0.05" : prop === "letter-spacing" || prop === "line-height" ? "0.5" : "1";
+    const valeur = () => (i.type === "number" ? `${i.value}${unite}` : i.value);
+    i.oninput = () => appliquer(valeur());
+    const moins = document.createElement("button"); moins.type = "button"; moins.textContent = "−"; moins.setAttribute("aria-label", `${libelle} moins`);
+    const plus = document.createElement("button"); plus.type = "button"; plus.textContent = "+"; plus.setAttribute("aria-label", `${libelle} plus`);
+    const pas = (sens, ev) => { if (i.type !== "number") return; const k = ev.shiftKey ? 4 : 1; i.value = String(+(parseFloat(i.value || "0") + sens * k * parseFloat(i.step)).toFixed(2)); appliquer(valeur()); };
+    moins.onclick = (ev) => pas(-1, ev); plus.onclick = (ev) => pas(1, ev);
+    saisie.append(moins, i, plus);
+  }
+  if (enCours) i.classList.add("change");
+  const src = document.createElement("div"); src.className = "source";
+  const sourceTexte = () => { const r = donneur(el, prop); return r ? `${r.selecteur}${r.fichier ? ` · ${r.fichier.replace("src/styles/", "")}` : ""}` : HERITEES.has(prop) ? "valeur de base de Kora" : "aucune règle"; };
+  src.textContent = sourceTexte();
+  d.append(l, saisie, src);
+  if (COULEURS.has(prop)) {
+    const n = document.createElement("div"); n.className = "nuancier";
+    for (const [k, v] of Object.entries(direct.jetons)) {
+      const c = rgba(v.apres); if (!c) continue;
+      const bt = document.createElement("button"); bt.type = "button"; bt.title = k; bt.style.background = v.apres; bt.setAttribute("aria-label", k);
+      bt.setAttribute("aria-pressed", String(jetonDe(actuelle, { [k]: v.apres }) === k));
+      bt.onclick = () => { i.value = `var(${k})`; appliquer(`var(${k})`); for (const x of n.children) x.setAttribute("aria-pressed", String(x === bt)); };
+      n.append(bt);
+    }
+    d.append(n);
+  }
+  return d;
+}
+
+for (const b of $("mode-direct").children) b.onclick = () => {
+  direct.mode = b.dataset.v;
+  for (const x of $("mode-direct").children) x.setAttribute("aria-pressed", String(x === b));
+  const p = document.querySelector("#scene-direct .prise"); if (p) p.hidden = direct.mode !== "retoucher";
+  if (direct.mode === "naviguer") { direct.survol = null; dessinerDirect(); }
+};
+$("b-avant-apres").onclick = () => { direct.sans = !direct.sans; $("b-avant-apres").setAttribute("aria-pressed", String(direct.sans)); appliquerRetouches(); };
+$("b-grille-direct").onclick = () => { direct.grille = !direct.grille; $("b-grille-direct").setAttribute("aria-pressed", String(direct.grille)); dessinerDirect(); };
+$("b-recommencer").onclick = () => { void ouvrirDirect(true); };
+setInterval(() => { if (etat.vue === "direct" && direct.doc) dessinerDirect(); }, 400);
+
+
 // ---------- Navigation ----------
 function lacher() { etat.choisi = null; etat.point = null; etat.zone = null; etat.survol = null; }
 function ouvrir(cle, garderPoint) {
@@ -973,21 +1469,26 @@ function tout() {
   dessinerEntete();
   $("vue-ecrans").setAttribute("aria-pressed", String(etat.vue === "ecrans"));
   $("vue-notes").setAttribute("aria-pressed", String(etat.vue === "notes"));
+  $("vue-direct").setAttribute("aria-pressed", String(etat.vue === "direct"));
   const etabli = $("etabli");
+  etabli.hidden = etat.vue === "direct";
+  $("direct").hidden = etat.vue !== "direct";
   const notesVue = etabli.querySelector(".notes-vue");
   if (notesVue) notesVue.remove();
   for (const enfant of etabli.children) enfant.hidden = etat.vue === "notes";
+  if (etat.vue === "direct") { void ouvrirDirect(false); return; }
   if (etat.vue === "notes") { etabli.append(dessinerNotes()); return; }
   if (!capture()) etat.ecran = etat.manifeste.ecrans.find((e) => capture(e.cle))?.cle ?? null;
   dessinerRail(); dessinerOutils(); dessinerScene(); void dessinerInspecteur();
 }
 
-$("vue-ecrans").onclick = () => { etat.vue = "ecrans"; tout(); };
+$("vue-ecrans").onclick = () => { etat.vue = "ecrans"; garder("atelier:vue", "ecrans"); tout(); };
 $("vue-notes").onclick = () => { etat.vue = "notes"; tout(); };
+$("vue-direct").onclick = () => { etat.vue = "direct"; garder("atelier:vue", "direct"); tout(); };
 for (const [id, cle] of [["b-grille", "grille"], ["b-marges", "marges"], ["b-mesure", "mesure"], ["b-loupe", "loupe"], ["b-diff", "diff"]]) $(id).onclick = () => { etat[cle] = !etat[cle]; if (cle === "loupe" && !etat.loupe) $("loupe").hidden = true; dessinerOutils(); void dessinerCalque(); };
 for (const b of $("comparer").children) b.onclick = () => { etat.comparer = b.dataset.v; dessinerOutils(); dessinerScene(); };
 for (const b of $("zoom").children) b.onclick = () => { etat.zoom = b.dataset.v; dessinerOutils(); dessinerScene(); };
-addEventListener("resize", () => { if (etat.manifeste && etat.zoom === "ajuste" && etat.vue === "ecrans") dessinerScene(); });
+addEventListener("resize", () => { if (etat.manifeste && etat.zoom === "ajuste" && etat.vue === "ecrans") dessinerScene(); if (etat.vue === "direct") mettreAEchelle(); });
 addEventListener("keydown", (ev) => {
   if (!etat.manifeste || etat.vue !== "ecrans" || ev.target.closest?.("textarea, input")) return;
   const liste = etat.manifeste.ecrans.filter((e) => capture(e.cle)).map((e) => e.cle), i = liste.indexOf(etat.ecran);
@@ -1012,6 +1513,7 @@ addEventListener("keydown", (ev) => {
   etat.appareil = m.appareils[ha] ? ha : m.appareils[lire("atelier:appareil", "air")] ? lire("atelier:appareil", "air") : Object.keys(m.appareils)[0];
   etat.theme = m.themes.includes(ht) ? ht : m.themes.includes(lire("atelier:theme", "sombre")) ? lire("atelier:theme", "sombre") : m.themes[0];
   const voulu = he || lire("atelier:ecran", null);
+  if (lire("atelier:vue", "") === "direct" && m.app?.etat) etat.vue = "direct";
   etat.ecran = m.ecrans.some((e) => e.cle === voulu) ? voulu : (m.ecrans.find((e) => m.captures[`${etat.appareil}-${etat.theme}/${e.cle}`]?.difference?.part > 0) ?? m.ecrans[0]).cle;
   tout();
 
