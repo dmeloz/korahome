@@ -4,7 +4,9 @@ import { creerFoyer } from "./foyer";
 import { nouvelElement, nouvelleListe } from "./listes";
 import {
   confirmer,
+  demandeRaccourciEcran,
   demandeRaccourciSiri,
+  RACCOURCIS_ECRAN,
   donneesDepuisDocuments,
   lignesAEcrire,
   lignesAnnulation,
@@ -113,5 +115,17 @@ describe("Jarvis dans Siri", () => {
     expect(demande).toContain("« Dis Siri, Tael »");
     expect(demande).toContain("https://x.supabase.co/functions/v1/siri?j=abc");
     expect(demande).toContain(OUI_OU_NON);
+  });
+
+  it("décrit un bouton de l'écran d'accueil, avec sa question quand il en pose une", () => {
+    const [courses, soir] = RACCOURCIS_ECRAN;
+    const d = demandeRaccourciEcran("https://x.supabase.co/functions/v1/siri?j=abc", "Tael", courses);
+    expect(d).toContain("« Aux courses »");
+    expect(d).toContain("Quoi ajouter aux courses ?");
+    expect(d).toContain("Ajoute aux courses : {saisie}");
+    expect(d).toContain("https://x.supabase.co/functions/v1/siri?j=abc");
+    const s = demandeRaccourciEcran("https://x", "Navi", soir);
+    expect(s).not.toContain("Demander une saisie");
+    expect(s).toContain("telle quelle");
   });
 });

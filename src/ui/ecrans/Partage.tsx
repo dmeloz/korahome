@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState, useSyncExternalStore, type FormEvent } from "react";
+import { expliquerErreur } from "../../domaine/erreurs";
+import { decrireAppareils } from "../../domaine/foyer";
 import { afficherCode, decrireDerniereSynchro, normaliserCode } from "../../domaine/synchro";
 import type { Foyer } from "../../domaine/types";
 import type { Compte, FoyerPartage, ServeurAgenda, ServeurJarvis, ServeurRappels, TempsReel } from "../../donnees/distant";
@@ -20,7 +22,7 @@ export interface ServicesPartage {
 
 const LONGUEUR_MOT_DE_PASSE = 8;
 
-const message = (e: unknown) => (e instanceof Error && e.message ? e.message : "Ça n'a pas marché, réessaie.");
+const message = (e: unknown) => expliquerErreur(e, "Le partage");
 
 /** Partager le foyer entre les deux iPhone : compte, partage ou code pour rejoindre, état de la synchro. */
 export function Partage({ services, foyer }: { services: ServicesPartage | null; foyer: Foyer | null }) {
@@ -350,6 +352,17 @@ function FoyerRelie(props: {
           Synchroniser
         </button>
       </div>
+      <ul className="carte groupe partage-appareils" aria-label="Les iPhone du foyer">
+        {decrireAppareils(props.foyer, __VERSION__, maintenant).map((a) => (
+          <li key={a.prenom} className="ligne">
+            <span className="ligne-texte">
+              <strong>{a.prenom}</strong>
+              <span className="discret">{a.version} · {a.detail}</span>
+            </span>
+            {a.enRetard && <span className="alerte alerte-ligne" aria-label="en retard" />}
+          </li>
+        ))}
+      </ul>
       {code && (
         <div className="carte partage-invitation">
           <p className="partage-etape">Code pour rejoindre ce foyer</p>

@@ -1052,6 +1052,553 @@ function jourEtHeure(instant, fuseau = FUSEAU_DU_FOYER) {
 	};
 }
 //#endregion
+//#region src/domaine/savoirCuisine.ts
+const DE = (debut, fin) => {
+	const mois = [];
+	for (let m = debut;; m = m % 12 + 1) {
+		mois.push(m);
+		if (m === fin) return mois;
+	}
+};
+const TOUTE_L_ANNEE = DE(1, 12);
+/** Le calendrier des légumes suisses (Schweizer Gemüse), repris du référentiel. */
+const LEGUMES_DE_SAISON = [
+	...[
+		"carotte",
+		"céleri-rave",
+		"chou blanc",
+		"chou rouge",
+		"oignon",
+		"pomme de terre"
+	].map((nom) => ({
+		nom,
+		mois: TOUTE_L_ANNEE,
+		source: "legumes.saison.stockage-toute-annee"
+	})),
+	{
+		nom: "asperge",
+		mois: DE(4, 6),
+		source: "legumes.saison.printemps"
+	},
+	{
+		nom: "petits pois",
+		mois: DE(5, 7),
+		source: "legumes.saison.printemps"
+	},
+	{
+		nom: "fève",
+		mois: DE(5, 7),
+		source: "legumes.saison.printemps"
+	},
+	{
+		nom: "radis",
+		mois: DE(4, 10),
+		source: "legumes.saison.printemps"
+	},
+	{
+		nom: "roquette",
+		mois: DE(4, 10),
+		source: "legumes.saison.printemps"
+	},
+	{
+		nom: "épinard",
+		mois: [...DE(3, 5), ...DE(9, 11)],
+		source: "legumes.saison.printemps"
+	},
+	{
+		nom: "courgette",
+		mois: DE(6, 9),
+		source: "legumes.saison.ete"
+	},
+	{
+		nom: "concombre",
+		mois: DE(6, 9),
+		source: "legumes.saison.ete"
+	},
+	{
+		nom: "haricot vert",
+		mois: DE(6, 9),
+		source: "legumes.saison.ete"
+	},
+	{
+		nom: "tomate",
+		mois: DE(7, 9),
+		source: "legumes.saison.ete"
+	},
+	{
+		nom: "aubergine",
+		mois: DE(7, 9),
+		source: "legumes.saison.ete"
+	},
+	{
+		nom: "poivron",
+		mois: DE(7, 10),
+		source: "legumes.saison.ete"
+	},
+	{
+		nom: "maïs",
+		mois: DE(8, 9),
+		source: "legumes.saison.ete"
+	},
+	{
+		nom: "chou frisé",
+		mois: DE(9, 3),
+		source: "legumes.saison.automne-hiver"
+	},
+	{
+		nom: "chou-fleur",
+		mois: DE(9, 3),
+		source: "legumes.saison.automne-hiver"
+	},
+	{
+		nom: "poireau",
+		mois: DE(9, 4),
+		source: "legumes.saison.automne-hiver"
+	},
+	{
+		nom: "panais",
+		mois: DE(10, 3),
+		source: "legumes.saison.automne-hiver"
+	},
+	{
+		nom: "chou de Bruxelles",
+		mois: DE(10, 2),
+		source: "legumes.saison.automne-hiver"
+	},
+	{
+		nom: "mâche",
+		mois: DE(9, 4),
+		source: "legumes.saison.automne-hiver"
+	},
+	{
+		nom: "courge",
+		mois: DE(9, 12),
+		source: "legumes.saison.automne-hiver"
+	},
+	{
+		nom: "champignons",
+		mois: DE(6, 11),
+		source: "legumes.saison.champignons-sauvages"
+	}
+];
+const legumesDuMois = (mois) => LEGUMES_DE_SAISON.filter((l) => l.mois.includes(mois)).map((l) => l.nom);
+const BASES = [
+	{
+		id: "pates",
+		nom: "pâtes",
+		pourDeux: "160 à 200 g secs",
+		repere: "1 L d'eau pour 100 g, 10 g de sel par litre, saler quand l'eau bout ; fraîches 2 à 3 min",
+		mots: [
+			"pates",
+			"spaghetti",
+			"penne",
+			"tagliatelle",
+			"linguine",
+			"fusilli",
+			"lasagne",
+			"ravioli",
+			"tortellini",
+			"macaroni"
+		],
+		source: "reperes-portion ; feculents.pates.eau.volume"
+	},
+	{
+		id: "riz",
+		nom: "riz",
+		pourDeux: "100 à 140 g secs",
+		repere: "pilaf : suer l'oignon, 1,4 L de fond par kg de riz, cuisson à absorption",
+		mots: [
+			"riz",
+			"pilaf",
+			"basmati",
+			"riz cantonais"
+		],
+		source: "reperes-portion ; sauces-cuissons.pates.pilaf-fond"
+	},
+	{
+		id: "risotto",
+		nom: "risotto",
+		pourDeux: "150 à 160 g de riz rond",
+		repere: "nacrer, déglacer, bouillon chaud louche après louche, 16 à 18 min, finir fromage et beurre",
+		mots: ["risotto"],
+		source: "feculents.risotto.portion ; feculents.risotto.duree"
+	},
+	{
+		id: "pommes-de-terre",
+		nom: "pommes de terre",
+		pourDeux: "400 à 500 g",
+		repere: "fermes pour salade, rösti et sautées ; farineuses pour purée et gratin ; purée au presse-purée, jamais au mixeur",
+		mots: [
+			"pomme de terre",
+			"pommes de terre",
+			"patate",
+			"puree",
+			"rosti",
+			"gratin dauphinois",
+			"pommes sautees",
+			"raclette",
+			"gschwellti"
+		],
+		source: "feculents.pdt.famille-ferme.usage ; feculents.pdt.puree.technique"
+	},
+	{
+		id: "gnocchi",
+		nom: "gnocchi",
+		pourDeux: "400 à 500 g frais",
+		repere: "pocher sous l'ébullition, ils sont cuits quand ils remontent (environ 5 min)",
+		mots: ["gnocchi"],
+		source: "feculents.pdt.gnocchi.cuisson-eau"
+	},
+	{
+		id: "polenta",
+		nom: "polenta",
+		pourDeux: "120 à 140 g de semoule",
+		repere: "4 parts de liquide pour 1 ; précuite en quelques minutes ; refroidie, taillée et dorée à la poêle",
+		mots: ["polenta"],
+		source: "feculents.polenta.proportion ; feculents.polenta.cuisson"
+	},
+	{
+		id: "couscous",
+		nom: "couscous ou boulgour",
+		pourDeux: "120 à 140 g secs",
+		repere: "couscous : autant d'eau chaude que de semoule, 10 min couvert ; boulgour moyen 1 pour 1,5 à 2",
+		mots: [
+			"couscous",
+			"boulgour",
+			"taboule"
+		],
+		source: "feculents.couscous.proportion ; feculents.boulgour.proportion"
+	},
+	{
+		id: "quinoa",
+		nom: "quinoa",
+		pourDeux: "120 à 140 g secs",
+		repere: "1 part pour 2 d'eau, 10 min de mijotage puis 10 min couvert hors du feu",
+		mots: ["quinoa"],
+		source: "feculents.quinoa.cuisson"
+	},
+	{
+		id: "lentilles",
+		nom: "lentilles",
+		pourDeux: "120 à 140 g sèches",
+		repere: "sans trempage ; corail 5 à 15 min, vertes ou Beluga 20 à 30 min ; elles prennent 2 à 3 fois leur poids",
+		mots: [
+			"lentille",
+			"lentilles",
+			"dahl",
+			"dal"
+		],
+		source: "feculents.leg.cuisson.lentilles ; reperes-portion"
+	},
+	{
+		id: "pois-chiches",
+		nom: "pois chiches ou haricots",
+		pourDeux: "1 boîte (240 g égouttés) ou 120 g secs trempés la veille",
+		repere: "secs : trempage 8 à 12 h puis 60 à 90 min, donc en boîte un soir de semaine ; haricots jamais crus",
+		mots: [
+			"pois chiche",
+			"pois chiches",
+			"houmous",
+			"falafel",
+			"haricots rouges",
+			"haricots blancs",
+			"chili"
+		],
+		source: "feculents.leg.trempage ; feculents.leg.haricots-rouges.securite"
+	},
+	{
+		id: "pain",
+		nom: "pain, tarte ou galette",
+		pourDeux: "1 pâte ou 4 tranches",
+		repere: "tartine, croque, tarte salée ou galette : four chaud, garniture de saison",
+		mots: [
+			"tarte",
+			"quiche",
+			"croque",
+			"tartine",
+			"galette",
+			"pizza",
+			"wrap",
+			"burger",
+			"sandwich"
+		],
+		source: "Kora (repas du soir simples)"
+	}
+];
+const PROTEINES = [
+	{
+		id: "volaille",
+		nom: "volaille",
+		vegetarien: false,
+		pourDeux: "200 à 240 g sans os",
+		repere: "cuite à cœur, 72 °C au moins",
+		mots: [
+			"poulet",
+			"volaille",
+			"dinde",
+			"canard",
+			"cuisse"
+		],
+		source: "reperes-portion ; sauces-cuissons.securite.volaille-porc"
+	},
+	{
+		id: "boeuf",
+		nom: "bœuf ou veau",
+		vegetarien: false,
+		pourDeux: "200 à 240 g sans os",
+		repere: "émincé saisi à feu vif ; entrecôte de 2 à 3 cm, 3 à 4 min par face pour saignant ; haché bien cuit",
+		mots: [
+			"boeuf",
+			"veau",
+			"steak",
+			"entrecote",
+			"hache",
+			"bolognaise",
+			"emince",
+			"boulettes"
+		],
+		source: "reperes-portion ; sauces-cuissons.cuisson.griller"
+	},
+	{
+		id: "porc",
+		nom: "porc",
+		vegetarien: false,
+		pourDeux: "200 à 240 g sans os",
+		repere: "62 à 65 °C à cœur pour un filet ; saucisse bien cuite",
+		mots: [
+			"porc",
+			"saucisse",
+			"jambon",
+			"lard",
+			"lardons",
+			"chorizo",
+			"cervelas",
+			"pancetta"
+		],
+		source: "reperes-portion ; sauces-cuissons.securite.volaille-porc"
+	},
+	{
+		id: "poisson",
+		nom: "poisson",
+		vegetarien: false,
+		pourDeux: "2 filets d'environ 150 g",
+		repere: "poché sans ébullition (70 à 80 °C) ou à la poêle ; 55 à 60 °C à cœur",
+		mots: [
+			"poisson",
+			"saumon",
+			"cabillaud",
+			"truite",
+			"perche",
+			"thon",
+			"colin",
+			"crevette",
+			"moules",
+			"lieu"
+		],
+		source: "sauces-cuissons.cuisson.pocher ; sauces-cuissons.securite.poisson"
+	},
+	{
+		id: "oeufs",
+		nom: "œufs",
+		vegetarien: true,
+		pourDeux: "4 à 6 œufs",
+		repere: "coque 3 min, mollet 6 min, dur 9 min, poché 3 à 4 min dans une eau frémissante",
+		mots: [
+			"oeuf",
+			"oeufs",
+			"omelette",
+			"frittata",
+			"shakshuka",
+			"quiche"
+		],
+		source: "reperes-portion ; legumes.oeuf.mollet"
+	},
+	{
+		id: "fromage",
+		nom: "fromage",
+		vegetarien: true,
+		pourDeux: "120 à 160 g",
+		repere: "gruyère, raclette, chèvre ou feta : gratiné, fondu ou en finition",
+		mots: [
+			"fromage",
+			"gruyere",
+			"raclette",
+			"fondue",
+			"chevre",
+			"feta",
+			"mozzarella",
+			"halloumi",
+			"parmesan",
+			"ricotta"
+		],
+		source: "Kora (repas du soir simples)"
+	},
+	{
+		id: "legumineuses",
+		nom: "légumineuses ou tofu",
+		vegetarien: true,
+		pourDeux: "120 à 140 g secs, 1 boîte ou 200 g de tofu",
+		repere: "lentilles, pois chiches ou tofu doré : le plat sans viande de la semaine",
+		mots: [
+			"lentille",
+			"pois chiche",
+			"haricot",
+			"tofu",
+			"dahl",
+			"falafel"
+		],
+		source: "reperes-portion"
+	}
+];
+/** Combien de jours un reste se garde au frigo, en retenant la valeur prudente. */
+const RESTES = [
+	{
+		quoi: "riz cuit",
+		jours: 1,
+		source: "feculents.riz.conservation.cuit"
+	},
+	{
+		quoi: "pâtes cuites, légumes cuits, sauces cuites",
+		jours: 2,
+		source: "legumes.avance.legumes-cuits-gvg"
+	},
+	{
+		quoi: "gratin de légumes, pommes de terre cuites",
+		jours: 3,
+		source: "legumes.avance.gratin-legumes"
+	},
+	{
+		quoi: "légumineuses cuites",
+		jours: 3,
+		source: "feculents.leg.conservation.cuites"
+	}
+];
+/** Les gestes sûrs que le Chef glisse dans les étapes. */
+const GESTES = [
+	"Réchauffer un reste à cœur, 70 °C au moins ; le riz cuit se refroidit vite et se mange le lendemain au plus tard.",
+	"Herbes fragiles (basilic, coriandre, ciboulette, menthe) hors du feu ; thym, romarin et laurier dès le début, une branche suffit.",
+	"Légumes rôtis vers 200 °C : courgette 15 à 22 min, poivron 20 à 25, carotte en rondelles 20 à 30.",
+	"Légumes verts blanchis 30 s à 3 min à grande eau salée (haricots verts 4 à 5 min, chou-fleur 5 à 6), puis eau glacée pour garder la couleur.",
+	"Étuver courgettes et poireaux à couvert, peu de liquide, 8 à 15 min ; glacer carottes et navets au beurre et au sucre.",
+	"Des morceaux de même taille cuisent ensemble ; une viande rôtie repose 10 à 15 min avant d'être tranchée.",
+	"Assaisonner une sauce en dernier, quand elle a sa consistance ; finir au citron après avoir lié.",
+	"Tomates, pommes de terre, oignons et ail ne vont pas au frigo ; champignons dans un sac en papier, essuyés, jamais trempés."
+];
+/** Le savoir qui accompagne les consignes du Chef, avec la saison du mois. */
+function savoirPourLeChef(mois) {
+	return [
+		`Savoir de cuisine (référentiel du brevet de chef de cuisine, choisi pour la maison) :`,
+		`- Légumes suisses de saison en ${NOMS_MOIS[mois - 1]} : ${legumesDuMois(mois).join(", ")}.`,
+		`- Quantités pour deux (crues ou sèches) : ${BASES.filter((b) => b.id !== "pain").map((b) => `${b.nom} ${b.pourDeux}`).join(" ; ")} ; viande sans os 200 à 240 g ; poisson 2 filets d'environ 150 g ; œufs 4 à 6.`,
+		`- Les bases : ${BASES.map((b) => `${b.nom} (${b.repere})`).join(" ; ")}.`,
+		`- Cuissons sûres : ${PROTEINES.filter((p) => !p.vegetarien).map((p) => `${p.nom} ${p.repere}`).join(" ; ")} ; œufs : ${PROTEINES.find((p) => p.id === "oeufs").repere}.`,
+		`- Restes au frigo, au plus : ${RESTES.map((r) => `${r.quoi} ${r.jours} jour${r.jours > 1 ? "s" : ""}`).join(" ; ")}.`,
+		...GESTES.map((g) => `- ${g}`)
+	].join("\n");
+}
+/** Le poids d'un choix selon l'ancienneté de son dernier passage : la semaine passée, il y a deux, trois, quatre semaines. */
+const POIDS_SELON_SEMAINES = [
+	.1,
+	.3,
+	.6,
+	.85
+];
+/** Ce que les menus passés ont servi : pour chaque base, protéine ou légume, la semaine la plus récente (1 = la semaine passée). */
+function dejaServi(menus, aujourdhui) {
+	const vu = /* @__PURE__ */ new Map();
+	const noter = (cle, semaines) => {
+		if (!vu.has(cle) || vu.get(cle) > semaines) vu.set(cle, semaines);
+	};
+	for (const m of menus) {
+		const ecart = ecartJours(m.semaine, aujourdhui);
+		if (ecart <= 0 || ecart > 28) continue;
+		const semaines = Math.min(4, Math.ceil(ecart / 7));
+		const trame = lireTrame(m.trame);
+		if (trame) {
+			for (const t of trame) {
+				noter(`base:${t.base}`, semaines);
+				noter(`proteine:${t.proteine}`, semaines);
+				for (const l of t.legumes) noter(`legume:${normaliser(l)}`, semaines);
+			}
+			continue;
+		}
+		const texte = ` ${normaliser(m.repas.map((r) => [
+			r.titre,
+			r.description,
+			...r.avecLeStock
+		].join(" ")).join(" "))} `;
+		const contient = (mot) => new RegExp(`[^a-z]${mot.replace(/[-]/g, "[- ]")}[sx]?[^a-z]`).test(texte);
+		for (const b of BASES) if (b.mots.some(contient)) noter(`base:${b.id}`, semaines);
+		for (const p of PROTEINES) if (p.mots.some(contient)) noter(`proteine:${p.id}`, semaines);
+		for (const l of legumesDuMois(Number(aujourdhui.slice(5, 7)))) if (contient(normaliser(l))) noter(`legume:${normaliser(l)}`, semaines);
+	}
+	return vu;
+}
+const poids = (vu, cle) => {
+	const semaines = vu.get(cle);
+	return semaines === void 0 ? 1 : POIDS_SELON_SEMAINES[semaines - 1] ?? 1;
+};
+/** Un tirage au sort pondéré ; null quand il ne reste rien à tirer. */
+function tirer(choix, poidsDe, hasard) {
+	const poidsListe = choix.map(poidsDe);
+	const total = poidsListe.reduce((a, b) => a + b, 0);
+	if (!choix.length || total <= 0) return null;
+	let r = hasard() * total;
+	for (let i = 0; i < choix.length; i++) {
+		r -= poidsListe[i];
+		if (r < 0) return choix[i];
+	}
+	return choix[choix.length - 1];
+}
+/** La trame des soirs de la semaine. */
+function tirerSemaine(d) {
+	const mois = Number(d.aujourdhui.slice(5, 7));
+	const vu = dejaServi(d.menus, d.aujourdhui);
+	const legumes = legumesDuMois(mois);
+	const bases = /* @__PURE__ */ new Set();
+	const proteines = [];
+	const legumesPris = /* @__PURE__ */ new Set();
+	const vegetarienAuPlusTard = Math.floor(d.hasard() * d.nombre);
+	const soirs = [];
+	for (let i = 0; i < d.nombre; i++) {
+		const base = tirer(BASES.filter((b) => !bases.has(b.id)), (b) => poids(vu, `base:${b.id}`), d.hasard) ?? BASES[i % BASES.length];
+		bases.add(base.id);
+		const dejaVegetarien = proteines.some((id) => PROTEINES.find((p) => p.id === id)?.vegetarien);
+		const proteine = tirer(PROTEINES.filter((p) => proteines.filter((id) => id === p.id).length < 2 && proteines[proteines.length - 1] !== p.id && (dejaVegetarien || i < vegetarienAuPlusTard || p.vegetarien)), (p) => poids(vu, `proteine:${p.id}`), d.hasard) ?? PROTEINES[i % PROTEINES.length];
+		proteines.push(proteine.id);
+		const deux = [];
+		for (let n = 0; n < 2; n++) {
+			const libres = legumes.filter((l) => !legumesPris.has(l) && !deux.includes(l));
+			const l = tirer(libres.length ? libres : legumes.filter((x) => !deux.includes(x)), (x) => poids(vu, `legume:${normaliser(x)}`), d.hasard);
+			if (!l) break;
+			deux.push(l);
+			legumesPris.add(l);
+		}
+		soirs.push({
+			base: base.id,
+			proteine: proteine.id,
+			legumes: deux
+		});
+	}
+	return soirs;
+}
+/** La trame telle que le Chef la lit : « Soir 1 : pâtes · poisson · poireau, courge ». */
+function decrireTrame(trame) {
+	const nomBase = (id) => BASES.find((b) => b.id === id)?.nom ?? id;
+	const nomProteine = (id) => PROTEINES.find((p) => p.id === id)?.nom ?? id;
+	return trame.map((t, i) => `- Soir ${i + 1} : ${nomBase(t.base)} · ${nomProteine(t.proteine)} · ${t.legumes.join(", ")}`);
+}
+/** Relit une trame gardée dans un menu, sans lui faire confiance. */
+function lireTrame(brut) {
+	if (!Array.isArray(brut)) return void 0;
+	const trame = brut.filter((t) => !!t && typeof t === "object").map((t) => ({
+		base: typeof t.base === "string" ? t.base : "",
+		proteine: typeof t.proteine === "string" ? t.proteine : "",
+		legumes: Array.isArray(t.legumes) ? t.legumes.filter((l) => typeof l === "string") : []
+	})).filter((t) => t.base && t.proteine);
+	return trame.length ? trame : void 0;
+}
+//#endregion
 //#region src/domaine/chef.ts
 /** Le Chef prend le modèle du conseil : une fois par semaine, il peut réfléchir un peu. */
 const MODELE_CHEF = MODELE_CONSEIL;
@@ -1146,6 +1693,8 @@ Si une recette que le foyer aime convient à la semaine, reprends-la sous son ti
 Ensuite, liste les ingrédients qui manquent pour ces repas : un article par ligne, nom court au singulier ou tel qu'on l'écrit sur une liste (« Poireaux », « Crème entière »), quantité courte (« 500 g », « 2 », « 1 l ») ou vide.
 Ne remets pas ce qui est déjà dans le stock ou déjà sur la liste de courses. Les épices, le sel, le poivre et l'huile sont supposés à la maison sauf s'ils sont vraiment absents.
 Ne mets jamais de croquettes, de litière ni rien pour le chat : cela se commande ailleurs.
+Kora a tiré au sort une trame pour chaque soir (une base, une protéine, deux légumes de saison) pour que les semaines ne se ressemblent pas : construis chaque repas sur la trame de son soir, dans l'ordre. Tu peux échanger un élément contre un produit à finir vite, ou contre un plat que le foyer aime, mais garde la variété : pas deux fois la même base dans la semaine.
+Appuie-toi sur le savoir de cuisine fourni : légumes de saison, quantités pour deux, temps et températures de cuisson, durée des restes. Les quantités des ingrédients suivent ces repères ; les étapes donnent les temps et les gestes justes. Quand une préparation se fait une fois pour deux soirs (légumineuses, sauce, légumes rôtis), dis-le dans la description, en respectant la durée des restes (jamais de riz cuit gardé plus d'un jour).
 Tiens compte de ce que le foyer aime et n'aime pas (sa mémoire) : refais volontiers un plat apprécié de temps en temps, ne repropose jamais un plat à éviter.
 Le champ « mot » est une phrase chaleureuse et courte en français, sans emoji, qui dit ce que la semaine permet de finir.
 Réponds en français, avec le tutoiement.`;
@@ -1171,6 +1720,8 @@ function messageChef(d) {
 	const avis = (r) => avisDuPlat(d.souvenirs ?? [], r.titre)?.avis ?? null;
 	const reprendre = recettesPourLeChef(d.recettes ?? [], (r) => avis(r) === "aime", (r) => avis(r) === "non");
 	if (reprendre.length) lignes.push("", "Recettes du foyer qu'il aime refaire :", ...reprendre.map((t) => `- ${t}`));
+	if (d.trame?.length) lignes.push("", "La trame tirée par Kora pour cette semaine :", ...decrireTrame(d.trame));
+	lignes.push("", savoirPourLeChef(Number(d.aujourdhui.slice(5, 7))));
 	return lignes.join("\n");
 }
 /** La forme exacte de la réponse du Chef (sorties structurées de l'API). */
@@ -1357,6 +1908,7 @@ function nouveauMenu(d, ctx) {
 		})),
 		aFinir: produitsAFinir(d.produits, d.aujourdhui).map((p) => `${p.nom} · ${decrirePeremption(p, d.aujourdhui)}`),
 		alertesMitsu: alertesMitsu(d.animaux, d.aujourdhui),
+		...d.trame?.length ? { trame: d.trame } : {},
 		lance: d.lance,
 		creeLe: ctx.maintenant()
 	};
@@ -1429,4 +1981,4 @@ function avisDuPlat(souvenirs, titre) {
 	return null;
 }
 //#endregion
-export { AJOUTS_MAX, CONSIGNES_CHEF, HEURE_DU_CHEF, JOURS_ALERTE_MITSU, JOURS_A_FINIR, JOUR_DU_CHEF, MODELE_CHEF, NOMBRE_REPAS, REGLAGE_DE_DEPART, SCHEMA_CHEF, SOUVENIRS_DU_CHEF, alertesMitsu, articlesARemplacer, avisDuPlat, avisSurPlat, ceQuEfface, cleAvis, coutChef, estLHeureDuChef, etatBudget, etatDesAjouts, idMenu, jourEtHeure, lireProposition, menuDeLaSemaine, messageChef, moisDe, nomDuJour, notificationChef, nouveauMenu, preparerAjouts, prochainPassage, produitsAFinir, recettesDe, recettesDuChef, reglageChef, reglerChef, retirerAjout, validerMenu };
+export { AJOUTS_MAX, CONSIGNES_CHEF, HEURE_DU_CHEF, JOURS_ALERTE_MITSU, JOURS_A_FINIR, JOUR_DU_CHEF, MODELE_CHEF, NOMBRE_REPAS, REGLAGE_DE_DEPART, SCHEMA_CHEF, SOUVENIRS_DU_CHEF, alertesMitsu, articlesARemplacer, avisDuPlat, avisSurPlat, ceQuEfface, cleAvis, coutChef, estLHeureDuChef, etatBudget, etatDesAjouts, idMenu, jourEtHeure, lireProposition, menuDeLaSemaine, messageChef, moisDe, nomDuJour, notificationChef, nouveauMenu, preparerAjouts, prochainPassage, produitsAFinir, recettesDe, recettesDuChef, reglageChef, reglerChef, retirerAjout, tirerSemaine, validerMenu };

@@ -1,6 +1,6 @@
 import { useRef, useState, type FormEvent, type ReactNode } from "react";
+import { expliquerErreur } from "../../domaine/erreurs";
 import { Feuille } from "../Feuille";
-import { ErreurValidation } from "../../domaine/foyer";
 import {
   ABRIS,
   TYPES_ZONE,
@@ -105,8 +105,8 @@ export function Jardin(p: PropsPage) {
       await depot.enregistrerZone(zone);
       setErreur(null);
       suite?.();
-    } catch {
-      setErreur("Impossible d'enregistrer, réessaie.");
+    } catch (err) {
+      setErreur(expliquerErreur(err, "Enregistrer"));
     }
   }
 
@@ -114,7 +114,7 @@ export function Jardin(p: PropsPage) {
     try {
       void enregistrer(fabrique(), suite);
     } catch (err) {
-      setErreur(err instanceof ErreurValidation ? err.message : "Impossible d'enregistrer, réessaie.");
+      setErreur(expliquerErreur(err, "Enregistrer"));
     }
   }
 

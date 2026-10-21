@@ -1261,6 +1261,27 @@ function notificationMot(foyer, m) {
 }
 //#endregion
 //#region src/domaine/rappels.ts
+/** Les heures calmes, les mêmes pour tous : de 22 h à 7 h, heure du foyer. */
+const CALME_DEBUT = 22;
+const CALME_FIN = 7;
+/** Est-ce une heure calme en ce moment, pour qui a choisi les heures calmes ? */
+function enHeuresCalmes(instant, fuseau = FUSEAU_DU_FOYER) {
+	const { heure } = jourEtHeure(instant, fuseau);
+	return heure >= 22 || heure < 7;
+}
+/**
+* Au passage de 7 h : les mots devenus visibles pendant les heures calmes (depuis 22 h la veille),
+* à annoncer maintenant à qui les a choisies. Null à toute autre heure.
+*/
+function fenetreMotsCalmes(instant, fuseau = FUSEAU_DU_FOYER) {
+	const { heure, minute } = jourEtHeure(instant, fuseau);
+	if (heure !== 7 || minute !== 0) return null;
+	const jusqua = /* @__PURE__ */ new Date(Math.floor(instant.getTime() / 36e5) * 36e5);
+	return {
+		apres: (/* @__PURE__ */ new Date(jusqua.getTime() - 324e5)).toISOString(),
+		jusqua: jusqua.toISOString()
+	};
+}
 /** L'heure proposée au départ, décidée avec le foyer ; chacun peut la changer. */
 const HEURE_DU_RAPPEL = 8;
 /** Les heures possibles : de 5 h à 22 h. */
@@ -1518,4 +1539,4 @@ function rappelDu(instant, heure, dernierEnvoi, fuseau = FUSEAU_DU_FOYER, jours 
 	return dernierEnvoi === local.jour ? null : local.jour;
 }
 //#endregion
-export { FUSEAU_DU_FOYER, HEURE_DU_RAPPEL, HEURE_MAX, HEURE_MIN, JOURS_SEMAINE, PREFERENCES_DE_DEPART, RACCOURCIS_JOURS, TOUS_LES_JOURS, adresseMeteo, basculerJour, decalerHeure, decrireJours, evenementsDe, facturesDuJour, fenetreMotsProgrammes, formaterHeure, heureValide, jourDeLaSemaine, jourEtHeure, lireHeure, lireMeteo, minuteValide, nettoyerJours, notificationHeure, notificationMot, rappelDu, rappelDuMatin, tachesALHeure, tachesDuMatin };
+export { CALME_DEBUT, CALME_FIN, FUSEAU_DU_FOYER, HEURE_DU_RAPPEL, HEURE_MAX, HEURE_MIN, JOURS_SEMAINE, PREFERENCES_DE_DEPART, RACCOURCIS_JOURS, TOUS_LES_JOURS, adresseMeteo, basculerJour, decalerHeure, decrireJours, enHeuresCalmes, evenementsDe, facturesDuJour, fenetreMotsCalmes, fenetreMotsProgrammes, formaterHeure, heureValide, jourDeLaSemaine, jourEtHeure, lireHeure, lireMeteo, minuteValide, nettoyerJours, notificationHeure, notificationMot, rappelDu, rappelDuMatin, tachesALHeure, tachesDuMatin };

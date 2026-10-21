@@ -1,6 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from "react";
+import { expliquerErreur } from "../../domaine/erreurs";
 import { Feuille } from "../Feuille";
-import { ErreurValidation } from "../../domaine/foyer";
 import { nouvelElement } from "../../domaine/listes";
 import {
   TYPES_PROVISION,
@@ -102,7 +102,7 @@ function Premiere({ depot }: { depot: Depot }) {
     try {
       await depot.enregistrerAnimal(nouvelAnimal(nom, naissance, arrivee || null, contexteReel));
     } catch (err) {
-      setErreur(err instanceof ErreurValidation ? err.message : "Impossible d'enregistrer, réessaie.");
+      setErreur(expliquerErreur(err, "Enregistrer"));
     }
   }
 
@@ -179,7 +179,7 @@ function Suivi(props: Props & { animal: Animal }) {
       setErreur(null);
       suite?.();
     } catch (err) {
-      setErreur(err instanceof ErreurValidation ? err.message : "Impossible d'enregistrer, réessaie.");
+      setErreur(expliquerErreur(err, "Enregistrer"));
     }
   }
 
@@ -193,7 +193,7 @@ function Suivi(props: Props & { animal: Animal }) {
     try {
       void enregistrer(fabrique(), suite);
     } catch (err) {
-      setErreur(err instanceof ErreurValidation ? err.message : "Impossible d'enregistrer, réessaie.");
+      setErreur(expliquerErreur(err, "Enregistrer"));
     }
   }
 
@@ -609,7 +609,7 @@ function Suivi(props: Props & { animal: Animal }) {
       </Section>
 
       <Section titre="À partager">
-        <Fiches animal={animal} aujourdhui={aujourdhui} informer={setMessage} />
+        <Fiches animal={animal} aujourdhui={aujourdhui} membres={props.foyer.membres} informer={setMessage} />
       </Section>
 
       <Section

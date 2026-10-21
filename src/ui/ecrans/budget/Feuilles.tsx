@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   CATEGORIES_POSTE,
   bilanDuMois,
@@ -18,6 +19,7 @@ import type { Foyer, Id } from "../../../domaine/types";
 import { useAnnoncer } from "../../annulation";
 import { contexteReel } from "../../contexte";
 import { Feuille } from "../../pieces";
+import { ouvrirVerrou, poserVerrou, retirerVerrou, verrouActif, verrouPossible } from "../../verrou";
 import { ChampMontant, prenomDe, Puces } from "./communs";
 
 // ----- Les feuilles -----
@@ -159,9 +161,23 @@ export function FeuilleProjet(props: { plan: PlanBudget; ouverte: boolean; ferme
   );
 }
 
-export function FeuilleReglages(props: { plan: PlanBudget; ouverte: boolean; fermer: () => void; enregistrer: (p: PlanBudget) => Promise<void>; ouvrirApplePay: () => void }) {
+export function FeuilleReglages(props: { plan: PlanBudget; ouverte: boolean; fermer: () => void; enregistrer: (p: PlanBudget) => Promise<void>; ouvrirApplePay: () => void; prenom: string }) {
   const { plan } = props;
   const changer = (c: Parameters<typeof modifierPlan>[1]) => void props.enregistrer(modifierPlan(plan, c, contexteReel));
+  const [verrou, setVerrou] = useState(verrouActif);
+  const [motVerrou, setMotVerrou] = useState<string | null>(null);
+  async function basculerVerrou() {
+    if (verrou) {
+      if (!(await ouvrirVerrou())) return setMotVerrou("Face ID n'a pas reconnu : le verrou reste.");
+      retirerVerrou();
+      setVerrou(false);
+      setMotVerrou("Verrou retiré.");
+    } else {
+      const ok = await poserVerrou(props.prenom);
+      setVerrou(ok);
+      setMotVerrou(ok ? "Le Budget demande Face ID sur ce téléphone." : "Pas de clé posée : Face ID a été refusé ou n'est pas disponible ici.");
+    }
+  }
   return (
     <Feuille ouverte={props.ouverte} onFermer={props.fermer} titre="Comptes et réglages">
       <div className="formulaire">
@@ -207,6 +223,15 @@ export function FeuilleReglages(props: { plan: PlanBudget; ouverte: boolean; fer
             <ChampMontant valeur={plan.depart.soldes[pot] ?? 0} changer={(n) => changer({ depart: { ...plan.depart, soldes: { ...plan.depart.soldes, [pot]: n } } })} libelle={`Solde de départ, ${POTS[pot].nom}`} />
           </label>
         ))}
+        {verrouPossible() && (
+          <>
+            <p className="surtitre">Sur ce téléphone</p>
+            <button type="button" className="bouton-secondaire" onClick={() => void basculerVerrou()}>
+              {verrou ? "Retirer le verrou Face ID" : "Protéger le Budget avec Face ID"}
+            </button>
+            <p className="discret">{motVerrou ?? "Un rideau devant la page du Budget, pour que personne qui prend ton iPhone ne tombe dessus. Les chiffres restent synchronisés comme avant."}</p>
+          </>
+        )}
       </div>
     </Feuille>
   );

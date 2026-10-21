@@ -9,6 +9,10 @@ import type { Foyer } from "../domaine/types";
 import type { DepotLocal } from "../donnees/depotLocal";
 import { FournisseurAnnulation } from "./annulation";
 import { CoinDev } from "./CoinDev";
+import { Garde, Squelette } from "./Garde";
+import { aPurger, trierCorbeille } from "../domaine/corbeille";
+import { noterAppareil } from "../domaine/foyer";
+import { ignorer } from "./journal";
 import { aujourdhuiLocal, choisirMembreCourant, lireMembreCourant } from "./contexte";
 import { Accueil } from "./ecrans/Accueil";
 import { Bienvenue } from "./ecrans/Bienvenue";
@@ -52,6 +56,8 @@ const PAGES_DIFFEREES = {
   Partage: () => import("./ecrans/Partage").then((m) => ({ default: m.Partage })),
   RetoursTest: () => import("./ecrans/RetoursTest").then((m) => ({ default: m.RetoursTest })),
   Sauvegarde: () => import("./ecrans/Sauvegarde").then((m) => ({ default: m.Sauvegarde })),
+  Corbeille: () => import("./ecrans/Corbeille").then((m) => ({ default: m.Corbeille })),
+  Fil: () => import("./ecrans/Fil").then((m) => ({ default: m.Fil })),
 };
 const Bilan = lazy(PAGES_DIFFEREES.Bilan);
 const Conseil = lazy(PAGES_DIFFEREES.Conseil);
@@ -62,6 +68,8 @@ const Notifications = lazy(PAGES_DIFFEREES.Notifications);
 const Partage = lazy(PAGES_DIFFEREES.Partage);
 const RetoursTest = lazy(PAGES_DIFFEREES.RetoursTest);
 const Sauvegarde = lazy(PAGES_DIFFEREES.Sauvegarde);
+const Corbeille = lazy(PAGES_DIFFEREES.Corbeille);
+const Fil = lazy(PAGES_DIFFEREES.Fil);
 
 // Pas de barre d'onglets : tout part du tableau de bord, chaque widget ouvre la
 // page de son module, et chaque page a son retour vers la précédente.
@@ -82,6 +90,8 @@ type Page =
   | { nom: "bilan" }
   | { nom: "rappels" }
   | { nom: "sauvegarde" }
+  | { nom: "corbeille" }
+  | { nom: "fil" }
   | { nom: "calendrier" }
   | { nom: "siri" }
   | { nom: "fee" };
@@ -94,7 +104,7 @@ let ecranCourant = "Accueil";
 export const ecranAffiche = () => ecranCourant;
 
 export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJour: MiseAJour; partage: ServicesPartage | null }) {
-  const { pret, foyer, listes, elements, taches, retours, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda, budget } = useDonnees(depot);
+  const { pret, foyer, listes, elements, taches, retours, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda, budget, corbeille } = useDonnees(depot);
   // La météo sert au jardin et au bandeau de l'accueil. Trop ancienne (téléphone resté
   // hors ligne), elle ne déclenche plus d'alerte.
   const meteoLue = useMeteo(true);
@@ -127,7 +137,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   // Le serveur des rappels sait qui utilise ce téléphone, même après un changement dans Réglages.
   const membreRappels = foyer?.membres.some((m) => m.id === membreId) ? membreId : null;
   useEffect(() => {
-    if (partage && foyerPartage) mettreAJourRappels(partage.rappels, foyerPartage, membreRappels, lirePreferences()).catch(() => {});
+    if (partage && foyerPartage) mettreAJourRappels(partage.rappels, foyerPartage, membreRappels, lirePreferences()).catch(ignorer);
   }, [partage, foyerPartage, membreRappels]);
 
   // La pastille de l'icône suit ce qui presse pour la personne de ce téléphone, mis à jour à chaque changement.
@@ -138,12 +148,28 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     afficherPastilleIcone(rappel?.nombre ?? 0);
   }, [pret, foyer, membreRappels, budget, taches, animaux, produits, zones, meteo, aujourdhui]);
 
+  // Ce téléphone note sur son membre la version de Kora qu'il a : l'autre voit s'il est en retard.
+  useEffect(() => {
+    if (!pret || !foyer) return;
+    const note = noterAppareil(foyer, membreRappels, __VERSION__, new Date().toISOString());
+    if (note) depot.enregistrerFoyer(note).catch(ignorer);
+  }, [pret, foyer, membreRappels, depot]);
+
+  // La corbeille se vide seule de ce qui a plus de trente jours, une fois par ouverture.
+  const corbeilleLue = useRef(false);
+  useEffect(() => {
+    if (!pret || corbeilleLue.current) return;
+    corbeilleLue.current = true;
+    const vieilles = aPurger(corbeille, new Date().toISOString());
+    if (vieilles.length) depot.viderCorbeille(vieilles.map((e) => e.id)).catch(ignorer);
+  }, [pret, corbeille, depot]);
+
   // Une fois l'accueil affiché, les autres pages se chargent en silence : la suivante s'ouvre aussitôt.
   useEffect(() => {
     if (!pret) return;
     const precharger = () => {
       prechargerPages();
-      for (const charger of Object.values(PAGES_DIFFEREES)) void charger().catch(() => {});
+      for (const charger of Object.values(PAGES_DIFFEREES)) void charger().catch(ignorer);
     };
     const id = setTimeout(precharger, 1500);
     return () => clearTimeout(id);
@@ -189,6 +215,8 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     if (p.nom === "bilan") return "Bilan";
     if (p.nom === "rappels") return "Rappels";
     if (p.nom === "sauvegarde") return "Sauvegarde";
+    if (p.nom === "corbeille") return "Corbeille";
+    if (p.nom === "fil") return "Chez nous";
     if (p.nom === "calendrier") return "Calendrier de l'iPhone";
     if (p.nom === "siri") return "Siri";
     if (p.nom === "fee") return `Réglages de ${nomFee()}`;
@@ -266,7 +294,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   const changerHeureRappel = async (heure: number) => {
     const preferences = { ...lirePreferences(), heure };
     enregistrerPreferences(preferences);
-    if (partage && foyerPartage) await mettreAJourRappels(partage.rappels, foyerPartage, membre, preferences).catch(() => {});
+    if (partage && foyerPartage) await mettreAJourRappels(partage.rappels, foyerPartage, membre, preferences).catch(ignorer);
   };
   const jarvisPartage = partage && foyerPartage ? { serveur: partage.jarvis, foyerId: foyerPartage } : null;
   const agendaPartage = partage && foyerPartage ? { serveur: partage.agenda, foyerId: foyerPartage } : null;
@@ -279,6 +307,9 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         ouvrirJarvis={() => ouvrir({ nom: "jarvis" })}
         ouvrirReglages={() => ouvrir({ nom: "reglages" })}
         ouvrirMots={() => ouvrir({ nom: "mots" })}
+        ouvrirFil={() => ouvrir({ nom: "fil" })}
+        ouvrirReglage={(ou) => ouvrir({ nom: ou })}
+        partageActif={partageActif}
         ouvrirBilan={() => ouvrir({ nom: "bilan" })}
         ouvrirRappels={() => ouvrir({ nom: "rappels" })}
         ouvrirSauvegarde={() => ouvrir({ nom: "sauvegarde" })}
@@ -289,7 +320,19 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
           demanderRepartition();
           ouvrir({ nom: "module", id: "taches" });
         }}
-        aller={(ou) => ouvrir(ou.type === "module" ? { nom: "module", id: ou.id } : ou.type === "liste" ? { nom: "liste", id: ou.id } : { nom: "memoire" })}
+        aller={(ou) =>
+          ouvrir(
+            ou.type === "module"
+              ? { nom: "module", id: ou.id, onglet: ou.onglet }
+              : ou.type === "liste"
+                ? { nom: "liste", id: ou.id }
+                : ou.type === "recette"
+                  ? { nom: "module", id: "chef", onglet: `recette:${ou.id}` }
+                  : ou.type === "mots"
+                    ? { nom: "mots" }
+                    : { nom: "memoire" },
+          )
+        }
         depot={depot}
         jarvis={jarvisPartage}
         nouvelleVersion={nouvelleVersion}
@@ -332,6 +375,8 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         ouvrirAppris={() => ouvrir({ nom: "memoire" })}
         ouvrirApparence={() => ouvrir({ nom: "apparence" })}
         ouvrirSauvegarde={() => ouvrir({ nom: "sauvegarde" })}
+        ouvrirCorbeille={() => ouvrir({ nom: "corbeille" })}
+        corbeille={trierCorbeille(corbeille, donnees.aujourdhui + "T23:59:59.000Z").length}
         ouvrirCalendrier={() => ouvrir({ nom: "calendrier" })}
         ouvrirSiri={() => ouvrir({ nom: "siri" })}
         ouvrirFee={() => ouvrir({ nom: "fee" })}
@@ -401,12 +446,20 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     },
     rappels: () => <CentreRappels ouvrirNotifications={() => ouvrir({ nom: "notifications" })} />,
     sauvegarde: () => <Sauvegarde depot={depot} aujourdhui={donnees.aujourdhui} contenu={{ foyer: leFoyer, listes, elements, taches, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda, budget, retours }} />,
+    fil: () => <Fil donnees={donnees} />,
+    corbeille: () => <Corbeille depot={depot} foyer={leFoyer} corbeille={corbeille} />,
     calendrier: () => <CalendrierIphone foyer={leFoyer} membreId={membre} comptes={comptesIcloudDe(agenda)} distant={agendaPartage} ouvrirPartage={() => ouvrir({ nom: "partage" })} />,
     fee: () => <LaFee />,
     siri: () => <Siri foyer={leFoyer} membreId={membre} distant={jarvisPartage} ouvrirPartage={() => ouvrir({ nom: "partage" })} />,
     retours: () => <RetoursTest depot={depot} foyer={leFoyer} retours={retours} partageActif={partageActif} />,
   };
   const ecranDe = (page: Page) => (ECRANS[page.nom] as (p: Page) => ReactNode)(page);
+  // Chaque page sous son filet : une erreur ou un code qui ne se charge pas ne laisse pas l'écran vide.
+  const ecranGarde = (page: Page, i: number) => (
+    <Garde key={`${i}-${page.nom}`} revenirALAccueil={i > 0 ? () => avecTransition("arriere", () => setPile((avant) => avant.slice(0, 1))) : null}>
+      <Suspense fallback={<Squelette />}>{ecranDe(page)}</Suspense>
+    </Garde>
+  );
 
   // La fée, sur l'accueil, chaque module, chaque liste, la mémoire et Nos mots : là où l'on
   // ajoute quelque chose. Les réglages et la conversation ont leurs propres champs.
@@ -450,7 +503,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
             inert
           >
             {retour}
-            <Suspense fallback={null}>{ecranDe(p)}</Suspense>
+            {ecranGarde(p, i)}
           </div>
         );
       }
@@ -460,7 +513,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       className={`contenu page-dessus${glissement ? " retour-glisse" : ""}`}
     >
       {retour}
-      <Suspense fallback={null}>{ecranDe(p)}</Suspense>
+      {ecranGarde(p, i)}
       {bandeauVersion}
     </div>
       );

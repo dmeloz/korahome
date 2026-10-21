@@ -8,6 +8,8 @@ export interface EtatPartage {
   ton: "calme" | "jour" | "urgent";
   texte: string;
   detail: string;
+  /** Pas d'internet et des changements qui attendent : l'accueil le dit, pour rassurer. */
+  horsLigne: boolean;
 }
 
 /**
@@ -16,17 +18,17 @@ export interface EtatPartage {
  * @param enLigne le téléphone a internet
  */
 export function decrireEtatPartage(entree: { disponible: boolean; etat: EtatSynchro; enAttente: number; derniere: string | null; enLigne: boolean; maintenant: string }): EtatPartage {
-  if (!entree.disponible || entree.etat === "inactif") return { ton: "calme", texte: "Sur ce téléphone", detail: "Le partage n'est pas activé : rien ne part sur l'autre iPhone." };
+  if (!entree.disponible || entree.etat === "inactif") return { ton: "calme", texte: "Sur ce téléphone", detail: "Le partage n'est pas activé : rien ne part sur l'autre iPhone.", horsLigne: false };
   const depuis = entree.derniere ? ilYA(entree.derniere, entree.maintenant) : null;
   const attente = entree.enAttente === 1 ? "1 changement" : `${entree.enAttente} changements`;
   if (!entree.enLigne) {
     return entree.enAttente
-      ? { ton: "jour", texte: `${attente} en attente`, detail: "Pas d'internet : tout partira dès le retour du réseau." }
-      : { ton: "calme", texte: "Hors ligne", detail: depuis ? `À jour ${depuis}. Ce que tu changes partira au retour du réseau.` : "Ce que tu changes partira au retour du réseau." };
+      ? { ton: "jour", texte: `${attente} en attente du réseau`, detail: "Pas d'internet : tout partira dès le retour du réseau.", horsLigne: true }
+      : { ton: "calme", texte: "Hors ligne", detail: depuis ? `À jour ${depuis}. Ce que tu changes partira au retour du réseau.` : "Ce que tu changes partira au retour du réseau.", horsLigne: false };
   }
-  if (entree.etat === "erreur") return { ton: "urgent", texte: "Partage en panne", detail: entree.enAttente ? `${attente} pas encore envoyé${entree.enAttente > 1 ? "s" : ""}. Kora réessaie seule.` : "Kora réessaie seule." };
-  if (entree.etat === "en_cours" || entree.enAttente > 0) return { ton: "jour", texte: entree.enAttente ? `${attente} en route` : "Mise à jour…", detail: "Envoi vers l'autre iPhone." };
-  return { ton: "calme", texte: "À jour", detail: depuis ? `Partagé avec l'autre iPhone ${depuis}.` : "Partagé avec l'autre iPhone." };
+  if (entree.etat === "erreur") return { ton: "urgent", texte: "Partage en panne", detail: entree.enAttente ? `${attente} pas encore envoyé${entree.enAttente > 1 ? "s" : ""}. Kora réessaie seule.` : "Kora réessaie seule.", horsLigne: false };
+  if (entree.etat === "en_cours" || entree.enAttente > 0) return { ton: "jour", texte: entree.enAttente ? `${attente} en route` : "Mise à jour…", detail: "Envoi vers l'autre iPhone.", horsLigne: false };
+  return { ton: "calme", texte: "À jour", detail: depuis ? `Partagé avec l'autre iPhone ${depuis}.` : "Partagé avec l'autre iPhone.", horsLigne: false };
 }
 
 /** « à l'instant », « il y a 5 min », « il y a 2 h », « hier ». */

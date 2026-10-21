@@ -19,6 +19,8 @@ export const CLES = {
   journal: "korahome.journal",
   /** « 1 » une fois la visite guidée de l'accueil vue ou passée. */
   visiteVue: "korahome.visite.vue",
+  /** « 1 » quand la carte « Prête en 5 étapes » de l'accueil a été rangée (« Plus tard »). */
+  demarrageRange: "korahome.demarrage.range",
   /** Préfixe des petites aides de page déjà rangées (« korahome.aide.<page> » = « 1 »). */
   prefixeAide: "korahome.aide.",
 
@@ -91,6 +93,8 @@ export const CLES = {
   lienPaiements: "korahome.lienPaiements",
   /** « 1 » quand l'invitation Apple Pay a été écartée. */
   applePayVu: "korahome.applePayVu",
+  /** L'identifiant de la clé Face ID qui verrouille le Budget sur ce téléphone (base64). */
+  verrouBudget: "korahome.verrouBudget",
 } as const;
 
 /** Le texte gardé, null s'il n'y en a pas ; `siIndisponible` (null par défaut) si le stockage ne répond pas. */

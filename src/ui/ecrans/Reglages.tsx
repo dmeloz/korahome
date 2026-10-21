@@ -47,6 +47,9 @@ export function Reglages(props: {
   ouvrirAppris: () => void;
   ouvrirApparence: () => void;
   ouvrirSauvegarde: () => void;
+  ouvrirCorbeille: () => void;
+  /** Ce qui attend dans la corbeille. */
+  corbeille: number;
   ouvrirCalendrier: () => void;
   ouvrirSiri: () => void;
   ouvrirFee: () => void;
@@ -91,6 +94,7 @@ export function Reglages(props: {
       <ul className="carte groupe">
         <Ligne picto="partage" titre="Partage" valeur={props.partage === "actif" ? props.etatPartage.texte : ETATS_PARTAGE[props.partage]} alerte={props.etatPartage.ton === "urgent"} onClick={props.ouvrirPartage} />
         <Ligne picto="sauvegarde" titre="Sauvegarde" valeur={decrireDerniere(lireDerniereSauvegarde(), aujourdhuiLocal())} onClick={props.ouvrirSauvegarde} />
+        <Ligne picto="corbeille" titre="Corbeille" valeur={props.corbeille > 0 ? `${props.corbeille} effacé${props.corbeille > 1 ? "s" : ""}` : "Vide"} onClick={props.ouvrirCorbeille} />
         <Ligne
           picto="cloche"
           titre="Notifications"

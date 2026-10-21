@@ -200,3 +200,37 @@ export function demandeRaccourciSiri(adresse: string, nom: string): string {
     "Pas d'autre action.",
   ].join("\n");
 }
+
+/** Un bouton sur l'écran d'accueil de l'iPhone : un raccourci qui envoie une demande toute faite à la fée, sans parler. */
+export interface RaccourciEcran {
+  id: "courses" | "soir" | "depense";
+  nom: string;
+  /** Ce que le bouton fait, en une ligne, pour la page Siri. */
+  resume: string;
+  /** La question posée au moment du toucher ; null quand la demande part telle quelle. */
+  question: string | null;
+  /** La demande envoyée à la fée ; « {saisie} » est remplacé par la réponse à la question. */
+  demande: string;
+}
+
+export const RACCOURCIS_ECRAN: readonly RaccourciEcran[] = [
+  { id: "courses", nom: "Aux courses", resume: "Demande quoi, puis l'ajoute à la liste de courses.", question: "Quoi ajouter aux courses ?", demande: "Ajoute aux courses : {saisie}" },
+  { id: "soir", nom: "Ce soir", resume: "Dit ce qu'il reste à faire ce soir et ce qu'on mange.", question: null, demande: "Qu'est-ce qu'il reste à faire ce soir, et qu'est-ce qu'on mange ?" },
+  { id: "depense", nom: "Dépense", resume: "Demande le montant et le libellé, puis la note au budget.", question: "Quelle dépense ? (ex. Migros 84.30)", demande: "Note cette dépense au budget : {saisie}" },
+];
+
+/** La phrase à coller dans « Décrire un raccourci » pour un bouton de l'écran d'accueil, avec l'adresse de cet iPhone. */
+export function demandeRaccourciEcran(adresse: string, nomFee: string, r: RaccourciEcran): string {
+  const corps = r.question ? "le texte de l'étape 1 dans la demande ci-dessous à la place de {saisie}" : "la demande ci-dessous telle quelle";
+  return [
+    `Crée un raccourci nommé « ${r.nom} » à mettre sur l'écran d'accueil ; il parle à ${nomFee}, l'assistant de notre app, sans que j'aie à ouvrir l'app.`,
+    ...(r.question ? [`1. Action « Demander une saisie » : type Texte, question « ${r.question} ».`] : []),
+    `${r.question ? "2" : "1"}. Action « Obtenir le contenu de l'URL » :`,
+    `- URL : ${adresse}`,
+    "- Méthode : POST",
+    `- Corps de la requête : JSON, un champ de type Texte nommé demande, qui contient ${corps} :`,
+    `« ${r.demande} »`,
+    `${r.question ? "3" : "2"}. Action « Afficher la notification » avec le contenu obtenu.`,
+    "Pas d'autre action. Propose ensuite de l'ajouter à l'écran d'accueil.",
+  ].join("\n");
+}

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { expliquerErreur } from "../../domaine/erreurs";
 import {
   analyserPhrase,
   CATEGORIES,
@@ -22,7 +23,6 @@ import {
   type Occurrence,
   type Repetition,
 } from "../../domaine/agenda";
-import { ErreurValidation } from "../../domaine/foyer";
 import { decaler } from "../../domaine/taches";
 import type { Foyer, Id, Jour } from "../../domaine/types";
 import type { ServeurAgenda } from "../../donnees/distant";
@@ -35,6 +35,7 @@ import type { PropsPage } from "../modules";
 import { Onglets, Page, useGestionnaireBarre } from "../pieces";
 import { comprendrePhrase } from "../../domaine/barre";
 import { deuxChiffres } from "../../domaine/texte";
+import { ignorer } from "../journal";
 
 type Vue = "jour" | "semaine" | "mois" | "avenir";
 const VUES: Record<Vue, string> = { jour: "Jour", semaine: "Semaine", mois: "Mois", avenir: "À venir" };
@@ -49,7 +50,7 @@ let attente: ReturnType<typeof setTimeout> | null = null;
 function synchroniserBientot(distant: Distant) {
   if (!distant) return;
   if (attente) clearTimeout(attente);
-  attente = setTimeout(() => void distant.serveur.synchroniserAgenda(distant.foyerId).catch(() => {}), 5000);
+  attente = setTimeout(() => void distant.serveur.synchroniserAgenda(distant.foyerId).catch(ignorer), 5000);
 }
 
 const couleurDe = (foyer: Foyer, pour: Id | null) => (pour ? (foyer.membres.find((m) => m.id === pour)?.couleur ?? "var(--discret)") : "var(--accent)");
@@ -519,7 +520,7 @@ function Edition(props: {
       await props.enregistrer(e);
       props.fermer();
     } catch (err) {
-      setErreur(err instanceof ErreurValidation ? err.message : "Impossible d'enregistrer, réessaie.");
+      setErreur(expliquerErreur(err, "Enregistrer"));
     }
   }
 

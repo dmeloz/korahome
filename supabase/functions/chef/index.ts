@@ -33,6 +33,7 @@ import {
   messageChef,
   MODELE_CHEF,
   moisDe,
+  NOMBRE_REPAS,
   notificationChef,
   nouveauMenu,
   preparerAjouts,
@@ -40,6 +41,7 @@ import {
   recettesDuChef,
   reglageChef,
   SCHEMA_CHEF,
+  tirerSemaine,
 } from "./domaine.js";
 
 /** Ajoute une dépense au compteur de Jarvis et renvoie le total du mois (0 : simple lecture). */
@@ -72,8 +74,8 @@ async function annoncer(foyerId: string, message: { titre: string; corps: string
     try {
       await webpush.sendNotification(
         { endpoint: a.endpoint, keys: a.cles },
-        JSON.stringify({ ...message, nombre: 0, url: "/" }),
-        { vapidDetails: { subject: "https://korahome-cassa.netlify.app", publicKey: r.vapid_publique, privateKey: r.vapid_privee }, TTL: 4 * 3600, urgency: "normal" },
+        JSON.stringify({ ...message, nombre: 0, url: "./" }),
+        { vapidDetails: { subject: "https://dmeloz.github.io/korahome/", publicKey: r.vapid_publique, privateKey: r.vapid_privee }, TTL: 4 * 3600, urgency: "normal" },
       );
       envoyes++;
     } catch (e) {
@@ -97,13 +99,16 @@ async function cuisiner(foyerId: string, lance: "auto" | "maintenant") {
   const courses = d.listes.find((l: { type?: string }) => l.type === "courses") ?? null;
   const enCourses = courses ? d.elements.filter((e: { listeId: string; coche: boolean }) => e.listeId === courses.id && !e.coche) : [];
 
+  // Kora tire la trame des soirs ; le Chef compose dessus (voir src/domaine/variete.ts).
+  const menusPasses = d.menus.filter((m: { type?: string }) => m.type === "menu");
+  const trame = tirerSemaine({ menus: menusPasses, aujourdhui, nombre: NOMBRE_REPAS, hasard: Math.random });
   const client = new Anthropic({ apiKey: cle });
   const reponse = await client.messages.create({
     model: MODELE_CHEF,
     max_tokens: 8000,
     system: CONSIGNES_CHEF,
     output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA_CHEF } },
-    messages: [{ role: "user", content: messageChef({ produits: d.produits, enCourses, aujourdhui, souvenirs: d.souvenirs, recettes: recettesDe(d.menus) }) }],
+    messages: [{ role: "user", content: messageChef({ produits: d.produits, enCourses, aujourdhui, souvenirs: d.souvenirs, recettes: recettesDe(d.menus), trame }) }],
   });
   const budget = etatBudget(await compter(foyerId, coutChef(reponse.usage)));
   if (reponse.stop_reason === "refusal") throw new Error("Le Chef n'a pas pu préparer les menus cette fois.");
@@ -117,7 +122,7 @@ async function cuisiner(foyerId: string, lance: "auto" | "maintenant") {
   const restants = d.elements.filter((e: { id: string }) => !aRetirer.has(e.id));
   const ajouts = courses ? preparerAjouts(proposition.aAcheter, courses, restants, ctx) : [];
   const { repas, recettes } = recettesDuChef(proposition, d.menus, ctx);
-  const menu = nouveauMenu({ proposition, repas, ajouts, produits: d.produits, animaux: d.animaux, aujourdhui, lance }, ctx);
+  const menu = nouveauMenu({ proposition, repas, ajouts, produits: d.produits, animaux: d.animaux, aujourdhui, lance, trame }, ctx);
 
   const maj = new Date().toISOString();
   const lignes = [

@@ -24,6 +24,7 @@ import { Taches } from "./ecrans/Taches";
 import { vibrer } from "./haptique";
 import type { NomIcone } from "./Icone";
 import { Espace } from "./pieces";
+import { ignorer } from "./journal";
 
 // Les pages les plus lourdes ne se chargent qu'à leur première ouverture : l'app démarre plus
 // vite sur l'iPhone. Elles sont préchargées en silence une fois l'accueil affiché.
@@ -44,7 +45,7 @@ const Stock = lazy(PAGES_DIFFEREES.Stock);
 
 /** Charge d'avance les pages différées, quand le téléphone n'a rien d'autre à faire. */
 export function prechargerPages(): void {
-  for (const charger of Object.values(PAGES_DIFFEREES)) void charger().catch(() => {});
+  for (const charger of Object.values(PAGES_DIFFEREES)) void charger().catch(ignorer);
 }
 
 // Le squelette standard de l'app : un tableau de bord fait de widgets, et chaque
@@ -213,7 +214,9 @@ const ongletMaison = (d: DonneesModule): "mitsu" | "jardin" => (widgetJardin(d).
 
 /** Cuisine : les menus de la semaine, les recettes et le frigo. */
 function PageCuisine(p: PropsPage) {
-  const onglet = p.onglet === "recettes" || p.onglet === "frigo" ? p.onglet : "semaine";
+  // « recette:<id> » : une recette trouvée par la recherche, ouverte sur l'onglet Nos recettes.
+  const recette = p.onglet?.startsWith("recette:") ? p.onglet.slice("recette:".length) : null;
+  const onglet = p.onglet === "recettes" || recette ? "recettes" : p.onglet === "frigo" ? "frigo" : "semaine";
   const aConsommer = resumeStock(p.produits, p.aujourdhui).aConsommer.length;
   return (
     <Espace
@@ -233,7 +236,7 @@ function PageCuisine(p: PropsPage) {
       {onglet === "frigo" ? (
         <Stock depot={p.depot} membreId={p.membreId} produits={p.produits} catalogue={p.catalogue} listes={p.listes} elements={p.elements} aujourdhui={p.aujourdhui} jarvis={p.jarvis} donnees={p} />
       ) : (
-        <Chef {...p} onglet={onglet} />
+        <Chef {...p} onglet={onglet} recette={recette} />
       )}
     </Espace>
   );

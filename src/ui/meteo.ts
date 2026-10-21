@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { adresseMeteo, lireMeteo, type Meteo } from "../domaine/meteo";
 import { CLES, ecrireJson, lireJson } from "./stockageLocal";
+import { ignorer } from "./journal";
 
 // La météo du jardin, lue chez Open-Meteo par le téléphone et gardée quelques heures :
 // hors ligne, la dernière lue sert encore (le domaine ne s'y fie plus après 12 heures).
@@ -41,7 +42,7 @@ export function useMeteo(actif: boolean): Meteo | null {
           ecrireCache(m);
           setMeteo(m);
         })
-        .catch(() => {});
+        .catch(ignorer);
     };
     rafraichir();
     document.addEventListener("visibilitychange", rafraichir);

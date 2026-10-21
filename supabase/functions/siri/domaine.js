@@ -2997,6 +2997,51 @@ function decrirePeremption(p, aujourdhui) {
 	const jourMois = `${p.peremption.slice(8, 10)}.${p.peremption.slice(5, 7)}`;
 	return ecart > 180 ? `jusqu'au ${jourMois}.${p.peremption.slice(2, 4)}` : `jusqu'au ${jourMois}`;
 }
+//#endregion
+//#region src/domaine/savoirCuisine.ts
+const DE = (debut, fin) => {
+	const mois = [];
+	for (let m = debut;; m = m % 12 + 1) {
+		mois.push(m);
+		if (m === fin) return mois;
+	}
+};
+const TOUTE_L_ANNEE = DE(1, 12);
+[
+	...[
+		"carotte",
+		"céleri-rave",
+		"chou blanc",
+		"chou rouge",
+		"oignon",
+		"pomme de terre"
+	].map((nom) => ({
+		nom,
+		mois: TOUTE_L_ANNEE,
+		source: "legumes.saison.stockage-toute-annee"
+	})),
+	DE(4, 6),
+	DE(5, 7),
+	DE(5, 7),
+	DE(4, 10),
+	DE(4, 10),
+	[...DE(3, 5), ...DE(9, 11)],
+	DE(6, 9),
+	DE(6, 9),
+	DE(6, 9),
+	DE(7, 9),
+	DE(7, 9),
+	DE(7, 10),
+	DE(8, 9),
+	DE(9, 3),
+	DE(9, 3),
+	DE(9, 4),
+	DE(10, 3),
+	DE(10, 2),
+	DE(9, 4),
+	DE(9, 12),
+	DE(6, 11)
+];
 /** Les menus en cours : le plus récent préparé dans les 7 derniers jours. */
 function menuDeLaSemaine(docs, aujourdhui) {
 	return docs.filter((d) => d.type === "menu").filter((m) => {
@@ -4011,5 +4056,43 @@ function demandeRaccourciSiri(adresse, nom) {
 		"Pas d'autre action."
 	].join("\n");
 }
+const RACCOURCIS_ECRAN = [
+	{
+		id: "courses",
+		nom: "Aux courses",
+		resume: "Demande quoi, puis l'ajoute à la liste de courses.",
+		question: "Quoi ajouter aux courses ?",
+		demande: "Ajoute aux courses : {saisie}"
+	},
+	{
+		id: "soir",
+		nom: "Ce soir",
+		resume: "Dit ce qu'il reste à faire ce soir et ce qu'on mange.",
+		question: null,
+		demande: "Qu'est-ce qu'il reste à faire ce soir, et qu'est-ce qu'on mange ?"
+	},
+	{
+		id: "depense",
+		nom: "Dépense",
+		resume: "Demande le montant et le libellé, puis la note au budget.",
+		question: "Quelle dépense ? (ex. Migros 84.30)",
+		demande: "Note cette dépense au budget : {saisie}"
+	}
+];
+/** La phrase à coller dans « Décrire un raccourci » pour un bouton de l'écran d'accueil, avec l'adresse de cet iPhone. */
+function demandeRaccourciEcran(adresse, nomFee, r) {
+	const corps = r.question ? "le texte de l'étape 1 dans la demande ci-dessous à la place de {saisie}" : "la demande ci-dessous telle quelle";
+	return [
+		`Crée un raccourci nommé « ${r.nom} » à mettre sur l'écran d'accueil ; il parle à ${nomFee}, l'assistant de notre app, sans que j'aie à ouvrir l'app.`,
+		...r.question ? [`1. Action « Demander une saisie » : type Texte, question « ${r.question} ».`] : [],
+		`${r.question ? "2" : "1"}. Action « Obtenir le contenu de l'URL » :`,
+		`- URL : ${adresse}`,
+		"- Méthode : POST",
+		`- Corps de la requête : JSON, un champ de type Texte nommé demande, qui contient ${corps} :`,
+		`« ${r.demande} »`,
+		`${r.question ? "3" : "2"}. Action « Afficher la notification » avec le contenu obtenu.`,
+		"Pas d'autre action. Propose ensuite de l'ajouter à l'écran d'accueil."
+	].join("\n");
+}
 //#endregion
-export { COLLECTIONS_SIRI, CONSIGNES_JARVIS, MINUTES_RETENUES, MODELE_JARVIS, OUI_OU_NON, OUTILS_JARVIS, TOURS_RETENUS, aConfirmer, annulation, appliquerActions, confirmer, consignesSiri, coutMicroChf, decrireFoyer, demandeRaccourciSiri, donneesDepuisDocuments, etatBudget, formaterChf, lignesAEcrire, lignesAnnulation, lireActions, messageDemande, moisDe, nomAssistant, nomPropose, pourLaVoix, questionPour, reponseCourte, suiteRecente, tourSiri };
+export { COLLECTIONS_SIRI, CONSIGNES_JARVIS, MINUTES_RETENUES, MODELE_JARVIS, OUI_OU_NON, OUTILS_JARVIS, RACCOURCIS_ECRAN, TOURS_RETENUS, aConfirmer, annulation, appliquerActions, confirmer, consignesSiri, coutMicroChf, decrireFoyer, demandeRaccourciEcran, demandeRaccourciSiri, donneesDepuisDocuments, etatBudget, formaterChf, lignesAEcrire, lignesAnnulation, lireActions, messageDemande, moisDe, nomAssistant, nomPropose, pourLaVoix, questionPour, reponseCourte, suiteRecente, tourSiri };

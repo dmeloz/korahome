@@ -130,3 +130,4 @@
 .chef-actions-menu { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 10px; }
 .chef-actions-menu .lien { padding: 6px 0; font-size: var(--t-detail); }
 .chef-valide { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-size: var(--t-detail); }
+.recette-partager { display: inline-flex; align-items: center; gap: 6px; justify-self: center; font-size: 14px; margin: 2px 0 0; }

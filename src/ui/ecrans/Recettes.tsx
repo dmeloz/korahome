@@ -37,6 +37,9 @@ import type { PropsPage } from "../modules";
 import { useGestionnaireBarre, useInvitationBarre } from "../pieces";
 import { nomFee } from "../fee";
 import { Ligne, ListeVivante } from "../moteur/pieces";
+import { ignorer } from "../journal";
+import { texteRecette } from "../../domaine/exports";
+import { partagerTexte } from "../partage";
 
 // Les recettes du foyer, dans « Menus de la semaine » : la base qui se remplit seule (le Chef,
 // les liens et photos lus par Jarvis, ce qu'on écrit), ce qu'on peut faire ce soir avec le
@@ -310,6 +313,16 @@ export function FicheRecette(p: PropsPage & { recette: Recette | null; fermer: (
                 <Icone nom="toque" taille={18} />
                 Mode cuisine
               </button>
+              <button
+                type="button"
+                className="lien recette-partager"
+                onClick={() => {
+                  void partagerTexte(r.titre, texteRecette(r, portions)).then((x) => x === "copie" && annoncer("Recette copiée : colle-la dans un message.", () => {}));
+                }}
+              >
+                <Icone nom="partage" taille={15} />
+                Envoyer la recette en texte, pour {portions} pers.
+              </button>
               <div className="chef-avis" role="group" aria-label={`Ton avis sur ${r.titre}`}>
                 <button className={`chef-avis-bouton${a === "aime" ? " actif aime" : ""}`} aria-pressed={a === "aime"} onClick={() => void donnerAvis(r.titre, "aime")}>
                   <Icone nom="coeur" taille={15} />
@@ -487,7 +500,7 @@ function ModeCuisine(props: { titre: string; portions: number; ingredients: Ingr
           if (fini) void v.release();
           else verrou = v;
         })
-        .catch(() => {});
+        .catch(ignorer);
     };
     demander();
     const revenir = () => document.visibilityState === "visible" && demander();

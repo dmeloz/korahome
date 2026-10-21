@@ -62,3 +62,11 @@ Après une modification de `src/domaine/rappels.ts` (ou de `taches.ts`, `mitsu.t
 3. Une fois : `select prive.programmer_rappels('https://<projet>.supabase.co');`
 
 Pour le projet du foyer (korahome), tout cela est fait depuis le 10 octobre 2026.
+
+## Heures calmes (depuis 0.0.67)
+
+Réglages › Notifications › « Heures calmes » (par téléphone, `preferences.calme`) : un mot du couple écrit ou
+programmé entre 22 h et 7 h (heure du foyer) n'est pas annoncé à ce téléphone sur le moment ; au passage
+de 7 h 00, la fonction `rappels` rattrape les mots devenus visibles depuis 22 h la veille pour ces
+téléphones seulement (`enHeuresCalmes`, `fenetreMotsCalmes` dans `src/domaine/rappels.ts`). Les cœurs ne
+sont jamais rattrapés. Le rappel du matin garde son heure.

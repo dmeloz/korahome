@@ -25,6 +25,7 @@ import { Icone, PICTO_HUMEUR } from "../Icone";
 import { Page, useGestionnaireBarre } from "../pieces";
 import type { DonneesModule } from "../modules";
 import { Ligne, ListeVivante } from "../moteur/pieces";
+import { ignorer } from "../journal";
 
 type Quand = "maintenant" | "soir" | "matin";
 
@@ -77,7 +78,7 @@ export function NosMots(props: {
       setQuand("maintenant");
       setErreur(null);
       if (mot.programme) annoncer(`Ton mot arrivera ${formatHeure(mot.visibleDes)}.`, () => depot.supprimerCouple(mot.id));
-      else props.notifier?.(mot).catch(() => {});
+      else props.notifier?.(mot).catch(ignorer);
     } catch (err) {
       setErreur(err instanceof ErreurValidation ? err.message : "Le mot n'est pas parti, réessaie.");
     }

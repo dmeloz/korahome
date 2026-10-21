@@ -21,11 +21,14 @@ import { decrirePeremption, LIEUX, ORDRE_LIEUX, type Produit } from "./stock";
 import { ecartJours } from "./taches";
 import { RAYONS, type Contexte, type Element, type Id, type Jour, type Liste, type Rayon } from "./types";
 import { NOMS_MOIS } from "./texte";
+import { savoirPourLeChef } from "./savoirCuisine";
+import { decrireTrame, type TrameSoir } from "./variete";
 
 // Ce dont la fonction serveur a aussi besoin : le compteur de Jarvis et l'heure de Zurich.
 export { etatBudget, moisDe } from "./jarvisModele";
 export { jourEtHeure } from "./rappels";
 export { recettesDe } from "./recettes";
+export { tirerSemaine } from "./variete";
 
 /** Le Chef prend le modèle du conseil : une fois par semaine, il peut réfléchir un peu. */
 export const MODELE_CHEF = MODELE_CONSEIL;
@@ -71,6 +74,8 @@ export interface MenuSemaine {
   /** Les produits à finir vite, avec leur date : « Yaourts · demain ». */
   aFinir: string[];
   alertesMitsu: string[];
+  /** La trame tirée par Kora pour chaque soir (depuis 0.0.68), dont se souviennent les semaines suivantes. */
+  trame?: TrameSoir[];
   /** « auto » : le passage de la semaine ; « maintenant » : lancé depuis l'app. */
   lance: "auto" | "maintenant";
   creeLe: string;
@@ -184,12 +189,14 @@ Si une recette que le foyer aime convient à la semaine, reprends-la sous son ti
 Ensuite, liste les ingrédients qui manquent pour ces repas : un article par ligne, nom court au singulier ou tel qu'on l'écrit sur une liste (« Poireaux », « Crème entière »), quantité courte (« 500 g », « 2 », « 1 l ») ou vide.
 Ne remets pas ce qui est déjà dans le stock ou déjà sur la liste de courses. Les épices, le sel, le poivre et l'huile sont supposés à la maison sauf s'ils sont vraiment absents.
 Ne mets jamais de croquettes, de litière ni rien pour le chat : cela se commande ailleurs.
+Kora a tiré au sort une trame pour chaque soir (une base, une protéine, deux légumes de saison) pour que les semaines ne se ressemblent pas : construis chaque repas sur la trame de son soir, dans l'ordre. Tu peux échanger un élément contre un produit à finir vite, ou contre un plat que le foyer aime, mais garde la variété : pas deux fois la même base dans la semaine.
+Appuie-toi sur le savoir de cuisine fourni : légumes de saison, quantités pour deux, temps et températures de cuisson, durée des restes. Les quantités des ingrédients suivent ces repères ; les étapes donnent les temps et les gestes justes. Quand une préparation se fait une fois pour deux soirs (légumineuses, sauce, légumes rôtis), dis-le dans la description, en respectant la durée des restes (jamais de riz cuit gardé plus d'un jour).
 Tiens compte de ce que le foyer aime et n'aime pas (sa mémoire) : refais volontiers un plat apprécié de temps en temps, ne repropose jamais un plat à éviter.
 Le champ « mot » est une phrase chaleureuse et courte en français, sans emoji, qui dit ce que la semaine permet de finir.
 Réponds en français, avec le tutoiement.`;
 
 /** Le message du dimanche : le stock, ce qui presse, la liste de courses actuelle. */
-export function messageChef(d: { produits: readonly Produit[]; enCourses: readonly Element[]; aujourdhui: Jour; souvenirs?: readonly Souvenir[]; recettes?: readonly Recette[] }): string {
+export function messageChef(d: { produits: readonly Produit[]; enCourses: readonly Element[]; aujourdhui: Jour; souvenirs?: readonly Souvenir[]; recettes?: readonly Recette[]; trame?: readonly TrameSoir[] }): string {
   const aFinir = produitsAFinir(d.produits, d.aujourdhui);
   const urgents = new Set(aFinir.map((p) => p.id));
   const decrire = (p: Produit) => [p.nom, p.quantite, p.peremption && decrirePeremption(p, d.aujourdhui)].filter(Boolean).join(" · ");
@@ -206,6 +213,8 @@ export function messageChef(d: { produits: readonly Produit[]; enCourses: readon
   const avis = (r: Recette) => avisDuPlat(d.souvenirs ?? [], r.titre)?.avis ?? null;
   const reprendre = recettesPourLeChef(d.recettes ?? [], (r) => avis(r) === "aime", (r) => avis(r) === "non");
   if (reprendre.length) lignes.push("", "Recettes du foyer qu'il aime refaire :", ...reprendre.map((t) => `- ${t}`));
+  if (d.trame?.length) lignes.push("", "La trame tirée par Kora pour cette semaine :", ...decrireTrame(d.trame));
+  lignes.push("", savoirPourLeChef(Number(d.aujourdhui.slice(5, 7))));
   return lignes.join("\n");
 }
 
@@ -364,7 +373,7 @@ export function recettesDuChef(proposition: PropositionChef, docs: readonly DocC
 }
 
 export function nouveauMenu(
-  d: { proposition: PropositionChef; repas?: RepasChef[]; ajouts: readonly Element[]; produits: readonly Produit[]; animaux: readonly Animal[]; aujourdhui: Jour; lance: MenuSemaine["lance"] },
+  d: { proposition: PropositionChef; repas?: RepasChef[]; ajouts: readonly Element[]; produits: readonly Produit[]; animaux: readonly Animal[]; aujourdhui: Jour; lance: MenuSemaine["lance"]; trame?: TrameSoir[] },
   ctx: Contexte,
 ): MenuSemaine {
   return {
@@ -376,6 +385,7 @@ export function nouveauMenu(
     ajouts: d.ajouts.map((e) => ({ elementId: e.id, texte: e.texte, quantite: e.quantite, rayon: e.rayon })),
     aFinir: produitsAFinir(d.produits, d.aujourdhui).map((p) => `${p.nom} · ${decrirePeremption(p, d.aujourdhui)}`),
     alertesMitsu: alertesMitsu(d.animaux, d.aujourdhui),
+    ...(d.trame?.length ? { trame: d.trame } : {}),
     lance: d.lance,
     creeLe: ctx.maintenant(),
   };

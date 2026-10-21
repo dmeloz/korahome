@@ -15,7 +15,7 @@
 import webpush from "npm:web-push@3.6.7";
 import { preflight, repondre } from "../_shared/http.ts";
 import { echec, estMembre, serveur, utilisateur } from "../_shared/supabase.ts";
-import { adresseMeteo, evenementsDe, facturesDuJour, fenetreMotsProgrammes, formaterHeure, FUSEAU_DU_FOYER, jourEtHeure, lireMeteo, notificationHeure, notificationMot, PREFERENCES_DE_DEPART, rappelDu, rappelDuMatin, tachesALHeure } from "./domaine.js";
+import { adresseMeteo, enHeuresCalmes, evenementsDe, facturesDuJour, fenetreMotsCalmes, fenetreMotsProgrammes, formaterHeure, FUSEAU_DU_FOYER, jourEtHeure, lireMeteo, notificationHeure, notificationMot, PREFERENCES_DE_DEPART, rappelDu, rappelDuMatin, tachesALHeure } from "./domaine.js";
 
 interface Abonnement {
   endpoint: string;
@@ -23,7 +23,7 @@ interface Abonnement {
   user_id: string;
   membre_id: string | null;
   cles: { p256dh: string; auth: string };
-  preferences: { taches?: boolean; mitsu?: boolean; stock?: boolean; jardin?: boolean; mots?: boolean; agenda?: boolean; budget?: boolean; jours?: number[]; minute?: number };
+  preferences: { taches?: boolean; mitsu?: boolean; stock?: boolean; jardin?: boolean; mots?: boolean; agenda?: boolean; budget?: boolean; jours?: number[]; minute?: number; calme?: boolean };
   heure: number;
   dernier_envoi: string | null;
 }
@@ -79,8 +79,8 @@ async function envoyer(a: Abonnement, message: { titre: string; corps: string; n
   try {
     await webpush.sendNotification(
       { endpoint: a.endpoint, keys: a.cles },
-      JSON.stringify({ ...message, url: "/" }),
-      { vapidDetails: { subject: "https://korahome-cassa.netlify.app", publicKey: cles.publique, privateKey: cles.privee }, TTL: 4 * 3600, urgency: "normal" },
+      JSON.stringify({ ...message, url: "./" }),
+      { vapidDetails: { subject: "https://dmeloz.github.io/korahome/", publicKey: cles.publique, privateKey: cles.privee }, TTL: 4 * 3600, urgency: "normal" },
     );
     return "envoye";
   } catch (e) {
@@ -94,16 +94,25 @@ async function envoyer(a: Abonnement, message: { titre: string; corps: string; n
   }
 }
 
-/** Annonce un mot aux téléphones du foyer, sauf à ceux de la personne qui l'a écrit. */
+/**
+ * Annonce un mot aux téléphones du foyer, sauf à ceux de la personne qui l'a écrit.
+ * `calme` : "eviter" la nuit (les téléphones aux heures calmes attendent 7 h), "seulement" au
+ * rattrapage de 7 h (eux seuls, les autres l'ont déjà eu), "tous" sinon.
+ */
 async function annoncerMot(
   foyerId: string,
   mot: { id: string; de: string | null; texte: string },
   auteur: string | null,
   cles: { publique: string; privee: string },
+  calme: "tous" | "eviter" | "seulement" = "tous",
 ) {
   const abonnements = (await echec(serveur.from("abonnements_push").select("*").eq("foyer_id", foyerId))) as Abonnement[];
   const destinataires = abonnements.filter(
-    (a) => a.preferences?.mots !== false && a.user_id !== auteur && (mot.de === null || a.membre_id !== mot.de),
+    (a) =>
+      a.preferences?.mots !== false &&
+      a.user_id !== auteur &&
+      (mot.de === null || a.membre_id !== mot.de) &&
+      (calme === "tous" || (calme === "eviter" ? a.preferences?.calme !== true : a.preferences?.calme === true)),
   );
   if (!destinataires.length) return 0;
   const { foyer } = await donneesDuFoyer(foyerId);
@@ -126,8 +135,27 @@ async function motsProgrammes(cles: { publique: string; privee: string }) {
       .gt("donnees->>visibleDes", apres)
       .lte("donnees->>visibleDes", jusqua),
   )) as { foyer_id: string; donnees: { id: string; de: string | null; texte: string } }[];
+  const nuit = enHeuresCalmes(new Date());
   let envoyes = 0;
-  for (const l of lignes) envoyes += await annoncerMot(l.foyer_id, l.donnees, null, cles);
+  for (const l of lignes) envoyes += await annoncerMot(l.foyer_id, l.donnees, null, cles, nuit ? "eviter" : "tous");
+  return envoyes;
+}
+
+/** À 7 h : les mots de la nuit (programmés ou non) pour les téléphones aux heures calmes. */
+async function motsDesHeuresCalmes(cles: { publique: string; privee: string }) {
+  const fenetre = fenetreMotsCalmes(new Date());
+  if (!fenetre) return 0;
+  const lignes = (await echec(
+    serveur
+      .from("documents")
+      .select("foyer_id, donnees")
+      .eq("collection", "couple")
+      .eq("donnees->>type", "mot")
+      .gt("donnees->>visibleDes", fenetre.apres)
+      .lte("donnees->>visibleDes", fenetre.jusqua),
+  )) as { foyer_id: string; donnees: { id: string; de: string | null; texte: string; coeur?: boolean } }[];
+  let envoyes = 0;
+  for (const l of lignes) if (!l.donnees.coeur) envoyes += await annoncerMot(l.foyer_id, l.donnees, null, cles, "seulement");
   return envoyes;
 }
 
@@ -201,7 +229,8 @@ Deno.serve(async (req) => {
       const heures = await passageDesHeures(cles).catch((e) => (console.error("Heure des tâches", (e as Error).message), 0));
       // Les mots programmés tombent à l'heure pleine : seul le passage de l'heure pleine les annonce.
       const mots = new Date().getUTCMinutes() === 0 ? await motsProgrammes(cles).catch((e) => (console.error("Mots programmés", (e as Error).message), 0)) : 0;
-      return repondre({ ...bilan, mots, heures });
+      const calmes = await motsDesHeuresCalmes(cles).catch((e) => (console.error("Heures calmes", (e as Error).message), 0));
+      return repondre({ ...bilan, mots: mots + calmes, heures });
     }
 
     if (corps.mode === "cle") return repondre({ cle: cles.publique });
@@ -213,7 +242,8 @@ Deno.serve(async (req) => {
       if (!(await estMembre(corps.foyerId, user.id))) return repondre({ erreur: "Ce foyer appartient à un autre compte" }, 403);
       const mot = { id: String(corps.id ?? ""), de: typeof corps.de === "string" ? corps.de : null, texte: corps.texte.trim().slice(0, 140) };
       if (!mot.texte) return repondre({ erreur: "Le mot est vide" }, 400);
-      return repondre({ envoyes: await annoncerMot(corps.foyerId, mot, user.id, cles) });
+      // La nuit, les téléphones aux heures calmes l'auront à 7 h.
+      return repondre({ envoyes: await annoncerMot(corps.foyerId, mot, user.id, cles, enHeuresCalmes(new Date()) ? "eviter" : "tous") });
     }
     return repondre({ erreur: "Demande inconnue" }, 400);
   } catch (e) {

@@ -35,6 +35,7 @@ import { MODULES, PICTOS, type ApercuWidget, type DonneesModule } from "../modul
 import { vibrer } from "../haptique";
 import { calculerApprentissages } from "../apprendre";
 import { CarteAujourdhui, Visite } from "../pieces";
+import { CarteDemarrage } from "../pieces/Demarrage";
 import { FeuilleHeure } from "../pieces/FeuilleHeure";
 import { DateRepliee, GrandeDate, Signes } from "../pieces/HautAccueil";
 import { clinDejaDit, noterClinDit, useClinDuJour } from "../clinDuJour";
@@ -50,6 +51,7 @@ import { lireDerniereRepartition } from "./Taches";
 import { APPUI_LONG_MS } from "../gestes";
 import { heureMinute } from "../../domaine/texte";
 import { etatRappels } from "../rappels";
+import { ignorer } from "../journal";
 
 /** Combien de choses du jour la carte garde ; trois se voient, les autres se font défiler. */
 const CHOSES_CARTE = 12;
@@ -71,6 +73,10 @@ export function Accueil(props: {
   ouvrirReglages: () => void;
   ouvrirMots: () => void;
   ouvrirJarvis: () => void;
+  ouvrirFil: () => void;
+  /** Les réglages où mène la carte de mise en route. */
+  ouvrirReglage: (ou: "telephone" | "partage" | "notifications" | "siri") => void;
+  partageActif: boolean;
   ouvrirBilan: () => void;
   ouvrirRappels: () => void;
   ouvrirSauvegarde: () => void;
@@ -116,7 +122,7 @@ export function Accueil(props: {
     if (!matchMedia("(display-mode: standalone)").matches) return;
     void etatRappels()
       .then((e) => vivant && setNotificationsCoupees(e === "inactifs" || e === "refuses"))
-      .catch(() => {});
+      .catch(ignorer);
     return () => {
       vivant = false;
     };
@@ -459,6 +465,16 @@ export function Accueil(props: {
       )}
 
       {!edition && (
+        <CarteDemarrage
+          foyer={foyer}
+          membreId={membreId}
+          partageActif={props.partageActif}
+          taches={props.donnees.taches}
+          ouvrir={(ou) => (ou === "taches" ? props.ouvrirModule("taches") : props.ouvrirReglage(ou))}
+        />
+      )}
+
+      {!edition && (
         <CarteAujourdhui
           carte={carte}
           titre={montrer === "demain" ? "Demain" : titreMoment(heure)}
@@ -488,7 +504,7 @@ export function Accueil(props: {
       {/* Le partage et la sauvegarde vivent dans Réglages : ici seulement quand il y a un souci. */}
       {!edition && (
         <footer className="pied-accueil">
-          {props.partage.ton === "urgent" && (
+          {(props.partage.ton === "urgent" || props.partage.horsLigne) && (
             <button className={`etat-pied ${props.partage.ton}`} onClick={props.ouvrirPartage}>
               <span className={`point-etat ${props.partage.ton}`} aria-hidden />
               {props.partage.texte}
@@ -553,6 +569,7 @@ export function Accueil(props: {
           ouvrirRappels: props.ouvrirRappels,
           ouvrirMots: props.ouvrirMots,
           ouvrirJarvis: props.ouvrirJarvis,
+          ouvrirFil: props.ouvrirFil,
           rappelsNonLus: props.rappelsNonLus,
           nouvelleVersion: props.nouvelleVersion,
           moi: moi ? { prenom: moi.prenom, couleur: moi.couleur } : null,
@@ -583,7 +600,7 @@ function BoutonSynchro({ synchroniser }: { synchroniser: () => Promise<void> }) 
     setEnCours(true);
     try {
       // Assez long pour voir que ça tourne, même quand tout est déjà à jour.
-      await Promise.all([synchroniser().catch(() => {}), new Promise((r) => setTimeout(r, 600))]);
+      await Promise.all([synchroniser().catch(ignorer), new Promise((r) => setTimeout(r, 600))]);
     } finally {
       setEnCours(false);
     }

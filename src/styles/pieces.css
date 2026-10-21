@@ -334,6 +334,9 @@ html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
   transition: transform var(--ressort-ligne-duree, 0.25s) var(--ressort-ligne, cubic-bezier(0.2, 0.8, 0.2, 1));
 }
 .glissable-contenu.glisse { transition: none; }
+/* Les actions de la ligne pour VoiceOver et le clavier : hors écran, visibles au focus seulement. */
+.glissable-sr button { position: absolute; top: 50%; right: 8px; transform: translateY(-50%); width: 1px; height: 1px; padding: 0; margin: 0; border: 0; overflow: hidden; clip-path: inset(50%); background: var(--accent); color: var(--sur-accent); font-size: var(--t-detail); font-weight: 600; border-radius: 10px; }
+.glissable-sr button:focus-visible { width: auto; height: auto; padding: 8px 12px; clip-path: none; z-index: 2; }
 
 /* Revenir en glissant depuis le bord gauche : la page suit le doigt. */
 .contenu { touch-action: pan-y; }
@@ -417,3 +420,53 @@ html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
 /* La recherche. */
 .champ-recherche { display: flex; align-items: center; gap: 8px; padding: 0 12px; height: 44px; border-radius: 12px; background: var(--surface-haute); color: var(--discret); margin-bottom: 8px; }
 .champ-recherche input { flex: 1; min-width: 0; border: none; background: none; outline: none; color: var(--texte); font-size: max(16px, var(--t-corps)); }
+
+/* ===== Le filet sous chaque page : écran de secours et silhouette de chargement (Kora 0.0.64) ===== */
+.page-secours { display: grid; gap: 12px; justify-items: start; padding-top: 24px; }
+.page-secours h1 { margin: 0; }
+.page-secours .discret { margin: 0; max-width: 46ch; }
+.secours-picto { display: inline-grid; place-items: center; width: 52px; height: 52px; border-radius: 16px; background: var(--surface-haute); color: var(--accent); }
+.secours-actions { display: flex; align-items: center; gap: 18px; margin-top: 8px; }
+.secours-actions .bouton-principal { margin: 0; }
+.secours-detail { font-family: var(--police-fixe); font-size: var(--t-legende); color: var(--discret); opacity: 0.7; margin: 12px 0 0; word-break: break-word; }
+
+.squelette { display: grid; gap: 14px; padding-top: 24px; }
+.squelette-titre, .squelette-ligne { border-radius: 10px; background: var(--surface-haute); }
+.squelette-titre { height: 34px; width: 55%; }
+.squelette-ligne { height: 56px; }
+.squelette-ligne.courte { width: 70%; }
+@media (prefers-reduced-motion: no-preference) {
+  .squelette > div { animation: respire 1.4s ease-in-out infinite alternate; }
+  @keyframes respire { from { opacity: 0.55; } to { opacity: 1; } }
+}
+
+/* Réglages › Corbeille */
+.corbeille-ligne { align-items: center; gap: 12px; padding: 12px 14px; }
+.corbeille-ligne .ligne-texte { display: grid; gap: 2px; }
+.corbeille-ligne strong { font-weight: 600; overflow-wrap: anywhere; }
+
+/* ===== À deux (Kora 0.0.65) : la carte de mise en route, le fil du foyer, les iPhone du foyer ===== */
+.demarrage { display: grid; gap: 10px; padding: 14px 16px; margin-bottom: 16px; }
+.demarrage-entete { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.demarrage-entete > div { display: grid; gap: 1px; }
+.demarrage-entete .lien { padding: 4px 0; flex: none; }
+.demarrage-barre { height: 4px; border-radius: 2px; background: var(--surface-haute); overflow: hidden; }
+.demarrage-barre span { display: block; height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.4s var(--courbe); }
+.demarrage-etapes { list-style: none; margin: 0; padding: 0; display: grid; }
+.demarrage-etape { display: flex; align-items: center; gap: 12px; width: 100%; padding: 9px 0; border: none; background: none; color: var(--texte); text-align: left; }
+.demarrage-etape:disabled { cursor: default; }
+.demarrage-etape.faite { color: var(--discret); }
+.demarrage-etape.faite .ligne-texte > span:first-child { text-decoration: line-through; }
+.demarrage-etape .ligne-texte { display: grid; gap: 1px; }
+.rond-etape { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--trait-fort, var(--trait)); flex: none; display: grid; place-items: center; }
+.rond-etape.plein { background: var(--coche); border-color: var(--coche); color: var(--sur-accent); }
+
+.fil-ligne { align-items: flex-start; gap: 10px; padding: 10px 14px; }
+.fil-heure { font-family: var(--police-fixe); font-size: var(--t-legende); color: var(--discret); min-width: 40px; padding-top: 3px; font-variant-numeric: tabular-nums; }
+.fil-picto { color: var(--accent); padding-top: 2px; flex: none; }
+.fil-ligne .ligne-texte { display: grid; gap: 1px; }
+.fil-espace { font-size: var(--t-legende); }
+
+.partage-appareils { margin: 0 0 16px; }
+.partage-appareils .ligne { padding: 10px 14px; }
+.partage-appareils .ligne-texte { display: grid; gap: 1px; }

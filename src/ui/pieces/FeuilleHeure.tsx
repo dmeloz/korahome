@@ -4,6 +4,7 @@ import { Feuille } from "../Feuille";
 import { vibrer } from "../haptique";
 import { etatRappels, type EtatRappels } from "../rappels";
 import { useEffect, useState } from "react";
+import { ignorer } from "../journal";
 
 // L'heure d'une tâche, réglée d'un toucher : la roue de l'iPhone, comme pour une alarme, et
 // « Sans heure » dessous. Kora propose l'heure où la tâche est faite d'habitude ; une heure
@@ -20,7 +21,7 @@ export function FeuilleHeure(props: { tache: Tache | null; enregistrer: (t: Tach
     let vivant = true;
     void etatRappels()
       .then((e) => vivant && setRappels(e))
-      .catch(() => {});
+      .catch(ignorer);
     return () => {
       vivant = false;
     };
