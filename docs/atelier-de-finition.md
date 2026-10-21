@@ -58,7 +58,7 @@ Le script construit une copie non minifiée de l'app (pour garder le nom des com
 Puis :
 
 1. Copier `atelier.json`, `captures/` et `cartes/` du nouveau dossier dans `/mnt/project-files/atelier/0.0.64/` (ce sera l'« avant » de la suivante), et retirer le dossier d'il y a deux versions.
-2. Republier la page à la même adresse avec l'outil Artifact : `url` de l'atelier, `file_path` = `atelier/index.html`, `files` = le contenu de `publication.json` (chemins publiés `donnees/…`, sources dans `.atelier/`), plus `null` pour les fichiers `donnees/avant/…` de la version précédente qui ne sont plus dans la liste. Une publication prend au plus 255 fichiers et la série complète en fait environ 265 : publier d'abord les iPhone (`air`, `pro`) avec `atelier.json`, puis les iPad et `avant/` dans un second envoi.
+2. Republier la page à la même adresse avec l'outil Artifact : `url` de l'atelier, `file_path` = `atelier/index.html`, `files` = le contenu de `publication.json` (chemins publiés `donnees/…`, sources dans `.atelier/`), plus `null` pour les fichiers `donnees/avant/…` de la version précédente qui ne sont plus dans la liste. Une publication prend au plus 255 fichiers et la série complète en fait environ 300 à 430 : publier d'abord les iPhone (`air`, `pro`) avec `atelier.json`, puis les iPad et `app/`, puis `avant/`.
 3. Lire les notes ouvertes (ci-dessus) et marquer `reglee` celles que la version vient de corriger.
 
 Bon à savoir :
