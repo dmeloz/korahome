@@ -277,6 +277,22 @@ details.plus select { margin-top: 6px; width: 100%; background: var(--fond); bor
 pre.diff { margin: 0; font: 11.5px/1.5 var(--police-fixe); white-space: pre-wrap; overflow-wrap: anywhere; background: var(--fond); border: 1px solid var(--trait); border-radius: 8px; padding: 8px 10px; max-height: 180px; overflow: auto; }
 .carte-note.sans-image { grid-template-columns: minmax(0, 1fr); }
 #b-panneau { display: none; }
+.direct .plan.main, .direct .plan.main * { cursor: grab !important; }
+.direct .plan.main.tient, .direct .plan.main.tient * { cursor: grabbing !important; }
+#zoom-valeur { min-width: 58px; font: 12px var(--police-fixe); }
+.origine { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; flex: none; }
+.origine.o-toi { background: var(--laiton); } .origine.o-ici { background: var(--regle); } .origine.o-herite { background: var(--mesure); } .origine.o-base { border: 1px solid var(--discret); }
+.mini.o-ici { color: var(--regle); } .mini.o-base { color: var(--discret); }
+.legende { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11.5px; color: var(--discret); margin-top: 10px; }
+.outils-style { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+.outils-style button { padding: 5px 10px; font-size: 12px; border-radius: 8px; }
+.aide-raccourcis { position: fixed; z-index: 40; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 40px); overflow: auto; background: var(--surface); border: 1px solid var(--trait); border-radius: 16px; box-shadow: var(--ombre); padding: 20px 22px; display: grid; gap: 14px; }
+.aide-raccourcis h2 { font: 400 24px var(--police-titre); margin: 0; }
+.aide-raccourcis dl { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 7px 14px; margin: 0; font-size: 13px; }
+.aide-raccourcis dt { color: var(--texte); }
+.aide-raccourcis dd { margin: 0; color: var(--discret); }
+.aide-raccourcis kbd { font: 11px var(--police-fixe); border: 1px solid var(--trait); border-radius: 4px; padding: 0 4px; }
+.aide-raccourcis .secondaire { justify-self: end; }
 .direct .outils { flex-wrap: nowrap; overflow-x: auto; gap: 8px; }
 .direct .outils .titre-ecran { flex: 1 1 120px; overflow: hidden; }
 .direct .outils .titre-ecran, .direct .outils .titre-ecran small { white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
@@ -399,7 +415,13 @@ pre.diff { margin: 0; font: 11.5px/1.5 var(--police-fixe); white-space: pre-wrap
       </div>
       <button class="bascule" id="b-avant-apres" aria-pressed="false" title="Voir Kora sans tes retouches (B)">Avant</button>
       <button class="bascule" id="b-grille-direct" aria-pressed="false" title="Grille de 8 points (G)">Grille</button>
+      <div class="groupe" role="group" aria-label="Zoom" id="zoom-direct">
+        <button data-z="moins" title="Zoom arrière (⌘−)" aria-label="Zoom arrière">−</button>
+        <button id="zoom-valeur" title="Tout voir (⇧1)" aria-pressed="true">100 %</button>
+        <button data-z="plus" title="Zoom avant (⌘+)" aria-label="Zoom avant">+</button>
+      </div>
       <button class="bascule" id="b-recommencer" title="Remettre le foyer d'essai et revenir à l'accueil">Recommencer</button>
+      <button class="bascule" id="b-aide-direct" title="Les raccourcis (?)" aria-label="Les raccourcis">?</button>
       <button class="bascule" id="b-panneau" aria-expanded="false" aria-controls="panneau-direct">Réglages</button>
     </div>
     <div class="plan" id="plan-direct"><div class="scene" id="scene-direct"></div></div>
@@ -414,6 +436,29 @@ pre.diff { margin: 0; font: 11.5px/1.5 var(--police-fixe); white-space: pre-wrap
     <div class="panneau-pied" id="pied-direct"></div>
   </aside>
   <div class="bulle" id="bulle-direct" hidden></div>
+  <div class="aide-raccourcis" id="aide-raccourcis" hidden role="dialog" aria-label="Les raccourcis">
+    <h2>Les gestes</h2>
+    <dl>
+      <dt>Toucher</dt><dd>choisir l'élément</dd>
+      <dt>Toucher à côté, <kbd>Échap</kbd></dt><dd>lâcher l'élément</dd>
+      <dt><kbd>Tab</kbd> <kbd>⇧ Tab</kbd></dt><dd>élément voisin suivant, précédent</dd>
+      <dt><kbd>⇧ Entrée</kbd> <kbd>Entrée</kbd></dt><dd>parent, premier enfant</dd>
+      <dt><kbd>⌥</kbd> en survolant</dt><dd>mesurer la distance avec l'élément choisi</dd>
+      <dt>Double-clic sur un texte</dt><dd>l'écrire sur place</dd>
+      <dt>Tirer une barre verte, orange</dt><dd>marge intérieure, marge ; <kbd>⌥</kbd> les deux côtés, <kbd>⇧</kbd> les quatre</dd>
+      <dt>Glisser sur un nom ou un chiffre</dt><dd>faire varier la valeur ; <kbd>⇧</kbd> par 10</dd>
+      <dt><kbd>⌥</kbd> clic sur un nom</dt><dd>remettre la valeur comme avant</dd>
+      <dt><kbd>⌘Z</kbd> <kbd>⇧⌘Z</kbd></dt><dd>annuler, rétablir</dd>
+      <dt><kbd>⌥⌘C</kbd> <kbd>⌥⌘V</kbd></dt><dd>copier le style d'un élément, le coller sur un autre</dd>
+      <dt><kbd>⌘+</kbd> <kbd>⌘−</kbd> <kbd>⌘0</kbd>, pincer</dt><dd>zoomer, 100 %</dd>
+      <dt><kbd>⇧1</kbd> <kbd>⇧2</kbd></dt><dd>tout voir, zoomer sur l'élément</dd>
+      <dt><kbd>Espace</kbd> + glisser</dt><dd>se déplacer</dd>
+      <dt><kbd>V</kbd> <kbd>U</kbd></dt><dd>retoucher, utiliser Kora</dd>
+      <dt><kbd>B</kbd> <kbd>G</kbd></dt><dd>avant mes retouches, grille</dd>
+    </dl>
+    <p class="aide">Les pastilles devant chaque réglage disent d'où vient la valeur : <span class="origine o-toi"></span>changée par toi, <span class="origine o-ici"></span>réglée sur cet élément, <span class="origine o-herite"></span>héritée d'un parent, <span class="origine o-base"></span>valeur de base.</p>
+    <button class="secondaire" id="fermer-aide" type="button">Fermer</button>
+  </div>
 </main>
 
 <div class="loupe" id="loupe" hidden><canvas id="loupe-canvas" width="220" height="220"></canvas><div class="lecture"><span class="pastille" id="loupe-pastille"></span><span id="loupe-texte"></span></div></div>
@@ -1198,11 +1243,32 @@ function appliquerTheme() {
 function mettreAEchelle() {
   const f = direct.cadre; if (!f) return;
   const a = appareil(), plan = $("plan-direct");
-  const z = Math.max(0.3, Math.min(1.5, (plan.clientWidth - 96) / a.largeur, (plan.clientHeight - 112) / a.hauteur));
+  const ajuste = Math.max(0.3, Math.min(1.5, (plan.clientWidth - 96) / a.largeur, (plan.clientHeight - 112) / a.hauteur));
+  const z = direct.zoom ?? ajuste;
   f.style.transform = `scale(${z})`;
   f.parentElement.style.width = `${a.largeur * z}px`; f.parentElement.style.height = `${a.hauteur * z}px`;
   direct.z = z;
+  const v = $("zoom-valeur"); if (v) { v.textContent = `${Math.round(z * 100)} %`; v.setAttribute("aria-pressed", String(direct.zoom == null)); }
   dessinerDirect();
+}
+// Le zoom garde sous le pointeur ce qu'il y avait sous le pointeur, comme dans Figma.
+function zoomer(z, centre) {
+  const plan = $("plan-direct"), avant = direct.z || 1;
+  const r = plan.getBoundingClientRect(), c = centre ?? { x: r.left + plan.clientWidth / 2, y: r.top + plan.clientHeight / 2 };
+  const px = c.x - r.left + plan.scrollLeft, py = c.y - r.top + plan.scrollTop;
+  direct.zoom = z == null ? null : Math.max(0.25, Math.min(4, z));
+  mettreAEchelle();
+  if (direct.zoom != null) { const k = direct.z / avant; plan.scrollLeft = px * k - (c.x - r.left); plan.scrollTop = py * k - (c.y - r.top); }
+}
+function zoomerSur(el) {
+  if (!el?.isConnected) return;
+  const plan = $("plan-direct"), b = el.getBoundingClientRect();
+  direct.zoom = Math.max(0.25, Math.min(4, (plan.clientWidth * 0.55) / Math.max(b.width, 1), (plan.clientHeight * 0.55) / Math.max(b.height, 1)));
+  mettreAEchelle();
+  const env = document.querySelector("#scene-direct .enveloppe"); if (!env) return;
+  const er = env.getBoundingClientRect(), pr = plan.getBoundingClientRect(), z = direct.z;
+  plan.scrollLeft += er.left - pr.left + (b.left + b.width / 2) * z - plan.clientWidth / 2;
+  plan.scrollTop += er.top - pr.top + (b.top + b.height / 2) * z - plan.clientHeight / 2;
 }
 
 function elementAuPoint(ev) {
@@ -1211,11 +1277,11 @@ function elementAuPoint(ev) {
   return el && el !== direct.doc.documentElement && el !== direct.doc.body ? el : null;
 }
 function brancherPrise(prise) {
-  prise.onpointermove = (ev) => { const el = elementAuPoint(ev); if (el !== direct.survol) { direct.survol = el; dessinerDirect(); } };
+  prise.onpointermove = (ev) => { const el = elementAuPoint(ev); if (el !== direct.survol || ev.altKey !== direct.alt) { direct.survol = el; direct.alt = ev.altKey; dessinerDirect(); } };
   prise.onpointerleave = () => { direct.survol = null; dessinerDirect(); };
   prise.onclick = (ev) => { const el = elementAuPoint(ev); if (el) choisir(el); else { direct.choisi = null; dessinerDirect(); dessinerInspecteurDirect(); } };
   prise.ondblclick = (ev) => { const el = elementAuPoint(ev); if (el && aDuTexte(el)) { choisir(el); editerTexte(el); } };
-  prise.onwheel = (ev) => { direct.doc.scrollingElement?.scrollBy(0, ev.deltaY / direct.z); const s = direct.doc.querySelector(".page-dessus, .page"); s?.scrollBy?.(0, ev.deltaY / direct.z); dessinerDirect(); };
+  prise.onwheel = (ev) => { if (ev.ctrlKey || ev.metaKey) return; ev.stopPropagation(); ev.preventDefault(); direct.doc.scrollingElement?.scrollBy(0, ev.deltaY / direct.z); const s = direct.doc.querySelector(".page-dessus, .page"); s?.scrollBy?.(0, ev.deltaY / direct.z); dessinerDirect(); };
 }
 
 function dessinerDirect() {
@@ -1251,10 +1317,29 @@ function dessinerDirect() {
     if (pr >= assez * 1.6) texte(svg, x + w - pr / 2, y + h / 2, String(+pr.toFixed(1)), vVert);
     if (mt >= assez) texte(svg, x + w / 2, y - mt / 2, String(+mt.toFixed(1)), vOrange);
     if (mb >= assez) texte(svg, x + w / 2, y + h + mb / 2, String(+mb.toFixed(1)), vOrange);
-    if (!direct.glisse) texte(svg, x + w / 2, y + h + Math.max(mb, 0) + 24 * fin, `${w} × ${h}`);
+    if (!direct.glisse && !direct.alt) texte(svg, x + w / 2, y + h + Math.max(mb, 0) + 24 * fin, `${w} × ${h}`);
+    if (direct.alt && direct.survol?.isConnected && direct.survol !== direct.choisi) mesurerEntre(svg, b, boite(direct.survol), fin);
   }
   placerPoignees();
   placerBarre();
+}
+
+// ⌥ en survolant : la distance entre l'élément choisi et celui sous le pointeur (les « redlines » de Figma).
+function mesurerEntre(svg, A, B, fin) {
+  const a = { l: A[0], t: A[1], r: A[0] + A[2], b: A[1] + A[3] }, b = { l: B[0], t: B[1], r: B[0] + B[2], b: B[1] + B[3] };
+  const trait = { stroke: "var(--change)", "stroke-width": 1.2 * fin }, et = { fond: "var(--change)" };
+  const seg = (x1, y1, x2, y2) => { const d = Math.round(Math.hypot(x2 - x1, y2 - y1) * 2) / 2; if (d <= 0) return; ligne(svg, x1, y1, x2, y2, trait); texte(svg, (x1 + x2) / 2, (y1 + y2) / 2, String(d), et); };
+  rect(svg, B, { fill: "none", stroke: "var(--change)", "stroke-width": fin, "stroke-dasharray": `${3 * fin} ${3 * fin}` });
+  const aDansB = b.l <= a.l && b.t <= a.t && b.r >= a.r && b.b >= a.b, bDansA = a.l <= b.l && a.t <= b.t && a.r >= b.r && a.b >= b.b;
+  if (aDansB || bDansA) {
+    const [i, o] = aDansB ? [a, b] : [b, a], cx = (i.l + i.r) / 2, cy = (i.t + i.b) / 2;
+    seg(cx, o.t, cx, i.t); seg(cx, i.b, cx, o.b); seg(o.l, cy, i.l, cy); seg(i.r, cy, o.r, cy);
+    return;
+  }
+  const xv = Math.max(a.l, b.l) < Math.min(a.r, b.r) ? (Math.max(a.l, b.l) + Math.min(a.r, b.r)) / 2 : (a.l + a.r) / 2;
+  if (b.t >= a.b) seg(xv, a.b, xv, b.t); else if (b.b <= a.t) seg(xv, b.b, xv, a.t);
+  const yh = Math.max(a.t, b.t) < Math.min(a.b, b.b) ? (Math.max(a.t, b.t) + Math.min(a.b, b.b)) / 2 : (a.t + a.b) / 2;
+  if (b.l >= a.r) seg(a.r, yh, b.l, yh); else if (b.r <= a.l) seg(b.r, yh, a.l, yh);
 }
 
 // ---------- Les poignées : tirer une marge sur l'écran même ----------
@@ -1650,7 +1735,7 @@ function dessinerInspecteurDirect() {
       "Sur l'écran même, tire les petites barres vertes (marge intérieure) ou orange (marge) ; ⌥ change les deux côtés, ⇧ les quatre. Double-clique un texte pour l'écrire. La petite barre au-dessus de l'élément change la taille et la couleur.",
       "Ici, glisse sur un nom de réglage ou sur un chiffre pour le faire varier, ou tape la valeur ; les flèches ajoutent 1 (⇧ : 10).",
       "Toucher à côté de l'écran (ou Échap) lâche l'élément. « ↶ Annuler » défait la dernière retouche (⌘Z), la flèche ↺ à côté d'une valeur la remet comme avant, « Tout remettre comme avant » efface tout. Tes retouches restent sur ce Mac tant qu'elles ne sont pas envoyées, même si la page se recharge.",
-      "« Utiliser Kora » sert à naviguer : changer d'écran, ouvrir une feuille.",
+      "« Utiliser Kora » sert à naviguer : changer d'écran, ouvrir une feuille. Appuie sur ? pour voir tous les gestes : Tab pour l'élément voisin, ⌥ pour mesurer une distance, ⌥⌘C et ⌥⌘V pour copier un style, pincer ou ⌘+ pour zoomer, espace pour se déplacer.",
     ];
     for (const [i, l] of lignes.entries()) { const p = document.createElement("p"); p.className = "aide"; if (i) p.style.marginTop = "8px"; p.textContent = l; b.append(p); }
     const k = document.createElement("p"); k.className = "aide"; k.style.marginTop = "10px";
@@ -1684,7 +1769,16 @@ function dessinerInspecteurDirect() {
   sel.onchange = () => { direct.portee = sel.value; dessinerInspecteurDirect(); };
   plus.open = !["auto", "element"].includes(direct.portee);
   plus.append(sm, sel);
-  b1.append(portee, ou, plus); insp.append(b1);
+  const os = document.createElement("div"); os.className = "outils-style";
+  const copier = document.createElement("button"); copier.type = "button"; copier.className = "secondaire"; copier.textContent = "Copier le style"; copier.title = "⌥⌘C";
+  copier.onclick = () => copierStyle(el);
+  const coller = document.createElement("button"); coller.type = "button"; coller.className = "secondaire"; coller.title = "⌥⌘V";
+  coller.textContent = direct.pressePapier ? `Coller le style de ${direct.pressePapier.de}` : "Coller le style"; coller.disabled = !direct.pressePapier;
+  coller.onclick = () => collerStyle(el);
+  os.append(copier, coller);
+  const leg = document.createElement("div"); leg.className = "legende";
+  for (const [o, t] of Object.entries(ORIGINES)) { const sp = document.createElement("span"); const d = document.createElement("span"); d.className = `origine o-${o}`; sp.append(d, t); leg.append(sp); }
+  b1.append(portee, ou, plus, os, leg); insp.append(b1);
 
   const b2 = bloc("Espacement");
   b2.append(boiteModele(el, ctx));
@@ -1726,6 +1820,24 @@ function dessinerInspecteurDirect() {
   }
   insp.scrollTop = garde;
 }
+// Copier le style d'un élément et le coller sur un autre (⌥⌘C, ⌥⌘V dans Figma).
+const PROPS_STYLE = ["padding-top", "padding-right", "padding-bottom", "padding-left", "margin-top", "margin-right", "margin-bottom", "margin-left", "gap", "font-size", "font-weight", "line-height", "letter-spacing", "text-align", "color", "background-color", "border-radius", "opacity"];
+function copierStyle(el) {
+  if (!el?.isConnected) return;
+  const s = direct.doc.defaultView.getComputedStyle(el);
+  direct.pressePapier = { de: el.classList[0] ? `.${el.classList[0]}` : el.tagName.toLowerCase(), valeurs: Object.fromEntries(PROPS_STYLE.map((p) => [p, s.getPropertyValue(p).trim()])) };
+  dessinerInspecteurDirect();
+}
+function collerStyle(el) {
+  if (!el?.isConnected || !direct.pressePapier) return;
+  instantane(true);
+  const s = direct.doc.defaultView.getComputedStyle(el), regles = reglesDe(el);
+  for (const [p, v] of Object.entries(direct.pressePapier.valeurs)) {
+    const a = s.getPropertyValue(p).trim(); if (a === v || (p === "gap" && !/flex|grid/.test(s.display))) continue;
+    const c = cibleDe(el, p, regles); retoucher(el, p, v, avantPour(c, p, a), c, true);
+  }
+  appliquerRetouches(); direct.barrePour = null; dessinerRetouches(); dessinerInspecteurDirect();
+}
 function cheminUnique(el) { if (!el.dataset.atelier) el.dataset.atelier = `e${++direct.compteur}`; return `[data-atelier="${el.dataset.atelier}"]`; }
 
 // Un réglage : ce qu'il vaut, d'où il vient, et comment le changer.
@@ -1734,7 +1846,19 @@ function controleur(el, prop, ctx) {
   const change = direct.retouches.some((r) => r.cible === c.cible && r.propriete === prop && r.media === c.media);
   const r = donneur(el, prop);
   const source = direct.portee === "element" ? "cet élément seulement" : r ? `${r.selecteur}${r.fichier ? ` · ${r.fichier.replace("src/styles/", "")}` : ""}` : HERITEES.has(prop) ? "valeur de base de Kora" : "aucune règle : ira sur cet élément";
-  return { c, actuelle, avant, change, source, poser: (v, leger) => retoucher(el, prop, v, avant, c, leger) };
+  const propre = regleQuiDonne(ctx.regles.filter((x) => /[.#[]/.test(x.selecteur) && !/^:root/.test(x.selecteur)), prop);
+  const origine = change ? "toi" : propre ? "ici" : r ? "herite" : "base";
+  const k = { c, actuelle, avant, change, source, origine, poser: (v, leger) => retoucher(el, prop, v, avant, c, leger) };
+  k.remettre = change ? () => { instantane(true); k.poser(avant); direct.barrePour = null; dessinerInspecteurDirect(); } : null;
+  return k;
+}
+const ORIGINES = { toi: "changée par toi", ici: "réglée sur cet élément", herite: "héritée d'un parent", base: "valeur de base" };
+// La pastille devant un réglage dit d'où vient sa valeur (les « style labels » de Webflow) ; ⌥ clic la remet comme avant.
+function marquer(l, k) {
+  const p = document.createElement("span"); p.className = `origine o-${k.origine}`; p.title = ORIGINES[k.origine];
+  l.prepend(p);
+  l.title = `${ORIGINES[k.origine]}${k.change ? ` · avant : ${k.avant} · ⌥ clic pour la remettre` : ""}`;
+  if (k.remettre) l.addEventListener("click", (ev) => { if (ev.altKey) { ev.preventDefault(); k.remettre(); } });
 }
 const arrondi = (n) => String(+n.toFixed(2));
 // Une flèche à côté de chaque valeur changée la remet comme avant.
@@ -1745,9 +1869,10 @@ function boutonRemettre(k, libelle) {
   return b;
 }
 // Glisser sur un nom ou un chiffre le fait varier (comme dans Figma) ; un simple toucher sur un chiffre le laisse taper.
-function glisserPour(cible, depart, poser, pas, saisie) {
+function glisserPour(cible, depart, poser, pas, saisie, remettre) {
   cible.addEventListener("pointerdown", (ev) => {
     if (ev.button !== 0 || document.activeElement === saisie) return;
+    if (ev.altKey && remettre) { ev.preventDefault(); remettre(); return; }
     ev.preventDefault();
     const x0 = ev.clientX, v0 = depart(); let bouge = false;
     cible.setPointerCapture(ev.pointerId);
@@ -1785,7 +1910,8 @@ function champ(el, prop, libelle, ctx, { pas = 1, min = -Infinity } = {}) {
   const i = document.createElement("input"); i.type = "text"; i.inputMode = "decimal"; i.id = id; i.value = Number.isFinite(n0) ? arrondi(n0) : k.actuelle; i.spellcheck = false;
   if (k.change) i.classList.add("change");
   const e = entreeNombre(i, k, unite, pas, min, repli);
-  glisserPour(l, e.lu, e.poser, pas);
+  glisserPour(l, e.lu, e.poser, pas, null, k.remettre);
+  marquer(l, k);
   saisie.append(i);
   if (k.change) saisie.append(boutonRemettre(k, libelle));
   const src = document.createElement("div"); src.className = "source"; src.textContent = k.source;
@@ -1798,8 +1924,9 @@ function boiteModele(el, ctx) {
     i.value = arrondi(parseFloat(k.actuelle) || 0); i.title = `${NOMS_PROPS[prop]} · ${k.source} · glisse pour changer`; i.setAttribute("aria-label", NOMS_PROPS[prop]);
     i.style.gridColumn = col; i.style.gridRow = row; if (k.change) i.classList.add("change");
     const e = entreeNombre(i, k, "px", 1, prop.startsWith("padding") ? 0 : -Infinity, 0);
-    glisserPour(i, e.lu, (n, leger) => { e.poser(n, leger); dessinerDirect(); }, 1, i);
-    if (k.change) i.title += ` · avant : ${k.avant}`;
+    glisserPour(i, e.lu, (n, leger) => { e.poser(n, leger); dessinerDirect(); }, 1, i, k.remettre);
+    i.classList.add(`o-${k.origine}`);
+    i.title = `${NOMS_PROPS[prop]} · ${ORIGINES[k.origine]} · ${k.source} · glisse pour changer${k.change ? ` · avant : ${k.avant} · ⌥ clic pour la remettre` : ""}`;
     return i;
   };
   const em = document.createElement("span"); em.className = "etiq"; em.textContent = "marge";
@@ -1819,7 +1946,7 @@ function boiteModele(el, ctx) {
 }
 function segments(el, prop, libelle, ctx, options, lire = (v) => v) {
   const k = controleur(el, prop, ctx), d = document.createElement("div"); d.className = "reglage";
-  const l = document.createElement("span"); l.className = "libelle"; l.textContent = libelle;
+  const l = document.createElement("span"); l.className = "libelle"; l.textContent = libelle; marquer(l, k);
   const saisie = document.createElement("div"); saisie.className = "saisie";
   const g = document.createElement("div"); g.className = "groupe"; g.setAttribute("role", "group"); g.setAttribute("aria-label", libelle);
   const actuel = lire(k.actuelle);
@@ -1836,7 +1963,7 @@ function segments(el, prop, libelle, ctx, options, lire = (v) => v) {
 }
 function curseur(el, prop, libelle, ctx) {
   const k = controleur(el, prop, ctx), d = document.createElement("div"); d.className = "reglage";
-  const l = document.createElement("label"); l.htmlFor = `r-${prop}`; l.textContent = libelle;
+  const l = document.createElement("label"); l.htmlFor = `r-${prop}`; l.textContent = libelle; marquer(l, k);
   const saisie = document.createElement("div"); saisie.className = "saisie";
   const i = document.createElement("input"); i.type = "range"; i.min = "0"; i.max = "1"; i.step = "0.05"; i.id = `r-${prop}`; i.value = k.actuelle || "1";
   const v = document.createElement("span"); v.className = "valeur"; v.textContent = `${Math.round(parseFloat(i.value) * 100)} %`;
@@ -1850,7 +1977,7 @@ function curseur(el, prop, libelle, ctx) {
 }
 function champCouleur(el, prop, libelle, ctx) {
   const k = controleur(el, prop, ctx), d = document.createElement("div"); d.className = "reglage";
-  const id = `r-${prop}`, l = document.createElement("label"); l.htmlFor = id; l.textContent = libelle;
+  const id = `r-${prop}`, l = document.createElement("label"); l.htmlFor = id; l.textContent = libelle; marquer(l, k);
   const saisie = document.createElement("div"); saisie.className = "saisie";
   const jetonsVus = Object.fromEntries(Object.entries(direct.jetons).map(([n, v]) => [n, v.apres]));
   const deja = direct.retouches.find((r) => r.cible === k.c.cible && r.propriete === prop && r.media === k.c.media)?.apres;
@@ -1895,9 +2022,25 @@ $("b-panneau").onclick = () => { const o = $("panneau-direct").classList.toggle(
 addEventListener("keydown", (ev) => {
   if (etat.vue !== "direct" || !direct.doc) return;
   const dansChamp = ev.target.closest?.("textarea, input, select, [contenteditable]");
-  if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === "z" && !dansChamp) { ev.preventDefault(); if (ev.shiftKey) refaire(); else annuler(); return; }
-  if (dansChamp || ev.metaKey || ev.ctrlKey || ev.altKey) return;
-  const el = direct.choisi?.isConnected ? direct.choisi : null, k = ev.key.toLowerCase();
+  const el = direct.choisi?.isConnected ? direct.choisi : null, k = ev.key.toLowerCase(), cmd = ev.metaKey || ev.ctrlKey;
+  if (cmd && k === "z" && !dansChamp) { ev.preventDefault(); if (ev.shiftKey) refaire(); else annuler(); return; }
+  if (cmd && ev.altKey && el && !dansChamp && (ev.code === "KeyC" || ev.code === "KeyV")) { ev.preventDefault(); if (ev.code === "KeyC") copierStyle(el); else collerStyle(el); return; }
+  if (cmd && !dansChamp && (ev.key === "=" || ev.key === "+")) { ev.preventDefault(); zoomer((direct.z || 1) * 1.25); return; }
+  if (cmd && !dansChamp && ev.key === "-") { ev.preventDefault(); zoomer((direct.z || 1) / 1.25); return; }
+  if (cmd && !dansChamp && ev.key === "0") { ev.preventDefault(); zoomer(1); return; }
+  if (ev.key === "Alt" && !direct.alt) { direct.alt = true; dessinerDirect(); return; }
+  if (ev.key === " " && !dansChamp) { ev.preventDefault(); if (!direct.espace) { direct.espace = true; $("plan-direct").classList.add("main"); } return; }
+  if (dansChamp || cmd || ev.altKey) return;
+  if (ev.key === "?") { basculerAide(); return; }
+  if (ev.key === "Escape" && !$("aide-raccourcis").hidden) { basculerAide(false); return; }
+  if (ev.shiftKey && ev.code === "Digit1") { ev.preventDefault(); zoomer(null); return; }
+  if (ev.shiftKey && ev.code === "Digit2") { ev.preventDefault(); if (el) zoomerSur(el); return; }
+  if (ev.key === "Tab" && el) {
+    ev.preventDefault();
+    let v = el; do { v = ev.shiftKey ? v.previousElementSibling : v.nextElementSibling; } while (v && !v.getClientRects().length);
+    if (v) choisir(v);
+    return;
+  }
   if (ev.key === "Escape" && el) lacherDirect();
   else if (ev.key === "Enter" && el && ev.shiftKey) { ev.preventDefault(); if (el.parentElement && el.parentElement !== direct.doc.body) choisir(el.parentElement); }
   else if (ev.key === "Enter" && el) { ev.preventDefault(); if (el.firstElementChild) choisir(el.firstElementChild); }
@@ -1906,6 +2049,30 @@ addEventListener("keydown", (ev) => {
   else if (k === "b") $("b-avant-apres").click();
   else if (k === "g") $("b-grille-direct").click();
 });
+addEventListener("keyup", (ev) => {
+  if (ev.key === "Alt" && direct.alt) { direct.alt = false; dessinerDirect(); }
+  if (ev.key === " " && direct.espace) { direct.espace = false; $("plan-direct").classList.remove("main", "tient"); }
+});
+addEventListener("blur", () => { direct.alt = false; direct.espace = false; $("plan-direct")?.classList.remove("main", "tient"); });
+function basculerAide(voir) { const a = $("aide-raccourcis"); a.hidden = voir == null ? !a.hidden : !voir; }
+$("b-aide-direct").onclick = () => basculerAide();
+$("fermer-aide").onclick = () => basculerAide(false);
+for (const b of $("zoom-direct").querySelectorAll("[data-z]")) b.onclick = () => zoomer((direct.z || 1) * (b.dataset.z === "plus" ? 1.25 : 1 / 1.25));
+$("zoom-valeur").onclick = () => zoomer(null);
+// Pincer sur le pavé ou ⌘ + molette : zoomer là où est le pointeur.
+$("plan-direct").addEventListener("wheel", (ev) => { if (!(ev.ctrlKey || ev.metaKey)) return; ev.preventDefault(); zoomer((direct.z || 1) * Math.exp(-ev.deltaY * 0.01), { x: ev.clientX, y: ev.clientY }); }, { passive: false });
+// Espace + glisser : se déplacer sur le plan de travail.
+let panne = false;
+$("plan-direct").addEventListener("pointerdown", (ev) => {
+  if (!direct.espace) return;
+  ev.preventDefault(); ev.stopPropagation();
+  const plan = $("plan-direct"), x0 = ev.clientX, y0 = ev.clientY, sl = plan.scrollLeft, st = plan.scrollTop;
+  plan.setPointerCapture(ev.pointerId); plan.classList.add("tient"); panne = true;
+  const bouger = (e) => { plan.scrollLeft = sl - (e.clientX - x0); plan.scrollTop = st - (e.clientY - y0); };
+  const fin = () => { plan.removeEventListener("pointermove", bouger); plan.removeEventListener("pointerup", fin); plan.removeEventListener("pointercancel", fin); plan.classList.remove("tient"); setTimeout(() => { panne = false; }, 0); };
+  plan.addEventListener("pointermove", bouger); plan.addEventListener("pointerup", fin); plan.addEventListener("pointercancel", fin);
+}, true);
+$("plan-direct").addEventListener("click", (ev) => { if (panne) { ev.stopPropagation(); ev.preventDefault(); } }, true);
 setInterval(() => {
   if (etat.vue !== "direct" || !direct.doc) return;
   // Kora a changé d'écran : l'élément choisi n'existe plus, on le lâche.
