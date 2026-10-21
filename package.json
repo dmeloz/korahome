@@ -12,7 +12,8 @@
     "lint": "oxlint --deny-warnings",
     "serveur": "bash scripts/serveur-mac.sh",
     "fonction": "node scripts/construire-fonction.mjs",
-    "essai": "node scripts/essai-ecrans.mjs"
+    "essai": "node scripts/essai-ecrans.mjs",
+    "atelier": "node scripts/atelier-captures.mjs"
   },
   "dependencies": {
     "@number-flow/react": "^0.6.2",
