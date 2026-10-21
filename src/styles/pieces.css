@@ -470,3 +470,17 @@ html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
 .partage-appareils { margin: 0 0 16px; }
 .partage-appareils .ligne { padding: 10px 14px; }
 .partage-appareils .ligne-texte { display: grid; gap: 1px; }
+
+/* La ligne « Nouvel article » au bout d'une liste, comme dans Rappels. */
+.ligne-ajout { margin: 0; }
+.ligne-ajout .case { border-style: dashed; opacity: 0.6; }
+.ligne-ajout input {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--texte);
+  outline: none;
+}
+.ligne-ajout input::placeholder { color: var(--discret); }
+.carte.groupe.ajout-seul { padding: 0; }

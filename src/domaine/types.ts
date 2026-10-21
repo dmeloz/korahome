@@ -110,6 +110,8 @@ export interface Tache {
    * Choisie à la main : gardée telle quelle. null : choisie « sans heure ».
    */
   heure?: string | null;
+  /** Qui l'a ajoutée. Une tâche libre ne sonne à son heure que chez elle (Kora 0.0.70). */
+  creePar?: Id | null;
 }
 
 export interface FoisFaite {

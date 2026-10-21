@@ -55,6 +55,16 @@ export function decrireRecurrence(r: Recurrence | null): string {
   return `Tous les ${r.tous} ${unite}`;
 }
 
+/**
+ * Le rappel à l'heure d'une tâche ne sonne que chez la personne concernée : qui s'en occupe, ou,
+ * pour une tâche libre, qui l'a ajoutée. Une tâche libre sans auteur connu sonne chez les deux.
+ */
+export function concerne(t: Tache, membreId: Id | null): boolean {
+  if (membreId === null) return true;
+  if (t.responsable) return t.responsable === membreId;
+  return !t.creePar || t.creePar === membreId;
+}
+
 export function nouvelleTache(
   titre: string,
   recurrence: Recurrence | null,

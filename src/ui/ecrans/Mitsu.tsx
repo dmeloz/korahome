@@ -28,7 +28,9 @@ import {
   passageAdulte,
   prevoir,
   prochainePesee,
+  poidsDeReference,
   rationDuJour,
+  reglerPoidsEtRation,
   retirerProvision,
   retirerSoin,
   soinsAVenir,
@@ -160,6 +162,8 @@ function Suivi(props: Props & { animal: Animal }) {
   const [dateSoin, setDateSoin] = useState(aujourdhui);
   const [libelleSoin, setLibelleSoin] = useState("");
   const [rationPaquet, setRationPaquet] = useState(animal.reglages.rationDuPaquet?.toString() ?? "");
+  const [poidsEstime, setPoidsEstime] = useState(animal.reglages.poidsEstime ? String(animal.reglages.poidsEstime.grammes / 1000).replace(".", ",") : "");
+  const reference = poidsDeReference(animal);
 
   const ration = rationDuJour(animal, aujourdhui);
   const pesee = historiquePesees(animal);
@@ -267,6 +271,18 @@ function Suivi(props: Props & { animal: Animal }) {
     void enregistrer({ ...animal, reglages: { ...animal.reglages, rationDuPaquet: valeur } });
   }
 
+  /** Le poids estimé, en kilos (« 1,6 »), sans pesée au carnet ; vide pour revenir aux pesées. */
+  function enregistrerPoidsEstime(e: FormEvent) {
+    e.preventDefault();
+    const kg = Number(poidsEstime.replace(",", "."));
+    try {
+      void enregistrer(reglerPoidsEtRation(animal, { poidsEstime: poidsEstime.trim() && kg > 0 ? kg * 1000 : null }, aujourdhui));
+      setMessage(null);
+    } catch (erreur) {
+      setMessage((erreur as Error).message);
+    }
+  }
+
   const commande = animal.commande;
   const vides = videsAvantLivraison(animal, aujourdhui);
   const conseil = conseilCommande(animal);
@@ -344,7 +360,7 @@ function Suivi(props: Props & { animal: Animal }) {
               <p className="discret">
                 {ration.source === "paquet"
                   ? "La ration notée depuis le paquet."
-                  : `Estimation selon son âge et son poids (${ration.kcal} kcal). Le tableau du paquet est plus juste : note-le ci-dessous.`}
+                  : `Estimation selon son âge et son poids${reference?.estime ? ` estimé (${formaterPoids(reference.grammes)})` : ""} (${ration.kcal} kcal). Le tableau du paquet est plus juste : note-le ci-dessous.`}
               </p>
             </>
           ) : (
@@ -359,6 +375,16 @@ function Suivi(props: Props & { animal: Animal }) {
               aria-label="Ration du paquet en grammes par jour"
             />
             <button type="submit" aria-label="Enregistrer la ration">✓</button>
+          </form>
+          <form onSubmit={enregistrerPoidsEstime} className="ajout">
+            <input
+              inputMode="decimal"
+              value={poidsEstime}
+              onChange={(e) => setPoidsEstime(e.target.value)}
+              placeholder="Poids estimé, en kg (sans pesée)"
+              aria-label="Poids estimé en kilos, sans pesée au carnet"
+            />
+            <button type="submit" aria-label="Enregistrer le poids estimé">✓</button>
           </form>
           <div>
             <p className="discret">

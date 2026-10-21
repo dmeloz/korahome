@@ -117,6 +117,12 @@ describe("les pots", () => {
     expect(finMoisBudget({ jourDePaie: null }, "2026-02")).toBe("2026-02-28");
   });
 
+  it("dessinent la courbe de l'épargne même avant la première paie comptée", () => {
+    const plan = { ...p, jourDePaie: 25, depart: { mois: "2026-11", soldes: { epargne: 800 } } };
+    const points = courbeEpargne(plan, [plan], "2026-10-21");
+    expect(points[0]).toEqual({ mois: "2026-10", solde: 800, prevu: false });
+  });
+
   it("comptent les dépenses d'une paie à la suivante", () => {
     const plan = { ...p, jourDePaie: 25, depart: { ...p.depart, mois: "2026-11" } };
     const docs: DocBudget[] = [

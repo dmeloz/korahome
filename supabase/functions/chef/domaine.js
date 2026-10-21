@@ -358,6 +358,21 @@ function derniereVersion(liste) {
 function poidsActuel(animal) {
 	return derniereVersion(animal.pesees);
 }
+/** Le poids qui compte pour la ration : la dernière pesée, ou le poids estimé s'il est plus récent. */
+function poidsDeReference(animal) {
+	const pesee = poidsActuel(animal);
+	const estime = animal.reglages.poidsEstime;
+	if (estime && (!pesee || estime.le >= pesee.jour)) return {
+		grammes: estime.grammes,
+		jour: estime.le,
+		estime: true
+	};
+	return pesee ? {
+		grammes: pesee.grammes,
+		jour: pesee.jour,
+		estime: false
+	} : null;
+}
 /**
 * Multiplicateur du besoin au repos selon l'âge : un chaton en pleine croissance
 * a besoin de bien plus d'énergie qu'un adulte, et un adulte stérilisé un peu moins.
@@ -390,7 +405,7 @@ function rationDuJour(animal, aujourdhui) {
 			friandisesMax: max(kcal)
 		};
 	}
-	const poids = poidsActuel(animal);
+	const poids = poidsDeReference(animal);
 	if (!poids) return null;
 	const kcal = 70 * Math.pow(poids.grammes / 1e3, .75) * facteurCroissance(ageEnMois(animal.naissance, aujourdhui), animal.sterilise);
 	const croquettes = Math.max(0, kcal - friandises * KCAL_PAR_GRAMME_FRIANDISE);
@@ -501,6 +516,13 @@ function lireBrouillon(brut, source) {
 function majuscule(s) {
 	return s.charAt(0).toUpperCase() + s.slice(1);
 }
+const FRACTIONS = {
+	"½": .5,
+	"¼": .25,
+	"¾": .75,
+	"⅓": 1 / 3,
+	"⅔": 2 / 3
+};
 const NOMBRE = String.raw`(\d+\s*\/\s*\d+|\d+(?:[.,]\d+)?\s*[½¼¾⅓⅔]?|[½¼¾⅓⅔])`;
 const UNITES_RECETTE = String.raw`(?:\s*(?:kg|g|mg|l|dl|cl|ml|c\.?\s*à\s*(?:soupe|café|s\.|c\.)|cs|cc|càs|càc|cuillères?\s+à\s+(?:soupe|café)|tasses?|verres?|pincées?|gousses?|tranches?|branches?|bottes?|brins?|feuilles?|boîtes?|sachets?|paquets?|pots?|morceaux?|filets?|pièces?|pc)\b\.?)?`;
 const LIGNE_DEBUT = new RegExp(`^(${NOMBRE}${UNITES_RECETTE})\\s+(?:de\\s+|d['’]\\s*)?(.+)$`, "i");
@@ -518,6 +540,42 @@ function lireLigneIngredient(ligne) {
 		nom: texte.slice(0, 60),
 		quantite
 	};
+}
+function lireNombre(t) {
+	const s = t.replace(/\s+/g, "");
+	if (s in FRACTIONS) return FRACTIONS[s];
+	const fraction = s.match(/^(\d+)\/(\d+)$/);
+	if (fraction) return Number(fraction[2]) ? Number(fraction[1]) / Number(fraction[2]) : null;
+	const mixte = s.match(/^(\d+(?:[.,]\d+)?)([½¼¾⅓⅔])$/);
+	if (mixte) return Number(mixte[1].replace(",", ".")) + FRACTIONS[mixte[2]];
+	const n = Number(s.replace(",", "."));
+	return Number.isFinite(n) ? n : null;
+}
+function ecrireNombre(n) {
+	if (n >= 100) return String(Math.round(n / 5) * 5);
+	if (n >= 10) return String(Math.round(n));
+	const arrondi = Math.max(.5, Math.round(n * 2) / 2);
+	return arrondi === .5 ? "½" : String(arrondi).replace(".5", "½");
+}
+/** La quantité pour un autre nombre de personnes : « 200 g » pour 2 → « 600 g » pour 6. */
+function ajusterQuantite(quantite, de, a) {
+	if (!quantite || de === a || de <= 0) return quantite;
+	const m = quantite.match(new RegExp(`^${NOMBRE}(.*)$`));
+	if (!m) return quantite;
+	const nombre = m[1].trimEnd();
+	const n = lireNombre(nombre);
+	if (n === null) return quantite;
+	const valeur = n * a / de;
+	let reste = quantite.slice(nombre.length);
+	if (/^\s*g$/.test(reste) && valeur >= 1e3) return `${String(Math.round(valeur / 100) / 10).replace(".", ",")} kg`;
+	if (valeur > 1) reste = reste.replace(/^(\s+)(gousse|tranche|branche|botte|brin|feuille|boîte|sachet|paquet|pot|filet|pincée|tasse|verre|pièce)\b(?!s)/i, "$1$2s");
+	return `${ecrireNombre(valeur)}${reste}`;
+}
+function ingredientsPour(recette, portions) {
+	return recette.ingredients.map((i) => ({
+		...i,
+		quantite: ajusterQuantite(i.quantite, recette.portions, portions)
+	}));
 }
 function nouvelleRecette(b, ctx) {
 	const maintenant = ctx.maintenant();
@@ -563,7 +621,7 @@ function apprendreRecette(recettes, b, ctx) {
 		}
 	};
 }
-[
+const DE_BASE = [
 	"sel",
 	"poivre",
 	"sel et poivre",
@@ -586,6 +644,51 @@ function apprendreRecette(recettes, b, ctx) {
 	"thym",
 	"laurier"
 ].map(cleProduit);
+/** Le sel, le poivre, l'huile, l'eau et les épices : supposés à la maison, jamais mis aux courses. */
+function estDeBase(nom) {
+	const cle = cleProduit(nom);
+	return DE_BASE.includes(cle) || /^(huile|sel|poivre|epice)\b/.test(cle);
+}
+const contient = (grand, petit) => ` ${grand} `.includes(` ${petit} `);
+/** Le produit du stock qui correspond à un ingrédient : « Crème entière » trouve « Crème ». */
+function produitPour(nom, produits) {
+	const ik = cleProduit(nom);
+	if (!ik) return null;
+	let proche = null;
+	for (const p of produits) {
+		const pk = cleProduit(p.nom);
+		if (!pk) continue;
+		if (pk === ik) return p;
+		if (!proche && (contient(ik, pk) || contient(pk, ik))) proche = p;
+	}
+	return proche;
+}
+/**
+* Les articles à mettre aux courses pour cette recette et ce nombre de personnes : ce qui
+* manque au stock et n'est pas déjà sur la liste (non coché). Rien pour le sel ou l'huile.
+*/
+function preparerCourses(recette, portions, produits, liste, elements, membreId, ctx) {
+	const sur = elements.filter((e) => e.listeId === liste.id && !e.coche).map((e) => cleProduit(e.texte));
+	const ajouts = [];
+	for (const i of ingredientsPour(recette, portions)) {
+		if (estDeBase(i.nom) || produitPour(i.nom, produits)) continue;
+		const cle = cleProduit(i.nom);
+		if (!cle || sur.some((s) => s === cle || contient(s, cle) || contient(cle, s))) continue;
+		sur.push(cle);
+		ajouts.push({
+			id: ctx.nouvelId(),
+			listeId: liste.id,
+			texte: i.nom,
+			quantite: i.quantite,
+			rayon: detecterRayon(i.nom),
+			coche: false,
+			ajoutePar: membreId,
+			creeLe: ctx.maintenant(),
+			cocheLe: null
+		});
+	}
+	return ajouts;
+}
 /** Les recettes que le Chef peut reprendre : celles que le foyer aime, puis les plus faites. */
 function recettesPourLeChef(recettes, aime, refuse, max = 15) {
 	return recettes.filter((r) => !refuse(r) && (aime(r) || r.fois > 0)).sort((a, b) => Number(aime(b)) - Number(aime(a)) || b.fois - a.fois || b.vue - a.vue).slice(0, max).map((r) => r.titre);
@@ -1900,12 +2003,13 @@ function nouveauMenu(d, ctx) {
 		semaine: d.aujourdhui,
 		mot: d.proposition.mot,
 		repas: d.repas ?? d.proposition.repas,
-		ajouts: d.ajouts.map((e) => ({
+		ajouts: (d.ajouts ?? []).map((e) => ({
 			elementId: e.id,
 			texte: e.texte,
 			quantite: e.quantite,
 			rayon: e.rayon
 		})),
+		aAcheter: d.proposition.aAcheter.filter((a) => !POUR_LE_CHAT.test(normaliser(a.texte)) && a.rayon !== "Animaux").slice(0, 30),
 		aFinir: produitsAFinir(d.produits, d.aujourdhui).map((p) => `${p.nom} · ${decrirePeremption(p, d.aujourdhui)}`),
 		alertesMitsu: alertesMitsu(d.animaux, d.aujourdhui),
 		...d.trame?.length ? { trame: d.trame } : {},
@@ -1935,6 +2039,81 @@ function validerMenu(menu, ctx) {
 		valideLe: ctx.maintenant()
 	};
 }
+const versAjout = (e, repas) => ({
+	elementId: e.id,
+	texte: e.texte,
+	quantite: e.quantite,
+	rayon: e.rayon,
+	...repas === void 0 ? {} : { repas }
+});
+const marquerChef = (e) => ({
+	...e,
+	source: "chef"
+});
+/**
+* Valider un soir : ce qui manque pour sa recette (d'après le stock et la liste) part aux
+* courses, marqué « Chef ». Le menu entier est validé quand tous ses soirs le sont.
+*/
+function validerSoir(d, ctx) {
+	const r = d.menu.repas[d.rang];
+	if (!r || r.valideLe) return {
+		menu: d.menu,
+		ajouts: []
+	};
+	const ajouts = d.recette && d.liste ? preparerCourses(d.recette, d.recette.portions, d.produits, d.liste, d.elements, d.membreId, ctx).map(marquerChef) : [];
+	const repas = d.menu.repas.map((x, i) => i === d.rang ? {
+		...x,
+		valideLe: ctx.maintenant()
+	} : x);
+	const menu = {
+		...d.menu,
+		repas,
+		ajouts: [...d.menu.ajouts, ...ajouts.map((e) => versAjout(e, d.rang))]
+	};
+	return {
+		menu: repas.every((x) => x.valideLe) && !menu.valideLe ? validerMenu(menu, ctx) : menu,
+		ajouts
+	};
+}
+/** Revenir sur un soir validé : ses articles pas encore achetés quittent la liste. */
+function devaliderSoir(menu, rang, elements) {
+	const siens = new Set(menu.ajouts.filter((a) => a.repas === rang).map((a) => a.elementId));
+	const aRetirer = elements.filter((e) => siens.has(e.id) && !e.coche).map((e) => e.id);
+	const retires = new Set(aRetirer);
+	const repas = menu.repas.map((x, i) => i === rang ? {
+		...x,
+		valideLe: void 0
+	} : x);
+	const { valideLe: _ancien, ...sansValidation } = menu;
+	return {
+		menu: {
+			...sansValidation,
+			repas,
+			ajouts: menu.ajouts.filter((a) => !retires.has(a.elementId))
+		},
+		aRetirer
+	};
+}
+/**
+* Valider tout le menu : la liste du Chef pour la semaine part aux courses (sans doublon avec ce
+* qui y est déjà, y compris les soirs validés un à un), et tous les soirs sont validés.
+*/
+function validerToutLeMenu(menu, liste, elements, ctx) {
+	const ajouts = liste && menu.aAcheter?.length ? preparerAjouts(menu.aAcheter, liste, elements, ctx) : [];
+	const instant = ctx.maintenant();
+	return {
+		menu: {
+			...menu,
+			repas: menu.repas.map((r) => r.valideLe ? r : {
+				...r,
+				valideLe: instant
+			}),
+			ajouts: [...menu.ajouts, ...ajouts.map((e) => versAjout(e))],
+			valideLe: instant
+		},
+		ajouts
+	};
+}
 /**
 * Ce qu'efface « Effacer ce menu » : le menu, les articles du Chef pas encore cochés et, si le
 * menu n'a pas été validé, ses recettes jamais cuisinées ni proposées une autre semaine.
@@ -1948,8 +2127,8 @@ function ceQuEfface(menu, recettes, elements) {
 }
 /** Le texte de la notification quand les menus sont prêts. */
 function notificationChef(menu) {
-	const n = menu.ajouts.length;
-	const courses = n ? `${n} article${n > 1 ? "s" : ""} ajouté${n > 1 ? "s" : ""} aux courses.` : "Rien à ajouter aux courses.";
+	const n = menu.aAcheter?.length || menu.ajouts.length;
+	const courses = n ? `Valide les soirs qui te vont : ${n} article${n > 1 ? "s" : ""} à acheter.` : "Rien à acheter.";
 	return {
 		titre: "Les menus de la semaine sont prêts",
 		corps: [menu.repas.map((r) => r.titre).slice(0, 3).join(", "), courses].filter(Boolean).join(" · ")
@@ -1981,4 +2160,4 @@ function avisDuPlat(souvenirs, titre) {
 	return null;
 }
 //#endregion
-export { AJOUTS_MAX, CONSIGNES_CHEF, HEURE_DU_CHEF, JOURS_ALERTE_MITSU, JOURS_A_FINIR, JOUR_DU_CHEF, MODELE_CHEF, NOMBRE_REPAS, REGLAGE_DE_DEPART, SCHEMA_CHEF, SOUVENIRS_DU_CHEF, alertesMitsu, articlesARemplacer, avisDuPlat, avisSurPlat, ceQuEfface, cleAvis, coutChef, estLHeureDuChef, etatBudget, etatDesAjouts, idMenu, jourEtHeure, lireProposition, menuDeLaSemaine, messageChef, moisDe, nomDuJour, notificationChef, nouveauMenu, preparerAjouts, prochainPassage, produitsAFinir, recettesDe, recettesDuChef, reglageChef, reglerChef, retirerAjout, tirerSemaine, validerMenu };
+export { AJOUTS_MAX, CONSIGNES_CHEF, HEURE_DU_CHEF, JOURS_ALERTE_MITSU, JOURS_A_FINIR, JOUR_DU_CHEF, MODELE_CHEF, NOMBRE_REPAS, REGLAGE_DE_DEPART, SCHEMA_CHEF, SOUVENIRS_DU_CHEF, alertesMitsu, articlesARemplacer, avisDuPlat, avisSurPlat, ceQuEfface, cleAvis, coutChef, devaliderSoir, estLHeureDuChef, etatBudget, etatDesAjouts, idMenu, jourEtHeure, lireProposition, menuDeLaSemaine, messageChef, moisDe, nomDuJour, notificationChef, nouveauMenu, preparerAjouts, prochainPassage, produitsAFinir, recettesDe, recettesDuChef, reglageChef, reglerChef, retirerAjout, tirerSemaine, validerMenu, validerSoir, validerToutLeMenu };

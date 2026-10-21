@@ -9,6 +9,7 @@ import {
   estTerminee,
   liberer,
   marquerFaite,
+  nouvelleTache,
   tachesDeDepart,
   organiserTaches,
   prendre,
@@ -22,13 +23,15 @@ import { Ligne, ListeVivante, Message } from "../moteur/pieces";
 import { vibrer } from "../haptique";
 import { equilibreDesTaches, equilibreVisible } from "../../domaine/apprentissage";
 import { noterUsage } from "../usage";
-import { Onglets, Page } from "../pieces";
+import { LigneAjout, Onglets, Page } from "../pieces";
+import { analyserTache } from "../../domaine/barre";
+import { useAnnoncer } from "../annulation";
 import { Icone } from "../Icone";
 import { Entretien } from "./Entretien";
 import { CLES, ecrireTexte, lireTexte } from "../stockageLocal";
 
-// Les tâches de la maison, et l'onglet Entretien. On en ajoute d'une phrase à la fée (« linge
-// chaque mercredi ») ; on glisse une tâche vers la droite pour la marquer faite, vers la gauche
+// Les tâches de la maison, et l'onglet Entretien. On en ajoute en l'écrivant sur la ligne du bas,
+// comme dans Rappels, ou d'une phrase à la fée (« linge chaque mercredi », « impôts le 30 à 9h ») ; on glisse une tâche vers la droite pour la marquer faite, vers la gauche
 // pour la supprimer ; un appui long ouvre sa fiche. Le dimanche, on se répartit la semaine.
 
 /** Le dernier dimanche où la semaine a été répartie sur ce téléphone. */
@@ -75,6 +78,7 @@ export function Taches(props: {
     repartitionDemandee = false;
     return demandee;
   });
+  const annoncer = useAnnoncer();
   const [annulable, setAnnulable] = useState<{ texte: string; avant: Tache } | null>(null);
 
   useEffect(() => {
@@ -185,12 +189,26 @@ export function Taches(props: {
   const dues = groupes.filter((g) => g.cle === "retard" || g.cle === "aujourdhui").reduce((n, g) => n + g.taches.length, 0);
   const autre = props.foyer.membres.find((m) => m.id !== moi);
   const entretien = props.onglet === "entretien";
+
+  /** Une tâche écrite sur la ligne du bas : la phrase est lue comme par la fée (rythme, jour, heure). */
+  async function ajouterEcrite(phrase: string) {
+    const lu = analyserTache(phrase, aujourdhui);
+    if (!lu.titre) return;
+    const base = nouvelleTache(lu.titre, lu.recurrence, lu.echeance, contexteReel);
+    const avecHeure = { ...(lu.heure ? { ...base, heure: lu.heure } : base), creePar: moi };
+    const rangee = administratif ? { ...avecHeure, categorie: "administratif" as const } : avecHeure;
+    // Dans « Les miennes », elle est pour soi.
+    const tache = filtre === "miennes" && moi ? prendre(rangee, moi) : rangee;
+    await props.depot.enregistrerTache(tache);
+    vibrer();
+    annoncer(`« ${tache.titre} » ajoutée, ${decrireEcheance(tache.echeance, aujourdhui)}${lu.heure ? `, rappel à ${lu.heure}` : ""}.`, () => props.depot.supprimerTache(tache.id));
+  }
   return (
     <Page
       titre="Tâches"
       sousTitre={entretien ? "Ce qui revient pour la maison" : administratif ? "Les papiers, les factures et les démarches" : vide ? undefined : dues ? `${dues} à faire aujourd'hui` : "Rien ne presse aujourd'hui"}
       actions={plusieurs && !vide && !entretien && !administratif ? <button className="lien" onClick={() => setRepartir(true)}>Répartir</button> : undefined}
-      aide={{ cle: "taches", texte: "Dis une tâche à ta fée, avec son rythme : « linge chaque mercredi ». Glisse une tâche vers la droite quand elle est faite, vers la gauche pour la supprimer. Un appui long ouvre sa fiche." }}
+      aide={{ cle: "taches", texte: "Écris une tâche sous la liste, ou dis-la à ta fée avec son rythme : « linge chaque mercredi ». Glisse une tâche vers la droite quand elle est faite, vers la gauche pour la supprimer. Un appui long ouvre sa fiche." }}
     >
       <Repartition ouverte={repartir} fermer={() => setRepartir(false)} foyer={props.foyer} taches={props.taches} aujourdhui={aujourdhui} depot={props.depot} />
 
@@ -284,6 +302,9 @@ export function Taches(props: {
           <ListeVivante className="carte groupe">{g.taches.map(ligne)}</ListeVivante>
         </section>
       ))}
+      <div className="carte groupe ajout-seul">
+        <LigneAjout placeholder={administratif ? "Nouvelle démarche" : "Nouvelle tâche"} ajouter={ajouterEcrite} />
+      </div>
 
       {terminees.length > 0 && (
         <section>

@@ -41,3 +41,20 @@
 .equilibre-noms { display: flex; gap: 16px; font-size: var(--t-detail); }
 .equilibre-noms > span { display: inline-flex; align-items: center; gap: 6px; }
 .equilibre-point { width: 8px; height: 8px; border-radius: 50%; }
+
+/* Le mode « Choisir » d'une liste : un rond par article, la barre d'actions au-dessus de la fée. */
+.element.choix .case-choix { border-color: var(--accent); }
+.element.choisi .case-choix { background: var(--accent); }
+.element.choix.coche .ligne-texte { text-decoration: none; }
+.barre-choix {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  margin: 0 12px 8px;
+  border-radius: 18px;
+  background: var(--surface-haute);
+  border: 1px solid var(--trait);
+  backdrop-filter: blur(20px);
+}
+.barre-choix .lien:disabled { opacity: 0.4; }

@@ -770,6 +770,8 @@ export function courbeEpargne(plan: PlanBudget, docs: readonly DocBudget[], aujo
     solde -= sorties.filter((d) => moisBudget(plan, d.jour) === mois).reduce((t, d) => t + d.montant, 0);
     points.push({ mois, solde: auCentime(solde), prevu: false });
   }
+  // Avant la première paie comptée (le budget commence plus tard), la courbe part du solde de départ.
+  if (!points.length) points.push({ mois: ceMois, solde: auCentime(solde), prevu: false });
   const rythme = bilanDuMois(plan).versements.epargne;
   const objectif = plan.projet?.objectif ?? 0;
   if (rythme > 0) {

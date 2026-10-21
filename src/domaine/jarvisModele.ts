@@ -197,6 +197,22 @@ export const OUTILS_JARVIS = [
     },
   },
   {
+    name: "regler_animal",
+    description:
+      "Corrige le poids estimé d'un animal (« elle pèse environ 1,6 kg ») et/ou sa ration de croquettes par jour, sans noter de pesée au carnet. La ration se recalcule avec le poids estimé, sauf si une ration est donnée.",
+    strict: false, // Champs facultatifs : voir MAX_UNIONS_STRICTES.
+    input_schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["animal", "poids_estime", "ration"],
+      properties: {
+        animal: texte("Le nom de l'animal."),
+        poids_estime: { type: ["integer", "null"], description: "Le poids estimé en grammes ; null pour ne pas le changer." },
+        ration: { type: ["integer", "null"], description: "Les croquettes par jour en grammes, quand on la donne ; null pour la laisser calculée." },
+      },
+    },
+  },
+  {
     name: "noter_journal",
     description: "Note dans le journal d'un animal ce qui s'est passé : litière changée, a vomi, n'a pas mangé, selles molles, boite, se cache ou autre remarque.",
     strict: true,
@@ -294,7 +310,7 @@ export const OUTILS_JARVIS = [
   {
     name: "retenir",
     description:
-      "Retient durablement un fait sur le foyer : un goût, une habitude, une règle de la maison. propose: false quand on te demande de le retenir ; true quand tu l'as remarqué toi-même (l'app demande alors si elle doit le retenir).",
+      "Retient durablement un fait sur le foyer : un goût, une habitude, une règle de la maison. propose: false quand on te demande de le retenir ; true quand tu l'as remarqué toi-même. Dans les deux cas c'est retenu tout de suite (la personne peut annuler).",
     strict: true,
     input_schema: {
       type: "object",
@@ -439,7 +455,7 @@ Tu ne dépenses jamais d'argent. Tu peux supprimer une tâche, retirer un produi
 Un rendez-vous, un anniversaire, des vacances, une sortie ou un horaire de travail vont dans l'agenda (ajouter_evenement), pas dans les tâches. Pour « qu'est-ce qu'on a cette semaine ? », réponds à partir de l'agenda de l'état du foyer.
 Si la demande n'est pas claire, pose une seule question courte.
 Si on te demande une chose qu'aucun outil ne permet et que l'état du foyer ne te laisse pas répondre, utilise noter_souhait, et écris : « Je ne sais pas encore le faire, je l'ai noté pour Claude. »
-Ta mémoire est dans l'état du foyer : sers-t'en pour chaque demande (goûts, habitudes, règles de la maison). Quand on te dit « retiens que… » ou « n'oublie pas que… », utilise retenir (propose: false). Quand tu remarques une préférence ou une habitude durable qui n'est pas encore dans ta mémoire, propose-la avec retenir (propose: true), au plus une par réponse, jamais une information passagère ni de santé ou d'argent. Quand on te dit qu'un fait de ta mémoire est faux, utilise oublier, et retenir pour le fait juste.
+Ta mémoire est dans l'état du foyer : sers-t'en pour chaque demande (goûts, habitudes, règles de la maison). Quand on te dit « retiens que… » ou « n'oublie pas que… », utilise retenir (propose: false). Quand tu remarques une préférence ou une habitude durable qui n'est pas encore dans ta mémoire, retiens-la toi-même avec retenir (propose: true), sans demander, au plus une par réponse, jamais une information passagère ni de santé ou d'argent ; dis-le en une phrase. Quand on te dit qu'un fait de ta mémoire est faux, utilise oublier, et retenir pour le fait juste.
 Pour une question sur le foyer, réponds à partir de l'état du foyer fourni ; s'il ne contient pas la réponse, dis-le.
 Avec une photo (lettre, facture, carte de rendez-vous, flyer, faire-part) : mets chaque rendez-vous ou événement daté dans l'agenda (ajouter_evenement, avec l'heure et le lieu indiqués), et crée une tâche unique pour chaque échéance ou paiement.
 Avec un ticket de caisse : range au stock (ajouter_au_stock) les produits alimentaires achetés, avec leur quantité dans le nom (« 1 l lait », « 500 g beurre ») et le lieu où on les range d'habitude ; laisse la date de péremption vide si elle n'est pas écrite, l'app la devine. Coche aussi les courses correspondantes (cocher_courses), et note le total payé au budget (noter_depense, pot courses, avec le magasin, la date du ticket et chaque ligne avec son prix dans articles).
