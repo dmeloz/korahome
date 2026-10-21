@@ -250,6 +250,9 @@ details.plus select { margin-top: 6px; width: 100%; background: var(--fond); bor
 .saisie { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .saisie input[type=text] { width: 100%; min-width: 0; background: var(--fond); border: 1px solid var(--trait); border-radius: 7px; padding: 5px 8px; font: 12px var(--police-fixe); }
 .saisie input.change { border-color: var(--laiton); color: var(--laiton); }
+.remettre { border: 0; background: none; color: var(--laiton); font-size: 15px; line-height: 1; padding: 2px 4px; border-radius: 6px; flex: none; }
+.remettre:hover { background: var(--laiton-doux); }
+.lien-remettre { border: 0; background: none; color: var(--laiton); font-size: 12px; padding: 6px 0 0; }
 .saisie input[type=color] { width: 30px; height: 26px; padding: 2px; border: 1px solid var(--trait); border-radius: 7px; background: none; flex: none; }
 .saisie input[type=range] { flex: 1; accent-color: var(--laiton); }
 .saisie .valeur { font: 12px var(--police-fixe); min-width: 34px; text-align: right; }
@@ -391,8 +394,8 @@ pre.diff { margin: 0; font: 11.5px/1.5 var(--police-fixe); white-space: pre-wrap
         <button data-v="naviguer" aria-pressed="false" title="Le doigt sert à naviguer dans Kora (U)">Utiliser Kora</button>
       </div>
       <div class="groupe" role="group" aria-label="Historique">
-        <button id="b-annuler" title="Annuler (⌘Z)" aria-label="Annuler" disabled>↶</button>
-        <button id="b-refaire" title="Rétablir (⇧⌘Z)" aria-label="Rétablir" disabled>↷</button>
+        <button id="b-annuler" title="Annuler la dernière retouche (⌘Z)" disabled>↶ Annuler</button>
+        <button id="b-refaire" title="Rétablir (⇧⌘Z)" disabled>↷ Rétablir</button>
       </div>
       <button class="bascule" id="b-avant-apres" aria-pressed="false" title="Voir Kora sans tes retouches (B)">Avant</button>
       <button class="bascule" id="b-grille-direct" aria-pressed="false" title="Grille de 8 points (G)">Grille</button>
@@ -1502,6 +1505,7 @@ function appliquerRetouches() {
   if (jetons.length) lignes.push(`:root, :root[data-theme] { ${jetons.join(" ")} }`);
   st.textContent = lignes.join("\n");
   st.disabled = direct.sans;
+  garderBrouillon();
   for (const r of direct.retouches.filter((x) => x.propriete === "texte")) {
     const el = direct.doc.querySelector(r.cible);
     if (el && el.textContent !== (direct.sans ? r.avant : r.apres)) el.textContent = direct.sans ? r.avant : r.apres;
@@ -1588,7 +1592,15 @@ function dessinerPied(n = compteRetouches()) {
   const msg = document.createElement("div"); msg.className = "message";
   if (!etat.db && n) { msg.className = "message erreur"; msg.textContent = "L'envoi marche quand tu es connecté à claude.ai."; }
   bouton.onclick = () => { void envoyerRetouches((direct.mot ?? "").trim(), bouton, msg); };
-  pied.append(bouton, msg);
+  const remettre = document.createElement("button"); remettre.type = "button"; remettre.className = "secondaire"; remettre.textContent = "Tout remettre comme avant";
+  remettre.title = "Retire toutes tes retouches (⌘Z les fait revenir)"; remettre.hidden = !n;
+  remettre.onclick = () => {
+    instantane(true);
+    for (const r of direct.retouches) if (r.propriete === "texte") { const el = direct.doc?.querySelector(r.cible); if (el) el.textContent = r.avant; }
+    direct.retouches = []; for (const v of Object.values(direct.jetons)) v.apres = v.avant;
+    appliquerRetouches(); direct.barrePour = null; dessinerRetouches(); dessinerJetons(); dessinerInspecteurDirect();
+  };
+  pied.append(bouton, remettre, msg);
 }
 
 function diffDe(changements) {
@@ -1637,7 +1649,8 @@ function dessinerInspecteurDirect() {
       "C'est le vrai Kora, avec le foyer d'essai. Touche un élément : il s'entoure, et ses réglages s'ouvrent ici.",
       "Sur l'écran même, tire les petites barres vertes (marge intérieure) ou orange (marge) ; ⌥ change les deux côtés, ⇧ les quatre. Double-clique un texte pour l'écrire. La petite barre au-dessus de l'élément change la taille et la couleur.",
       "Ici, glisse sur un nom de réglage ou sur un chiffre pour le faire varier, ou tape la valeur ; les flèches ajoutent 1 (⇧ : 10).",
-      "« Utiliser Kora » sert à naviguer : changer d'écran, ouvrir une feuille. ⌘Z annule.",
+      "Toucher à côté de l'écran (ou Échap) lâche l'élément. « ↶ Annuler » défait la dernière retouche (⌘Z), la flèche ↺ à côté d'une valeur la remet comme avant, « Tout remettre comme avant » efface tout. Tes retouches restent sur ce Mac tant qu'elles ne sont pas envoyées, même si la page se recharge.",
+      "« Utiliser Kora » sert à naviguer : changer d'écran, ouvrir une feuille.",
     ];
     for (const [i, l] of lignes.entries()) { const p = document.createElement("p"); p.className = "aide"; if (i) p.style.marginTop = "8px"; p.textContent = l; b.append(p); }
     const k = document.createElement("p"); k.className = "aide"; k.style.marginTop = "10px";
@@ -1724,6 +1737,13 @@ function controleur(el, prop, ctx) {
   return { c, actuelle, avant, change, source, poser: (v, leger) => retoucher(el, prop, v, avant, c, leger) };
 }
 const arrondi = (n) => String(+n.toFixed(2));
+// Une flèche à côté de chaque valeur changée la remet comme avant.
+function boutonRemettre(k, libelle) {
+  const b = document.createElement("button"); b.type = "button"; b.className = "remettre"; b.textContent = "↺";
+  b.title = `Remettre ${libelle} comme avant (${k.avant})`; b.setAttribute("aria-label", b.title);
+  b.onclick = () => { instantane(true); k.poser(k.avant); direct.barrePour = null; dessinerInspecteurDirect(); };
+  return b;
+}
 // Glisser sur un nom ou un chiffre le fait varier (comme dans Figma) ; un simple toucher sur un chiffre le laisse taper.
 function glisserPour(cible, depart, poser, pas, saisie) {
   cible.addEventListener("pointerdown", (ev) => {
@@ -1767,6 +1787,7 @@ function champ(el, prop, libelle, ctx, { pas = 1, min = -Infinity } = {}) {
   const e = entreeNombre(i, k, unite, pas, min, repli);
   glisserPour(l, e.lu, e.poser, pas);
   saisie.append(i);
+  if (k.change) saisie.append(boutonRemettre(k, libelle));
   const src = document.createElement("div"); src.className = "source"; src.textContent = k.source;
   d.append(l, saisie, src); return d;
 }
@@ -1778,6 +1799,7 @@ function boiteModele(el, ctx) {
     i.style.gridColumn = col; i.style.gridRow = row; if (k.change) i.classList.add("change");
     const e = entreeNombre(i, k, "px", 1, prop.startsWith("padding") ? 0 : -Infinity, 0);
     glisserPour(i, e.lu, (n, leger) => { e.poser(n, leger); dessinerDirect(); }, 1, i);
+    if (k.change) i.title += ` · avant : ${k.avant}`;
     return i;
   };
   const em = document.createElement("span"); em.className = "etiq"; em.textContent = "marge";
@@ -1788,7 +1810,12 @@ function boiteModele(el, ctx) {
   contenu.textContent = `${arrondi(r.width - px("padding-left") - px("padding-right"))} × ${arrondi(r.height - px("padding-top") - px("padding-bottom"))}`;
   inn.append(ei, mini("padding-top", "2", "1"), mini("padding-left", "1", "2"), contenu, mini("padding-right", "3", "2"), mini("padding-bottom", "2", "3"));
   d.append(em, mini("margin-top", "2", "1"), mini("margin-left", "1", "2"), inn, mini("margin-right", "3", "2"), mini("margin-bottom", "2", "3"));
-  return d;
+  const changes = ["margin", "padding"].flatMap((g) => ["top", "right", "bottom", "left"].map((c) => controleur(el, `${g}-${c}`, ctx))).filter((k) => k.change);
+  if (!changes.length) return d;
+  const tout = document.createElement("div"); tout.append(d);
+  const b = document.createElement("button"); b.type = "button"; b.className = "lien-remettre"; b.textContent = `↺ Remettre les marges comme avant (${changes.length})`;
+  b.onclick = () => { instantane(true); for (const k of changes) k.poser(k.avant, true); appliquerRetouches(); dessinerRetouches(); direct.barrePour = null; dessinerInspecteurDirect(); };
+  tout.append(b); return tout;
 }
 function segments(el, prop, libelle, ctx, options, lire = (v) => v) {
   const k = controleur(el, prop, ctx), d = document.createElement("div"); d.className = "reglage";
@@ -1803,6 +1830,7 @@ function segments(el, prop, libelle, ctx, options, lire = (v) => v) {
     g.append(b);
   }
   saisie.append(g);
+  if (k.change) saisie.append(boutonRemettre(k, libelle));
   const src = document.createElement("div"); src.className = "source"; src.textContent = k.source;
   d.append(l, saisie, src); return d;
 }
@@ -1816,6 +1844,7 @@ function curseur(el, prop, libelle, ctx) {
   i.onpointerdown = () => instantane(true);
   i.oninput = () => { k.poser(i.value); v.textContent = `${Math.round(parseFloat(i.value) * 100)} %`; v.style.color = "var(--laiton)"; };
   saisie.append(i, v);
+  if (k.change) saisie.append(boutonRemettre(k, libelle));
   const src = document.createElement("div"); src.className = "source"; src.textContent = k.source;
   d.append(l, saisie, src); return d;
 }
@@ -1835,6 +1864,7 @@ function champCouleur(el, prop, libelle, ctx) {
   pick.onchange = () => dessinerInspecteurDirect();
   i.onchange = () => { k.poser(i.value.trim()); dessinerInspecteurDirect(); };
   saisie.append(pick, i);
+  if (k.change) saisie.append(boutonRemettre(k, libelle));
   const n = document.createElement("div"); n.className = "nuancier";
   const actuelJeton = jetonDe(k.actuelle, jetonsVus);
   for (const [nomJeton, v] of Object.entries(direct.jetons)) {
@@ -1868,7 +1898,7 @@ addEventListener("keydown", (ev) => {
   if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === "z" && !dansChamp) { ev.preventDefault(); if (ev.shiftKey) refaire(); else annuler(); return; }
   if (dansChamp || ev.metaKey || ev.ctrlKey || ev.altKey) return;
   const el = direct.choisi?.isConnected ? direct.choisi : null, k = ev.key.toLowerCase();
-  if (ev.key === "Escape" && el) { direct.choisi = null; dessinerDirect(); dessinerInspecteurDirect(); }
+  if (ev.key === "Escape" && el) lacherDirect();
   else if (ev.key === "Enter" && el && ev.shiftKey) { ev.preventDefault(); if (el.parentElement && el.parentElement !== direct.doc.body) choisir(el.parentElement); }
   else if (ev.key === "Enter" && el) { ev.preventDefault(); if (el.firstElementChild) choisir(el.firstElementChild); }
   else if (k === "v") changerMode("retoucher");
@@ -1876,7 +1906,42 @@ addEventListener("keydown", (ev) => {
   else if (k === "b") $("b-avant-apres").click();
   else if (k === "g") $("b-grille-direct").click();
 });
-setInterval(() => { if (etat.vue === "direct" && direct.doc) dessinerDirect(); }, 400);
+setInterval(() => {
+  if (etat.vue !== "direct" || !direct.doc) return;
+  // Kora a changé d'écran : l'élément choisi n'existe plus, on le lâche.
+  if (direct.choisi && !direct.choisi.isConnected) { direct.choisi = null; dessinerInspecteurDirect(); }
+  dessinerDirect();
+}, 400);
+// Toucher à côté de l'écran lâche l'élément, comme dans Figma.
+$("plan-direct").addEventListener("click", (ev) => {
+  if (ev.target.closest(".vivant, .barre-flottante, .poignee") || !direct.choisi) return;
+  lacherDirect();
+});
+function lacherDirect() { direct.choisi = null; direct.survol = null; dessinerDirect(); dessinerInspecteurDirect(); }
+$("plan").addEventListener("click", (ev) => {
+  if (ev.target.closest(".ecran-capture, .poignee-rideau") || (etat.choisi == null && !etat.zone && !etat.point)) return;
+  lacher(); void dessinerCalque(); void dessinerInspecteur();
+});
+
+// Le brouillon : les retouches pas encore envoyées restent sur ce Mac si la page se recharge.
+const cleBrouillon = () => `atelier:brouillon:${etat.manifeste?.version}`;
+let minuteurBrouillon = 0;
+function garderBrouillon() {
+  clearTimeout(minuteurBrouillon);
+  minuteurBrouillon = setTimeout(() => {
+    const jetons = Object.fromEntries(Object.entries(direct.jetons).filter(([, v]) => v.apres !== v.avant).map(([k, v]) => [k, v]));
+    if (!direct.retouches.length && !Object.keys(jetons).length) { try { localStorage.removeItem(cleBrouillon()); } catch { /* rien */ } return; }
+    garder(cleBrouillon(), JSON.stringify({ retouches: direct.retouches, jetons, theme: etat.theme, mot: direct.mot }));
+  }, 400);
+}
+function reprendreBrouillon() {
+  try {
+    const b = JSON.parse(lire(cleBrouillon(), "null"));
+    if (!b) return;
+    direct.retouches = b.retouches ?? []; direct.mot = b.mot ?? "";
+    if (b.theme === etat.theme) for (const [k, v] of Object.entries(b.jetons ?? {})) direct.jetons[k] = v;
+  } catch { /* brouillon illisible : on repart de zéro */ }
+}
 
 
 // ---------- Navigation ----------
@@ -1939,6 +2004,7 @@ addEventListener("keydown", (ev) => {
   etat.theme = m.themes.includes(ht) ? ht : m.themes.includes(lire("atelier:theme", "sombre")) ? lire("atelier:theme", "sombre") : m.themes[0];
   const voulu = he || lire("atelier:ecran", null);
   if (lire("atelier:vue", "") === "direct" && m.app?.etat) etat.vue = "direct";
+  reprendreBrouillon();
   etat.ecran = m.ecrans.some((e) => e.cle === voulu) ? voulu : (m.ecrans.find((e) => m.captures[`${etat.appareil}-${etat.theme}/${e.cle}`]?.difference?.part > 0) ?? m.ecrans[0]).cle;
   tout();
 
