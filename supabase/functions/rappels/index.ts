@@ -79,8 +79,8 @@ async function envoyer(a: Abonnement, message: { titre: string; corps: string; n
   try {
     await webpush.sendNotification(
       { endpoint: a.endpoint, keys: a.cles },
-      JSON.stringify({ ...message, url: "/" }),
-      { vapidDetails: { subject: "https://korahome-cassa.netlify.app", publicKey: cles.publique, privateKey: cles.privee }, TTL: 4 * 3600, urgency: "normal" },
+      JSON.stringify({ ...message, url: "./" }),
+      { vapidDetails: { subject: "https://dmeloz.github.io/korahome/", publicKey: cles.publique, privateKey: cles.privee }, TTL: 4 * 3600, urgency: "normal" },
     );
     return "envoye";
   } catch (e) {
