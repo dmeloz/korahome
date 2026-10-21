@@ -219,6 +219,17 @@ describe("l'heure des tâches, envoyée par le serveur", () => {
     expect(notificationHeure([])).toBeNull();
   });
 
+  it("une tâche libre ne sonne à son heure que chez qui l'a ajoutée", async () => {
+    const { tachesALHeure } = await import("./rappels");
+    const { nouvelleTache, changerHeure } = await import("./taches");
+    const { contexteTest } = await import("./contexteTest");
+    const ctx = contexteTest("2026-10-19T08:00:00.000Z");
+    const sienne = { ...changerHeure(nouvelleTache("Appeler le garage", null, "2026-10-19", ctx), "19:00"), creePar: "elle" };
+    const mienne = { ...changerHeure(nouvelleTache("Pharmacie", null, "2026-10-19", ctx), "19:00"), creePar: "moi" };
+    expect(tachesALHeure([sienne, mienne], "moi", "2026-10-19", "19:00").map((x) => x.titre)).toEqual(["Pharmacie"]);
+    expect(tachesALHeure([sienne, mienne], "elle", "2026-10-19", "19:00").map((x) => x.titre)).toEqual(["Appeler le garage"]);
+  });
+
   it("l'heure proposée par Kora se lit dans le fuseau du foyer, pas celui du serveur", async () => {
     const { heureProposee } = await import("./taches");
     const { nouvelleTache } = await import("./taches");

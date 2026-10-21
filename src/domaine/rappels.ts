@@ -4,7 +4,7 @@ import { gestesDuJardin, type Zone } from "./jardin";
 import { meteoFraiche, type Meteo } from "./meteo";
 import { choseAFaire, type Animal } from "./mitsu";
 import { resumeStock, type Produit } from "./stock";
-import { ecartJours, estTerminee, heureDe } from "./taches";
+import { concerne, ecartJours, estTerminee, heureDe } from "./taches";
 import type { Foyer, Id, Jour, Tache } from "./types";
 
 // Le rappel du matin : une seule notification par personne, à son heure (8 h au départ), qui résume ce
@@ -184,12 +184,12 @@ export function tachesDuMatin(taches: Tache[], membreId: Id | null, aujourdhui: 
 }
 
 /**
- * Les tâches de cette personne (et les libres) dont c'est l'heure à cette minute : celles du jour
+ * Les tâches de cette personne (et les libres qu'elle a ajoutées) dont c'est l'heure à cette minute : celles du jour
  * et celles en retard, avec une heure choisie ou proposée par Kora.
  */
 export function tachesALHeure(taches: Tache[], membreId: Id | null, aujourdhui: Jour, hhmm: string, fuseau: string = FUSEAU_DU_FOYER): Tache[] {
   const { aujourdhui: duJour, enRetard } = tachesDuMatin(taches, membreId, aujourdhui);
-  return [...enRetard, ...duJour].filter((t) => heureDe(t, fuseau) === hhmm);
+  return [...enRetard, ...duJour].filter((t) => heureDe(t, fuseau) === hhmm && concerne(t, membreId));
 }
 
 /** « C'est l'heure : Litière de Mitsu. » */

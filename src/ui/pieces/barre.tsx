@@ -262,7 +262,7 @@ export function BarreJarvis(props: {
     if (intention.type === "tache") {
       const base = nouvelleTache(intention.titre, intention.recurrence, intention.echeance, contexteReel);
       // Une heure dite (« à 20h ») : un rappel à cette heure-là, comme dans l'app Rappels.
-      const tache = intention.heure ? { ...base, heure: intention.heure } : base;
+      const tache = { ...(intention.heure ? { ...base, heure: intention.heure } : base), creePar: donnees.membreId };
       const avecCategorie = props.lieu === "entretien" || props.lieu === "administratif" ? { ...tache, categorie: props.lieu } : tache;
       await depot.enregistrerTache(avecCategorie);
       vibrer();

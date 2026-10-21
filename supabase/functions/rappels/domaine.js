@@ -30,6 +30,15 @@ function decaler(jour, recurrence) {
 function ecartJours(a, b) {
 	return Math.round((versDate(b).getTime() - versDate(a).getTime()) / 864e5);
 }
+/**
+* Le rappel à l'heure d'une tâche ne sonne que chez la personne concernée : qui s'en occupe, ou,
+* pour une tâche libre, qui l'a ajoutée. Une tâche libre sans auteur connu sonne chez les deux.
+*/
+function concerne(t, membreId) {
+	if (membreId === null) return true;
+	if (t.responsable) return t.responsable === membreId;
+	return !t.creePar || t.creePar === membreId;
+}
 function versHeure(minutes) {
 	const m = (Math.round(minutes) % 1440 + 1440) % 1440;
 	return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
@@ -105,6 +114,21 @@ function derniereVersion(liste) {
 function poidsActuel(animal) {
 	return derniereVersion(animal.pesees);
 }
+/** Le poids qui compte pour la ration : la dernière pesée, ou le poids estimé s'il est plus récent. */
+function poidsDeReference(animal) {
+	const pesee = poidsActuel(animal);
+	const estime = animal.reglages.poidsEstime;
+	if (estime && (!pesee || estime.le >= pesee.jour)) return {
+		grammes: estime.grammes,
+		jour: estime.le,
+		estime: true
+	};
+	return pesee ? {
+		grammes: pesee.grammes,
+		jour: pesee.jour,
+		estime: false
+	} : null;
+}
 /**
 * Multiplicateur du besoin au repos selon l'âge : un chaton en pleine croissance
 * a besoin de bien plus d'énergie qu'un adulte, et un adulte stérilisé un peu moins.
@@ -137,7 +161,7 @@ function rationDuJour(animal, aujourdhui) {
 			friandisesMax: max(kcal)
 		};
 	}
-	const poids = poidsActuel(animal);
+	const poids = poidsDeReference(animal);
 	if (!poids) return null;
 	const kcal = 70 * Math.pow(poids.grammes / 1e3, .75) * facteurCroissance(ageEnMois(animal.naissance, aujourdhui), animal.sterilise);
 	const croquettes = Math.max(0, kcal - friandises * KCAL_PAR_GRAMME_FRIANDISE);
@@ -1449,12 +1473,12 @@ function tachesDuMatin(taches, membreId, aujourdhui) {
 	};
 }
 /**
-* Les tâches de cette personne (et les libres) dont c'est l'heure à cette minute : celles du jour
+* Les tâches de cette personne (et les libres qu'elle a ajoutées) dont c'est l'heure à cette minute : celles du jour
 * et celles en retard, avec une heure choisie ou proposée par Kora.
 */
 function tachesALHeure(taches, membreId, aujourdhui, hhmm, fuseau = FUSEAU_DU_FOYER) {
 	const { aujourdhui: duJour, enRetard } = tachesDuMatin(taches, membreId, aujourdhui);
-	return [...enRetard, ...duJour].filter((t) => heureDe(t, fuseau) === hhmm);
+	return [...enRetard, ...duJour].filter((t) => heureDe(t, fuseau) === hhmm && concerne(t, membreId));
 }
 /** « C'est l'heure : Litière de Mitsu. » */
 function notificationHeure(taches) {

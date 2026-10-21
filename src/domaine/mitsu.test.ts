@@ -299,3 +299,23 @@ describe("ce que Mitsu mange vraiment", () => {
     expect(paquetFini(mitsu, p.id, "2026-09-03").observee).toBeNull();
   });
 });
+
+describe("le poids estimé et la ration réglée à la main", () => {
+  it("le poids estimé sert à la ration sans devenir une pesée, jusqu'à la pesée suivante", async () => {
+    const { nouvelAnimal, ajouterPesee, reglerPoidsEtRation, rationDuJour, poidsDeReference } = await import("./mitsu");
+    const { contexteTest } = await import("./contexteTest");
+    const ctx = contexteTest("2026-10-21T08:00:00.000Z");
+    const base = ajouterPesee(nouvelAnimal("Mitsu", "2026-04-14", null, ctx), 1000, "2026-09-01", null, ctx);
+    const avant = rationDuJour(base, "2026-10-21")!.grammes;
+    const estime = reglerPoidsEtRation(base, { poidsEstime: 1600 }, "2026-10-21");
+    expect(estime.pesees).toHaveLength(1);
+    expect(poidsDeReference(estime)).toEqual({ grammes: 1600, jour: "2026-10-21", estime: true });
+    expect(rationDuJour(estime, "2026-10-21")!.grammes).toBeGreaterThan(avant);
+    // Une vraie pesée plus tard reprend la main.
+    const pesee = ajouterPesee(estime, 1700, "2026-10-25", null, ctx);
+    expect(poidsDeReference(pesee)?.estime).toBe(false);
+    // Une ration donnée l'emporte sur le calcul.
+    expect(rationDuJour(reglerPoidsEtRation(estime, { ration: 45 }, "2026-10-21"), "2026-10-21")?.source).toBe("paquet");
+    expect(() => reglerPoidsEtRation(base, { poidsEstime: 20 }, "2026-10-21")).toThrow();
+  });
+});

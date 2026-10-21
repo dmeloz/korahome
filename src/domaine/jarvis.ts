@@ -27,8 +27,9 @@ import {
   journalRecent,
   noterEvenement,
   noterSoin,
-  poidsActuel,
+  poidsDeReference,
   rationDuJour,
+  reglerPoidsEtRation,
   soinsAVenir,
   soinsFaits,
   TYPES_EVENEMENT,
@@ -132,11 +133,11 @@ export function decrireFoyer(d: DonneesFoyer, membreId: Id | null, aujourdhui: J
   }
 
   for (const a of d.animaux) {
-    const poids = poidsActuel(a);
+    const poids = poidsDeReference(a);
     const ration = rationDuJour(a, aujourdhui);
     const aFaire = choseAFaire(a, aujourdhui).map((c) => c.texte);
     lignes.push(
-      `Animal ${a.nom} : ${poids ? `${formaterPoids(poids.grammes)} (pesé le ${poids.jour})` : "pas encore pesé"}` +
+      `Animal ${a.nom} : ${poids ? `${formaterPoids(poids.grammes)} (${poids.estime ? "estimé" : "pesé"} le ${poids.jour})` : "pas encore pesé"}` +
         `${ration ? `, ration ${ration.grammes} g par jour` : ""}${aFaire.length ? `, à faire : ${aFaire.join(" ; ")}` : ""}.`,
     );
     const soins = soinsAVenir(a).slice(0, 4);
@@ -168,6 +169,7 @@ export type ActionJarvis =
   | { outil: "attribuer_tache"; titre: string; responsable: string | null }
   | { outil: "ajouter_au_stock"; produits: { nom: string; lieu: Lieu; peremption: Jour | null }[] }
   | { outil: "noter_pesee"; animal: string; grammes: number; jour?: Jour | null }
+  | { outil: "regler_animal"; animal: string; poidsEstime: number | null; ration: number | null }
   | { outil: "noter_journal"; animal: string; quoi: TypeEvenement; note: string; jour: Jour | null }
   | { outil: "noter_soin"; animal: string; type: TypeSoin; libelle: string; date: Jour; fait: boolean }
   | { outil: "ajouter_plante"; plantes: string[]; zone: string | null }
@@ -194,14 +196,16 @@ export type ActionJarvis =
   | { outil: "supprimer_evenement"; titre: string; jour: Jour | null }
   | { outil: "noter_depense"; montant: number; libelle: string; magasin: string | null; pot: Pot; jour: Jour | null; charge: string | null; articles: ArticleTicket[] };
 
-/** Ce qui attend le oui de la personne avant de se faire : supprimer, ou retenir ce que Jarvis a remarqué seul. */
+/**
+ * Ce qui attend le oui de la personne avant de se faire : supprimer. Ce que Jarvis remarque seul,
+ * il le retient tout de suite (Kora 0.0.70, souhait du foyer) ; « Annuler » ou sa page l'efface.
+ */
 export function aConfirmer(action: ActionJarvis): boolean {
   return (
     action.outil === "supprimer_tache" ||
     action.outil === "retirer_du_stock" ||
     action.outil === "oublier" ||
-    action.outil === "supprimer_evenement" ||
-    (action.outil === "retenir" && action.propose)
+    action.outil === "supprimer_evenement"
   );
 }
 
@@ -262,6 +266,11 @@ export function lireActions(appels: readonly { nom: string; entree: unknown }[])
       if (produits.length) actions.push({ outil: nom, produits });
     } else if (nom === "noter_pesee") {
       if (estTexte(e.animal) && typeof e.grammes === "number") actions.push({ outil: nom, animal: e.animal, grammes: e.grammes, jour: jourOuNul(e.jour) });
+    } else if (nom === "regler_animal") {
+      const nombre = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+      const poidsEstime = nombre(e.poids_estime);
+      const ration = nombre(e.ration);
+      if (estTexte(e.animal) && (poidsEstime !== null || ration !== null)) actions.push({ outil: nom, animal: e.animal, poidsEstime, ration });
     } else if (nom === "noter_journal") {
       if (estTexte(e.animal) && typeof e.quoi === "string" && e.quoi in TYPES_EVENEMENT) {
         actions.push({ outil: nom, animal: e.animal, quoi: e.quoi as TypeEvenement, note: typeof e.note === "string" ? e.note : "", jour: jourOuNul(e.jour) });
@@ -453,7 +462,7 @@ export function appliquerActions(
         }
         case "ajouter_tache": {
           const responsable = action.responsable ? trouverParNom(donnees.foyer.membres, action.responsable, (m) => m.prenom) : undefined;
-          const tache = nouvelleTache(action.titre, action.frequence, action.echeance, ctx, responsable?.id ?? null);
+          const tache = { ...nouvelleTache(action.titre, action.frequence, action.echeance, ctx, responsable?.id ?? null), creePar: membreId };
           taches.push(tache);
           modifications.push({ collection: "taches", avant: null, apres: tache });
           const qui = responsable ? `, pour ${responsable.prenom}` : "";
@@ -507,6 +516,7 @@ export function appliquerActions(
           break;
         }
         case "noter_pesee":
+        case "regler_animal":
         case "noter_journal":
         case "noter_soin": {
           const animal = trouverParNom(animaux, action.animal, (a) => a.nom);
@@ -518,6 +528,12 @@ export function appliquerActions(
           if (action.outil === "noter_pesee") {
             apres = ajouterPesee(animal, action.grammes, action.jour ?? aujourdhui, membreId, ctx);
             faits.push(`Pesée notée : ${animal.nom}, ${formaterPoids(Math.round(action.grammes))}${action.jour && action.jour !== aujourdhui ? ` le ${action.jour}` : ""}.`);
+          } else if (action.outil === "regler_animal") {
+            apres = reglerPoidsEtRation(animal, { ...(action.poidsEstime !== null ? { poidsEstime: action.poidsEstime } : {}), ...(action.ration !== null ? { ration: action.ration } : {}) }, aujourdhui);
+            const ration = rationDuJour(apres, aujourdhui);
+            faits.push(
+              `${animal.nom} : ${action.poidsEstime !== null ? `environ ${formaterPoids(Math.round(action.poidsEstime))}` : "poids inchangé"}${ration ? `, ration ${ration.grammes} g par jour` : ""} (sans pesée au carnet).`,
+            );
           } else if (action.outil === "noter_journal") {
             apres = noterEvenement(animal, action.quoi, action.jour ?? aujourdhui, action.note, membreId, ctx);
             faits.push(`Noté pour ${animal.nom} : ${TYPES_EVENEMENT[action.quoi].toLowerCase()}${action.note ? ` (${action.note})` : ""}.`);
@@ -730,6 +746,8 @@ export function decrireAction(action: ActionJarvis): string {
       return `Ranger : ${enumerer(action.produits.map((p) => p.nom))}`;
     case "noter_pesee":
       return `Pesée de ${action.animal} : ${action.grammes} g`;
+    case "regler_animal":
+      return `${action.animal} : ${[action.poidsEstime !== null ? `environ ${action.poidsEstime} g` : "", action.ration !== null ? `ration ${action.ration} g par jour` : ""].filter(Boolean).join(", ")}`;
     case "noter_journal":
       return `${action.animal} : ${TYPES_EVENEMENT[action.quoi].toLowerCase()}${action.note ? ` (${action.note})` : ""}`;
     case "noter_soin":

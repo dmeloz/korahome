@@ -6,7 +6,7 @@
 // - Un téléphone l'appelle avec sa session (« maintenant ») pour le lancer tout de suite.
 //
 // Il lit le stock, la liste de courses et Mitsu, demande les menus à Claude (réponse au format
-// imposé), puis écrit lui-même : les articles qui manquent sur la liste de courses, marqués
+// imposé), puis écrit lui-même les menus et les recettes ; ce qui manque attend que le foyer valide un soir ou le menu (depuis 0.0.70), marqué
 // « chef », et les menus dans la collection « menus », avec la recette de chaque repas
 // (ingrédients et étapes) rangée dans les recettes du foyer, même collection. Il n'écrit rien d'autre ; relancé,
 // il remplace seulement ses propres articles pas encore cochés. Sa dépense compte dans le
@@ -36,7 +36,6 @@ import {
   NOMBRE_REPAS,
   notificationChef,
   nouveauMenu,
-  preparerAjouts,
   recettesDe,
   recettesDuChef,
   reglageChef,
@@ -119,15 +118,13 @@ async function cuisiner(foyerId: string, lance: "auto" | "maintenant") {
   // Relancé dans la semaine : il retire d'abord ses propres articles encore à prendre.
   const ancien = menuDeLaSemaine(d.menus, aujourdhui);
   const aRetirer = new Set(articlesARemplacer(ancien, d.elements));
-  const restants = d.elements.filter((e: { id: string }) => !aRetirer.has(e.id));
-  const ajouts = courses ? preparerAjouts(proposition.aAcheter, courses, restants, ctx) : [];
+  // Depuis Kora 0.0.70, rien ne part aux courses avant que le foyer valide un soir ou le menu.
   const { repas, recettes } = recettesDuChef(proposition, d.menus, ctx);
-  const menu = nouveauMenu({ proposition, repas, ajouts, produits: d.produits, animaux: d.animaux, aujourdhui, lance, trame }, ctx);
+  const menu = nouveauMenu({ proposition, repas, produits: d.produits, animaux: d.animaux, aujourdhui, lance, trame }, ctx);
 
   const maj = new Date().toISOString();
   const lignes = [
     ...[...aRetirer].map((id) => ({ foyer_id: foyerId, collection: "elements", id, donnees: null, maj_client: maj })),
-    ...ajouts.map((e) => ({ foyer_id: foyerId, collection: "elements", id: e.id, donnees: e, maj_client: maj })),
     // Un ancien menu d'un autre jour de la semaine laisse sa place.
     ...(ancien && ancien.id !== menu.id ? [{ foyer_id: foyerId, collection: "menus", id: ancien.id, donnees: null, maj_client: maj }] : []),
     ...recettes.map((r) => ({ foyer_id: foyerId, collection: "menus", id: r.id, donnees: r, maj_client: maj })),

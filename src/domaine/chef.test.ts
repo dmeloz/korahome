@@ -20,12 +20,16 @@ import {
   reglerChef,
   retirerAjout,
   SCHEMA_CHEF,
+  devaliderSoir,
   validerMenu,
+  validerSoir,
+  validerToutLeMenu,
   type DocChef,
   type MenuSemaine,
 } from "./chef";
 import { contexteTest } from "./contexteTest";
 import { nouvelElement } from "./listes";
+import { nouvelleRecette } from "./recettes";
 import { ajouterProvision, nouvelAnimal, nouvelleProvision } from "./mitsu";
 import type { Produit } from "./stock";
 import type { Liste } from "./types";
@@ -184,7 +188,47 @@ describe("les menus de la semaine", () => {
     const { m } = menu();
     expect(m).toMatchObject({ id: "menu-2026-10-18", semaine: AUJOURDHUI, lance: "auto", aFinir: ["Yaourts · demain"] });
     expect(m.ajouts.map((a) => a.texte)).toEqual(["Poireaux", "Crème"]);
-    expect(notificationChef(m)).toEqual({ titre: "Les menus de la semaine sont prêts", corps: "Gratin de poireaux · 2 articles ajoutés aux courses." });
+    expect(notificationChef(m)).toEqual({ titre: "Les menus de la semaine sont prêts", corps: "Gratin de poireaux · Valide les soirs qui te vont : 2 articles à acheter." });
+  });
+
+  it("n'envoie rien aux courses avant qu'on valide un soir ou le menu", () => {
+    const ctx = contexteTest();
+    const recette = nouvelleRecette({ titre: "Gratin de poireaux", portions: 2, ingredients: [{ nom: "Poireaux", quantite: "2" }, { nom: "Crème", quantite: "2 dl" }, { nom: "Sel", quantite: null }], etapes: [], source: "chef" }, ctx);
+    const m = nouveauMenu(
+      {
+        proposition: {
+          mot: "",
+          repas: [{ titre: "Gratin de poireaux", description: "", avecLeStock: [] }, { titre: "Soupe", description: "", avecLeStock: [] }],
+          recettes: [null, null],
+          aAcheter: [{ texte: "Poireaux", quantite: "2", rayon: null }, { texte: "Croquettes", quantite: null, rayon: null }, { texte: "Carottes", quantite: null, rayon: null }],
+        },
+        repas: [{ titre: "Gratin de poireaux", description: "", avecLeStock: [], recetteId: recette.id }, { titre: "Soupe", description: "", avecLeStock: [] }],
+        produits: [produit("Crème", "2026-10-25")],
+        animaux: [],
+        aujourdhui: AUJOURDHUI,
+        lance: "maintenant",
+      },
+      ctx,
+    );
+    expect(m.ajouts).toEqual([]);
+    expect(m.aAcheter?.map((a) => a.texte)).toEqual(["Poireaux", "Carottes"]);
+
+    // Un soir : seulement ce qui manque pour sa recette (la crème est au frigo, le sel ne compte pas).
+    const soir = validerSoir({ menu: m, rang: 0, recette, produits: [produit("Crème", "2026-10-25")], liste: courses, elements: [], membreId: null }, ctx);
+    expect(soir.ajouts.map((e) => [e.texte, e.source])).toEqual([["Poireaux", "chef"]]);
+    expect(soir.menu.repas[0].valideLe).toBeTruthy();
+    expect(soir.menu.valideLe).toBeUndefined();
+
+    // Revenir dessus retire ses articles pas encore achetés.
+    const retour = devaliderSoir(soir.menu, 0, soir.ajouts);
+    expect(retour.aRetirer).toEqual([soir.ajouts[0].id]);
+    expect(retour.menu.repas[0].valideLe).toBeUndefined();
+
+    // Tout le menu : la liste du Chef, sans doublon avec ce qui est déjà parti.
+    const tout = validerToutLeMenu(soir.menu, courses, soir.ajouts, ctx);
+    expect(tout.ajouts.map((e) => e.texte)).toEqual(["Carottes"]);
+    expect(tout.menu.valideLe).toBeTruthy();
+    expect(tout.menu.repas.every((r) => r.valideLe)).toBe(true);
   });
 
   it("reste le menu en cours pendant 7 jours", () => {

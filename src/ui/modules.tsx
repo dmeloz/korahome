@@ -10,7 +10,7 @@ import type { RetourTest } from "../domaine/retours";
 import { gestesDuJardin, type Zone } from "../domaine/jardin";
 import { compterAPrendre } from "../domaine/listes";
 import { decrireTemps, formaterTemperatures, meteoDu, type Meteo } from "../domaine/meteo";
-import { choseAFaire, decrireAge, formaterPoids, poidsActuel, rationDuJour, type Animal } from "../domaine/mitsu";
+import { choseAFaire, decrireAge, formaterPoids, poidsDeReference, rationDuJour, type Animal } from "../domaine/mitsu";
 import type { WidgetId } from "../domaine/tableauDeBord";
 import type { ProduitHabituel } from "../domaine/catalogue";
 import { decrirePeremption, resumeStock, type Produit } from "../domaine/stock";
@@ -130,9 +130,9 @@ const widgetMitsu = (d: DonneesModule): ApercuWidget => {
   const animal = d.animaux[0];
   if (!animal) return { chiffre: 0, legende: "Créer sa fiche", lignes: [], urgent: false };
   const aFaire = choseAFaire(animal, d.aujourdhui);
-  const poids = poidsActuel(animal);
+  const poids = poidsDeReference(animal);
   const ration = rationDuJour(animal, d.aujourdhui);
-  const portrait = [decrireAge(animal.naissance, d.aujourdhui), poids && formaterPoids(poids.grammes), ration && `${ration.grammes} g par jour`]
+  const portrait = [decrireAge(animal.naissance, d.aujourdhui), poids && `${poids.estime ? "≈ " : ""}${formaterPoids(poids.grammes)}`, ration && `${ration.grammes} g par jour`]
     .filter(Boolean)
     .join(" · ");
   return {

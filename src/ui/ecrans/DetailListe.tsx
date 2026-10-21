@@ -12,10 +12,11 @@ import { feter } from "../moteur/fete";
 import { vibrer } from "../haptique";
 import { Icone } from "../Icone";
 import { ajouterArticles } from "../ajouts";
-import { AuDessusDeLaBarre, Page, useSaisieBarre } from "../pieces";
+import { AuDessusDeLaBarre, LigneAjout, Page, useSaisieBarre } from "../pieces";
 
-// Une liste (les courses ou une autre). On ajoute en le disant à la fée ; ce qui
-// est tapé fait apparaître les articles déjà achetés. Toucher ou glisser vers la droite
+// Une liste (les courses ou une autre). On ajoute en l'écrivant sur la ligne du bas, comme dans
+// Rappels, ou en le disant à la fée ; ce qui est tapé fait apparaître les articles déjà achetés.
+// « Choisir » coche ou retire plusieurs articles d'un coup, ou vide la liste. Toucher ou glisser vers la droite
 // coche ; la ligne reste barrée deux secondes avant de rejoindre le panier, pour voir ce
 // qu'on vient de cocher et se rattraper.
 
@@ -35,7 +36,12 @@ export function DetailListe(props: {
   /** Les boutons à côté du titre (le ticket de caisse dans Courses). */
   actions?: ReactNode;
 }) {
-  const { texte: saisie, changer: setSaisie } = useSaisieBarre();
+  const { texte: saisieFee, changer: setSaisie } = useSaisieBarre();
+  // Ce qui s'écrit sur la ligne « Nouvel article », sinon dans la fée.
+  const [enLigne, setEnLigne] = useState("");
+  const saisie = enLigne || saisieFee;
+  // Les articles choisis pour agir d'un coup ; null hors du mode « Choisir ».
+  const [choisis, setChoisis] = useState<ReadonlySet<string> | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   // Les articles cochés il y a moins de deux secondes restent à leur place, barrés.
   const [recents, setRecents] = useState<ReadonlySet<string>>(new Set());
@@ -116,12 +122,59 @@ export function DetailListe(props: {
   }
   const prenom = (id: string | null) => props.foyer.membres.find((m) => m.id === id);
 
+  const tous = props.elements.filter((e) => e.listeId === props.liste.id);
+  const choisir = (id: string) =>
+    setChoisis((avant) => {
+      const s = new Set(avant);
+      if (s.has(id)) s.delete(id);
+      else s.add(id);
+      return s;
+    });
+  /** Coche (ou décoche, s'ils le sont tous) les articles choisis. */
+  async function cocherChoisis() {
+    const lot = tous.filter((e) => choisis?.has(e.id));
+    if (!lot.length) return;
+    vibrer();
+    const cocher = lot.some((e) => !e.coche);
+    const apres = lot.filter((e) => e.coche !== cocher).map((e) => basculerCoche(e, contexteReel));
+    for (const e of apres) await props.depot.enregistrerElement(e);
+    setChoisis(null);
+    annoncer(`${apres.length === 1 ? "Un article" : `${apres.length} articles`} ${cocher ? "dans le panier" : "remis à prendre"}.`, async () => {
+      for (const e of lot) await props.depot.enregistrerElement(e);
+    });
+  }
+  /** Retire les articles choisis ; toute la liste quand rien n'est choisi (« Vider la liste »). */
+  async function retirerChoisis(toute = false) {
+    const lot = toute ? tous : tous.filter((e) => choisis?.has(e.id));
+    if (!lot.length) return;
+    vibrer();
+    await props.depot.supprimerElements(lot.map((e) => e.id));
+    setChoisis(null);
+    annoncer(toute ? "Liste vidée." : `${lot.length === 1 ? "Un article retiré" : `${lot.length} articles retirés`}.`, async () => {
+      for (const e of lot) await props.depot.enregistrerElement(e);
+    });
+  }
+
   // Le premier article à prendre, en grand.
   const phare = aPrendre[0]?.elements.find((e) => !e.coche)?.id ?? null;
 
   function ligne(vu: Element) {
     // La version enregistrée : un article coché il y a un instant est barré, mais encore à sa place.
     const el = props.elements.find((e) => e.id === vu.id) ?? vu;
+    if (choisis) {
+      const pris = choisis.has(el.id);
+      return (
+        <Ligne key={el.id}>
+          <button className={`ligne element choix${pris ? " choisi" : ""}${el.coche ? " coche" : ""}`} aria-pressed={pris} onClick={() => choisir(el.id)}>
+            <span className="case case-choix" aria-hidden>{pris ? "✓" : ""}</span>
+            <span className="ligne-texte">
+              {el.texte}
+              {el.quantite && <span className="quantite"> · {el.quantite}</span>}
+            </span>
+          </button>
+        </Ligne>
+      );
+    }
     const auteur = prenom(el.ajoutePar);
     // Le prénom de qui l'a ajouté, seulement quand ce n'est pas soi.
     const autre = auteur && auteur.id !== props.membreId && props.foyer.membres.length > 1;
@@ -166,10 +219,15 @@ export function DetailListe(props: {
               <Icone nom="cadenas" taille={20} />
             </button>
           )}
-          {props.actions}
+          {tous.length > 0 && (
+            <button className="lien" onClick={() => setChoisis(choisis ? null : new Set())}>
+              {choisis ? "OK" : "Choisir"}
+            </button>
+          )}
+          {!choisis && props.actions}
         </>
       }
-      aide={courses ? { cle: "courses", texte: "Dis-le à ta fée (un appui long sur elle pour l'écrire) : « 2 kg de pommes, du lait et du pain ». Touche un article ou glisse-le vers la droite quand il est pris ; vers la gauche pour le retirer." } : undefined}
+      aide={courses ? { cle: "courses", texte: "Écris sous la liste, ou dis-le à ta fée : « 2 kg de pommes, du lait et du pain ». « Choisir » en haut pour en cocher ou en retirer plusieurs. Touche un article ou glisse-le vers la droite quand il est pris ; vers la gauche pour le retirer." } : undefined}
     >
       {props.avant}
       {enSaisie.length > 0 && (
@@ -179,10 +237,13 @@ export function DetailListe(props: {
             <button
               key={a.texte}
               className="puce"
+              // Le champ « Nouvel article » garde le clavier : sinon il ajouterait le texte tapé en le quittant.
+              onPointerDown={(e) => e.preventDefault()}
               onClick={() => {
                 const quantite = analyserSaisie(saisie).quantite;
                 void ajouterArticle(quantite ? `${quantite} ${a.texte}` : a.texte);
                 setSaisie("");
+                setEnLigne("");
               }}
             >
               {a.texte}
@@ -219,13 +280,34 @@ export function DetailListe(props: {
         </section>
       )}
 
-      {aPrendre.length === 0 && coches.length === 0 && <p className="vide">La liste est vide.</p>}
       {aPrendre.map((g) => (
         <section key={g.rayon}>
           {props.liste.type === "courses" && <h2 className="rayon">{g.rayon}</h2>}
           <ListeVivante className="carte groupe">{g.elements.map(ligne)}</ListeVivante>
         </section>
       ))}
+      {!choisis && (
+        <div className="carte groupe ajout-seul">
+          <LigneAjout placeholder={courses ? "Nouvel article" : "Nouvel élément"} ajouter={ajouterArticle} texte={enLigne} onChange={setEnLigne} />
+        </div>
+      )}
+      {choisis && (
+        <AuDessusDeLaBarre>
+          <div className="barre-choix" role="toolbar" aria-label="Articles choisis">
+            <button className="lien" onClick={() => setChoisis(choisis.size === tous.length ? new Set() : new Set(tous.map((e) => e.id)))}>
+              {choisis.size === tous.length ? "Aucun" : "Tous"}
+            </button>
+            <button className="lien" disabled={!choisis.size} onClick={() => void cocherChoisis()}>
+              {choisis.size ? `Cocher (${choisis.size})` : "Cocher"}
+            </button>
+            {choisis.size ? (
+              <button className="lien danger" onClick={() => void retirerChoisis()}>Retirer ({choisis.size})</button>
+            ) : (
+              <button className="lien danger" onClick={() => void retirerChoisis(true)}>Vider la liste</button>
+            )}
+          </div>
+        </AuDessusDeLaBarre>
+      )}
 
       {coches.length > 0 && (
         <section>

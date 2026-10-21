@@ -183,6 +183,7 @@ export function CourbeEpargne({ points, objectif, aujourdhui }: { points: PointE
   const prevus = indexes.filter(({ p }, i) => p.prevu || i === faits.length - 1);
   const dernier = faits[faits.length - 1];
   const fin = points[points.length - 1];
+  if (!dernier) return null;
   return (
     <section ref={dessin} className="carte budget-courbe">
       <svg viewBox={`0 0 ${l} ${h}`} role="img" aria-label={`Épargne : ${montant(dernier.p.solde)} aujourd'hui, ${montant(fin.solde)} en ${nommerMois(fin.mois, aujourdhui)} au rythme prévu`}>

@@ -6,7 +6,7 @@ import type { Usage } from "./apprentissage";
 import { avanceeDuJour, type CarteDuJour, type ChoseDuJour } from "./aujourdhui";
 import { decrireCompte, type CompteARebours } from "./bandeau";
 import type { Meteo } from "./meteo";
-import { ecartJours } from "./taches";
+import { concerne, ecartJours } from "./taches";
 import type { Id, Jour, Tache } from "./types";
 
 /** Seule la première lettre passe en minuscule : « litière de Mitsu ». */
@@ -121,7 +121,7 @@ export function tacheDeLHeure(
       const ecart = m - minutes(c.heure);
       if (ecart < 0 || ecart > FENETRE_HEURE_MIN) return false;
       const t = taches.find((x) => x.id === c.tacheId);
-      return !!t && (t.responsable === null || t.responsable === moi);
+      return !!t && concerne(t, moi);
     }) ?? null
   );
 }

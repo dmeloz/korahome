@@ -356,9 +356,9 @@ describe("Jarvis apprend, modifie et note ses souhaits", () => {
     expect(OUTILS_JARVIS.map((o) => o.name)).toEqual(expect.arrayContaining(["retenir", "oublier", "supprimer_tache", "retirer_du_stock", "modifier_tache", "noter_souhait"]));
   });
 
-  it("demande le oui de la personne avant de supprimer ou de retenir ce qu'il a remarqué seul", () => {
+  it("demande le oui de la personne avant de supprimer, et retient seul ce qu'il a remarqué", () => {
     expect(aConfirmer({ outil: "retenir", fait: "x", propose: false })).toBe(false);
-    expect(aConfirmer({ outil: "retenir", fait: "On fait les courses le samedi", propose: true })).toBe(true);
+    expect(aConfirmer({ outil: "retenir", fait: "On fait les courses le samedi", propose: true })).toBe(false);
     expect(aConfirmer({ outil: "supprimer_tache", titre: "Litière" })).toBe(true);
     expect(aConfirmer({ outil: "retirer_du_stock", produits: ["lait"] })).toBe(true);
     expect(aConfirmer({ outil: "oublier", fait: "x" })).toBe(true);

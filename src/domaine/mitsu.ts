@@ -91,6 +91,11 @@ export interface ReglagesSuivi {
   rationDuPaquet: number | null;
   /** Les friandises données chaque jour, en grammes : retirées de la ration de croquettes. */
   friandisesParJour?: number;
+  /**
+   * Le poids estimé (« elle pèse environ 1,6 kg »), sans pesée au carnet. Il sert à la ration
+   * tant qu'aucune pesée plus récente ne le remplace (Kora 0.0.70).
+   */
+  poidsEstime?: { grammes: number; le: Jour } | null;
 }
 
 export interface Animal {
@@ -226,6 +231,31 @@ export function poidsActuel(animal: Animal): Pesee | null {
   return derniereVersion(animal.pesees);
 }
 
+/** Le poids qui compte pour la ration : la dernière pesée, ou le poids estimé s'il est plus récent. */
+export function poidsDeReference(animal: Animal): { grammes: number; jour: Jour; estime: boolean } | null {
+  const pesee = poidsActuel(animal);
+  const estime = animal.reglages.poidsEstime;
+  if (estime && (!pesee || estime.le >= pesee.jour)) return { grammes: estime.grammes, jour: estime.le, estime: true };
+  return pesee ? { grammes: pesee.grammes, jour: pesee.jour, estime: false } : null;
+}
+
+/** Corrige le poids estimé et, si on la donne, la ration du jour, sans toucher au carnet des pesées. */
+export function reglerPoidsEtRation(animal: Animal, changement: { poidsEstime?: number | null; ration?: number | null }, aujourdhui: Jour): Animal {
+  const reglages = { ...animal.reglages };
+  if (changement.poidsEstime !== undefined) {
+    if (changement.poidsEstime === null) reglages.poidsEstime = null;
+    else {
+      if (!Number.isFinite(changement.poidsEstime) || changement.poidsEstime < 100 || changement.poidsEstime > 15000) throw new ErreurValidation("Le poids doit être entre 0,1 et 15 kg.");
+      reglages.poidsEstime = { grammes: Math.round(changement.poidsEstime), le: aujourdhui };
+    }
+  }
+  if (changement.ration !== undefined) {
+    if (changement.ration !== null && (!Number.isFinite(changement.ration) || changement.ration < 1 || changement.ration > 500)) throw new ErreurValidation("La ration doit être entre 1 et 500 g par jour.");
+    reglages.rationDuPaquet = changement.ration === null ? null : Math.round(changement.ration);
+  }
+  return { ...animal, reglages };
+}
+
 /**
  * Multiplicateur du besoin au repos selon l'âge : un chaton en pleine croissance
  * a besoin de bien plus d'énergie qu'un adulte, et un adulte stérilisé un peu moins.
@@ -267,7 +297,7 @@ export function rationDuJour(animal: Animal, aujourdhui: Jour): Ration | null {
     const grammes = Math.max(0, Math.round(g - (friandises * KCAL_PAR_GRAMME_FRIANDISE) / k));
     return { grammes, kcal, source: "paquet", friandisesMax: max(kcal) };
   }
-  const poids = poidsActuel(animal);
+  const poids = poidsDeReference(animal);
   if (!poids) return null;
   const repos = 70 * Math.pow(poids.grammes / 1000, 0.75);
   const kcal = repos * facteurCroissance(ageEnMois(animal.naissance, aujourdhui), animal.sterilise);

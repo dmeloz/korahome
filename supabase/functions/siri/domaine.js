@@ -171,6 +171,43 @@ function derniereVersion(liste) {
 function poidsActuel(animal) {
 	return derniereVersion(animal.pesees);
 }
+/** Le poids qui compte pour la ration : la dernière pesée, ou le poids estimé s'il est plus récent. */
+function poidsDeReference(animal) {
+	const pesee = poidsActuel(animal);
+	const estime = animal.reglages.poidsEstime;
+	if (estime && (!pesee || estime.le >= pesee.jour)) return {
+		grammes: estime.grammes,
+		jour: estime.le,
+		estime: true
+	};
+	return pesee ? {
+		grammes: pesee.grammes,
+		jour: pesee.jour,
+		estime: false
+	} : null;
+}
+/** Corrige le poids estimé et, si on la donne, la ration du jour, sans toucher au carnet des pesées. */
+function reglerPoidsEtRation(animal, changement, aujourdhui) {
+	const reglages = { ...animal.reglages };
+	if (changement.poidsEstime !== void 0) {
+		if (changement.poidsEstime === null) reglages.poidsEstime = null;
+		else {
+			if (!Number.isFinite(changement.poidsEstime) || changement.poidsEstime < 100 || changement.poidsEstime > 15e3) throw new ErreurValidation("Le poids doit être entre 0,1 et 15 kg.");
+			reglages.poidsEstime = {
+				grammes: Math.round(changement.poidsEstime),
+				le: aujourdhui
+			};
+		}
+	}
+	if (changement.ration !== void 0) {
+		if (changement.ration !== null && (!Number.isFinite(changement.ration) || changement.ration < 1 || changement.ration > 500)) throw new ErreurValidation("La ration doit être entre 1 et 500 g par jour.");
+		reglages.rationDuPaquet = changement.ration === null ? null : Math.round(changement.ration);
+	}
+	return {
+		...animal,
+		reglages
+	};
+}
 /**
 * Multiplicateur du besoin au repos selon l'âge : un chaton en pleine croissance
 * a besoin de bien plus d'énergie qu'un adulte, et un adulte stérilisé un peu moins.
@@ -203,7 +240,7 @@ function rationDuJour(animal, aujourdhui) {
 			friandisesMax: max(kcal)
 		};
 	}
-	const poids = poidsActuel(animal);
+	const poids = poidsDeReference(animal);
 	if (!poids) return null;
 	const kcal = 70 * Math.pow(poids.grammes / 1e3, .75) * facteurCroissance(ageEnMois(animal.naissance, aujourdhui), animal.sterilise);
 	const croquettes = Math.max(0, kcal - friandises * KCAL_PAR_GRAMME_FRIANDISE);
@@ -1470,6 +1507,31 @@ const OUTILS_JARVIS = [
 		}
 	},
 	{
+		name: "regler_animal",
+		description: "Corrige le poids estimé d'un animal (« elle pèse environ 1,6 kg ») et/ou sa ration de croquettes par jour, sans noter de pesée au carnet. La ration se recalcule avec le poids estimé, sauf si une ration est donnée.",
+		strict: false,
+		input_schema: {
+			type: "object",
+			additionalProperties: false,
+			required: [
+				"animal",
+				"poids_estime",
+				"ration"
+			],
+			properties: {
+				animal: texte("Le nom de l'animal."),
+				poids_estime: {
+					type: ["integer", "null"],
+					description: "Le poids estimé en grammes ; null pour ne pas le changer."
+				},
+				ration: {
+					type: ["integer", "null"],
+					description: "Les croquettes par jour en grammes, quand on la donne ; null pour la laisser calculée."
+				}
+			}
+		}
+	},
+	{
 		name: "noter_journal",
 		description: "Note dans le journal d'un animal ce qui s'est passé : litière changée, a vomi, n'a pas mangé, selles molles, boite, se cache ou autre remarque.",
 		strict: true,
@@ -1611,7 +1673,7 @@ const OUTILS_JARVIS = [
 	},
 	{
 		name: "retenir",
-		description: "Retient durablement un fait sur le foyer : un goût, une habitude, une règle de la maison. propose: false quand on te demande de le retenir ; true quand tu l'as remarqué toi-même (l'app demande alors si elle doit le retenir).",
+		description: "Retient durablement un fait sur le foyer : un goût, une habitude, une règle de la maison. propose: false quand on te demande de le retenir ; true quand tu l'as remarqué toi-même. Dans les deux cas c'est retenu tout de suite (la personne peut annuler).",
 		strict: true,
 		input_schema: {
 			type: "object",
@@ -1823,7 +1885,7 @@ Tu ne dépenses jamais d'argent. Tu peux supprimer une tâche, retirer un produi
 Un rendez-vous, un anniversaire, des vacances, une sortie ou un horaire de travail vont dans l'agenda (ajouter_evenement), pas dans les tâches. Pour « qu'est-ce qu'on a cette semaine ? », réponds à partir de l'agenda de l'état du foyer.
 Si la demande n'est pas claire, pose une seule question courte.
 Si on te demande une chose qu'aucun outil ne permet et que l'état du foyer ne te laisse pas répondre, utilise noter_souhait, et écris : « Je ne sais pas encore le faire, je l'ai noté pour Claude. »
-Ta mémoire est dans l'état du foyer : sers-t'en pour chaque demande (goûts, habitudes, règles de la maison). Quand on te dit « retiens que… » ou « n'oublie pas que… », utilise retenir (propose: false). Quand tu remarques une préférence ou une habitude durable qui n'est pas encore dans ta mémoire, propose-la avec retenir (propose: true), au plus une par réponse, jamais une information passagère ni de santé ou d'argent. Quand on te dit qu'un fait de ta mémoire est faux, utilise oublier, et retenir pour le fait juste.
+Ta mémoire est dans l'état du foyer : sers-t'en pour chaque demande (goûts, habitudes, règles de la maison). Quand on te dit « retiens que… » ou « n'oublie pas que… », utilise retenir (propose: false). Quand tu remarques une préférence ou une habitude durable qui n'est pas encore dans ta mémoire, retiens-la toi-même avec retenir (propose: true), sans demander, au plus une par réponse, jamais une information passagère ni de santé ou d'argent ; dis-le en une phrase. Quand on te dit qu'un fait de ta mémoire est faux, utilise oublier, et retenir pour le fait juste.
 Pour une question sur le foyer, réponds à partir de l'état du foyer fourni ; s'il ne contient pas la réponse, dis-le.
 Avec une photo (lettre, facture, carte de rendez-vous, flyer, faire-part) : mets chaque rendez-vous ou événement daté dans l'agenda (ajouter_evenement, avec l'heure et le lieu indiqués), et crée une tâche unique pour chaque échéance ou paiement.
 Avec un ticket de caisse : range au stock (ajouter_au_stock) les produits alimentaires achetés, avec leur quantité dans le nom (« 1 l lait », « 500 g beurre ») et le lieu où on les range d'habitude ; laisse la date de péremption vide si elle n'est pas écrite, l'app la devine. Coche aussi les courses correspondantes (cocher_courses), et note le total payé au budget (noter_depense, pot courses, avec le magasin, la date du ticket et chaque ligne avec son prix dans articles).
@@ -3183,10 +3245,10 @@ function decrireFoyer(d, membreId, aujourdhui) {
 		}
 	} else lignes.push("Stock : rien de noté.");
 	for (const a of d.animaux) {
-		const poids = poidsActuel(a);
+		const poids = poidsDeReference(a);
 		const ration = rationDuJour(a, aujourdhui);
 		const aFaire = choseAFaire(a, aujourdhui).map((c) => c.texte);
-		lignes.push(`Animal ${a.nom} : ${poids ? `${formaterPoids(poids.grammes)} (pesé le ${poids.jour})` : "pas encore pesé"}${ration ? `, ration ${ration.grammes} g par jour` : ""}${aFaire.length ? `, à faire : ${aFaire.join(" ; ")}` : ""}.`);
+		lignes.push(`Animal ${a.nom} : ${poids ? `${formaterPoids(poids.grammes)} (${poids.estime ? "estimé" : "pesé"} le ${poids.jour})` : "pas encore pesé"}${ration ? `, ration ${ration.grammes} g par jour` : ""}${aFaire.length ? `, à faire : ${aFaire.join(" ; ")}` : ""}.`);
 		const soins = soinsAVenir(a).slice(0, 4);
 		if (soins.length) lignes.push(`Carnet de ${a.nom}, prévu : ${soins.map((x) => `${x.libelle} le ${x.date}`).join(", ")}.`);
 		const faits = soinsFaits(a).slice(0, 5);
@@ -3205,9 +3267,12 @@ function decrireFoyer(d, membreId, aujourdhui) {
 	if (d.budget) lignes.push(...decrireBudget(d.budget, (id) => prenomDe(d.foyer, id) ?? "", aujourdhui));
 	return lignes.join("\n");
 }
-/** Ce qui attend le oui de la personne avant de se faire : supprimer, ou retenir ce que Jarvis a remarqué seul. */
+/**
+* Ce qui attend le oui de la personne avant de se faire : supprimer. Ce que Jarvis remarque seul,
+* il le retient tout de suite (Kora 0.0.70, souhait du foyer) ; « Annuler » ou sa page l'efface.
+*/
 function aConfirmer(action) {
-	return action.outil === "supprimer_tache" || action.outil === "retirer_du_stock" || action.outil === "oublier" || action.outil === "supprimer_evenement" || action.outil === "retenir" && action.propose;
+	return action.outil === "supprimer_tache" || action.outil === "retirer_du_stock" || action.outil === "oublier" || action.outil === "supprimer_evenement";
 }
 /** La question posée avant une action à confirmer, et le libellé de son bouton « oui ». */
 function questionPour(action) {
@@ -3300,6 +3365,16 @@ function lireActions(appels) {
 				animal: e.animal,
 				grammes: e.grammes,
 				jour: jourOuNul(e.jour)
+			});
+		} else if (nom === "regler_animal") {
+			const nombre = (v) => typeof v === "number" && Number.isFinite(v) ? v : null;
+			const poidsEstime = nombre(e.poids_estime);
+			const ration = nombre(e.ration);
+			if (estTexte(e.animal) && (poidsEstime !== null || ration !== null)) actions.push({
+				outil: nom,
+				animal: e.animal,
+				poidsEstime,
+				ration
 			});
 		} else if (nom === "noter_journal") {
 			if (estTexte(e.animal) && typeof e.quoi === "string" && e.quoi in TYPES_EVENEMENT) actions.push({
@@ -3509,7 +3584,10 @@ function appliquerActions(actions, donnees, membreId, aujourdhui, ctx) {
 			}
 			case "ajouter_tache": {
 				const responsable = action.responsable ? trouverParNom(donnees.foyer.membres, action.responsable, (m) => m.prenom) : void 0;
-				const tache = nouvelleTache(action.titre, action.frequence, action.echeance, ctx, responsable?.id ?? null);
+				const tache = {
+					...nouvelleTache(action.titre, action.frequence, action.echeance, ctx, responsable?.id ?? null),
+					creePar: membreId
+				};
 				taches.push(tache);
 				modifications.push({
 					collection: "taches",
@@ -3584,6 +3662,7 @@ function appliquerActions(actions, donnees, membreId, aujourdhui, ctx) {
 				break;
 			}
 			case "noter_pesee":
+			case "regler_animal":
 			case "noter_journal":
 			case "noter_soin": {
 				const animal = trouverParNom(animaux, action.animal, (a) => a.nom);
@@ -3595,6 +3674,13 @@ function appliquerActions(actions, donnees, membreId, aujourdhui, ctx) {
 				if (action.outil === "noter_pesee") {
 					apres = ajouterPesee(animal, action.grammes, action.jour ?? aujourdhui, membreId, ctx);
 					faits.push(`Pesée notée : ${animal.nom}, ${formaterPoids(Math.round(action.grammes))}${action.jour && action.jour !== aujourdhui ? ` le ${action.jour}` : ""}.`);
+				} else if (action.outil === "regler_animal") {
+					apres = reglerPoidsEtRation(animal, {
+						...action.poidsEstime !== null ? { poidsEstime: action.poidsEstime } : {},
+						...action.ration !== null ? { ration: action.ration } : {}
+					}, aujourdhui);
+					const ration = rationDuJour(apres, aujourdhui);
+					faits.push(`${animal.nom} : ${action.poidsEstime !== null ? `environ ${formaterPoids(Math.round(action.poidsEstime))}` : "poids inchangé"}${ration ? `, ration ${ration.grammes} g par jour` : ""} (sans pesée au carnet).`);
 				} else if (action.outil === "noter_journal") {
 					apres = noterEvenement(animal, action.quoi, action.jour ?? aujourdhui, action.note, membreId, ctx);
 					faits.push(`Noté pour ${animal.nom} : ${TYPES_EVENEMENT[action.quoi].toLowerCase()}${action.note ? ` (${action.note})` : ""}.`);
@@ -3870,6 +3956,7 @@ function decrireAction(action) {
 		case "attribuer_tache": return action.responsable ? `${action.titre} → ${action.responsable}` : `${action.titre} → libre`;
 		case "ajouter_au_stock": return `Ranger : ${enumerer(action.produits.map((p) => p.nom))}`;
 		case "noter_pesee": return `Pesée de ${action.animal} : ${action.grammes} g`;
+		case "regler_animal": return `${action.animal} : ${[action.poidsEstime !== null ? `environ ${action.poidsEstime} g` : "", action.ration !== null ? `ration ${action.ration} g par jour` : ""].filter(Boolean).join(", ")}`;
 		case "noter_journal": return `${action.animal} : ${TYPES_EVENEMENT[action.quoi].toLowerCase()}${action.note ? ` (${action.note})` : ""}`;
 		case "noter_soin": return `Carnet de ${action.animal} : ${action.libelle || TYPES_SOIN[action.type]}, ${action.fait ? "fait" : "prévu"} le ${action.date}`;
 		case "ajouter_plante": return `Planter : ${enumerer(action.plantes)}${action.zone ? ` (${action.zone})` : ""}`;

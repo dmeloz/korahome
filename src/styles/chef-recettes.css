@@ -131,3 +131,9 @@
 .chef-actions-menu .lien { padding: 6px 0; font-size: var(--t-detail); }
 .chef-valide { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-size: var(--t-detail); }
 .recette-partager { display: inline-flex; align-items: center; gap: 6px; justify-self: center; font-size: 14px; margin: 2px 0 0; }
+
+/* Valider un soir (Kora 0.0.70) : ses ingrédients manquants partent alors aux courses. */
+.chef-soir-actions { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; margin-top: 6px; }
+.chef-valider-soir { display: inline-flex; align-items: center; gap: 4px; }
+.chef-valider-soir.valide { color: var(--discret); }
+.chef-propose .ligne { min-height: 44px; }

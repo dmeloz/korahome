@@ -1,7 +1,8 @@
 // Le Chef de la semaine : une fois par semaine (le dimanche à 17 h, ou le jour et l'heure
 // choisis dans l'app), ou quand on le lance d'un toucher, il lit le frigo et les placards, propose
-// cinq repas du soir de saison qui finissent d'abord ce qui arrive à sa date, et ajoute à la
-// liste de courses ce qui manque, marqué « proposé par le chef ».
+// cinq repas du soir de saison qui finissent d'abord ce qui arrive à sa date, et prépare ce qui
+// manque. Depuis Kora 0.0.70, rien ne va aux courses avant que le foyer valide : un soir (ses
+// ingrédients manquants, d'après sa recette) ou tout le menu (la liste du Chef), marqué « Chef ».
 //
 // Chaque repas entre dans les recettes du foyer (recettes.ts) avec ses ingrédients et ses étapes ;
 // il reprend volontiers les recettes que le foyer aime.
@@ -14,7 +15,7 @@ import { coutMicroChf, MODELE_CONSEIL, type Consommation } from "./jarvisModele"
 import { analyserSaisie } from "./listes";
 import { nouveauSouvenir, souvenirsRetenus, type Souvenir } from "./memoire";
 import { prevoir, type Animal } from "./mitsu";
-import { apprendreRecette, lireBrouillon, recettesDe, recettesPourLeChef, type BrouillonRecette, type Recette } from "./recettes";
+import { apprendreRecette, lireBrouillon, preparerCourses, recettesDe, recettesPourLeChef, type BrouillonRecette, type Recette } from "./recettes";
 import { heureValide, jourEtHeure, JOURS_SEMAINE } from "./rappels";
 import { detecterRayon, normaliser } from "./rayons";
 import { decrirePeremption, LIEUX, ORDRE_LIEUX, type Produit } from "./stock";
@@ -51,6 +52,8 @@ export interface RepasChef {
   avecLeStock: string[];
   /** La fiche du plat dans les recettes du foyer (depuis Kora 0.0.38). */
   recetteId?: Id;
+  /** Le soir validé par le foyer : ses ingrédients manquants sont partis aux courses. */
+  valideLe?: string;
 }
 
 /** Un article que le Chef a mis sur la liste de courses. */
@@ -59,6 +62,15 @@ export interface AjoutChef {
   texte: string;
   quantite: string | null;
   rayon: Rayon;
+  /** Le soir (son rang dans le menu) qui l'a envoyé aux courses ; absent : tout le menu. */
+  repas?: number;
+}
+
+/** Un article que le Chef propose, pas encore sur la liste. */
+export interface ArticlePropose {
+  texte: string;
+  quantite: string | null;
+  rayon: Rayon | null;
 }
 
 /** Les menus d'une semaine, un document par jour où le Chef est passé : « menu-AAAA-MM-JJ ». */
@@ -71,6 +83,8 @@ export interface MenuSemaine {
   mot: string;
   repas: RepasChef[];
   ajouts: AjoutChef[];
+  /** Ce que le Chef propose d'acheter pour toute la semaine, envoyé aux courses en validant le menu (depuis 0.0.70). */
+  aAcheter?: ArticlePropose[];
   /** Les produits à finir vite, avec leur date : « Yaourts · demain ». */
   aFinir: string[];
   alertesMitsu: string[];
@@ -373,7 +387,7 @@ export function recettesDuChef(proposition: PropositionChef, docs: readonly DocC
 }
 
 export function nouveauMenu(
-  d: { proposition: PropositionChef; repas?: RepasChef[]; ajouts: readonly Element[]; produits: readonly Produit[]; animaux: readonly Animal[]; aujourdhui: Jour; lance: MenuSemaine["lance"]; trame?: TrameSoir[] },
+  d: { proposition: PropositionChef; repas?: RepasChef[]; ajouts?: readonly Element[]; produits: readonly Produit[]; animaux: readonly Animal[]; aujourdhui: Jour; lance: MenuSemaine["lance"]; trame?: TrameSoir[] },
   ctx: Contexte,
 ): MenuSemaine {
   return {
@@ -382,7 +396,8 @@ export function nouveauMenu(
     semaine: d.aujourdhui,
     mot: d.proposition.mot,
     repas: d.repas ?? d.proposition.repas,
-    ajouts: d.ajouts.map((e) => ({ elementId: e.id, texte: e.texte, quantite: e.quantite, rayon: e.rayon })),
+    ajouts: (d.ajouts ?? []).map((e) => ({ elementId: e.id, texte: e.texte, quantite: e.quantite, rayon: e.rayon })),
+    aAcheter: d.proposition.aAcheter.filter((a) => !POUR_LE_CHAT.test(normaliser(a.texte)) && a.rayon !== "Animaux").slice(0, AJOUTS_MAX),
     aFinir: produitsAFinir(d.produits, d.aujourdhui).map((p) => `${p.nom} · ${decrirePeremption(p, d.aujourdhui)}`),
     alertesMitsu: alertesMitsu(d.animaux, d.aujourdhui),
     ...(d.trame?.length ? { trame: d.trame } : {}),
@@ -407,6 +422,48 @@ export function validerMenu(menu: MenuSemaine, ctx: Contexte): MenuSemaine {
   return { ...menu, valideLe: ctx.maintenant() };
 }
 
+const versAjout = (e: Element, repas?: number): AjoutChef => ({ elementId: e.id, texte: e.texte, quantite: e.quantite, rayon: e.rayon, ...(repas === undefined ? {} : { repas }) });
+const marquerChef = (e: Element): Element => ({ ...e, source: "chef" });
+
+/**
+ * Valider un soir : ce qui manque pour sa recette (d'après le stock et la liste) part aux
+ * courses, marqué « Chef ». Le menu entier est validé quand tous ses soirs le sont.
+ */
+export function validerSoir(
+  d: { menu: MenuSemaine; rang: number; recette: Recette | null; produits: readonly Produit[]; liste: Liste | null; elements: readonly Element[]; membreId: Id | null },
+  ctx: Contexte,
+): { menu: MenuSemaine; ajouts: Element[] } {
+  const r = d.menu.repas[d.rang];
+  if (!r || r.valideLe) return { menu: d.menu, ajouts: [] };
+  const ajouts = d.recette && d.liste ? preparerCourses(d.recette, d.recette.portions, d.produits, d.liste, d.elements, d.membreId, ctx).map(marquerChef) : [];
+  const repas = d.menu.repas.map((x, i) => (i === d.rang ? { ...x, valideLe: ctx.maintenant() } : x));
+  const menu: MenuSemaine = { ...d.menu, repas, ajouts: [...d.menu.ajouts, ...ajouts.map((e) => versAjout(e, d.rang))] };
+  return { menu: repas.every((x) => x.valideLe) && !menu.valideLe ? validerMenu(menu, ctx) : menu, ajouts };
+}
+
+/** Revenir sur un soir validé : ses articles pas encore achetés quittent la liste. */
+export function devaliderSoir(menu: MenuSemaine, rang: number, elements: readonly Element[]): { menu: MenuSemaine; aRetirer: Id[] } {
+  const siens = new Set(menu.ajouts.filter((a) => a.repas === rang).map((a) => a.elementId));
+  const aRetirer = elements.filter((e) => siens.has(e.id) && !e.coche).map((e) => e.id);
+  const retires = new Set(aRetirer);
+  const repas = menu.repas.map((x, i) => (i === rang ? { ...x, valideLe: undefined } : x));
+  const { valideLe: _ancien, ...sansValidation } = menu;
+  return { menu: { ...sansValidation, repas, ajouts: menu.ajouts.filter((a) => !retires.has(a.elementId)) }, aRetirer };
+}
+
+/**
+ * Valider tout le menu : la liste du Chef pour la semaine part aux courses (sans doublon avec ce
+ * qui y est déjà, y compris les soirs validés un à un), et tous les soirs sont validés.
+ */
+export function validerToutLeMenu(menu: MenuSemaine, liste: Liste | null, elements: readonly Element[], ctx: Contexte): { menu: MenuSemaine; ajouts: Element[] } {
+  const ajouts = liste && menu.aAcheter?.length ? preparerAjouts(menu.aAcheter, liste, elements, ctx) : [];
+  const instant = ctx.maintenant();
+  return {
+    menu: { ...menu, repas: menu.repas.map((r) => (r.valideLe ? r : { ...r, valideLe: instant })), ajouts: [...menu.ajouts, ...ajouts.map((e) => versAjout(e))], valideLe: instant },
+    ajouts,
+  };
+}
+
 /**
  * Ce qu'efface « Effacer ce menu » : le menu, les articles du Chef pas encore cochés et, si le
  * menu n'a pas été validé, ses recettes jamais cuisinées ni proposées une autre semaine.
@@ -424,8 +481,8 @@ export function ceQuEfface(
 
 /** Le texte de la notification quand les menus sont prêts. */
 export function notificationChef(menu: MenuSemaine): { titre: string; corps: string } {
-  const n = menu.ajouts.length;
-  const courses = n ? `${n} article${n > 1 ? "s" : ""} ajouté${n > 1 ? "s" : ""} aux courses.` : "Rien à ajouter aux courses.";
+  const n = menu.aAcheter?.length || menu.ajouts.length;
+  const courses = n ? `Valide les soirs qui te vont : ${n} article${n > 1 ? "s" : ""} à acheter.` : "Rien à acheter.";
   return { titre: "Les menus de la semaine sont prêts", corps: [menu.repas.map((r) => r.titre).slice(0, 3).join(", "), courses].filter(Boolean).join(" · ") };
 }
 

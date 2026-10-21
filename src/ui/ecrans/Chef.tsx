@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { avisDuPlat, avisSurPlat, ceQuEfface, etatDesAjouts, menuDeLaSemaine, prochainPassage, reglageChef, reglerChef, retirerAjout, validerMenu, type AvisPlat, type MenuSemaine } from "../../domaine/chef";
+import { avisDuPlat, avisSurPlat, ceQuEfface, etatDesAjouts, menuDeLaSemaine, prochainPassage, reglageChef, reglerChef, devaliderSoir, retirerAjout, validerSoir, validerToutLeMenu, type AvisPlat, type MenuSemaine } from "../../domaine/chef";
 import { Icone } from "../Icone";
 import { formaterHeure, HEURE_MAX, HEURE_MIN, JOURS_SEMAINE } from "../../domaine/rappels";
 import { ecartJours } from "../../domaine/taches";
@@ -72,7 +72,8 @@ export function Chef(p: PropsPage & { recette?: string | null }) {
     try {
       const { menu: nouveau, sansListe } = await p.jarvis.serveur.lancerChef(p.jarvis.foyerId);
       vibrer();
-      setInfo(sansListe ? "Menus prêts. Crée une liste de courses pour qu'il y ajoute les ingrédients." : `Menus prêts, ${nouveau.ajouts.length} article${nouveau.ajouts.length > 1 ? "s" : ""} ajouté${nouveau.ajouts.length > 1 ? "s" : ""} aux courses.`);
+      const n = nouveau.aAcheter?.length ?? 0;
+      setInfo(sansListe ? "Menus prêts. Crée une liste de courses pour pouvoir y envoyer les ingrédients." : `Menus prêts. Valide les soirs qui te vont : leurs ingrédients partent alors aux courses${n ? ` (${n} article${n > 1 ? "s" : ""} pour toute la semaine)` : ""}.`);
     } catch (e) {
       setErreur((e as Error).message);
     } finally {
@@ -89,11 +90,43 @@ export function Chef(p: PropsPage & { recette?: string | null }) {
     });
   }
 
-  /** Valider : les recettes du menu restent dans la base, même s'il est effacé plus tard. */
+  const listeCourses = p.listes.find((l) => l.type === "courses") ?? null;
+
+  /** Valider tout le menu : la liste du Chef part aux courses, et ses recettes restent dans la base. */
   async function valider(m: MenuSemaine) {
     vibrer();
-    await p.depot.enregistrerMenu(validerMenu(m, contexteReel));
-    annoncer("Menu validé : ses recettes restent dans Nos recettes.", () => p.depot.enregistrerMenu(m));
+    const { menu: apres, ajouts } = validerToutLeMenu(m, listeCourses, p.elements, contexteReel);
+    for (const e of ajouts) await p.depot.enregistrerElement(e);
+    await p.depot.enregistrerMenu(apres);
+    annoncer(`Menu validé${ajouts.length ? `, ${ajouts.length} article${ajouts.length > 1 ? "s" : ""} aux courses` : ""}.`, async () => {
+      if (ajouts.length) await p.depot.supprimerElements(ajouts.map((e) => e.id));
+      await p.depot.enregistrerMenu(m);
+    });
+  }
+
+  /** Un soir validé envoie aux courses ce qui manque pour sa recette ; toucher à nouveau le retire. */
+  async function basculerSoir(m: MenuSemaine, rang: number) {
+    vibrer();
+    const r = m.repas[rang];
+    if (r.valideLe) {
+      const { menu: apres, aRetirer } = devaliderSoir(m, rang, p.elements);
+      const partis = p.elements.filter((e) => aRetirer.includes(e.id));
+      if (aRetirer.length) await p.depot.supprimerElements(aRetirer);
+      await p.depot.enregistrerMenu(apres);
+      annoncer(`${r.titre} : plus validé${partis.length ? `, ${partis.length} article${partis.length > 1 ? "s" : ""} retiré${partis.length > 1 ? "s" : ""} des courses` : ""}.`, async () => {
+        for (const e of partis) await p.depot.enregistrerElement(e);
+        await p.depot.enregistrerMenu(m);
+      });
+      return;
+    }
+    const recette = recettes.find((x) => x.id === r.recetteId) ?? null;
+    const { menu: apres, ajouts } = validerSoir({ menu: m, rang, recette, produits: p.produits, liste: listeCourses, elements: p.elements, membreId: p.membreId }, contexteReel);
+    for (const e of ajouts) await p.depot.enregistrerElement(e);
+    await p.depot.enregistrerMenu(apres);
+    annoncer(`${r.titre} validé${ajouts.length ? `, ${ajouts.length} article${ajouts.length > 1 ? "s" : ""} aux courses` : recette ? ", tout est à la maison" : ""}.`, async () => {
+      if (ajouts.length) await p.depot.supprimerElements(ajouts.map((e) => e.id));
+      await p.depot.enregistrerMenu(m);
+    });
   }
 
   /** Effacer : le menu, ses articles pas encore achetés et, s'il n'était pas validé, ses recettes jamais faites. */
@@ -117,7 +150,7 @@ export function Chef(p: PropsPage & { recette?: string | null }) {
 
   const ajouts = menu ? etatDesAjouts(menu, p.elements) : [];
   return (
-    <Page titre="Menus de la semaine" className="chef" aide={{ cle: "chef", texte: `Le Chef prépare les repas du soir avec ce qui reste au frigo et ajoute le manquant aux courses, marqué « Chef ». Chaque repas rejoint vos recettes, avec celles que tu donnes à ${nomFee()}.` }}>
+    <Page titre="Menus de la semaine" className="chef" aide={{ cle: "chef", texte: `Le Chef prépare les repas du soir avec ce qui reste au frigo. Valide les soirs qui te vont : ce qui manque part alors aux courses, marqué « Chef ». Chaque repas rejoint vos recettes, avec celles que tu donnes à ${nomFee()}.` }}>
       <FicheRecette {...p} recette={fiche} fermer={() => setFicheId(null)} />
 
       {onglet === "recettes" ? (
@@ -127,7 +160,7 @@ export function Chef(p: PropsPage & { recette?: string | null }) {
 
         <Feuille ouverte={confirmer} onFermer={() => setConfirmer(false)} titre="Relancer le Chef ?">
           <div className="formulaire">
-            <p className="discret">Il prépare de nouveaux repas. Ses articles pas encore cochés sur la liste de courses sont remplacés ; le reste de la liste ne bouge pas.</p>
+            <p className="discret">Il prépare de nouveaux repas. Ses articles pas encore cochés quittent la liste de courses ; le reste de la liste ne bouge pas.</p>
             <button type="button" className="bouton-principal" onClick={() => void lancer()}>Relancer</button>
           </div>
         </Feuille>
@@ -155,7 +188,7 @@ export function Chef(p: PropsPage & { recette?: string | null }) {
                 {menu.mot && <p className="chef-mot">{menu.mot}</p>}
               </>
             ) : (
-              <p className="chef-mot">Le Chef lit le frigo et les placards, propose cinq repas du soir de saison et ajoute aux courses ce qui manque.</p>
+              <p className="chef-mot">Le Chef lit le frigo et les placards et propose cinq repas du soir de saison. Ce qui manque part aux courses quand tu valides un soir ou le menu.</p>
             )}
             <button type="button" className="bouton-principal" disabled={occupe} onClick={() => (menu ? setConfirmer(true) : void lancer())}>
               {occupe ? "Le Chef cuisine…" : menu ? "Relancer le Chef" : "Lancer le Chef maintenant"}
@@ -244,9 +277,14 @@ export function Chef(p: PropsPage & { recette?: string | null }) {
                 <p className="chef-plat">{r.titre}</p>
                 <p className="discret">{r.description}</p>
                 {r.avecLeStock.length > 0 && <p className="chef-stock">Avec {r.avecLeStock.join(", ").toLowerCase()}</p>}
-                {recette && (
-                  <button type="button" className="lien chef-voir-recette" onClick={() => setFicheId(recette)}>Voir la recette</button>
-                )}
+                <div className="chef-soir-actions">
+                  <button type="button" className={`lien chef-valider-soir${r.valideLe ? " valide" : ""}`} aria-pressed={!!r.valideLe} onClick={() => void basculerSoir(menu, i)}>
+                    {r.valideLe ? <><Icone nom="coche" taille={14} /> Soir validé</> : "Valider ce soir"}
+                  </button>
+                  {recette && (
+                    <button type="button" className="lien chef-voir-recette" onClick={() => setFicheId(recette)}>Voir la recette</button>
+                  )}
+                </div>
                 <AvisChef avis={avisDuPlat(p.souvenirs, r.titre)?.avis ?? null} titre={r.titre} donner={(a) => void donnerAvis(r.titre, a)} />
               </li>
               );
@@ -260,6 +298,24 @@ export function Chef(p: PropsPage & { recette?: string | null }) {
             <ul className="carte groupe">
               {menu.aFinir.map((t) => <li key={t} className="ligne"><span className="ligne-texte">{t}</span></li>)}
             </ul>
+          </>
+        )}
+
+        {menu && !menu.valideLe && (menu.aAcheter?.length ?? 0) > 0 && (
+          <>
+            <h2 className="rayon">À acheter si tu valides le menu</h2>
+            <ul className="carte groupe chef-propose">
+              {menu.aAcheter!.map((a) => (
+                <li key={a.texte} className="ligne">
+                  <span className="ligne-texte">
+                    {a.texte}
+                    {a.quantite && <span className="quantite"> · {a.quantite}</span>}
+                  </span>
+                  {a.rayon && <span className="discret">{a.rayon}</span>}
+                </li>
+              ))}
+            </ul>
+            <p className="discret">Rien n'est encore sur la liste : valide un soir (ses ingrédients seulement) ou tout le menu.</p>
           </>
         )}
 
@@ -322,7 +378,7 @@ export function Chef(p: PropsPage & { recette?: string | null }) {
               </div>
             </>
           )}
-          <p className="discret chef-note">Il ne fait qu'ajouter à la liste de courses, jamais il ne touche au stock. Les croquettes et la litière de Mitsu restent sur zooplus : il prévient seulement. Sa dépense compte dans le plafond de {nomFee()}.</p>
+          <p className="discret chef-note">Il n'ajoute aux courses que ce que tu valides, jamais il ne touche au stock. Les croquettes et la litière de Mitsu restent sur zooplus : il prévient seulement. Sa dépense compte dans le plafond de {nomFee()}.</p>
         </section>
         </>
       )}
