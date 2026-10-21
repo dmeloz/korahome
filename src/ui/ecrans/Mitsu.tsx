@@ -581,6 +581,7 @@ function Suivi(props: Props & { animal: Animal }) {
                   <span className={`tache-details${s.date < aujourdhui ? " retard" : ""}`}>
                     {dateCourte(s.date)} · {decrireEcheance(s.date, aujourdhui)}
                   </span>
+                  {s.details && <span className="tache-details">{s.details}</span>}
                 </div>
                 <div className="tache-actions mitsu-actions">
                   <button className="lien" onClick={() => enregistrer(marquerSoinFait(animal, s.id, aujourdhui, contexteReel))}>Fait aujourd'hui</button>
@@ -600,7 +601,10 @@ function Suivi(props: Props & { animal: Animal }) {
             <ul className="groupe">
               {soinsFaits(animal).map((s) => (
                 <li key={s.id} className="ligne">
-                  <span className="ligne-texte discret">{s.libelle} · fait le {dateCourte(s.date)}</span>
+                  <span className="ligne-texte discret">
+                    {s.libelle} · fait le {dateCourte(s.date)}
+                    {s.details && <><br />{s.details}</>}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -617,13 +621,18 @@ function Suivi(props: Props & { animal: Animal }) {
         action={<button className="lien" onClick={() => basculer("fiche")}>Modifier</button>}
       >
         <div className="carte">
+          {(animal.infos?.nomComplet || animal.infos?.race || animal.infos?.pelage) && (
+            <p className="discret">
+              {[animal.infos.nomComplet, [animal.infos.race, animal.infos.pelage?.toLowerCase()].filter(Boolean).join(" "), animal.sexe === "male" ? "mâle" : "femelle"].filter(Boolean).join(" · ")}
+            </p>
+          )}
           <p className="discret">
             Née le {dateCourte(animal.naissance)}
             {animal.arrivee ? `, arrivée le ${dateCourte(animal.arrivee)}` : ""}. Commande {animal.reglages.delaiCommande} jours avant la fin d'une provision.
           </p>
           {(animal.infos?.veterinaire || animal.infos?.puce) && (
             <p className="discret">
-              {[animal.infos.veterinaire && `Vétérinaire : ${animal.infos.veterinaire}${animal.infos.telephoneVeto ? `, ${animal.infos.telephoneVeto}` : ""}`, animal.infos.puce && `Puce ${animal.infos.puce}`].filter(Boolean).join(" · ")}
+              {[animal.infos.veterinaire && `Vétérinaire : ${[animal.infos.veterinaire, animal.infos.adresseVeto, animal.infos.telephoneVeto].filter(Boolean).join(", ")}`, animal.infos.puce && `Puce ${animal.infos.puce}${animal.infos.pucePoseeLe ? ` (posée le ${dateCourte(animal.infos.pucePoseeLe)})` : ""}`].filter(Boolean).join(" · ")}
             </p>
           )}
           <Feuille ouverte={ouvert === "fiche"} onFermer={fermer} titre={`Fiche de ${animal.nom}`}>

@@ -41,11 +41,14 @@ export function texteCarnet(animal: Animal, membres: readonly Membre[]): string 
   const prenom = (id: string | null) => membres.find((m) => m.id === id)?.prenom;
   const parts = [`Carnet de ${animal.nom}`, `Né${animal.sexe === "male" ? "" : "e"} le ${date(animal.naissance)}${animal.arrivee ? `, à la maison depuis le ${date(animal.arrivee)}` : ""}${animal.sterilise ? ", stérilisé" + (animal.sexe === "male" ? "" : "e") : ""}`];
   const infos = animal.infos ?? {};
-  if (infos.puce) parts.push(`Puce : ${infos.puce}`);
-  if (infos.veterinaire) parts.push(`Vétérinaire : ${infos.veterinaire}${infos.telephoneVeto ? ` (${infos.telephoneVeto})` : ""}`);
+  if (infos.nomComplet) parts.push(`Nom du carnet : ${infos.nomComplet}`);
+  if (infos.race || infos.pelage) parts.push(`Race : ${[infos.race, infos.pelage?.toLowerCase()].filter(Boolean).join(", ")}`);
+  if (infos.puce) parts.push(`Puce : ${infos.puce}${infos.pucePoseeLe ? `, posée le ${date(infos.pucePoseeLe)}` : ""}`);
+  if (infos.proprietaire) parts.push(`Propriétaire : ${infos.proprietaire}`);
+  if (infos.veterinaire) parts.push(`Vétérinaire : ${[infos.veterinaire, infos.adresseVeto, infos.telephoneVeto, infos.emailVeto].filter(Boolean).join(", ")}`);
   if (infos.assurance) parts.push(`Assurance : ${infos.assurance}`);
   const soins = [...animal.soins].sort((a, b) => b.date.localeCompare(a.date));
-  if (soins.length) parts.push("", "Soins", ...soins.map((s) => `- ${date(s.date)} ${s.libelle}${s.fait ? "" : " (prévu)"}`));
+  if (soins.length) parts.push("", "Soins", ...soins.map((s) => `- ${date(s.date)} ${s.libelle}${s.details ? ` : ${s.details}` : ""}${s.fait ? "" : " (prévu)"}`));
   const pesees = [...animal.pesees].sort((a, b) => b.jour.localeCompare(a.jour));
   if (pesees.length) parts.push("", "Poids", ...pesees.map((p) => `- ${date(p.jour)} ${(p.grammes / 1000).toFixed(2)} kg`));
   const journal = [...(animal.journal ?? [])].sort((a, b) => b.jour.localeCompare(a.jour));

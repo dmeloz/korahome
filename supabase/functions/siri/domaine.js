@@ -139,6 +139,7 @@ const TYPES_SOIN = {
 	antiparasitaire: "Antipuces et tiques",
 	sterilisation: "Stérilisation",
 	visite: "Visite chez le vétérinaire",
+	test: "Test de dépistage",
 	filtre: "Changer le filtre de la fontaine",
 	autre: "Autre soin"
 };
@@ -405,9 +406,11 @@ function alertePoids(animal) {
 }
 /** Un soin noté d'un coup, par exemple relu sur une photo du carnet : fait (à sa date) ou à venir. */
 function noterSoin(animal, champs, ctx) {
+	const details = champs.details?.trim();
 	const soin = {
 		...nouveauSoin(champs.type, champs.date, champs.libelle, ctx),
-		fait: champs.fait
+		fait: champs.fait,
+		...details ? { details } : {}
 	};
 	if (animal.soins.some((s) => s.type === soin.type && s.date === soin.date && s.libelle === soin.libelle)) return animal;
 	return {

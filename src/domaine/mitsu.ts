@@ -49,7 +49,7 @@ export interface CommandeReguliere {
   articles: ArticleCommande[];
 }
 
-export type TypeSoin = "vaccin" | "vermifuge" | "antiparasitaire" | "sterilisation" | "visite" | "filtre" | "autre";
+export type TypeSoin = "vaccin" | "vermifuge" | "antiparasitaire" | "sterilisation" | "visite" | "test" | "filtre" | "autre";
 
 export const TYPES_SOIN: Record<TypeSoin, string> = {
   vaccin: "Vaccin",
@@ -57,6 +57,7 @@ export const TYPES_SOIN: Record<TypeSoin, string> = {
   antiparasitaire: "Antipuces et tiques",
   sterilisation: "Stérilisation",
   visite: "Visite chez le vétérinaire",
+  test: "Test de dépistage",
   filtre: "Changer le filtre de la fontaine",
   autre: "Autre soin",
 };
@@ -68,6 +69,8 @@ export interface Soin {
   libelle: string;
   date: Jour;
   fait: boolean;
+  /** Ce que dit le carnet en plus : produit, lot, dose, résultat d'un test. */
+  details?: string;
 }
 
 export interface Pesee {
@@ -125,9 +128,19 @@ export interface ConsommationObservee {
 export type Sexe = "femelle" | "male";
 
 export interface InfosAnimal {
+  /** Le nom écrit dans son carnet, quand on l'appelle autrement (Mitsuha pour Mitsu). */
+  nomComplet?: string;
+  race?: string;
+  pelage?: string;
   puce?: string;
+  /** Le jour où la puce a été posée, AAAA-MM-JJ. */
+  pucePoseeLe?: string;
+  /** La personne inscrite comme propriétaire dans le carnet, avec son adresse. */
+  proprietaire?: string;
   veterinaire?: string;
   telephoneVeto?: string;
+  adresseVeto?: string;
+  emailVeto?: string;
   assurance?: string;
   /** Ce qu'il faut savoir pour la garder (caractère, cachettes, habitudes). */
   consignes?: string;
@@ -655,12 +668,7 @@ const VACCIN_PRIMO = "Vaccin typhus et coryza";
  */
 export function propositionsCarnet(animal: Animal, aujourdhui: Jour): PropositionCarnet[] {
   const n = animal.naissance;
-  const toutes: PropositionCarnet[] = [
-    { cle: "vaccin-8s", type: "vaccin", libelle: `${VACCIN_PRIMO} (1re injection)`, date: plusJours(n, 56) },
-    { cle: "vaccin-12s", type: "vaccin", libelle: `${VACCIN_PRIMO} (2e injection)`, date: plusJours(n, 84) },
-    { cle: "vaccin-16s", type: "vaccin", libelle: `${VACCIN_PRIMO} (3e injection)`, date: plusJours(n, 112) },
-    { cle: "vaccin-rappel", type: "vaccin", libelle: "Rappel des vaccins (un an après)", date: plusMois(plusJours(n, 112), 12) },
-  ];
+  const toutes: PropositionCarnet[] = suiteDesVaccins(animal);
   if (!animal.soins.some((s) => s.type === "vermifuge")) {
     toutes.push({ cle: "vermifuge", type: "vermifuge", libelle: TYPES_SOIN.vermifuge, date: aujourdhui });
   }
@@ -676,6 +684,32 @@ export function propositionsCarnet(animal: Animal, aujourdhui: Jour): Propositio
   return toutes.filter(
     (p) => !ecartees.has(p.cle) && !animal.soins.some((s) => s.type === p.type && Math.abs(ecartJours(s.date, p.date)) <= 21),
   );
+}
+
+/**
+ * Les vaccins à proposer. Sans vaccin noté, le calendrier type d'un chaton. Dès qu'un vrai vaccin
+ * est noté, la suite part de lui : un seul vaccin de chaton appelle une 2e injection 3 à 4 semaines
+ * après (la primovaccination en demande deux), puis le rappel un an après la dernière. Un vaccin
+ * déjà prévu dans le carnet suffit : rien n'est proposé en plus.
+ */
+function suiteDesVaccins(animal: Animal): PropositionCarnet[] {
+  const n = animal.naissance;
+  const vaccins = animal.soins.filter((s) => s.type === "vaccin");
+  if (vaccins.some((s) => !s.fait)) return [];
+  const faits = vaccins.map((s) => s.date).sort();
+  if (!faits.length) {
+    return [
+      { cle: "vaccin-8s", type: "vaccin", libelle: `${VACCIN_PRIMO} (1re injection)`, date: plusJours(n, 56) },
+      { cle: "vaccin-12s", type: "vaccin", libelle: `${VACCIN_PRIMO} (2e injection)`, date: plusJours(n, 84) },
+      { cle: "vaccin-16s", type: "vaccin", libelle: `${VACCIN_PRIMO} (3e injection)`, date: plusJours(n, 112) },
+      { cle: "vaccin-rappel", type: "vaccin", libelle: "Rappel des vaccins (un an après)", date: plusMois(plusJours(n, 112), 12) },
+    ];
+  }
+  const dernier = faits[faits.length - 1];
+  if (faits.length === 1 && ageEnMois(n, dernier) < 12) {
+    return [{ cle: "vaccin-2e", type: "vaccin", libelle: "2e injection du vaccin, à demander au vétérinaire", date: plusJours(dernier, 28) }];
+  }
+  return [{ cle: "vaccin-rappel", type: "vaccin", libelle: "Rappel des vaccins (un an après)", date: plusMois(dernier, 12) }];
 }
 
 /**
@@ -695,8 +729,9 @@ export function ecarterProposition(animal: Animal, cle: string): Animal {
 }
 
 /** Un soin noté d'un coup, par exemple relu sur une photo du carnet : fait (à sa date) ou à venir. */
-export function noterSoin(animal: Animal, champs: { type: TypeSoin; libelle: string; date: Jour; fait: boolean }, ctx: Contexte): Animal {
-  const soin = { ...nouveauSoin(champs.type, champs.date, champs.libelle, ctx), fait: champs.fait };
+export function noterSoin(animal: Animal, champs: { type: TypeSoin; libelle: string; date: Jour; fait: boolean; details?: string }, ctx: Contexte): Animal {
+  const details = champs.details?.trim();
+  const soin: Soin = { ...nouveauSoin(champs.type, champs.date, champs.libelle, ctx), fait: champs.fait, ...(details ? { details } : {}) };
   // Le même soin à la même date n'est noté qu'une fois.
   if (animal.soins.some((s) => s.type === soin.type && s.date === soin.date && s.libelle === soin.libelle)) return animal;
   return { ...ajouterSoin(animal, soin), sterilise: animal.sterilise || (soin.type === "sterilisation" && soin.fait) };
@@ -781,15 +816,17 @@ export function derniereVisite(animal: Animal): Jour | null {
 /** Le résumé à montrer au vétérinaire : poids, alimentation, soins, et les soucis notés depuis la dernière visite. */
 export function resumeVeto(animal: Animal, aujourdhui: Jour): string {
   const l: string[] = [];
-  l.push(`${animal.nom}, ${animal.sexe === "male" ? "mâle" : "femelle"}${animal.sterilise ? (animal.sexe === "male" ? " castré" : " stérilisée") : ""}, née le ${dateFr(animal.naissance)} (${decrireAge(animal.naissance, aujourdhui)}).`);
-  if (animal.infos?.puce) l.push(`Puce : ${animal.infos.puce}.`);
+  const i = animal.infos ?? {};
+  const race = [i.race, i.pelage?.toLowerCase()].filter(Boolean).join(" ");
+  l.push(`${animal.nom}${i.nomComplet ? ` (${i.nomComplet})` : ""}, ${animal.sexe === "male" ? "mâle" : "femelle"}${animal.sterilise ? (animal.sexe === "male" ? " castré" : " stérilisée") : ""}${race ? `, ${race}` : ""}, née le ${dateFr(animal.naissance)} (${decrireAge(animal.naissance, aujourdhui)}).`);
+  if (i.puce) l.push(`Puce : ${i.puce}${i.pucePoseeLe ? `, posée le ${dateFr(i.pucePoseeLe)}` : ""}.`);
   const pesees = historiquePesees(animal);
   l.push(pesees.length ? `Poids : ${pesees.slice(0, 4).map((p) => `${formaterPoids(p.grammes)} le ${dateFr(p.jour)}`).join(", ")}.` : "Poids : pas de pesée notée.");
   const croquettes = animal.provisions.filter((p) => p.type === "croquettes").map((p) => p.nom);
   const ration = rationDuJour(animal, aujourdhui);
   l.push(`Alimentation : ${croquettes.length ? croquettes.join(", ") : "croquettes"}${ration ? `, environ ${ration.grammes} g par jour` : ""}${animal.reglages.friandisesParJour ? `, ${animal.reglages.friandisesParJour} g de friandises` : ""}.`);
   const faits = soinsFaits(animal).filter((s) => s.type !== "filtre");
-  if (faits.length) l.push(`Soins faits : ${faits.slice(0, 8).map((s) => `${s.libelle} (${dateFr(s.date)})`).join(", ")}.`);
+  if (faits.length) l.push(`Soins faits : ${faits.slice(0, 8).map((s) => `${s.libelle} (${dateFr(s.date)}${s.details ? `, ${s.details}` : ""})`).join(", ")}.`);
   const avenir = soinsAVenir(animal).filter((s) => s.type !== "filtre");
   if (avenir.length) l.push(`Prévu : ${avenir.slice(0, 5).map((s) => `${s.libelle} (${dateFr(s.date)})`).join(", ")}.`);
   const depuis = derniereVisite(animal) ?? plusMois(aujourdhui, -6);
@@ -816,7 +853,7 @@ export function ficheDeGarde(animal: Animal, aujourdhui: Jour): string {
   if (animal.provisions.some((p) => p.type === "filtres")) l.push("Fontaine : le filtre se change une fois par mois.");
   const i = animal.infos ?? {};
   if (i.consignes) l.push(`À savoir : ${i.consignes}`);
-  if (i.veterinaire || i.telephoneVeto) l.push(`Vétérinaire : ${[i.veterinaire, i.telephoneVeto].filter(Boolean).join(", ")}.`);
+  if (i.veterinaire || i.telephoneVeto) l.push(`Vétérinaire : ${[i.veterinaire, i.adresseVeto, i.telephoneVeto, i.emailVeto].filter(Boolean).join(", ")}.`);
   if (i.puce) l.push(`Puce : ${i.puce}.`);
   if (i.assurance) l.push(`Assurance : ${i.assurance}.`);
   l.push("Appeler le vétérinaire si elle ne mange plus pendant un jour, vomit plusieurs fois ou se cache sans ressortir.");

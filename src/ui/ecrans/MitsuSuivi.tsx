@@ -276,10 +276,17 @@ export function Fiches({ animal, aujourdhui, membres, informer }: { animal: Anim
 
 // ----- Informations pratiques -----
 
-const CHAMPS_INFOS: { cle: keyof InfosAnimal; libelle: string; exemple: string; clavier?: "tel" }[] = [
+const CHAMPS_INFOS: { cle: keyof InfosAnimal; libelle: string; exemple: string; clavier?: "tel" | "email"; date?: boolean }[] = [
+  { cle: "nomComplet", libelle: "Nom dans le carnet", exemple: "S'il diffère de son petit nom" },
+  { cle: "race", libelle: "Race", exemple: "Européenne" },
+  { cle: "pelage", libelle: "Pelage", exemple: "Tricolore" },
   { cle: "puce", libelle: "Numéro de puce", exemple: "756 …" },
+  { cle: "pucePoseeLe", libelle: "Puce posée le", exemple: "", date: true },
+  { cle: "proprietaire", libelle: "Propriétaire inscrit", exemple: "Nom et adresse, comme dans le carnet" },
   { cle: "veterinaire", libelle: "Vétérinaire", exemple: "Nom du cabinet" },
+  { cle: "adresseVeto", libelle: "Adresse du vétérinaire", exemple: "Rue, NPA et localité" },
   { cle: "telephoneVeto", libelle: "Téléphone du vétérinaire", exemple: "021 …", clavier: "tel" },
+  { cle: "emailVeto", libelle: "E-mail du vétérinaire", exemple: "cabinet@…", clavier: "email" },
   { cle: "assurance", libelle: "Assurance", exemple: "Compagnie et numéro de police" },
   { cle: "consignes", libelle: "Pour la garde", exemple: "Ses cachettes, ses habitudes" },
 ];
@@ -295,10 +302,11 @@ export function Infos({ animal, modifier }: Pick<Commun, "animal" | "modifier">)
 
   return (
     <form onSubmit={enregistrer} className="formulaire mitsu-fiche">
-      {CHAMPS_INFOS.map(({ cle, libelle, exemple, clavier }) => (
+      {CHAMPS_INFOS.map(({ cle, libelle, exemple, clavier, date }) => (
         <label key={cle}>
           {libelle}
           <input
+            type={date ? "date" : undefined}
             value={valeurs[cle] ?? ""}
             onChange={(e) => setValeurs({ ...valeurs, [cle]: e.target.value })}
             placeholder={exemple}
