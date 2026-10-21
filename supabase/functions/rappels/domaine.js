@@ -77,6 +77,7 @@ const TYPES_SOIN = {
 	antiparasitaire: "Antipuces et tiques",
 	sterilisation: "Stérilisation",
 	visite: "Visite chez le vétérinaire",
+	test: "Test de dépistage",
 	filtre: "Changer le filtre de la fontaine",
 	autre: "Autre soin"
 };

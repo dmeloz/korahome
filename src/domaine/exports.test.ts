@@ -32,7 +32,7 @@ describe("les exports lisibles", () => {
       "Carnet de Mitsu",
       "Née le 14.04.2026, à la maison depuis le 01.06.2026, stérilisée",
       "Puce : 756",
-      "Vétérinaire : Dr Roux (021 634 00 00)",
+      "Vétérinaire : Dr Roux, 021 634 00 00",
       "",
       "Soins",
       "- 02.11.2026 Vaccin typhus (prévu)",

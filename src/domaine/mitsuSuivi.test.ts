@@ -91,7 +91,27 @@ describe("carnet prérempli", () => {
     const cles = propositionsCarnet(a, AUJOURDHUI).map((p) => p.cle);
     expect(cles).not.toContain("vaccin-12s");
     expect(cles).not.toContain("antiparasitaire");
-    expect(cles).toContain("vaccin-8s");
+  });
+
+  it("part du vrai vaccin noté : une seule injection de chaton appelle la 2e, 4 semaines après", () => {
+    const ctx = contexteTest();
+    const a = noterSoin(mitsu(ctx), { type: "vaccin", libelle: "Purevax RCP FeLV, 1re injection", date: "2026-07-04", fait: true, details: "Lot H28737" }, ctx);
+    expect(a.soins[0].details).toBe("Lot H28737");
+    const vaccins = propositionsCarnet(a, AUJOURDHUI).filter((p) => p.type === "vaccin");
+    expect(vaccins.map((p) => [p.cle, p.date])).toEqual([["vaccin-2e", "2026-08-01"]]);
+    // La 2e faite, il reste le rappel un an après elle.
+    const deux = noterSoin(a, { type: "vaccin", libelle: "2e injection", date: "2026-08-01", fait: true }, ctx);
+    expect(propositionsCarnet(deux, AUJOURDHUI).filter((p) => p.type === "vaccin").map((p) => [p.cle, p.date])).toEqual([["vaccin-rappel", "2027-08-01"]]);
+    // Un vaccin déjà prévu suffit.
+    const prevu = noterSoin(a, { type: "vaccin", libelle: "2e injection", date: AUJOURDHUI, fait: false }, ctx);
+    expect(propositionsCarnet(prevu, AUJOURDHUI).some((p) => p.type === "vaccin")).toBe(false);
+  });
+
+  it("un test de dépistage ne revient pas tout seul", () => {
+    const ctx = contexteTest();
+    const a = noterSoin(mitsu(ctx), { type: "test", libelle: "Tests FeLV et FIV", date: AUJOURDHUI, fait: false }, ctx);
+    const fait = marquerSoinFait(a, a.soins[0].id, AUJOURDHUI, ctx);
+    expect(fait.soins).toHaveLength(1);
   });
 
   it("note une proposition passée comme faite à sa date, ou la prévoit au plus tôt aujourd'hui", () => {
@@ -176,6 +196,16 @@ describe("fiches à partager", () => {
     expect(resume).toContain("Depuis le 01.09.2026 : a vomi le 05.10.2026 (après les friandises).");
     expect(resume).not.toContain("20.08.2026");
     expect(a.infos).toEqual({ puce: "756 0981 2345 678" });
+  });
+
+  it("reprend l'identité du carnet et le détail des soins", () => {
+    const ctx = contexteTest();
+    let a = modifierInfos(mitsu(ctx), { nomComplet: "Mitsuha", race: "Européenne", pelage: "Tricolore", puce: "756093900131894", pucePoseeLe: "2026-07-04" });
+    a = noterSoin(a, { type: "test", libelle: "Tests FeLV et FIV", date: "2026-07-04", fait: true, details: "négatifs" }, ctx);
+    const resume = resumeVeto(a, AUJOURDHUI);
+    expect(resume).toContain("Mitsu (Mitsuha), femelle, Européenne tricolore, née le 14.04.2026");
+    expect(resume).toContain("Puce : 756093900131894, posée le 04.07.2026.");
+    expect(resume).toContain("Tests FeLV et FIV (04.07.2026, négatifs)");
   });
 
   it("prépare la fiche de garde avec la ration et le vétérinaire", () => {
