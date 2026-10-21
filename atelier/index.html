@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>Atelier de finition</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -47,6 +48,8 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html, body { height: 100%; }
+body { display: flex; flex-direction: column; }
+.etabli, .direct { flex: 1; min-height: 0; }
 body { background: var(--fond); color: var(--texte); font: 14px/1.45 var(--police); margin: 0; }
 button, input, textarea, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
@@ -72,7 +75,7 @@ button { cursor: pointer; }
 .compte { display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--laiton-doux); color: var(--laiton); font: 500 11px/18px var(--police-fixe); text-align: center; margin-left: 4px; }
 
 /* ---- L'établi ---- */
-.etabli { display: grid; grid-template-columns: 250px minmax(0, 1fr) 380px; height: calc(100% - 64px); min-height: 0; }
+.etabli { display: grid; grid-template-columns: 250px minmax(0, 1fr) 380px; }
 .rail { border-right: 1px solid var(--trait); overflow-y: auto; padding: 14px 10px 30px; }
 .rubrique { font: 500 11px/1 var(--police-fixe); letter-spacing: 0.12em; text-transform: uppercase; color: var(--discret); margin: 18px 8px 8px; }
 .rubrique:first-child { margin-top: 4px; }
@@ -187,57 +190,131 @@ button { cursor: pointer; }
 .importance-genant { color: var(--change); font-size: 12px; font-weight: 600; }
 
 
-/* ---- La retouche en direct : la vraie app au centre, les réglages à droite ---- */
-.direct { display: grid; grid-template-columns: 270px minmax(0, 1fr) 400px; height: calc(100% - 64px); min-height: 0; }
+/* ---- La retouche en direct, façon Figma ou Webflow : Kora au centre, toujours à côté des réglages ---- */
+.direct { display: grid; grid-template-columns: minmax(0, 1fr) 340px; position: relative; }
 .direct > * { min-height: 0; }
-.colonne { overflow-y: auto; padding: 16px 16px 40px; display: flex; flex-direction: column; gap: 18px; }
-.colonne.gauche { border-right: 1px solid var(--trait); }
-.colonne.droite { border-left: 1px solid var(--trait); }
-.vivant { position: relative; flex: none; border-radius: 28px; overflow: hidden; box-shadow: var(--ombre), 0 0 0 1px var(--trait); background: var(--surface); }
+.direct .plan { display: flex; }
+.direct .scene { margin: auto; padding: 56px 48px; }
+.enveloppe { position: relative; flex: none; }
+.vivant { position: relative; border-radius: 28px; overflow: hidden; box-shadow: var(--ombre), 0 0 0 1px var(--trait); background: var(--surface); }
 .vivant.ipad { border-radius: 18px; }
 .vivant iframe { position: absolute; top: 0; left: 0; border: 0; transform-origin: 0 0; background: var(--surface); }
-.vivant .prise { position: absolute; inset: 0; cursor: crosshair; }
-.vivant .prise[hidden] { display: none; }
+.vivant .prise { position: absolute; inset: 0; cursor: default; }
 .vivant svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.poignees { position: absolute; inset: 0; pointer-events: none; }
+.poignee { position: absolute; width: 22px; height: 22px; transform: translate(-50%, -50%); pointer-events: auto; display: grid; place-items: center; touch-action: none; }
+.poignee::after { content: ""; border-radius: 3px; box-shadow: 0 0 0 1.5px var(--fond); }
+.poignee.y { cursor: ns-resize; } .poignee.x { cursor: ew-resize; }
+.poignee.y::after { width: 16px; height: 4px; } .poignee.x::after { width: 4px; height: 16px; }
+.poignee.p::after { background: var(--regle); } .poignee.m::after { background: var(--change); }
+.poignee:hover::after { transform: scale(1.35); }
+.barre-flottante { position: absolute; z-index: 4; display: flex; align-items: center; gap: 2px; padding: 4px; background: var(--surface-haute); border: 1px solid var(--trait); border-radius: 10px; box-shadow: var(--ombre); white-space: nowrap; }
+.barre-flottante .nom { font: 500 12px var(--police-fixe); color: var(--laiton); padding: 0 8px 0 6px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+.barre-flottante button { border: 0; background: none; color: var(--texte); border-radius: 6px; min-width: 28px; height: 28px; padding: 0 7px; font-size: 12.5px; }
+.barre-flottante button:hover { background: var(--surface); }
+.barre-flottante button[aria-pressed="true"] { color: var(--laiton); background: var(--laiton-doux); }
+.barre-flottante input[type=color] { width: 28px; height: 28px; padding: 3px; border: 0; border-radius: 6px; background: none; }
+.barre-flottante .sep { width: 1px; height: 18px; background: var(--trait); margin: 0 3px; }
+.bulle { position: fixed; z-index: 30; pointer-events: none; background: var(--laiton); color: var(--sur-laiton); font: 500 11.5px/1 var(--police-fixe); padding: 5px 7px; border-radius: 6px; transform: translate(14px, 14px); }
+body.scrub, body.scrub * { cursor: ew-resize !important; user-select: none; }
+
+.panneau { border-left: 1px solid var(--trait); display: flex; flex-direction: column; min-height: 0; background: var(--fond); }
+.onglets-panneau { margin: 12px 14px 0; display: flex; }
+.onglets-panneau button { flex: 1; }
+.onglets-panneau button[aria-pressed="true"] { color: var(--laiton); }
+.panneau-corps { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 16px 24px; display: flex; flex-direction: column; gap: 18px; }
+.panneau-pied { border-top: 1px solid var(--trait); padding: 12px 16px; display: grid; gap: 6px; }
+.panneau-pied .principal { width: 100%; }
+
+.portee { display: flex; }
+.portee button { flex: 1; }
+.cible-portee { font: 11px var(--police-fixe); color: var(--discret); margin-top: 6px; overflow-wrap: anywhere; }
+details.plus summary { font-size: 12px; color: var(--discret); cursor: pointer; margin-top: 6px; }
+details.plus select { margin-top: 6px; width: 100%; background: var(--fond); border: 1px solid var(--trait); border-radius: 8px; padding: 6px 8px; font: 12px var(--police-fixe); }
+
+/* La boîte : marge dehors, marge intérieure dedans, la taille au milieu, comme dans Webflow et les outils du navigateur. */
+.modele { position: relative; display: grid; grid-template-columns: 46px minmax(0, 1fr) 46px; grid-template-rows: 30px auto 30px; align-items: center; justify-items: center; border: 1px dashed rgb(226 145 106 / 0.6); background: rgb(226 145 106 / 0.08); border-radius: 10px; }
+.modele .interieur { grid-column: 2; grid-row: 2; width: 100%; display: grid; grid-template-columns: 46px minmax(0, 1fr) 46px; grid-template-rows: 30px 38px 30px; align-items: center; justify-items: center; border: 1px dashed rgb(127 179 154 / 0.7); background: rgb(127 179 154 / 0.1); border-radius: 7px; }
+.modele .contenu { grid-column: 2; grid-row: 2; width: 100%; height: 100%; display: grid; place-items: center; background: var(--surface); border: 1px solid var(--trait); border-radius: 5px; font: 11.5px var(--police-fixe); color: var(--discret); }
+.modele .etiq { position: absolute; top: 5px; left: 8px; font: 10px var(--police-fixe); color: var(--discret); letter-spacing: 0.06em; text-transform: uppercase; pointer-events: none; }
+.modele .interieur .etiq { top: auto; left: auto; position: static; grid-column: 1; grid-row: 1; justify-self: start; padding-left: 7px; }
+.mini { width: 40px; text-align: center; background: none; border: 1px solid transparent; border-radius: 6px; padding: 3px 0; font: 12px var(--police-fixe); cursor: ew-resize; }
+.mini:hover { border-color: var(--trait); }
+.mini:focus { cursor: text; border-color: var(--laiton); background: var(--fond); outline: none; }
+.mini.change { color: var(--laiton); font-weight: 500; }
+
+.reglage { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 4px 10px; align-items: center; }
+.reglage > label, .reglage > .libelle { color: var(--discret); font-size: 12.5px; }
+.reglage > label.scrub { cursor: ew-resize; user-select: none; }
+.reglage > label.scrub:hover { color: var(--texte); }
+.saisie { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.saisie input[type=text] { width: 100%; min-width: 0; background: var(--fond); border: 1px solid var(--trait); border-radius: 7px; padding: 5px 8px; font: 12px var(--police-fixe); }
+.saisie input.change { border-color: var(--laiton); color: var(--laiton); }
+.saisie input[type=color] { width: 30px; height: 26px; padding: 2px; border: 1px solid var(--trait); border-radius: 7px; background: none; flex: none; }
+.saisie input[type=range] { flex: 1; accent-color: var(--laiton); }
+.saisie .valeur { font: 12px var(--police-fixe); min-width: 34px; text-align: right; }
+.saisie .groupe { width: 100%; display: flex; }
+.saisie .groupe button { flex: 1; padding: 5px 4px; font-size: 12px; }
+.source { grid-column: 2; font: 10.5px var(--police-fixe); color: var(--discret); overflow-wrap: anywhere; }
+.nuancier { display: flex; flex-wrap: wrap; gap: 4px; grid-column: 2; }
+.nuancier button { width: 18px; height: 18px; border-radius: 5px; border: 1px solid var(--trait); padding: 0; }
+.nuancier button[aria-pressed="true"] { outline: 2px solid var(--laiton); outline-offset: 1px; }
 .retouche { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; padding: 9px 10px; border: 1px solid var(--trait); border-radius: 10px; background: var(--surface); }
 .retouche .cible { font: 11.5px var(--police-fixe); color: var(--laiton); overflow-wrap: anywhere; }
 .retouche .valeur { font: 12px var(--police-fixe); overflow-wrap: anywhere; grid-column: 1; }
 .retouche .valeur s { color: var(--discret); }
 .retouche button { grid-row: 1 / span 2; grid-column: 2; align-self: center; border: 0; background: none; color: var(--discret); font-size: 12px; }
-.reglage { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 4px 10px; align-items: center; }
-.reglage > label { color: var(--discret); font-size: 12.5px; }
-.saisie { display: flex; align-items: center; gap: 4px; min-width: 0; }
-.saisie input[type=number], .saisie input[type=text], .saisie select { width: 100%; min-width: 0; background: var(--fond); border: 1px solid var(--trait); border-radius: 7px; padding: 4px 7px; font: 12px var(--police-fixe); }
-.saisie input.change { border-color: var(--laiton); color: var(--laiton); }
-.saisie button { border: 1px solid var(--trait); background: var(--surface); border-radius: 6px; width: 24px; height: 24px; flex: none; padding: 0; color: var(--discret); }
-.saisie input[type=color] { width: 28px; height: 24px; padding: 0; border: 1px solid var(--trait); border-radius: 6px; background: none; flex: none; }
-.source { grid-column: 2; font: 10.5px var(--police-fixe); color: var(--discret); overflow-wrap: anywhere; }
-.nuancier { display: flex; flex-wrap: wrap; gap: 4px; grid-column: 2; }
-.nuancier button { width: 18px; height: 18px; border-radius: 5px; border: 1px solid var(--trait); padding: 0; }
-.nuancier button[aria-pressed="true"] { outline: 2px solid var(--laiton); outline-offset: 1px; }
-.jeton-ligne { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 8px; align-items: center; }
-.jeton-ligne input { width: 28px; height: 22px; padding: 0; border: 1px solid var(--trait); border-radius: 6px; background: none; }
+.jeton-ligne { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 8px; align-items: center; }
+.jeton-ligne input { width: 30px; height: 24px; padding: 2px; border: 1px solid var(--trait); border-radius: 6px; background: none; }
 .jeton-ligne span { font: 11.5px var(--police-fixe); overflow-wrap: anywhere; }
 .jeton-ligne span.change { color: var(--laiton); }
-.regles { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.regles { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 3px; }
 .regles li { font: 11.5px/1.45 var(--police-fixe); overflow-wrap: anywhere; }
 .regles li span { color: var(--discret); }
 pre.diff { margin: 0; font: 11.5px/1.5 var(--police-fixe); white-space: pre-wrap; overflow-wrap: anywhere; background: var(--fond); border: 1px solid var(--trait); border-radius: 8px; padding: 8px 10px; max-height: 180px; overflow: auto; }
 .carte-note.sans-image { grid-template-columns: minmax(0, 1fr); }
-@media (max-width: 1100px) {
-  .direct { grid-template-columns: minmax(0, 1fr); height: auto; }
-  .colonne.gauche, .colonne.droite { border: 0; border-top: 1px solid var(--trait); }
-  .direct .centre { order: -1; }
-  .direct .plan { min-height: 75vh; }
+#b-panneau { display: none; }
+.direct .outils { flex-wrap: nowrap; overflow-x: auto; gap: 8px; }
+.direct .outils .titre-ecran { flex: 1 1 120px; overflow: hidden; }
+.direct .outils .titre-ecran, .direct .outils .titre-ecran small { white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+.direct .outils .groupe { flex-wrap: nowrap; flex: none; }
+.direct .outils .bascule { flex: none; }
+.onglets-panneau { flex-wrap: nowrap; }
+.onglets-panneau button { padding: 6px 6px; }
+@media (max-width: 1200px) {
+  .entete { padding-block: 9px; gap: 8px 12px; }
+  .marque h1 { font-size: 22px; }
+  .entete .groupe button { padding: 5px 9px; }
+  .entete .groupe button .qui { display: none; }
+}
+@media (max-width: 900px) {
+  .direct { grid-template-columns: minmax(0, 1fr) 300px; }
+  .direct .scene { padding: 48px 20px; }
+}
+/* Sur un écran étroit, les réglages glissent par-dessus Kora depuis la droite, jamais en dessous. */
+@media (max-width: 640px) {
+  .direct { grid-template-columns: minmax(0, 1fr); }
+  #b-panneau { display: inline-flex; }
+  .panneau { position: absolute; top: 0; right: 0; bottom: 0; width: min(330px, 92vw); z-index: 10; box-shadow: var(--ombre); transform: translateX(100%); visibility: hidden; }
+  .panneau.ouvert { transform: none; visibility: visible; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .panneau { transition: transform 0.22s ease, visibility 0.22s; }
 }
 
+/* Plus étroit : la liste des écrans se réduit à leurs vignettes, l'inspecteur reste à côté de l'écran. */
 @media (max-width: 1100px) {
-  .etabli { grid-template-columns: 210px minmax(0, 1fr); height: auto; }
-  .inspecteur { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--trait); }
-  .plan { min-height: 70vh; }
+  .etabli { grid-template-columns: 64px minmax(0, 1fr) 320px; }
+  .etabli .rubrique, .etabli .ecran .nom { display: none; }
+  .etabli .ecran { grid-template-columns: 38px; justify-items: center; padding: 6px 4px; position: relative; }
+  .etabli .ecran .etat { display: none; }
+  .etabli .outils { flex-wrap: nowrap; overflow-x: auto; }
+  .etabli .outils .titre-ecran { flex: 1 1 140px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .etabli .outils .groupe, .etabli .outils .bascule { flex: none; flex-wrap: nowrap; }
 }
 @media (max-width: 720px) {
-  .etabli { display: flex; flex-direction: column; }
+  .etabli { display: flex; flex-direction: column; overflow-y: auto; }
+  .etabli .plan { min-height: 70vh; flex: none; }
   .rail { display: flex; gap: 6px; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--trait); padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); }
   .rubrique { display: none; }
   .ecran { grid-template-columns: 38px; width: auto; flex: none; }
@@ -306,24 +383,34 @@ pre.diff { margin: 0; font: 11.5px/1.5 var(--police-fixe); white-space: pre-wrap
 
 
 <main class="direct" id="direct" hidden>
-  <aside class="colonne gauche" aria-label="Tes retouches et les couleurs de Kora">
-    <div class="bloc" id="bloc-retouches"></div>
-    <div class="bloc" id="bloc-jetons"></div>
-  </aside>
   <section class="centre">
     <div class="outils">
       <div class="titre-ecran" id="titre-direct">Kora en vrai<small>Chargement…</small></div>
       <div class="groupe" role="group" aria-label="Ce que fait le doigt" id="mode-direct">
-        <button data-v="retoucher" aria-pressed="true">Retoucher</button>
-        <button data-v="naviguer" aria-pressed="false">Utiliser Kora</button>
+        <button data-v="retoucher" aria-pressed="true" title="Toucher un élément pour le régler (V)">Retoucher</button>
+        <button data-v="naviguer" aria-pressed="false" title="Le doigt sert à naviguer dans Kora (U)">Utiliser Kora</button>
       </div>
-      <button class="bascule" id="b-avant-apres" aria-pressed="false" title="Voir Kora sans tes retouches">Sans mes retouches</button>
-      <button class="bascule" id="b-grille-direct" aria-pressed="false">Grille</button>
+      <div class="groupe" role="group" aria-label="Historique">
+        <button id="b-annuler" title="Annuler (⌘Z)" aria-label="Annuler" disabled>↶</button>
+        <button id="b-refaire" title="Rétablir (⇧⌘Z)" aria-label="Rétablir" disabled>↷</button>
+      </div>
+      <button class="bascule" id="b-avant-apres" aria-pressed="false" title="Voir Kora sans tes retouches (B)">Avant</button>
+      <button class="bascule" id="b-grille-direct" aria-pressed="false" title="Grille de 8 points (G)">Grille</button>
       <button class="bascule" id="b-recommencer" title="Remettre le foyer d'essai et revenir à l'accueil">Recommencer</button>
+      <button class="bascule" id="b-panneau" aria-expanded="false" aria-controls="panneau-direct">Réglages</button>
     </div>
     <div class="plan" id="plan-direct"><div class="scene" id="scene-direct"></div></div>
   </section>
-  <aside class="colonne droite" id="inspecteur-direct" aria-label="Réglages de l'élément"></aside>
+  <aside class="panneau" id="panneau-direct" aria-label="Réglages">
+    <div class="groupe onglets-panneau" role="tablist" id="onglets-direct">
+      <button role="tab" data-v="element" aria-pressed="true">Élément</button>
+      <button role="tab" data-v="couleurs" aria-pressed="false">Couleurs</button>
+      <button role="tab" data-v="retouches" aria-pressed="false">Retouches <span class="compte" id="compte-retouches">0</span></button>
+    </div>
+    <div class="panneau-corps" id="inspecteur-direct"></div>
+    <div class="panneau-pied" id="pied-direct"></div>
+  </aside>
+  <div class="bulle" id="bulle-direct" hidden></div>
 </main>
 
 <div class="loupe" id="loupe" hidden><canvas id="loupe-canvas" width="220" height="220"></canvas><div class="lecture"><span class="pastille" id="loupe-pastille"></span><span id="loupe-texte"></span></div></div>
@@ -1030,14 +1117,7 @@ function dessinerNotes() {
 }
 
 // ---------- La retouche en direct : la vraie app, ses styles changés sous les yeux ----------
-const direct = { cadre: null, doc: null, mode: "retoucher", choisi: null, survol: null, retouches: [], jetons: {}, sans: false, grille: false, portee: "auto", pret: false, compteur: 0 };
-const REGLAGES = [
-  ["Espacement", [["padding-top", "marge intérieure haut"], ["padding-right", "marge intérieure droite"], ["padding-bottom", "marge intérieure bas"], ["padding-left", "marge intérieure gauche"], ["margin-top", "marge haut"], ["margin-bottom", "marge bas"], ["margin-left", "marge gauche"], ["margin-right", "marge droite"], ["gap", "écart"]]],
-  ["Texte", [["font-size", "taille"], ["font-weight", "graisse"], ["line-height", "interligne"], ["letter-spacing", "approche"], ["text-align", "alignement"], ["color", "couleur"]]],
-  ["Forme", [["background-color", "fond"], ["border-radius", "arrondi"], ["opacity", "opacité"], ["width", "largeur"], ["height", "hauteur"]]],
-];
-const CHOIX = { "font-weight": ["300", "400", "500", "600", "700", "800"], "text-align": ["left", "center", "right", "start", "end"] };
-const COULEURS = new Set(["color", "background-color"]);
+const direct = { cadre: null, doc: null, mode: "retoucher", choisi: null, survol: null, retouches: [], jetons: {}, sans: false, grille: false, portee: "auto", pret: false, compteur: 0, onglet: "element", mot: "", glisse: false, edition: null, barrePour: null };
 const SANS_UNITE = new Set(["opacity", "font-weight"]);
 
 async function semer(force) {
@@ -1081,7 +1161,11 @@ async function ouvrirDirect(recommencer) {
     const prise = document.createElement("div"); prise.className = "prise"; prise.hidden = direct.mode !== "retoucher";
     const svg = document.createElementNS(NS, "svg"); svg.setAttribute("viewBox", `0 0 ${a.largeur} ${a.hauteur}`); svg.setAttribute("preserveAspectRatio", "none"); svg.id = "calque-direct";
     boite.append(f, svg, prise);
-    scene.append(boite);
+    const env = document.createElement("div"); env.className = "enveloppe";
+    const poignees = document.createElement("div"); poignees.className = "poignees"; poignees.id = "poignees-direct";
+    const barre = document.createElement("div"); barre.className = "barre-flottante"; barre.id = "barre-direct"; barre.hidden = true; barre.setAttribute("role", "toolbar"); barre.setAttribute("aria-label", "Réglages rapides");
+    env.append(boite, poignees, barre);
+    scene.append(env);
     direct.cadre = f;
     f.onload = () => {
       direct.doc = f.contentDocument;
@@ -1089,6 +1173,8 @@ async function ouvrirDirect(recommencer) {
       const st = direct.doc.createElement("style"); st.id = "atelier-retouches"; direct.doc.head.append(st);
       appliquerRetouches();
       direct.doc.addEventListener("scroll", () => dessinerDirect(), true);
+      // Pendant qu'on écrit un texte sur place, un toucher dans Kora ne doit pas ouvrir une page.
+      direct.doc.addEventListener("click", (ev) => { if (direct.edition) { ev.stopPropagation(); if (!direct.edition.contains(ev.target)) ev.preventDefault(); } }, true);
       brancherPrise(prise);
       direct.pret = true;
       lireJetons();
@@ -1109,7 +1195,7 @@ function appliquerTheme() {
 function mettreAEchelle() {
   const f = direct.cadre; if (!f) return;
   const a = appareil(), plan = $("plan-direct");
-  const z = Math.max(0.3, Math.min(1.25, (plan.clientWidth - 80) / a.largeur, (plan.clientHeight - 80) / a.hauteur));
+  const z = Math.max(0.3, Math.min(1.5, (plan.clientWidth - 96) / a.largeur, (plan.clientHeight - 112) / a.hauteur));
   f.style.transform = `scale(${z})`;
   f.parentElement.style.width = `${a.largeur * z}px`; f.parentElement.style.height = `${a.hauteur * z}px`;
   direct.z = z;
@@ -1124,7 +1210,8 @@ function elementAuPoint(ev) {
 function brancherPrise(prise) {
   prise.onpointermove = (ev) => { const el = elementAuPoint(ev); if (el !== direct.survol) { direct.survol = el; dessinerDirect(); } };
   prise.onpointerleave = () => { direct.survol = null; dessinerDirect(); };
-  prise.onclick = (ev) => { direct.choisi = elementAuPoint(ev); direct.portee = "auto"; dessinerDirect(); dessinerInspecteurDirect(); };
+  prise.onclick = (ev) => { const el = elementAuPoint(ev); if (el) choisir(el); else { direct.choisi = null; dessinerDirect(); dessinerInspecteurDirect(); } };
+  prise.ondblclick = (ev) => { const el = elementAuPoint(ev); if (el && aDuTexte(el)) { choisir(el); editerTexte(el); } };
   prise.onwheel = (ev) => { direct.doc.scrollingElement?.scrollBy(0, ev.deltaY / direct.z); const s = direct.doc.querySelector(".page-dessus, .page"); s?.scrollBy?.(0, ev.deltaY / direct.z); dessinerDirect(); };
 }
 
@@ -1135,20 +1222,205 @@ function dessinerDirect() {
   if (direct.grille) for (let x = 8; x < a.largeur; x += 8) ligne(svg, x, 0, x, a.hauteur, { stroke: "rgb(111 183 232 / 0.22)", "stroke-width": fin });
   if (direct.grille) for (let y = 8; y < a.hauteur; y += 8) ligne(svg, 0, y, a.largeur, y, { stroke: "rgb(111 183 232 / 0.22)", "stroke-width": fin });
   const boite = (el) => { const r = el.getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map((v) => Math.round(v * 2) / 2); };
-  if (direct.survol && direct.survol !== direct.choisi && direct.survol.isConnected) rect(svg, boite(direct.survol), { fill: "rgb(111 183 232 / 0.12)", stroke: "var(--mesure)", "stroke-width": fin });
+  // Le survol dit le nom du composant, comme l'inspecteur du navigateur.
+  if (direct.mode === "retoucher" && direct.survol && direct.survol !== direct.choisi && direct.survol.isConnected) {
+    const b = boite(direct.survol);
+    rect(svg, b, { fill: "rgb(111 183 232 / 0.10)", stroke: "var(--mesure)", "stroke-width": fin });
+    const nom = composantVivant(direct.survol).noms[0] ?? direct.survol.tagName.toLowerCase();
+    texte(svg, b[0] + b[2] / 2, Math.max(9 * fin, b[1] - 10 * fin), nom, { fond: "var(--mesure)" });
+  }
   if (direct.choisi?.isConnected) {
     const b = boite(direct.choisi), s = direct.doc.defaultView.getComputedStyle(direct.choisi);
     const px = (k) => parseFloat(s.getPropertyValue(k)) || 0;
     const [x, y, w, h] = b, pt = px("padding-top"), pr = px("padding-right"), pb = px("padding-bottom"), pl = px("padding-left");
+    const mt = px("margin-top"), mr = px("margin-right"), mb = px("margin-bottom"), ml = px("margin-left");
     const vert = { fill: "rgb(127 179 154 / 0.28)" }, orange = { fill: "rgb(226 145 106 / 0.22)" };
     if (pt) rect(svg, [x, y, w, pt], vert); if (pb) rect(svg, [x, y + h - pb, w, pb], vert);
     if (pl) rect(svg, [x, y + pt, pl, h - pt - pb], vert); if (pr) rect(svg, [x + w - pr, y + pt, pr, h - pt - pb], vert);
-    const mt = px("margin-top"), mb = px("margin-bottom");
     if (mt > 0) rect(svg, [x, y - mt, w, mt], orange); if (mb > 0) rect(svg, [x, y + h, w, mb], orange);
+    if (ml > 0) rect(svg, [x - ml, y, ml, h], orange); if (mr > 0) rect(svg, [x + w, y, mr, h], orange);
     rect(svg, b, { fill: "none", stroke: "var(--laiton)", "stroke-width": 1.5 * fin });
-    texte(svg, x + w / 2, y + h + 11 * fin, `${w} × ${h}`);
+    // Les valeurs sur l'écran même, là où elles agissent (comme « See spacing values on the canvas » de Webflow).
+    const assez = 14 * fin, vVert = { fond: "var(--regle)" }, vOrange = { fond: "var(--change)" };
+    if (pt >= assez) texte(svg, x + w / 2, y + pt / 2, String(+pt.toFixed(1)), vVert);
+    if (pb >= assez) texte(svg, x + w / 2, y + h - pb / 2, String(+pb.toFixed(1)), vVert);
+    if (pl >= assez * 1.6) texte(svg, x + pl / 2, y + h / 2, String(+pl.toFixed(1)), vVert);
+    if (pr >= assez * 1.6) texte(svg, x + w - pr / 2, y + h / 2, String(+pr.toFixed(1)), vVert);
+    if (mt >= assez) texte(svg, x + w / 2, y - mt / 2, String(+mt.toFixed(1)), vOrange);
+    if (mb >= assez) texte(svg, x + w / 2, y + h + mb / 2, String(+mb.toFixed(1)), vOrange);
+    if (!direct.glisse) texte(svg, x + w / 2, y + h + Math.max(mb, 0) + 24 * fin, `${w} × ${h}`);
   }
+  placerPoignees();
+  placerBarre();
 }
+
+// ---------- Les poignées : tirer une marge sur l'écran même ----------
+const POIGNEES = [
+  ["padding-top", "y", 1], ["padding-bottom", "y", -1], ["padding-left", "x", 1], ["padding-right", "x", -1],
+  ["margin-top", "y", -1], ["margin-bottom", "y", 1], ["margin-left", "x", -1], ["margin-right", "x", 1],
+];
+const OPPOSE = { top: "bottom", bottom: "top", left: "right", right: "left" };
+const NOMS_PROPS = { "padding-top": "marge intérieure haut", "padding-bottom": "marge intérieure bas", "padding-left": "marge intérieure gauche", "padding-right": "marge intérieure droite", "margin-top": "marge haut", "margin-bottom": "marge bas", "margin-left": "marge gauche", "margin-right": "marge droite", "font-size": "taille", gap: "écart" };
+const avantPour = (c, prop, actuelle) => direct.retouches.find((r) => r.cible === c.cible && r.propriete === prop && r.media === c.media)?.avant ?? actuelle;
+
+function placerPoignees() {
+  const cal = $("poignees-direct"); if (!cal) return;
+  if (!cal.children.length) for (const [prop, axe, sens] of POIGNEES) {
+    const p = document.createElement("div"); p.className = `poignee ${prop.startsWith("padding") ? "p" : "m"} ${axe}`;
+    p.title = `${NOMS_PROPS[prop]} : glisse pour changer · ⌥ les deux côtés · ⇧ les quatre`;
+    brancherPoignee(p, prop, axe, sens); cal.append(p);
+  }
+  const el = direct.choisi, voir = direct.mode === "retoucher" && el?.isConnected && !direct.edition && !direct.sans;
+  for (const p of cal.children) p.hidden = !voir;
+  if (!voir) return;
+  const z = direct.z, r = el.getBoundingClientRect(), s = direct.doc.defaultView.getComputedStyle(el);
+  const px = (k) => (parseFloat(s.getPropertyValue(k)) || 0) * z;
+  const x = r.left * z, y = r.top * z, w = r.width * z, h = r.height * z;
+  const places = {
+    "padding-top": [x + w / 2, y + px("padding-top") + 6], "padding-bottom": [x + w / 2, y + h - px("padding-bottom") - 6],
+    "padding-left": [x + px("padding-left") + 6, y + h / 2], "padding-right": [x + w - px("padding-right") - 6, y + h / 2],
+    "margin-top": [x + w / 2, y - Math.max(0, px("margin-top")) - 6], "margin-bottom": [x + w / 2, y + h + Math.max(0, px("margin-bottom")) + 6],
+    "margin-left": [x - Math.max(0, px("margin-left")) - 6, y + h / 2], "margin-right": [x + w + Math.max(0, px("margin-right")) + 6, y + h / 2],
+  };
+  POIGNEES.forEach(([prop, axe], i) => {
+    const p = cal.children[i], [cx, cy] = places[prop];
+    // Sur un tout petit élément, les poignées intérieures se gêneraient : on garde les marges extérieures.
+    p.hidden = prop.startsWith("padding") && (axe === "x" ? w < 44 : h < 30);
+    p.style.left = `${cx}px`; p.style.top = `${cy}px`;
+  });
+}
+function brancherPoignee(p, prop, axe, sens) {
+  p.onpointerdown = (ev) => {
+    const el = direct.choisi; if (!el) return;
+    ev.preventDefault(); ev.stopPropagation(); p.setPointerCapture(ev.pointerId);
+    instantane(true);
+    const [genre, cote] = prop.split("-"), s = direct.doc.defaultView.getComputedStyle(el), regles = reglesDe(el);
+    const depart = parseFloat(s.getPropertyValue(prop)) || 0, info = {};
+    for (const c of ["top", "right", "bottom", "left"]) { const k = `${genre}-${c}`, ci = cibleDe(el, k, regles); info[k] = { c: ci, avant: avantPour(ci, k, s.getPropertyValue(k).trim()) }; }
+    const x0 = ev.clientX, y0 = ev.clientY;
+    direct.glisse = true; placerBarre();
+    p.onpointermove = (e) => {
+      const d = ((axe === "x" ? e.clientX - x0 : e.clientY - y0) / direct.z) * sens;
+      let v = Math.round(depart + d); if (genre === "padding") v = Math.max(0, v);
+      const props = e.shiftKey ? ["top", "right", "bottom", "left"].map((c) => `${genre}-${c}`) : e.altKey ? [prop, `${genre}-${OPPOSE[cote]}`] : [prop];
+      for (const k of props) retoucher(el, k, `${v}px`, info[k].avant, info[k].c, true);
+      appliquerRetouches();
+      bulle(e, `${e.shiftKey ? `${genre === "padding" ? "marge intérieure" : "marge"} partout` : e.altKey ? `${NOMS_PROPS[prop]} et ${OPPOSE[cote] === "bottom" ? "bas" : OPPOSE[cote] === "top" ? "haut" : OPPOSE[cote] === "left" ? "gauche" : "droite"}` : NOMS_PROPS[prop]} · ${v}`);
+      dessinerDirect();
+    };
+    p.onpointerup = p.onpointercancel = () => { p.onpointermove = null; p.onpointerup = p.onpointercancel = null; direct.glisse = false; bulle(null); dessinerDirect(); dessinerRetouches(); dessinerInspecteurDirect(); };
+  };
+}
+function bulle(ev, t) {
+  const b = $("bulle-direct"); if (!b) return;
+  b.hidden = !ev; if (!ev) return;
+  b.textContent = t; b.style.left = `${ev.clientX}px`; b.style.top = `${ev.clientY}px`;
+}
+
+// ---------- La petite barre au-dessus de l'élément choisi ----------
+function placerBarre() {
+  const b = $("barre-direct"); if (!b) return;
+  const el = direct.choisi, voir = direct.mode === "retoucher" && el?.isConnected && !direct.glisse && !direct.edition && !direct.sans;
+  b.hidden = !voir; if (!voir) { direct.barrePour = null; return; }
+  if (direct.barrePour !== el || direct.barreVersion !== direct.retouches.length) { remplirBarre(b, el); direct.barrePour = el; direct.barreVersion = direct.retouches.length; }
+  const z = direct.z, r = el.getBoundingClientRect(), s = direct.doc.defaultView.getComputedStyle(el);
+  const mt = Math.max(0, parseFloat(s.marginTop) || 0) * z, mb = Math.max(0, parseFloat(s.marginBottom) || 0) * z;
+  const largeur = appareil().largeur * z, hb = b.offsetHeight || 36, wb = b.offsetWidth || 260;
+  let top = r.top * z - mt - hb - 22;
+  if (top < -hb - 8) top = r.bottom * z + mb + 22;
+  const left = Math.min(Math.max(r.left * z, -40), largeur + 40 - wb);
+  b.style.left = `${left}px`; b.style.top = `${top}px`;
+}
+const aDuTexte = (el) => [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
+function remplirBarre(b, el) {
+  b.replaceChildren();
+  const bouton = (t, titre, fn, presse) => { const x = document.createElement("button"); x.type = "button"; x.textContent = t; x.title = titre; x.setAttribute("aria-label", titre); if (presse != null) x.setAttribute("aria-pressed", String(presse)); x.onclick = (ev) => { ev.stopPropagation(); fn(ev); }; return x; };
+  const sep = () => { const s = document.createElement("span"); s.className = "sep"; return s; };
+  const nom = document.createElement("span"); nom.className = "nom"; nom.textContent = el.classList[0] ? `.${el.classList[0]}` : el.tagName.toLowerCase(); nom.title = `${composantVivant(el).noms[0] ?? ""} · ${cheminDe(el)}`;
+  const parent = el.parentElement && el.parentElement !== direct.doc.body ? el.parentElement : null;
+  b.append(nom, bouton("↑", "Choisir le parent (⇧ Entrée)", () => parent && choisir(parent)));
+  b.lastChild.disabled = !parent;
+  b.append(sep());
+  const taille = (d) => {
+    const s = direct.doc.defaultView.getComputedStyle(el), c = cibleDe(el, "font-size", reglesDe(el));
+    const v = Math.max(6, +(parseFloat(s.fontSize) + d).toFixed(1));
+    retoucher(el, "font-size", `${v}px`, avantPour(c, "font-size", s.fontSize), c);
+    dessinerInspecteurDirect();
+  };
+  b.append(bouton("A−", "Texte plus petit (⇧ : 4 points)", (ev) => taille(ev.shiftKey ? -4 : -1)), bouton("A+", "Texte plus grand (⇧ : 4 points)", (ev) => taille(ev.shiftKey ? 4 : 1)));
+  const couleur = document.createElement("input"); couleur.type = "color"; couleur.title = "Couleur du texte"; couleur.setAttribute("aria-label", "Couleur du texte");
+  const s0 = direct.doc.defaultView.getComputedStyle(el); couleur.value = hex(rgba(s0.color) ?? [0, 0, 0, 1]).slice(0, 7);
+  couleur.onpointerdown = (ev) => ev.stopPropagation();
+  couleur.oninput = () => { const c = cibleDe(el, "color", reglesDe(el)); retoucher(el, "color", couleur.value, avantPour(c, "color", direct.doc.defaultView.getComputedStyle(el).color), c); };
+  couleur.onchange = () => dessinerInspecteurDirect();
+  b.append(couleur);
+  if (aDuTexte(el)) b.append(bouton("Texte", "Écrire le texte ici même (double-clic)", () => editerTexte(el)));
+  b.append(sep());
+  b.append(bouton("Tous", "Changer tous les éléments pareils (la règle de style)", () => { direct.portee = "auto"; direct.barrePour = null; placerBarre(); dessinerInspecteurDirect(); }, direct.portee !== "element"));
+  b.append(bouton("Lui seul", "Changer cet élément seulement", () => { direct.portee = "element"; direct.barrePour = null; placerBarre(); dessinerInspecteurDirect(); }, direct.portee === "element"));
+}
+function choisir(el) {
+  direct.choisi = el; direct.portee = "auto"; direct.barrePour = null;
+  if (direct.onglet !== "element") { direct.onglet = "element"; dessinerOnglets(); }
+  $("panneau-direct")?.classList.add("ouvert"); $("b-panneau")?.setAttribute("aria-expanded", "true");
+  dessinerDirect(); dessinerInspecteurDirect();
+}
+
+// ---------- Écrire le texte sur l'écran même ----------
+function poserTexte(el, valeur, avant) {
+  instantane();
+  const cible = cheminUnique(el), r = direct.retouches.find((x) => x.propriete === "texte" && x.cible === cible), { noms, fichier } = composantVivant(el);
+  if (r) { r.apres = valeur; if (r.apres === r.avant) direct.retouches.splice(direct.retouches.indexOf(r), 1); }
+  else if (valeur !== avant) direct.retouches.push({ id: `t${Date.now().toString(36)}`, cible, fichierCss: null, media: null, seul: true, propriete: "texte", avant, apres: valeur, composant: noms.slice(0, 3).join(" › "), fichier, chemin: cheminDe(el), texte: avant.slice(0, 60), ecran: titreVivant() });
+  dessinerRetouches(); dessinerDirect();
+}
+function editerTexte(el) {
+  if (!el || !aDuTexte(el) || direct.edition) return false;
+  const prise = document.querySelector("#scene-direct .prise");
+  const cible = cheminUnique(el), deja = direct.retouches.find((r) => r.propriete === "texte" && r.cible === cible), avant = deja?.avant ?? el.textContent;
+  direct.edition = el; if (prise) prise.hidden = true;
+  el.setAttribute("contenteditable", "plaintext-only");
+  if (el.contentEditable !== "plaintext-only") el.setAttribute("contenteditable", "true");
+  el.style.outline = "2px solid #d3a14a"; el.style.outlineOffset = "2px";
+  el.focus(); direct.doc.getSelection()?.selectAllChildren(el);
+  let fini = false;
+  const finir = (garder) => {
+    if (fini) return; fini = true;
+    el.removeAttribute("contenteditable"); el.style.outline = ""; el.style.outlineOffset = "";
+    el.removeEventListener("keydown", touche, true); el.removeEventListener("blur", perdu);
+    direct.edition = null; if (prise) prise.hidden = direct.mode !== "retoucher";
+    if (garder) poserTexte(el, el.textContent, avant); else el.textContent = deja?.apres ?? avant;
+    direct.barrePour = null; dessinerDirect(); dessinerInspecteurDirect();
+  };
+  const touche = (ev) => { ev.stopPropagation(); if (ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); finir(true); } else if (ev.key === "Escape") { ev.preventDefault(); finir(false); } };
+  const perdu = () => finir(true);
+  el.addEventListener("keydown", touche, true); el.addEventListener("blur", perdu);
+  dessinerDirect();
+  return true;
+}
+
+// ---------- Annuler, rétablir ----------
+const histoire = { passe: [], futur: [], dernier: 0 };
+const etatRetouches = () => JSON.stringify({ r: direct.retouches, j: Object.fromEntries(Object.entries(direct.jetons).map(([k, v]) => [k, v.apres])) });
+function instantane(force) {
+  const t = Date.now(), proche = t - histoire.dernier < 900;
+  histoire.dernier = t;
+  if (proche && !force) return;
+  const s = etatRetouches();
+  if (histoire.passe[histoire.passe.length - 1] !== s) histoire.passe.push(s);
+  if (histoire.passe.length > 100) histoire.passe.shift();
+  histoire.futur = []; majHistoire();
+}
+function restaurer(s) {
+  const o = JSON.parse(s);
+  for (const r of direct.retouches) if (r.propriete === "texte" && !o.r.some((x) => x.propriete === "texte" && x.cible === r.cible)) { const el = direct.doc?.querySelector(r.cible); if (el) el.textContent = r.avant; }
+  direct.retouches = o.r;
+  for (const [k, v] of Object.entries(direct.jetons)) v.apres = o.j[k] ?? v.avant;
+  appliquerRetouches(); direct.barrePour = null; dessinerRetouches(); dessinerJetons(); dessinerInspecteurDirect();
+}
+function annuler() { if (!histoire.passe.length) return; histoire.futur.push(etatRetouches()); restaurer(histoire.passe.pop()); histoire.dernier = 0; majHistoire(); }
+function refaire() { if (!histoire.futur.length) return; histoire.passe.push(etatRetouches()); restaurer(histoire.futur.pop()); histoire.dernier = 0; majHistoire(); }
+function majHistoire() { const a = $("b-annuler"), r = $("b-refaire"); if (a) a.disabled = !histoire.passe.length; if (r) r.disabled = !histoire.futur.length; }
 
 // Les règles CSS de Kora qui touchent l'élément, avec leur fichier.
 function reglesDe(el) {
@@ -1209,11 +1481,13 @@ function cibleDe(el, prop, regles) {
   return { cible: r.selecteur, fichier: r.fichier, media: r.media, seul: false };
 }
 
-function retoucher(el, prop, valeur, avant) {
-  const regles = reglesDe(el), c = cibleDe(el, prop, regles), { noms, fichier } = composantVivant(el);
+function retoucher(el, prop, valeur, avant, cible, leger) {
+  instantane();
+  const c = cible ?? cibleDe(el, prop, reglesDe(el)), { noms, fichier } = composantVivant(el);
   const deja = direct.retouches.find((x) => x.cible === c.cible && x.propriete === prop && x.media === c.media);
   if (deja) { deja.apres = valeur; if (deja.apres === deja.avant) direct.retouches.splice(direct.retouches.indexOf(deja), 1); }
-  else direct.retouches.push({ id: `r${Date.now().toString(36)}${direct.retouches.length}`, cible: c.cible, fichierCss: c.fichier, media: c.media, seul: c.seul, propriete: prop, avant, apres: valeur, composant: noms.slice(0, 3).join(" › "), fichier, chemin: cheminDe(el), texte: (el.textContent || "").trim().slice(0, 60), ecran: titreVivant() });
+  else if (valeur !== avant) direct.retouches.push({ id: `r${Date.now().toString(36)}${direct.retouches.length}`, cible: c.cible, fichierCss: c.fichier, media: c.media, seul: c.seul, propriete: prop, avant, apres: valeur, composant: noms.slice(0, 3).join(" › "), fichier, chemin: cheminDe(el), texte: (el.textContent || "").trim().slice(0, 60), ecran: titreVivant() });
+  if (leger) return;
   appliquerRetouches();
   dessinerRetouches();
 }
@@ -1249,10 +1523,17 @@ function lireJetons() {
   }
   dessinerJetons();
 }
+// ---------- Le panneau de droite : Élément, Couleurs, Retouches ----------
+function dessinerOnglets() {
+  for (const b of $("onglets-direct").children) b.setAttribute("aria-pressed", String(b.dataset.v === direct.onglet));
+}
+function compteRetouches() { return direct.retouches.length + Object.values(direct.jetons).filter((v) => v.apres !== v.avant).length; }
+
 function dessinerJetons() {
-  const b = $("bloc-jetons"); b.replaceChildren();
-  const h = document.createElement("h3"); h.textContent = `Couleurs de Kora · ${etat.theme}`; b.append(h);
-  const aide = document.createElement("p"); aide.className = "aide"; aide.style.marginBottom = "10px"; aide.textContent = "Changer une couleur ici la change partout dans l'app.";
+  if (direct.onglet !== "couleurs") return;
+  const corps = $("inspecteur-direct"); corps.replaceChildren();
+  const b = bloc(`Couleurs de Kora · ${etat.theme}`);
+  const aide = document.createElement("p"); aide.className = "aide"; aide.style.marginBottom = "10px"; aide.textContent = "Ce sont les jetons de Kora : chaque couleur de l'app en vient. En changer un le change partout, pour le thème affiché.";
   b.append(aide);
   const liste = document.createElement("div"); liste.style.cssText = "display:grid;gap:6px";
   for (const [k, v] of Object.entries(direct.jetons)) {
@@ -1260,50 +1541,61 @@ function dessinerJetons() {
     const l = document.createElement("label"); l.className = "jeton-ligne";
     const i = document.createElement("input"); i.type = "color"; i.value = hex(c).slice(0, 7);
     const t = document.createElement("span"); t.textContent = `${k} ${v.apres !== v.avant ? `${v.avant} → ${v.apres}` : hex(c)}`; if (v.apres !== v.avant) t.className = "change";
-    i.oninput = () => { v.apres = i.value; appliquerRetouches(); t.textContent = `${k} ${v.avant} → ${v.apres}`; t.className = "change"; dessinerRetouches(); };
+    i.oninput = () => { instantane(); v.apres = i.value; appliquerRetouches(); t.textContent = `${k} ${v.avant} → ${v.apres}`; t.className = "change"; dessinerRetouches(); };
     l.append(i, t); liste.append(l);
   }
-  b.append(liste);
+  b.append(liste); corps.append(b);
 }
 
 function dessinerRetouches() {
-  const b = $("bloc-retouches"); b.replaceChildren();
-  const jetons = Object.entries(direct.jetons).filter(([, v]) => v.apres !== v.avant);
-  const n = direct.retouches.length + jetons.length;
-  const h = document.createElement("h3"); h.textContent = "Tes retouches"; const c = document.createElement("span"); c.textContent = String(n); h.append(c); b.append(h);
-  if (!n) { const p = document.createElement("p"); p.className = "aide"; p.textContent = "Touche un élément de Kora, puis change sa marge, sa taille, sa couleur ou son texte à droite. Chaque retouche s'ajoute ici, et l'écran change aussitôt."; b.append(p); return; }
+  const n = compteRetouches();
+  const compte = $("compte-retouches"); if (compte) compte.textContent = String(n);
+  dessinerPied(n);
+  if (direct.onglet !== "retouches") return;
+  const corps = $("inspecteur-direct"); corps.replaceChildren();
+  const b = bloc("Tes retouches", String(n));
+  if (!n) { const p = document.createElement("p"); p.className = "aide"; p.textContent = "Rien pour l'instant. Touche un élément de Kora et change-le : chaque retouche s'ajoute ici, et l'écran change aussitôt."; b.append(p); corps.append(b); return; }
   const liste = document.createElement("div"); liste.style.cssText = "display:grid;gap:6px";
   for (const r of direct.retouches) {
     const d = document.createElement("div"); d.className = "retouche";
     const ci = document.createElement("div"); ci.className = "cible"; ci.textContent = r.seul ? `${r.composant || "élément"} seulement` : `${r.cible}${r.fichierCss ? ` · ${r.fichierCss.replace("src/styles/", "")}` : ""}`;
     const va = document.createElement("div"); va.className = "valeur";
-    const s = document.createElement("s"); s.textContent = r.avant; va.append(document.createTextNode(`${r.propriete === "texte" ? "texte" : r.propriete} `), s, document.createTextNode(` → ${r.apres}`));
-    const x = document.createElement("button"); x.textContent = "Annuler"; x.onclick = () => { direct.retouches.splice(direct.retouches.indexOf(r), 1); if (r.propriete === "texte") { const el = direct.doc.querySelector(r.cible); if (el) el.textContent = r.avant; } appliquerRetouches(); dessinerRetouches(); dessinerInspecteurDirect(); };
+    const s = document.createElement("s"); s.textContent = r.avant; va.append(document.createTextNode(`${r.propriete === "texte" ? "texte" : NOMS_PROPS[r.propriete] ?? r.propriete} `), s, document.createTextNode(` → ${r.apres}`));
+    const x = document.createElement("button"); x.textContent = "Retirer"; x.onclick = () => { instantane(true); direct.retouches.splice(direct.retouches.indexOf(r), 1); if (r.propriete === "texte") { const el = direct.doc.querySelector(r.cible); if (el) el.textContent = r.avant; } appliquerRetouches(); dessinerRetouches(); };
     d.append(ci, va, x); liste.append(d);
   }
-  for (const [k, v] of jetons) {
+  for (const [k, v] of Object.entries(direct.jetons).filter(([, v]) => v.apres !== v.avant)) {
     const d = document.createElement("div"); d.className = "retouche";
     const ci = document.createElement("div"); ci.className = "cible"; ci.textContent = `${k} · couleurs ${etat.theme}`;
     const va = document.createElement("div"); va.className = "valeur"; const s = document.createElement("s"); s.textContent = v.avant; va.append(s, document.createTextNode(` → ${v.apres}`));
-    const x = document.createElement("button"); x.textContent = "Annuler"; x.onclick = () => { v.apres = v.avant; appliquerRetouches(); dessinerRetouches(); dessinerJetons(); };
+    const x = document.createElement("button"); x.textContent = "Retirer"; x.onclick = () => { instantane(true); v.apres = v.avant; appliquerRetouches(); dessinerRetouches(); };
     d.append(ci, va, x); liste.append(d);
   }
-  b.append(liste);
-  // L'envoi : une note « retouche » que Patch applique dans le code.
-  const f = document.createElement("form"); f.className = "note"; f.style.marginTop = "12px";
-  const ta = document.createElement("textarea"); ta.id = "texte-retouches"; ta.placeholder = "Un mot pour Patch, si besoin (facultatif)"; ta.style.minHeight = "60px"; ta.maxLength = 800;
-  const bouton = document.createElement("button"); bouton.className = "principal"; bouton.type = "submit"; bouton.textContent = `Envoyer ${n} retouche${n > 1 ? "s" : ""} à Patch`; bouton.disabled = !etat.db;
+  b.append(liste); corps.append(b);
+  const b2 = bloc("Un mot pour Patch");
+  const ta = document.createElement("textarea"); ta.id = "texte-retouches"; ta.placeholder = "Facultatif : ce que tu cherches à obtenir"; ta.maxLength = 800; ta.value = direct.mot ?? "";
+  ta.style.cssText = "width:100%;min-height:70px;resize:vertical;background:var(--fond);border:1px solid var(--trait);border-radius:10px;padding:10px";
+  ta.oninput = () => { direct.mot = ta.value; };
+  b2.append(ta); corps.append(b2);
+}
+function dessinerPied(n = compteRetouches()) {
+  const pied = $("pied-direct"); if (!pied) return;
+  if (pied.dataset.envoi === "1") return;
+  pied.replaceChildren();
+  const bouton = document.createElement("button"); bouton.className = "principal"; bouton.type = "button";
+  bouton.textContent = n ? `Envoyer ${n} retouche${n > 1 ? "s" : ""} à Patch` : "Aucune retouche à envoyer";
+  bouton.disabled = !n || !etat.db;
   const msg = document.createElement("div"); msg.className = "message";
-  if (!etat.db) { msg.className = "message erreur"; msg.textContent = "L'envoi marche quand tu es connecté à claude.ai."; }
-  f.onsubmit = (ev) => { ev.preventDefault(); void envoyerRetouches(ta.value.trim(), bouton, msg); };
-  f.append(ta, bouton, msg); b.append(f);
+  if (!etat.db && n) { msg.className = "message erreur"; msg.textContent = "L'envoi marche quand tu es connecté à claude.ai."; }
+  bouton.onclick = () => { void envoyerRetouches((direct.mot ?? "").trim(), bouton, msg); };
+  pied.append(bouton, msg);
 }
 
 function diffDe(changements) {
   return changements.map((r) => r.propriete === "texte" ? `texte de ${r.composant || r.chemin} (${r.fichier ?? "?"}) : « ${r.avant} » → « ${r.apres} »` : `${r.media ? `@media ${r.media} ` : ""}${r.cible}${r.fichierCss ? ` (${r.fichierCss})` : r.seul ? ` (seulement ${r.composant || r.chemin}${r.fichier ? `, ${r.fichier}` : ""})` : ""} { ${r.propriete}: ${r.avant} → ${r.apres} }`).join("\n");
 }
 async function envoyerRetouches(mot, bouton, msg) {
-  bouton.disabled = true; msg.className = "message"; msg.textContent = "Envoi…";
+  bouton.disabled = true; msg.className = "message"; msg.textContent = "Envoi…"; $("pied-direct").dataset.envoi = "1";
   const jetons = Object.entries(direct.jetons).filter(([, v]) => v.apres !== v.avant).map(([k, v]) => ({ cible: ":root", fichierCss: "src/styles/base.css", media: null, seul: false, propriete: k, avant: v.avant, apres: v.apres, composant: "", fichier: null, chemin: ":root", theme: etat.theme }));
   const changements = [...direct.retouches.map(({ id, ...r }) => r), ...jetons];
   const id = `r${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -1314,143 +1606,276 @@ async function envoyerRetouches(mot, bouton, msg) {
     changements, diff: diffDe(changements), statut: "ouverte", creeLe: new Date().toISOString(), auteur: etat.user ? await etat.user.id().catch(() => null) : null,
   };
   try { await etat.db.collection("notes").doc(id).set(note); }
-  catch (err) { msg.className = "message erreur"; msg.textContent = `Pas envoyé (${err?.code ?? "erreur"}). Tes retouches restent là.`; bouton.disabled = false; return; }
+  catch (err) { msg.className = "message erreur"; msg.textContent = `Pas envoyé (${err?.code ?? "erreur"}). Tes retouches restent là.`; bouton.disabled = false; delete $("pied-direct").dataset.envoi; return; }
   msg.textContent = "Retouches gardées.";
   try {
     if (etat.comments && (await etat.comments.canSendToClaude()) === "available") {
-      const anchor = await etat.comments.anchorFor($("bloc-retouches"));
+      const anchor = await etat.comments.anchorFor($("panneau-direct"));
       const texteClaude = [`Retouches en direct ${id} pour le fil Patch (Kora ${note.version}, ${appareil().nom}, ${etat.theme}). À appliquer dans le code, puis à marquer réglées.`, mot ? `Mot de Melo : ${mot}` : "", note.diff].filter(Boolean).join("\n").slice(0, 3900);
       await etat.comments.sendToClaude({ anchor, text: texteClaude });
       msg.textContent = "Retouches envoyées à Claude, qui les passe au fil Patch.";
     } else msg.textContent = "Retouches gardées. Patch les appliquera à la prochaine série de corrections.";
   } catch { msg.textContent = "Retouches gardées. Patch les appliquera à la prochaine série de corrections."; }
-  direct.retouches = [];
+  direct.retouches = []; direct.mot = "";
   for (const v of Object.values(direct.jetons)) v.avant = v.apres;
-  setTimeout(() => { dessinerRetouches(); dessinerJetons(); }, 2000);
+  histoire.passe = []; histoire.futur = []; majHistoire();
+  setTimeout(() => { delete $("pied-direct").dataset.envoi; dessinerRetouches(); dessinerInspecteurDirect(); }, 2500);
 }
 
+
 function dessinerInspecteurDirect() {
-  const insp = $("inspecteur-direct"); insp.replaceChildren();
   const t = $("titre-direct");
   if (t) { t.replaceChildren(document.createTextNode("Kora en vrai")); const sm = document.createElement("small"); const a = appareil(); sm.textContent = `${a.nom} · ${a.largeur} × ${a.hauteur} pt · ${etat.theme} · ${direct.doc ? titreVivant() : "chargement"}`; t.append(sm); }
+  dessinerOnglets();
+  if (direct.onglet === "couleurs") return dessinerJetons();
+  if (direct.onglet === "retouches") return dessinerRetouches();
+  const insp = $("inspecteur-direct"), garde = insp.scrollTop; insp.replaceChildren();
   const el = direct.choisi;
   if (!el?.isConnected || !direct.doc) {
     const b = bloc("Comment faire");
-    const p = document.createElement("p"); p.className = "aide";
-    p.textContent = "C'est le vrai Kora, avec le foyer d'essai. En mode « Retoucher », touche un élément : ses réglages s'ouvrent ici. Change une valeur, l'écran suit aussitôt. En mode « Utiliser Kora », tu navigues normalement pour aller sur un autre écran, ouvrir une feuille ou cocher une tâche.";
-    const p2 = document.createElement("p"); p2.className = "aide"; p2.style.marginTop = "8px";
-    p2.textContent = "Une retouche s'applique à la règle de style qui donne la valeur (par exemple toutes les lignes de tâche) ; tu peux aussi la limiter à cet élément seulement.";
-    b.append(p, p2); insp.append(b); return;
+    const lignes = [
+      "C'est le vrai Kora, avec le foyer d'essai. Touche un élément : il s'entoure, et ses réglages s'ouvrent ici.",
+      "Sur l'écran même, tire les petites barres vertes (marge intérieure) ou orange (marge) ; ⌥ change les deux côtés, ⇧ les quatre. Double-clique un texte pour l'écrire. La petite barre au-dessus de l'élément change la taille et la couleur.",
+      "Ici, glisse sur un nom de réglage ou sur un chiffre pour le faire varier, ou tape la valeur ; les flèches ajoutent 1 (⇧ : 10).",
+      "« Utiliser Kora » sert à naviguer : changer d'écran, ouvrir une feuille. ⌘Z annule.",
+    ];
+    for (const [i, l] of lignes.entries()) { const p = document.createElement("p"); p.className = "aide"; if (i) p.style.marginTop = "8px"; p.textContent = l; b.append(p); }
+    const k = document.createElement("p"); k.className = "aide"; k.style.marginTop = "10px";
+    k.innerHTML = "<kbd>V</kbd> retoucher · <kbd>U</kbd> utiliser · <kbd>⇧ Entrée</kbd> parent · <kbd>Entrée</kbd> enfant · <kbd>Échap</kbd> lâcher · <kbd>B</kbd> avant";
+    b.append(k); insp.append(b); return;
   }
-  const vue = direct.doc.defaultView, s = vue.getComputedStyle(el), regles = reglesDe(el), { noms, fichier } = composantVivant(el);
+  const vue = direct.doc.defaultView, s = vue.getComputedStyle(el), regles = reglesDe(el), { noms, fichier } = composantVivant(el), ctx = { s, regles };
   const b1 = bloc("Élément");
   const nom = document.createElement("p"); nom.className = "composant"; nom.textContent = noms[0] ?? el.tagName.toLowerCase(); b1.append(nom);
   if (noms.length > 1) { const d = document.createElement("div"); d.className = "selecteur"; d.textContent = `dans ${noms.slice(1, 4).join(" › ")}`; b1.append(d); }
   if (fichier) { const d = document.createElement("div"); d.className = "fichier"; d.textContent = fichier; b1.append(d); }
-  const ch = document.createElement("div"); ch.className = "selecteur"; ch.textContent = cheminDe(el); b1.append(ch);
   const fil = document.createElement("div"); fil.className = "fil";
   const parents = []; for (let e = el; e && e !== direct.doc.body && parents.length < 6; e = e.parentElement) parents.unshift(e);
-  for (const e of parents) { const bt = document.createElement("button"); bt.textContent = (e.tagName.toLowerCase() + (e.classList[0] ? "." + e.classList[0] : "")).slice(0, 26); if (e === el) bt.className = "ici"; bt.onclick = () => { direct.choisi = e; direct.portee = "auto"; dessinerDirect(); dessinerInspecteurDirect(); }; fil.append(bt); }
-  b1.append(fil); insp.append(b1);
-
-  // Où va la retouche.
-  const b2 = bloc("Où appliquer");
-  const sel = document.createElement("select"); sel.id = "portee"; sel.style.cssText = "width:100%;background:var(--fond);border:1px solid var(--trait);border-radius:8px;padding:6px 8px;font:12px var(--police-fixe)";
-  const opts = [["auto", "La règle qui donne chaque valeur"], ...[...new Map(regles.map((r) => [r.selecteur, r])).values()].reverse().map((r) => [r.selecteur, `${r.selecteur}${r.fichier ? ` · ${r.fichier.replace("src/styles/", "")}` : ""}`]), ["element", "Cet élément seulement"]];
-  for (const [v, l] of opts) { const o = document.createElement("option"); o.value = v; o.textContent = l; o.selected = v === direct.portee; sel.append(o); }
-  sel.onchange = () => { direct.portee = sel.value; };
-  b2.append(sel); insp.append(b2);
-
-  for (const [titre, props] of REGLAGES) {
-    const b = bloc(titre); const g = document.createElement("div"); g.style.cssText = "display:grid;gap:8px";
-    for (const [prop, libelle] of props) g.append(ligneReglage(el, prop, libelle, s, regles));
-    b.append(g); insp.append(b);
+  for (const e of parents) { const bt = document.createElement("button"); bt.textContent = (e.tagName.toLowerCase() + (e.classList[0] ? "." + e.classList[0] : "")).slice(0, 26); if (e === el) bt.className = "ici"; bt.onclick = () => choisir(e); fil.append(bt); }
+  b1.append(fil);
+  // Où va la retouche : tous les pareils (la règle de style) ou lui seul.
+  const portee = document.createElement("div"); portee.className = "groupe portee"; portee.style.marginTop = "12px";
+  for (const [v, l] of [["auto", "Tous les pareils"], ["element", "Lui seul"]]) {
+    const bt = document.createElement("button"); bt.type = "button"; bt.textContent = l;
+    bt.setAttribute("aria-pressed", String(v === "element" ? direct.portee === "element" : direct.portee !== "element"));
+    bt.onclick = () => { direct.portee = v; direct.barrePour = null; dessinerInspecteurDirect(); placerBarre(); };
+    portee.append(bt);
   }
-  // Le texte, s'il y en a un à cet endroit.
-  const direct1 = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
-  if (direct1) {
-    const b = bloc("Texte");
-    const i = document.createElement("textarea"); i.id = "texte-element"; i.value = el.textContent; i.style.cssText = "width:100%;min-height:54px;background:var(--fond);border:1px solid var(--trait);border-radius:8px;padding:8px;font:13px var(--police)";
+  const ou = document.createElement("div"); ou.className = "cible-portee";
+  const exemple = cibleDe(el, "padding-top", regles);
+  ou.textContent = direct.portee === "element" ? "Seulement cet élément-ci." : exemple.seul ? "Aucune règle propre : la retouche ira sur cet élément seulement." : `Règle ${exemple.cible}${exemple.fichier ? ` · ${exemple.fichier.replace("src/styles/", "")}` : ""} (et, pour la taille ou la couleur, la règle qui les donne).`;
+  const plus = document.createElement("details"); plus.className = "plus";
+  const sm = document.createElement("summary"); sm.textContent = "Choisir une autre règle";
+  const sel = document.createElement("select");
+  for (const r of [...new Map(regles.map((r) => [r.selecteur, r])).values()].reverse()) { const o = document.createElement("option"); o.value = r.selecteur; o.textContent = `${r.selecteur}${r.fichier ? ` · ${r.fichier.replace("src/styles/", "")}` : ""}`; o.selected = r.selecteur === direct.portee; sel.append(o); }
+  sel.onchange = () => { direct.portee = sel.value; dessinerInspecteurDirect(); };
+  plus.open = !["auto", "element"].includes(direct.portee);
+  plus.append(sm, sel);
+  b1.append(portee, ou, plus); insp.append(b1);
+
+  const b2 = bloc("Espacement");
+  b2.append(boiteModele(el, ctx));
+  if (/flex|grid/.test(s.display)) { const g = document.createElement("div"); g.style.marginTop = "10px"; g.append(champ(el, "gap", "écart", ctx, { min: 0 })); b2.append(g); }
+  insp.append(b2);
+
+  const b3 = bloc("Texte"); const g3 = document.createElement("div"); g3.style.cssText = "display:grid;gap:9px";
+  g3.append(champ(el, "font-size", "taille", ctx, { min: 1 }));
+  g3.append(segments(el, "font-weight", "graisse", ctx, [...new Set(["400", "500", "600", "700", s.fontWeight])].sort().map((v) => [v, v])));
+  g3.append(champ(el, "line-height", "interligne", ctx, { pas: 0.5, min: 0 }));
+  g3.append(champ(el, "letter-spacing", "approche", ctx, { pas: 0.1 }));
+  g3.append(segments(el, "text-align", "alignement", ctx, [["left", "gauche"], ["center", "centre"], ["right", "droite"]], (v) => (v === "start" ? "left" : v === "end" ? "right" : v)));
+  g3.append(champCouleur(el, "color", "couleur", ctx));
+  if (aDuTexte(el)) {
+    const d = document.createElement("div"); d.className = "reglage";
+    const l = document.createElement("label"); l.textContent = "texte"; l.htmlFor = "texte-element";
+    const i = document.createElement("textarea"); i.id = "texte-element"; i.value = el.textContent; i.style.cssText = "width:100%;min-height:50px;resize:vertical;background:var(--fond);border:1px solid var(--trait);border-radius:8px;padding:7px 8px;font:13px var(--police)";
     const avant = direct.retouches.find((r) => r.propriete === "texte" && r.cible === cheminUnique(el))?.avant ?? el.textContent;
-    i.oninput = () => {
-      const cible = cheminUnique(el), r = direct.retouches.find((x) => x.propriete === "texte" && x.cible === cible), { noms: n2, fichier: f2 } = composantVivant(el);
-      el.textContent = i.value;
-      if (r) { r.apres = i.value; if (r.apres === r.avant) direct.retouches.splice(direct.retouches.indexOf(r), 1); }
-      else if (i.value !== avant) direct.retouches.push({ id: `t${Date.now().toString(36)}`, cible, fichierCss: null, media: null, seul: true, propriete: "texte", avant, apres: i.value, composant: n2.slice(0, 3).join(" › "), fichier: f2, chemin: cheminDe(el), texte: avant.slice(0, 60), ecran: titreVivant() });
-      dessinerRetouches(); dessinerDirect();
-    };
-    b.append(i); insp.append(b);
+    i.oninput = () => { el.textContent = i.value; poserTexte(el, i.value, avant); };
+    const src = document.createElement("div"); src.className = "source"; src.textContent = "ou double-clique le texte sur l'écran";
+    d.append(l, i, src); g3.append(d);
   }
+  b3.append(g3); insp.append(b3);
+
+  const b4 = bloc("Forme"); const g4 = document.createElement("div"); g4.style.cssText = "display:grid;gap:9px";
+  g4.append(champCouleur(el, "background-color", "fond", ctx));
+  g4.append(champ(el, "border-radius", "arrondi", ctx, { min: 0 }));
+  g4.append(curseur(el, "opacity", "opacité", ctx));
+  g4.append(champ(el, "width", "largeur", ctx, { min: 0 }));
+  g4.append(champ(el, "height", "hauteur", ctx, { min: 0 }));
+  b4.append(g4); insp.append(b4);
+
   if (regles.length) {
-    const b = bloc("Règles de style", String(regles.length));
+    const d = document.createElement("details"); d.className = "plus bloc";
+    const sm2 = document.createElement("summary"); sm2.textContent = `Les ${regles.length} règles de style qui le touchent`;
     const ul = document.createElement("ul"); ul.className = "regles";
-    for (const r of [...regles].reverse().slice(0, 12)) { const li = document.createElement("li"); li.textContent = r.selecteur + " "; const sp = document.createElement("span"); sp.textContent = (r.fichier ?? "") + (r.media ? ` · @media ${r.media}` : ""); li.append(sp); ul.append(li); }
-    b.append(ul); insp.append(b);
+    for (const r of [...regles].reverse().slice(0, 14)) { const li = document.createElement("li"); li.textContent = r.selecteur + " "; const sp = document.createElement("span"); sp.textContent = (r.fichier ?? "") + (r.media ? ` · @media ${r.media}` : ""); li.append(sp); ul.append(li); }
+    d.append(sm2, ul); insp.append(d);
   }
+  insp.scrollTop = garde;
 }
 function cheminUnique(el) { if (!el.dataset.atelier) el.dataset.atelier = `e${++direct.compteur}`; return `[data-atelier="${el.dataset.atelier}"]`; }
 
-function ligneReglage(el, prop, libelle, s, regles) {
-  const d = document.createElement("div"); d.className = "reglage";
-  const id = `r-${prop}`;
-  const l = document.createElement("label"); l.htmlFor = id; l.textContent = libelle;
+// Un réglage : ce qu'il vaut, d'où il vient, et comment le changer.
+function controleur(el, prop, ctx) {
+  const c = cibleDe(el, prop, ctx.regles), actuelle = ctx.s.getPropertyValue(prop).trim(), avant = avantPour(c, prop, actuelle);
+  const change = direct.retouches.some((r) => r.cible === c.cible && r.propriete === prop && r.media === c.media);
+  const r = donneur(el, prop);
+  const source = direct.portee === "element" ? "cet élément seulement" : r ? `${r.selecteur}${r.fichier ? ` · ${r.fichier.replace("src/styles/", "")}` : ""}` : HERITEES.has(prop) ? "valeur de base de Kora" : "aucune règle : ira sur cet élément";
+  return { c, actuelle, avant, change, source, poser: (v, leger) => retoucher(el, prop, v, avant, c, leger) };
+}
+const arrondi = (n) => String(+n.toFixed(2));
+// Glisser sur un nom ou un chiffre le fait varier (comme dans Figma) ; un simple toucher sur un chiffre le laisse taper.
+function glisserPour(cible, depart, poser, pas, saisie) {
+  cible.addEventListener("pointerdown", (ev) => {
+    if (ev.button !== 0 || document.activeElement === saisie) return;
+    ev.preventDefault();
+    const x0 = ev.clientX, v0 = depart(); let bouge = false;
+    cible.setPointerCapture(ev.pointerId);
+    const move = (e) => {
+      if (!bouge && Math.abs(e.clientX - x0) < 3) return;
+      if (!bouge) { bouge = true; instantane(true); document.body.classList.add("scrub"); }
+      poser(v0 + Math.round((e.clientX - x0) / 3) * pas * (e.shiftKey ? 10 : 1), true);
+      appliquerRetouches();
+    };
+    const fin = () => {
+      cible.removeEventListener("pointermove", move); cible.removeEventListener("pointerup", fin); cible.removeEventListener("pointercancel", fin);
+      document.body.classList.remove("scrub");
+      if (bouge) { dessinerRetouches(); dessinerInspecteurDirect(); } else if (saisie) { saisie.focus(); saisie.select(); }
+    };
+    cible.addEventListener("pointermove", move); cible.addEventListener("pointerup", fin); cible.addEventListener("pointercancel", fin);
+  });
+}
+function entreeNombre(i, k, unite, pas, min, repli) {
+  const lu = () => { const n = parseFloat(i.value); return Number.isFinite(n) ? n : repli; };
+  const poser = (n, leger) => { n = Math.max(min, +n.toFixed(2)); i.value = arrondi(n); k.poser(`${n}${unite}`, leger); i.classList.toggle("change", `${n}${unite}` !== k.avant); };
+  i.onkeydown = (ev) => {
+    if (ev.key === "ArrowUp" || ev.key === "ArrowDown") { ev.preventDefault(); poser(lu() + (ev.key === "ArrowUp" ? 1 : -1) * pas * (ev.shiftKey ? 10 : 1)); dessinerDirect(); }
+    else if (ev.key === "Enter") i.blur();
+    else if (ev.key === "Escape") { i.value = arrondi(lu()); i.blur(); }
+  };
+  i.onchange = () => { const n = parseFloat(i.value); if (Number.isFinite(n)) poser(n); else if (i.value.trim()) k.poser(i.value.trim()); dessinerInspecteurDirect(); };
+  return { lu, poser };
+}
+function champ(el, prop, libelle, ctx, { pas = 1, min = -Infinity } = {}) {
+  const k = controleur(el, prop, ctx), d = document.createElement("div"); d.className = "reglage";
+  const id = `r-${prop}`, l = document.createElement("label"); l.htmlFor = id; l.textContent = libelle; l.className = "scrub"; l.title = "Glisse à gauche ou à droite pour changer";
   const saisie = document.createElement("div"); saisie.className = "saisie";
-  const actuelle = s.getPropertyValue(prop).trim();
-  const enCours = direct.retouches.find((r) => r.propriete === prop && (r.cible === cibleDe(el, prop, regles).cible));
-  const avant = enCours?.avant ?? actuelle;
-  const appliquer = (v) => { retoucher(el, prop, v, avant); i.classList.toggle("change", v !== avant); src.textContent = sourceTexte(); };
-  let i;
-  if (CHOIX[prop]) {
-    i = document.createElement("select"); i.id = id;
-    for (const v of CHOIX[prop]) { const o = document.createElement("option"); o.value = v; o.textContent = v; o.selected = actuelle === v; i.append(o); }
-    i.onchange = () => appliquer(i.value);
-    saisie.append(i);
-  } else if (COULEURS.has(prop)) {
-    i = document.createElement("input"); i.type = "text"; i.id = id; i.value = hex(rgba(actuelle) ?? [0, 0, 0, 0]);
-    const pick = document.createElement("input"); pick.type = "color"; pick.value = hex(rgba(actuelle) ?? [0, 0, 0, 1]).slice(0, 7); pick.setAttribute("aria-label", `${libelle} au choix`);
-    pick.oninput = () => { i.value = pick.value; appliquer(pick.value); };
-    i.onchange = () => appliquer(i.value);
-    saisie.append(pick, i);
-  } else {
-    const nombre = parseFloat(actuelle), unite = SANS_UNITE.has(prop) ? "" : (actuelle.match(/[a-z%]+$/)?.[0] ?? "px");
-    i = document.createElement("input"); i.type = Number.isFinite(nombre) ? "number" : "text"; i.id = id; i.value = Number.isFinite(nombre) ? String(+nombre.toFixed(2)) : actuelle;
-    i.step = prop === "opacity" ? "0.05" : prop === "letter-spacing" || prop === "line-height" ? "0.5" : "1";
-    const valeur = () => (i.type === "number" ? `${i.value}${unite}` : i.value);
-    i.oninput = () => appliquer(valeur());
-    const moins = document.createElement("button"); moins.type = "button"; moins.textContent = "−"; moins.setAttribute("aria-label", `${libelle} moins`);
-    const plus = document.createElement("button"); plus.type = "button"; plus.textContent = "+"; plus.setAttribute("aria-label", `${libelle} plus`);
-    const pas = (sens, ev) => { if (i.type !== "number") return; const k = ev.shiftKey ? 4 : 1; i.value = String(+(parseFloat(i.value || "0") + sens * k * parseFloat(i.step)).toFixed(2)); appliquer(valeur()); };
-    moins.onclick = (ev) => pas(-1, ev); plus.onclick = (ev) => pas(1, ev);
-    saisie.append(moins, i, plus);
-  }
-  if (enCours) i.classList.add("change");
-  const src = document.createElement("div"); src.className = "source";
-  const sourceTexte = () => { const r = donneur(el, prop); return r ? `${r.selecteur}${r.fichier ? ` · ${r.fichier.replace("src/styles/", "")}` : ""}` : HERITEES.has(prop) ? "valeur de base de Kora" : "aucune règle"; };
-  src.textContent = sourceTexte();
-  d.append(l, saisie, src);
-  if (COULEURS.has(prop)) {
-    const n = document.createElement("div"); n.className = "nuancier";
-    for (const [k, v] of Object.entries(direct.jetons)) {
-      const c = rgba(v.apres); if (!c) continue;
-      const bt = document.createElement("button"); bt.type = "button"; bt.title = k; bt.style.background = v.apres; bt.setAttribute("aria-label", k);
-      bt.setAttribute("aria-pressed", String(jetonDe(actuelle, { [k]: v.apres }) === k));
-      bt.onclick = () => { i.value = `var(${k})`; appliquer(`var(${k})`); for (const x of n.children) x.setAttribute("aria-pressed", String(x === bt)); };
-      n.append(bt);
-    }
-    d.append(n);
-  }
+  const n0 = parseFloat(k.actuelle), unite = SANS_UNITE.has(prop) ? "" : (k.actuelle.match(/[a-z%]+$/)?.[0] ?? "px");
+  const repli = prop === "line-height" ? Math.round((parseFloat(ctx.s.fontSize) || 16) * 1.2) : 0;
+  const i = document.createElement("input"); i.type = "text"; i.inputMode = "decimal"; i.id = id; i.value = Number.isFinite(n0) ? arrondi(n0) : k.actuelle; i.spellcheck = false;
+  if (k.change) i.classList.add("change");
+  const e = entreeNombre(i, k, unite, pas, min, repli);
+  glisserPour(l, e.lu, e.poser, pas);
+  saisie.append(i);
+  const src = document.createElement("div"); src.className = "source"; src.textContent = k.source;
+  d.append(l, saisie, src); return d;
+}
+function boiteModele(el, ctx) {
+  const d = document.createElement("div"); d.className = "modele";
+  const mini = (prop, col, row) => {
+    const k = controleur(el, prop, ctx), i = document.createElement("input"); i.className = "mini"; i.type = "text"; i.inputMode = "decimal"; i.spellcheck = false;
+    i.value = arrondi(parseFloat(k.actuelle) || 0); i.title = `${NOMS_PROPS[prop]} · ${k.source} · glisse pour changer`; i.setAttribute("aria-label", NOMS_PROPS[prop]);
+    i.style.gridColumn = col; i.style.gridRow = row; if (k.change) i.classList.add("change");
+    const e = entreeNombre(i, k, "px", 1, prop.startsWith("padding") ? 0 : -Infinity, 0);
+    glisserPour(i, e.lu, (n, leger) => { e.poser(n, leger); dessinerDirect(); }, 1, i);
+    return i;
+  };
+  const em = document.createElement("span"); em.className = "etiq"; em.textContent = "marge";
+  const inn = document.createElement("div"); inn.className = "interieur";
+  const ei = document.createElement("span"); ei.className = "etiq"; ei.textContent = "intérieur";
+  const contenu = document.createElement("div"); contenu.className = "contenu";
+  const r = el.getBoundingClientRect(), px = (k) => parseFloat(ctx.s.getPropertyValue(k)) || 0;
+  contenu.textContent = `${arrondi(r.width - px("padding-left") - px("padding-right"))} × ${arrondi(r.height - px("padding-top") - px("padding-bottom"))}`;
+  inn.append(ei, mini("padding-top", "2", "1"), mini("padding-left", "1", "2"), contenu, mini("padding-right", "3", "2"), mini("padding-bottom", "2", "3"));
+  d.append(em, mini("margin-top", "2", "1"), mini("margin-left", "1", "2"), inn, mini("margin-right", "3", "2"), mini("margin-bottom", "2", "3"));
   return d;
 }
+function segments(el, prop, libelle, ctx, options, lire = (v) => v) {
+  const k = controleur(el, prop, ctx), d = document.createElement("div"); d.className = "reglage";
+  const l = document.createElement("span"); l.className = "libelle"; l.textContent = libelle;
+  const saisie = document.createElement("div"); saisie.className = "saisie";
+  const g = document.createElement("div"); g.className = "groupe"; g.setAttribute("role", "group"); g.setAttribute("aria-label", libelle);
+  const actuel = lire(k.actuelle);
+  for (const [v, t] of options) {
+    const b = document.createElement("button"); b.type = "button"; b.textContent = t; b.setAttribute("aria-pressed", String(v === actuel));
+    if (k.change && v === actuel) b.style.color = "var(--laiton)";
+    b.onclick = () => { k.poser(v); dessinerInspecteurDirect(); };
+    g.append(b);
+  }
+  saisie.append(g);
+  const src = document.createElement("div"); src.className = "source"; src.textContent = k.source;
+  d.append(l, saisie, src); return d;
+}
+function curseur(el, prop, libelle, ctx) {
+  const k = controleur(el, prop, ctx), d = document.createElement("div"); d.className = "reglage";
+  const l = document.createElement("label"); l.htmlFor = `r-${prop}`; l.textContent = libelle;
+  const saisie = document.createElement("div"); saisie.className = "saisie";
+  const i = document.createElement("input"); i.type = "range"; i.min = "0"; i.max = "1"; i.step = "0.05"; i.id = `r-${prop}`; i.value = k.actuelle || "1";
+  const v = document.createElement("span"); v.className = "valeur"; v.textContent = `${Math.round(parseFloat(i.value) * 100)} %`;
+  if (k.change) v.style.color = "var(--laiton)";
+  i.onpointerdown = () => instantane(true);
+  i.oninput = () => { k.poser(i.value); v.textContent = `${Math.round(parseFloat(i.value) * 100)} %`; v.style.color = "var(--laiton)"; };
+  saisie.append(i, v);
+  const src = document.createElement("div"); src.className = "source"; src.textContent = k.source;
+  d.append(l, saisie, src); return d;
+}
+function champCouleur(el, prop, libelle, ctx) {
+  const k = controleur(el, prop, ctx), d = document.createElement("div"); d.className = "reglage";
+  const id = `r-${prop}`, l = document.createElement("label"); l.htmlFor = id; l.textContent = libelle;
+  const saisie = document.createElement("div"); saisie.className = "saisie";
+  const jetonsVus = Object.fromEntries(Object.entries(direct.jetons).map(([n, v]) => [n, v.apres]));
+  const deja = direct.retouches.find((r) => r.cible === k.c.cible && r.propriete === prop && r.media === k.c.media)?.apres;
+  const i = document.createElement("input"); i.type = "text"; i.id = id; i.spellcheck = false;
+  const jeton = jetonDe(k.actuelle, jetonsVus);
+  i.value = deja ?? (jeton ? `var(${jeton})` : hex(rgba(k.actuelle) ?? [0, 0, 0, 0]));
+  if (k.change) i.classList.add("change");
+  const pick = document.createElement("input"); pick.type = "color"; pick.value = hex(rgba(k.actuelle) ?? [0, 0, 0, 1]).slice(0, 7); pick.setAttribute("aria-label", `${libelle} au choix`);
+  pick.onpointerdown = () => instantane(true);
+  pick.oninput = () => { i.value = pick.value; k.poser(pick.value); i.classList.add("change"); };
+  pick.onchange = () => dessinerInspecteurDirect();
+  i.onchange = () => { k.poser(i.value.trim()); dessinerInspecteurDirect(); };
+  saisie.append(pick, i);
+  const n = document.createElement("div"); n.className = "nuancier";
+  const actuelJeton = jetonDe(k.actuelle, jetonsVus);
+  for (const [nomJeton, v] of Object.entries(direct.jetons)) {
+    if (!rgba(v.apres)) continue;
+    const bt = document.createElement("button"); bt.type = "button"; bt.title = nomJeton; bt.style.background = v.apres; bt.setAttribute("aria-label", nomJeton);
+    bt.setAttribute("aria-pressed", String(actuelJeton === nomJeton));
+    bt.onclick = () => { k.poser(`var(${nomJeton})`); dessinerInspecteurDirect(); };
+    n.append(bt);
+  }
+  const src = document.createElement("div"); src.className = "source"; src.textContent = k.source;
+  d.append(l, saisie, n, src); return d;
+}
 
-for (const b of $("mode-direct").children) b.onclick = () => {
-  direct.mode = b.dataset.v;
-  for (const x of $("mode-direct").children) x.setAttribute("aria-pressed", String(x === b));
+for (const b of $("mode-direct").children) b.onclick = () => changerMode(b.dataset.v);
+function changerMode(v) {
+  direct.mode = v;
+  for (const x of $("mode-direct").children) x.setAttribute("aria-pressed", String(x.dataset.v === v));
   const p = document.querySelector("#scene-direct .prise"); if (p) p.hidden = direct.mode !== "retoucher";
-  if (direct.mode === "naviguer") { direct.survol = null; dessinerDirect(); }
-};
-$("b-avant-apres").onclick = () => { direct.sans = !direct.sans; $("b-avant-apres").setAttribute("aria-pressed", String(direct.sans)); appliquerRetouches(); };
+  if (direct.mode === "naviguer") direct.survol = null;
+  dessinerDirect();
+}
+for (const b of $("onglets-direct").children) b.onclick = () => { direct.onglet = b.dataset.v; dessinerInspecteurDirect(); };
+$("b-avant-apres").onclick = () => { direct.sans = !direct.sans; $("b-avant-apres").setAttribute("aria-pressed", String(direct.sans)); appliquerRetouches(); dessinerDirect(); };
 $("b-grille-direct").onclick = () => { direct.grille = !direct.grille; $("b-grille-direct").setAttribute("aria-pressed", String(direct.grille)); dessinerDirect(); };
 $("b-recommencer").onclick = () => { void ouvrirDirect(true); };
+$("b-annuler").onclick = annuler; $("b-refaire").onclick = refaire;
+$("b-panneau").onclick = () => { const o = $("panneau-direct").classList.toggle("ouvert"); $("b-panneau").setAttribute("aria-expanded", String(o)); };
+addEventListener("keydown", (ev) => {
+  if (etat.vue !== "direct" || !direct.doc) return;
+  const dansChamp = ev.target.closest?.("textarea, input, select, [contenteditable]");
+  if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === "z" && !dansChamp) { ev.preventDefault(); if (ev.shiftKey) refaire(); else annuler(); return; }
+  if (dansChamp || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+  const el = direct.choisi?.isConnected ? direct.choisi : null, k = ev.key.toLowerCase();
+  if (ev.key === "Escape" && el) { direct.choisi = null; dessinerDirect(); dessinerInspecteurDirect(); }
+  else if (ev.key === "Enter" && el && ev.shiftKey) { ev.preventDefault(); if (el.parentElement && el.parentElement !== direct.doc.body) choisir(el.parentElement); }
+  else if (ev.key === "Enter" && el) { ev.preventDefault(); if (el.firstElementChild) choisir(el.firstElementChild); }
+  else if (k === "v") changerMode("retoucher");
+  else if (k === "u") changerMode("naviguer");
+  else if (k === "b") $("b-avant-apres").click();
+  else if (k === "g") $("b-grille-direct").click();
+});
 setInterval(() => { if (etat.vue === "direct" && direct.doc) dessinerDirect(); }, 400);
 
 
