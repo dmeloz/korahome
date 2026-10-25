@@ -35,6 +35,10 @@ export const CLES = {
   signes: "korahome.signes",
   /** L'intensité du verre des widgets, de 0 à 100 (JSON). */
   verre: "korahome.verre",
+  /** Les cartes retirées des piles « En ce moment » de l'accueil (JSON, depuis 0.0.72). */
+  cartesRetirees: "korahome.accueil.retirees",
+  /** Combien de fois « Glisse quand c'est fait » s'est montré, et si le geste a été fait (JSON). */
+  indiceGlisse: "korahome.accueil.indiceGlisse",
 
   // ----- La fée -----
   /** Où elle se tient : côté, hauteur, rangée (JSON). */

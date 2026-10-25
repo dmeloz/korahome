@@ -102,10 +102,9 @@
   :root { --verre: var(--surface-haute); --verre-reflet: none; }
   * { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
 }
-/* iPad et grand écran : le contenu s'élargit, l'accueil passe à quatre colonnes de widgets. */
+/* iPad et grand écran : le contenu s'élargit. */
 @media (min-width: 760px) {
   .contenu { max-width: 980px; padding-left: 32px; padding-right: 32px; }
-  .widgets { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
   .grille-espaces { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 }
 

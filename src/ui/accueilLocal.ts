@@ -1,3 +1,4 @@
+import { nettoyerRetirees, type CarteId } from "../domaine/ecranAccueil";
 import { nettoyerSignes, type Signe } from "../domaine/signes";
 import { CLES, ecrireJson, effacer, lireJson } from "./stockageLocal";
 
@@ -40,6 +41,26 @@ export function lireSignes(): Signe[] {
 
 export function enregistrerSignes(signes: readonly Signe[]): void {
   ecrire(CLES.signes, signes);
+}
+
+// ----- Les piles « En ce moment » (depuis 0.0.72) -----
+
+export function lireRetirees(): CarteId[] {
+  return nettoyerRetirees(lire(CLES.cartesRetirees));
+}
+
+export function enregistrerRetirees(retirees: readonly CarteId[]): void {
+  ecrire(CLES.cartesRetirees, retirees.length ? retirees : undefined);
+}
+
+/** « Glisse quand c'est fait » : vu combien de fois, et le geste déjà fait une fois. */
+export function lireIndiceGlisse(): { vues: number; geste: boolean } {
+  const brut = lire(CLES.indiceGlisse) as { vues?: unknown; geste?: unknown } | undefined;
+  return { vues: typeof brut?.vues === "number" ? brut.vues : 0, geste: brut?.geste === true };
+}
+
+export function enregistrerIndiceGlisse(etat: { vues: number; geste: boolean }): void {
+  ecrire(CLES.indiceGlisse, etat);
 }
 
 // ----- Le verre des widgets -----

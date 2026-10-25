@@ -1,59 +1,65 @@
 import type { Depot } from "../../donnees/depot";
 import type { ServeurJarvis } from "../../donnees/distant";
-import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent, type ReactNode } from "react";
-import { bilanAOuvrir, bilanDeLaSemaine, ordreVivant, remarqueDuJour } from "../../domaine/apprentissage";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
+import { bilanAOuvrir, bilanDeLaSemaine, remarqueDuJour } from "../../domaine/apprentissage";
 import { carteDuJour, resteAFaire, titreMoment, type ChoseDuJour } from "../../domaine/aujourdhui";
-import { facturesDuJour } from "../../domaine/budget";
+import { etatDesPots, facturesDuJour, planDe } from "../../domaine/budget";
 import { evenementsDe, ligneWidget, resumeAgenda } from "../../domaine/agenda";
+import {
+  basculerRetiree,
+  CARTES,
+  carteDeLEspace,
+  composerPiles,
+  decouperLigne,
+  enDirect,
+  momentAccueil,
+  montrerIndice,
+  RAISON_DU_MOMENT,
+  tuileAgenda,
+  type CarteId,
+} from "../../domaine/ecranAccueil";
 import type { EtatPartage } from "../../domaine/etatPartage";
+import { filDuFoyer, quiDe, resumeDuJour } from "../../domaine/fil";
 import type { OuRecherche } from "../../domaine/recherche";
 import { repartitionDue } from "../../domaine/repartition";
 import { decrireDerniere, sauvegardeDue } from "../../domaine/sauvegarde";
-import { decaler, decrireEcheance, marquerFaite } from "../../domaine/taches";
+import { compterDues, decaler, decrireEcheance, marquerFaite } from "../../domaine/taches";
 import { signesDuJour, type Signe, type ValeurSigne } from "../../domaine/signes";
 import { clinDuJour } from "../../domaine/bandeau";
 import type { Tache } from "../../domaine/types";
-import {
-  ajouterWidget,
-  basculerTaille,
-  definition,
-  deplacerVers,
-  nettoyerDisposition,
-  nettoyerTailles,
-  ordreAffichage,
-  poserWidget,
-  retirerWidget,
-  tailleDe,
-  type Disposition,
-  type Tailles,
-  type WidgetId,
-} from "../../domaine/tableauDeBord";
+import type { WidgetId } from "../../domaine/tableauDeBord";
 import { useAnnoncer } from "../annulation";
-import { contexteReel, enregistrerDisposition, enregistrerTailles, lireDisposition, lireTailles } from "../contexte";
-import { Icone } from "../Icone";
-import { MODULES, PICTOS, type ApercuWidget, type DonneesModule } from "../modules";
+import { aujourdhuiLocal, contexteReel } from "../contexte";
+import { Icone, type NomIcone } from "../Icone";
+import { MODULES, type ApercuWidget, type DonneesModule } from "../modules";
 import { vibrer } from "../haptique";
 import { calculerApprentissages } from "../apprendre";
-import { CarteAujourdhui, Visite } from "../pieces";
+import { Feuille, Visite } from "../pieces";
 import { CarteDemarrage } from "../pieces/Demarrage";
+import { CeSoir, ChiffresDuJour, ContenuApercu, PastilleDirect, Pile, type CartePile, type LignePile, type TuileChiffre } from "../pieces/EcranAccueil";
 import { FeuilleHeure } from "../pieces/FeuilleHeure";
 import { DateRepliee, GrandeDate, Signes } from "../pieces/HautAccueil";
 import { clinDejaDit, noterClinDit, useClinDuJour } from "../clinDuJour";
 import { direSiCalme, feteFee, taireFee } from "../fee";
 import { feter } from "../moteur/fete";
 import { nuitDeCeTelephone, useVieFee } from "../vieFee";
-import { lireSignes } from "../accueilLocal";
+import { enregistrerIndiceGlisse, enregistrerRetirees, lireIndiceGlisse, lireRetirees, lireSignes } from "../accueilLocal";
 import { abonnerVisite, finirVisite, visiteEnAttente } from "../visite";
 import { TousLesEspaces } from "../TousLesEspaces";
 import { lireDerniereSauvegarde } from "../sauvegarde";
-import { fermerRemarque, lireAdaptations, lireDernierBilan, lireUsages, noterUsage, remarqueAMontrer, useApprentissageLocal } from "../usage";
+import { fermerRemarque, lireAdaptations, lireDernierBilan, noterUsage, remarqueAMontrer, useApprentissageLocal } from "../usage";
 import { lireDerniereRepartition } from "./Taches";
-import { APPUI_LONG_MS } from "../gestes";
 import { heureMinute } from "../../domaine/texte";
 import { etatRappels } from "../rappels";
 import { ignorer } from "../journal";
 
-/** Combien de choses du jour la carte garde ; trois se voient, les autres se font défiler. */
+// L'accueil « tout sur un écran » (Kora 0.0.72) : la date et ses signes, la pastille « en
+// direct », quatre chiffres du jour, « Ce soir » qui tourne tout seul et deux piles sous « En ce
+// moment ». Ce que montrent les piles suit le moment (domaine/ecranAccueil.ts) ; chaque téléphone
+// peut en retirer des cartes (appui long sur une pile) ou les remettre depuis « Tous les espaces ».
+
+/** Combien de choses du jour « Ce soir » fait tourner. */
 const CHOSES_CARTE = 12;
 
 function salutation(heure: number): string {
@@ -62,10 +68,14 @@ function salutation(heure: number): string {
   return "Bonsoir";
 }
 
-/** Au-delà de ce déplacement, le doigt fait défiler la page : pas d'appui long. */
-const TOLERANCE_PX = 10;
 /** Tirée vers le bas d'au moins autant (et 13 % de l'écran), depuis le haut, la page ouvre « Tous les espaces » au lâcher. */
 const TIRER_POUR_CHERCHER = 72;
+
+const PICTO_CARTE: Record<CarteId, NomIcone> = { maison: "maison", chef: "toque", courses: "panier", agenda: "calendrier", budget: "portefeuille", fil: "activite", bilan: "appris" };
+
+/** « 3 à faire », ou la légende seule quand le chiffre est nul. */
+const contexteDe = (a: ApercuWidget) => (a.chiffre > 0 ? `${a.chiffre} ${a.legende}` : a.legende);
+const lignesDe = (a: ApercuWidget): LignePile[] => a.lignes.map((l, i) => ({ ...decouperLigne(l), urgent: a.urgent && i === 0 }));
 
 export function Accueil(props: {
   donnees: DonneesModule;
@@ -95,24 +105,28 @@ export function Accueil(props: {
   /** Aucune page n'est ouverte par-dessus : les gestes de l'accueil sont à lui. */
   auDessus: boolean;
 }) {
-  const [disposition, setDisposition] = useState<Disposition>(() => nettoyerDisposition(lireDisposition()));
-  // Un widget retiré depuis le bilan : l'accueil, resté ouvert dessous, relit sa disposition.
+  const [retirees, setRetirees] = useState<CarteId[]>(lireRetirees);
+  // Une carte retirée depuis le bilan : l'accueil, resté ouvert dessous, relit ses piles.
   const versionLocale = useApprentissageLocal();
   useEffect(() => {
-    if (versionLocale) setDisposition(nettoyerDisposition(lireDisposition()));
+    if (versionLocale) setRetirees(lireRetirees());
   }, [versionLocale]);
-  const [tailles, setTailles] = useState<Tailles>(() => nettoyerTailles(lireTailles()));
-  const [edition, setEdition] = useState(false);
-  const [glisse, setGlisse] = useState<WidgetId | null>(null);
+  const [ranger, setRanger] = useState(false);
+  const [apercu, setApercu] = useState<TuileChiffre["id"] | null>(null);
   const [espaces, setEspaces] = useState(false);
-  // Une tuile de « Tous les espaces » glissée vers l'accueil, sous le doigt.
-  const [ajout, setAjout] = useState<WidgetId | null>(null);
-  const fantome = useRef<HTMLDivElement>(null);
   const [signes, setSignes] = useState<Signe[]>(lireSignes);
   const [heureDe, setHeureDe] = useState<Tache | null>(null);
   const haut = useRef<HTMLElement>(null);
-  const appui = useRef<{ minuterie: ReturnType<typeof setTimeout>; x: number; y: number } | null>(null);
-  const ignorerClic = useRef(false);
+  // « Glisse quand c'est fait » : les trois premières fois, et plus jamais une fois le geste fait.
+  const [indice, setIndice] = useState(() => {
+    const e = lireIndiceGlisse();
+    return montrerIndice(e.vues, e.geste);
+  });
+  useEffect(() => {
+    if (!indice) return;
+    const e = lireIndiceGlisse();
+    enregistrerIndiceGlisse({ ...e, vues: e.vues + 1 });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // Les rappels n'arrivent plus sur ce téléphone (nouvelle installation, autorisation retirée) :
   // l'accueil le dit, sinon on attend des notifications qui ne viennent jamais.
   const [notificationsCoupees, setNotificationsCoupees] = useState(false);
@@ -136,132 +150,47 @@ export function Accueil(props: {
   const visiteDemandee = useSyncExternalStore(abonnerVisite, visiteEnAttente);
   const [visite, setVisite] = useState(false);
   useEffect(() => {
-    if (!visiteDemandee || !props.auDessus || edition || espaces) return;
+    if (!visiteDemandee || !props.auDessus || espaces) return;
     const id = setTimeout(() => {
       window.scrollTo(0, 0);
       setVisite(true);
     }, 700);
     return () => clearTimeout(id);
-  }, [visiteDemandee, props.auDessus, edition, espaces]);
+  }, [visiteDemandee, props.auDessus, espaces]);
   const autre = foyer.membres.find((m) => m.id !== membreId)?.prenom ?? null;
-  usePourChercher(props.auDessus && !espaces && !visite && !ajout, () => setEspaces(true));
+  usePourChercher(props.auDessus && !espaces && !visite && !ranger && !apercu, () => setEspaces(true));
 
-  const changer = (d: Disposition) => {
-    setDisposition(d);
-    enregistrerDisposition(d);
+  const changerRetirees = (r: CarteId[]) => {
+    setRetirees(r);
+    enregistrerRetirees(r);
   };
-  const changerTaille = (id: WidgetId) => {
-    const suivantes = basculerTaille(tailles, id);
-    setTailles(suivantes);
-    enregistrerTailles(suivantes);
-  };
-
-  // Appui long sur un widget : on passe en mode modification, sans ouvrir la page.
-  const lacher = () => {
-    if (appui.current) clearTimeout(appui.current.minuterie);
-    appui.current = null;
-  };
-  const appuyer = (e: PointerEvent) => {
-    lacher();
-    appui.current = {
-      x: e.clientX,
-      y: e.clientY,
-      minuterie: setTimeout(() => {
-        appui.current = null;
-        ignorerClic.current = true;
-        vibrer();
-        setEdition(true);
-      }, APPUI_LONG_MS),
-    };
-  };
-  const bouger = (e: PointerEvent) => {
-    const a = appui.current;
-    if (a && Math.hypot(e.clientX - a.x, e.clientY - a.y) > TOLERANCE_PX) lacher();
+  /** Un espace glissé ou touché dans « Tous les espaces » : sa carte revient dans les piles. */
+  const remettre = (id: WidgetId) => {
+    const carte = carteDeLEspace(id);
+    vibrer();
+    setEspaces(false);
+    if (!carte || !retirees.includes(carte)) return;
+    const avant = retirees;
+    changerRetirees(basculerRetiree(retirees, carte));
+    annoncer(`${CARTES.find((c) => c.id === carte)?.titre} revient dans les piles de l'accueil.`, () => changerRetirees(avant));
   };
 
-  // En mode modification, un widget se glisse à la place d'un autre.
-  const commencerGlisse = (e: PointerEvent<HTMLDivElement>, id: WidgetId) => {
-    if ((e.target as Element).closest("button")) return;
-    e.currentTarget.setPointerCapture(e.pointerId);
-    setGlisse(id);
-  };
-  const suivreGlisse = (e: PointerEvent) => {
-    if (!glisse) return;
-    const cible = widgetSous(e.clientX, e.clientY);
-    if (cible && cible !== glisse) changer(deplacerVers(disposition, glisse, cible));
-  };
-
-  // Une tuile de « Tous les espaces » glissée sur l'accueil : la feuille se replie, le widget
-  // apparaît tout de suite et prend la place sous le doigt ; on lâche, il reste là.
-  const dispositionCourante = useRef(disposition);
-  dispositionCourante.current = disposition;
-  const commencerAjout = (id: WidgetId, x: number, y: number) => {
-    setEdition(true);
-    changer(ajouterWidget(dispositionCourante.current, id));
-    setAjout(id);
-    placerFantome(x, y);
-  };
-  const placerFantome = (x: number, y: number) => {
-    const f = fantome.current;
-    if (f) f.style.transform = `translate(${x - 44}px, ${y - 44}px)`;
-  };
-  useEffect(() => {
-    if (!ajout) return;
-    let fin = false;
-    const suivre = (x: number, y: number) => {
-      placerFantome(x, y);
-      // Près des bords, la page défile pour atteindre les widgets du bas ou du haut.
-      if (y > window.innerHeight - 70) window.scrollBy(0, 10);
-      else if (y < 70) window.scrollBy(0, -10);
-      const cible = widgetSous(x, y);
-      if (cible && cible !== ajout) changer(poserWidget(dispositionCourante.current, ajout, cible));
-    };
-    const pointeur = (e: globalThis.PointerEvent) => suivre(e.clientX, e.clientY);
-    const toucher = (e: TouchEvent) => {
-      if (e.cancelable) e.preventDefault();
-      const t = e.touches[0];
-      if (t) suivre(t.clientX, t.clientY);
-    };
-    const lacherAjout = () => {
-      if (fin) return;
-      fin = true;
-      vibrer();
-      setAjout(null);
-      setEspaces(false);
-    };
-    window.addEventListener("pointermove", pointeur);
-    window.addEventListener("touchmove", toucher, { passive: false });
-    window.addEventListener("pointerup", lacherAjout);
-    window.addEventListener("touchend", lacherAjout);
-    window.addEventListener("touchcancel", lacherAjout);
-    return () => {
-      window.removeEventListener("pointermove", pointeur);
-      window.removeEventListener("touchmove", toucher);
-      window.removeEventListener("pointerup", lacherAjout);
-      window.removeEventListener("touchend", lacherAjout);
-      window.removeEventListener("touchcancel", lacherAjout);
-    };
-  }, [ajout]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Ce que montre chaque widget, calculé par son module.
+  // Ce que montre chaque espace, calculé par son module.
   const apercus = new Map<WidgetId, ApercuWidget>();
-  for (const id of disposition) {
+  for (const id of ["taches", "courses", "maison", "chef", "agenda", "budget"] as const) {
     const module = MODULES[id];
     if (module) apercus.set(id, module.widget(props.donnees));
   }
+  const apercuDe = (id: WidgetId) => apercus.get(id)!;
 
-  const urgents = new Set(disposition.filter((id) => apercus.get(id)?.urgent));
   const adaptations = lireAdaptations();
   const heure = maintenant.getHours();
-  const ordonnes = edition
-    ? disposition
-    : adaptations.accueilVivant
-      ? ordreVivant(ordreAffichage(disposition, urgents), urgents, lireUsages(), heure, aujourdhui)
-      : ordreAffichage(disposition, urgents);
+  // L'accueil qui s'adapte : les piles suivent le moment ; sans lui, elles gardent celles du soir.
+  const moment = adaptations.accueilVivant ? momentAccueil(heure, maintenant.getDay()) : "soir";
 
   // Le bilan du dimanche attend qu'on le regarde ; le mot du jour de Jarvis, une fois par jour au plus.
-  const aApprendre = bilanDeLaSemaine(calculerApprentissages(props.donnees)).length;
-  const bilanPret = bilanAOuvrir(aujourdhui, lireDernierBilan(), aApprendre);
+  const appris = bilanDeLaSemaine(calculerApprentissages(props.donnees));
+  const bilanPret = bilanAOuvrir(aujourdhui, lireDernierBilan(), appris.length);
   const remarque = adaptations.remarques ? remarqueDuJour({ ...props.donnees, membreId }) : null;
   const montrerRemarque = remarqueAMontrer(remarque?.cle ?? null, aujourdhui);
 
@@ -270,7 +199,7 @@ export function Accueil(props: {
   const clin = clinDuJour(props.donnees.couple, aujourdhui);
   const aDire = remarque && montrerRemarque ? `remarque:${remarque.cle}` : clin && !clinDejaDit(aujourdhui) ? `clin:${aujourdhui}` : null;
   useEffect(() => {
-    if (!aDire || !props.auDessus || edition || espaces || visite) return;
+    if (!aDire || !props.auDessus || espaces || visite) return;
     // Elle attend un moment calme pour parler, et réessaie tant qu'elle n'a pas pu.
     const id = setInterval(() => {
       if (aDire.startsWith("remarque:") && remarque) {
@@ -280,7 +209,7 @@ export function Accueil(props: {
       } else if (clin && direSiCalme({ cle: aDire, texte: clin.texte })) noterClinDit(aujourdhui);
     }, 2500);
     return () => clearInterval(id);
-  }, [aDire, props.auDessus, edition, espaces, visite]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [aDire, props.auDessus, espaces, visite]); // eslint-disable-line react-hooks/exhaustive-deps
   // En quittant l'accueil, ce qu'elle disait d'ici se tait.
   useEffect(() => {
     if (!props.auDessus) taireFee();
@@ -314,19 +243,20 @@ export function Accueil(props: {
     const suite = apres.recurrence ? ` Prochaine fois ${decrireEcheance(apres.echeance, aujourdhui)}.` : "";
     annoncer(`« ${avant.titre} » faite.${suite}`, () => props.depot.enregistrerTache(avant));
   };
+  const ouvrirEspace = (id: WidgetId) => {
+    noterUsage("widget", id);
+    props.ouvrirModule(id);
+  };
   const toucherChose = (c: ChoseDuJour) => {
     if (c.destination === "sauvegarde") props.ouvrirSauvegarde();
     else if (c.destination === "repartition") props.ouvrirRepartition();
-    else {
-      noterUsage("widget", c.destination);
-      props.ouvrirModule(c.destination);
-    }
+    else ouvrirEspace(c.destination);
   };
   // La vie de la fée : sommeil, alertes, l'heure des tâches, le réveil, le jour J.
   const agenda = resumeAgenda(evenements, props.donnees.animaux, aujourdhui);
   const prochainRdv = agenda.aujourdhui.find((o) => !o.evenement.heure || o.evenement.heure >= heureTexte) ?? agenda.semaine[0];
   useVieFee({
-    actif: props.auDessus && !edition && !espaces && !visite,
+    actif: props.auDessus && !espaces && !visite,
     aujourdhui,
     carte,
     taches: props.donnees.taches,
@@ -350,7 +280,7 @@ export function Accueil(props: {
   const quiFait = (c: ChoseDuJour) => {
     const t = props.donnees.taches.find((x) => x.id === c.tacheId);
     if (!t) return null;
-    if (t.responsable === null) return "Libre";
+    if (t.responsable === null) return "libre";
     return foyer.membres.find((m) => m.id === t.responsable)?.prenom ?? null;
   };
   const ouvrirSigne = (v: ValeurSigne) => {
@@ -358,89 +288,69 @@ export function Accueil(props: {
     else props.ouvrirModule(v.destination);
   };
 
-  const terminer = () => {
-    setEdition(false);
-    setGlisse(null);
-  };
+  // ----- Les quatre chiffres du jour -----
+  const dues = compterDues(props.donnees.taches, aujourdhui);
+  const plan = planDe(props.donnees.budget);
+  const soldeCourses = plan ? etatDesPots(plan, props.donnees.budget, aujourdhui).courses.solde : 0;
+  const rdv = tuileAgenda(prochainRdv, aujourdhui);
+  const totalDues = dues.aujourdhui + dues.enRetard;
+  const tuiles: TuileChiffre[] = [
+    { id: "taches", libelle: "Tâches", valeur: String(totalDues), pied: dues.enRetard ? `${dues.enRetard} en retard` : totalDues ? "à faire" : "rien", urgent: dues.enRetard > 0 },
+    { id: "courses", libelle: "Courses", valeur: String(apercuDe("courses").chiffre), pied: apercuDe("courses").chiffre ? "à prendre" : "liste vide", urgent: false },
+    plan
+      ? { id: "budget", libelle: "Budget", valeur: String(Math.max(0, Math.floor(soldeCourses))), pied: apercuDe("budget").urgent ? "facture à payer" : "CHF courses", urgent: apercuDe("budget").urgent }
+      : { id: "budget", libelle: "Budget", valeur: "—", pied: "à créer", urgent: false },
+    { id: "agenda", libelle: "Agenda", valeur: rdv.valeur, pied: rdv.pied, urgent: false },
+  ];
+  const contenuApercu = (id: TuileChiffre["id"]) =>
+    id === "taches"
+      ? { contexte: contexteDe(apercuDe("taches")), lignes: carte.choses.slice(0, 4).map((c) => ({ texte: c.texte, fin: c.quand, urgent: c.etat === "urgent" })) }
+      : { contexte: contexteDe(apercuDe(id)), lignes: lignesDe(apercuDe(id)) };
 
-  function widget(id: WidgetId, i: number): ReactNode {
-    const c = apercus.get(id);
-    if (!c) return null;
-    const def = definition(id);
-    const taille = tailleDe(tailles, id);
-    const classes = `widget ${taille}${c.urgent && !edition ? " urgent" : ""}`;
-    const corps: ReactNode = (
-      <>
-        <span className="widget-haut">
-          <span className="widget-picto"><Icone nom={PICTOS[id]} taille={16} /></span>
-          <span className="widget-titre">{def.titre}</span>
-          {!edition && c.urgent && <span className="point-etat urgent" aria-label="À faire" />}
-        </span>
-        <span className="widget-bas">
-          <span className="widget-valeur">{c.chiffre > 0 ? `${c.chiffre} ${c.legende}` : c.legende}</span>
-          {c.jauge !== undefined && (
-            <span className="widget-jauge" aria-hidden><span style={{ width: `${Math.round(Math.min(1, c.jauge) * 100)}%` }} /></span>
-          )}
-          {c.lignes.length > 0 && (
-            <span className="widget-apercu">
-              {(taille === "grand" ? c.lignes : c.lignes.slice(0, 1)).map((ligne) => <span key={ligne}>{ligne}</span>)}
-            </span>
-          )}
-        </span>
-      </>
-    );
-    if (edition) {
-      return (
-        <div
-          key={id}
-          data-widget={id}
-          className={`${classes} en-edition${glisse === id || ajout === id ? " glisse" : ""}`}
-          style={{ animationDelay: `${(i % 3) * -0.09}s` }}
-          onPointerDown={(e) => commencerGlisse(e, id)}
-          onPointerMove={suivreGlisse}
-          onPointerUp={() => setGlisse(null)}
-          onPointerCancel={() => setGlisse(null)}
-        >
-          {corps}
-          <button className="badge-widget retirer" onClick={() => changer(retirerWidget(disposition, id))} aria-label={`Retirer ${def.titre}`}>
-            <Icone nom="moins" taille={14} />
-          </button>
-          <button className="badge-widget taille" onClick={() => changerTaille(id)} aria-label={taille === "grand" ? `Réduire ${def.titre}` : `Agrandir ${def.titre}`}>
-            <Icone nom={taille === "grand" ? "reduire" : "agrandir"} taille={14} />
-          </button>
-        </div>
-      );
+  // ----- Les piles « En ce moment » -----
+  const filEntrees = filDuFoyer(props.donnees, maintenant.toISOString());
+  const jourLocal = (iso: string) => aujourdhuiLocal(new Date(iso));
+  const cartePile = (id: CarteId): CartePile => {
+    const base = { id, titre: CARTES.find((c) => c.id === id)!.titre, picto: PICTO_CARTE[id] };
+    if (id === "fil") {
+      const resume = resumeDuJour(filEntrees, aujourdhui, jourLocal, foyer, membreId);
+      return {
+        ...base,
+        contexte: resume ? `Aujourd'hui : ${resume}` : filEntrees.length ? "Rien de neuf aujourd'hui" : "Ce que chacun fait, au fil des jours",
+        lignes: filEntrees.slice(0, 2).map((e) => ({ texte: `${quiDe(e, foyer, membreId)} ${e.texte}`, fin: jourLocal(e.quand) === aujourdhui ? heureMinute(new Date(e.quand)) : "avant" })),
+        urgent: false,
+        ouvrir: props.ouvrirFil,
+      };
     }
-    return (
-      <button
-        key={id}
-        data-widget={id}
-        className={classes}
-        onPointerDown={appuyer}
-        onPointerMove={bouger}
-        onPointerUp={lacher}
-        onPointerCancel={lacher}
-        onPointerLeave={lacher}
-        onContextMenu={(e) => e.preventDefault()}
-        onClick={() => {
-          if (ignorerClic.current) {
-            ignorerClic.current = false;
-            return;
-          }
-          noterUsage("widget", id);
-          props.ouvrirModule(id);
-        }}
-      >
-        {corps}
-      </button>
-    );
-  }
+    if (id === "bilan") {
+      return {
+        ...base,
+        contexte: appris.length === 1 ? "Une chose apprise, à garder ou non" : `${appris.length} choses apprises, à garder ou non`,
+        lignes: appris.slice(0, 2).map((a) => ({ texte: a.texte, fin: "" })),
+        urgent: false,
+        ouvrir: props.ouvrirBilan,
+      };
+    }
+    const a = apercuDe(id);
+    return {
+      ...base,
+      contexte: id === "budget" && plan && !a.legende.includes("clôturer") && !a.legende.includes("noter") ? `${Math.max(0, Math.floor(soldeCourses))} CHF sur la carte courses` : contexteDe(a),
+      lignes: lignesDe(a),
+      urgent: a.urgent,
+      widget: id,
+      ouvrir: () => ouvrirEspace(id),
+    };
+  };
+  const urgentes = new Set<CarteId>((["maison", "chef", "courses", "agenda", "budget"] as const).filter((id) => apercuDe(id).urgent));
+  const piles = composerPiles(moment, { urgentes, retirees: new Set(retirees), absentes: new Set<CarteId>(bilanPret ? [] : ["bilan"]) });
+  const direct = enDirect({ ...props.donnees, foyer, membreId }, maintenant.toISOString());
+  const titreCeSoir = montrer === "demain" ? "Demain" : moment === "dimanche" ? "Aujourd'hui" : titreMoment(heure);
 
   return (
-    <main className="tableau accueil">
+    <main className="tableau accueil accueil-un-ecran">
       <header className="haut-accueil" ref={haut}>
         <GrandeDate date={maintenant} />
-        {!edition && <Signes valeurs={valeursSignes} choisis={signes} changer={setSignes} toucher={ouvrirSigne} />}
+        <Signes valeurs={valeursSignes} choisis={signes} changer={setSignes} toucher={ouvrirSigne} />
         {/* La date tient lieu de salutation ; le titre reste pour VoiceOver. */}
         <h1 className="cache-visuel">
           {salutation(heure)}
@@ -449,82 +359,73 @@ export function Accueil(props: {
       </header>
       <DateRepliee date={maintenant} cible={haut} />
 
-      {edition && (
-        <button className="bouton-termine" onClick={terminer}>OK</button>
-      )}
+      {direct && <PastilleDirect direct={direct} ouvrir={() => ouvrirEspace("courses")} />}
 
-      {!edition && bilanPret && (
-        <button className="carte proposition bilan-annonce" onClick={props.ouvrirBilan}>
-          <span className="pictogramme"><Icone nom="appris" taille={20} /></span>
-          <span className="proposition-texte">
-            <strong>Le bilan de la semaine</strong>
-            <span className="discret">{aApprendre === 1 ? "Une chose apprise" : `${aApprendre} choses apprises`}, à garder ou non.</span>
-          </span>
-          <Icone nom="suivant" taille={18} />
-        </button>
-      )}
+      <CarteDemarrage
+        foyer={foyer}
+        membreId={membreId}
+        partageActif={props.partageActif}
+        taches={props.donnees.taches}
+        ouvrir={(ou) => (ou === "taches" ? props.ouvrirModule("taches") : props.ouvrirReglage(ou))}
+      />
 
-      {!edition && (
-        <CarteDemarrage
-          foyer={foyer}
-          membreId={membreId}
-          partageActif={props.partageActif}
-          taches={props.donnees.taches}
-          ouvrir={(ou) => (ou === "taches" ? props.ouvrirModule("taches") : props.ouvrirReglage(ou))}
-        />
-      )}
+      <ChiffresDuJour tuiles={tuiles} ouvrir={ouvrirEspace} apercu={setApercu} />
 
-      {!edition && (
-        <CarteAujourdhui
-          carte={carte}
-          titre={montrer === "demain" ? "Demain" : titreMoment(heure)}
-          maintenant={heureTexte}
-          toucher={toucherChose}
-          cocher={(c) => void cocherChose(c)}
-          changerHeure={(c) => setHeureDe(props.donnees.taches.find((t) => t.id === c.tacheId) ?? null)}
-          qui={quiFait}
-          voirTout={() => props.ouvrirModule("taches")}
-        />
-      )}
+      <CeSoir
+        choses={carte.choses}
+        titre={titreCeSoir}
+        vide={carte.faites ? "Tout est fait. Belle journée." : "Rien de prévu, rien ne presse."}
+        qui={quiFait}
+        toucher={toucherChose}
+        cocher={(c) => void cocherChose(c)}
+        changerHeure={(c) => setHeureDe(props.donnees.taches.find((t) => t.id === c.tacheId) ?? null)}
+        voirTout={() => ouvrirEspace("taches")}
+        indice={indice}
+        gesteFait={() => {
+          setIndice(false);
+          enregistrerIndiceGlisse({ ...lireIndiceGlisse(), geste: true });
+        }}
+      />
 
-      <section className="widgets-accueil" aria-label="Tableau de bord">
-        <div className={`widgets${edition ? " en-edition" : ""}`}>{ordonnes.map((id, i) => widget(id, i))}</div>
-        {ordonnes.length === 0 && (
-          <div className="carte vide-tableau">
-            <p>Le tableau de bord est vide. Tire l'accueil vers le bas et glisse un espace ici.</p>
-            {!edition && <button className="bouton-principal" onClick={() => setEdition(true)}>Ajouter des widgets</button>}
-          </div>
+      <section className="en-ce-moment" aria-label="En ce moment">
+        <header className="accueil-titre">
+          <h2>En ce moment</h2>
+          <span className="discret">{RAISON_DU_MOMENT[moment]}</span>
+        </header>
+        {piles[0].length > 0 && <Pile key={`haut-${piles[0].join()}`} nom="À faire" cartes={piles[0].map(cartePile)} ranger={() => setRanger(true)} />}
+        {piles[1].length > 0 && <Pile key={`bas-${piles[1].join()}`} nom="À consulter" cartes={piles[1].map(cartePile)} ranger={() => setRanger(true)} />}
+        {piles[0].length + piles[1].length === 0 && (
+          <button className="carte vide-tableau" onClick={() => setRanger(true)}>
+            Les piles sont vides. Touche ici pour remettre des cartes.
+          </button>
         )}
       </section>
 
-      {edition && (
-        <p className="discret aide-edition">Glisse un widget pour le déplacer, le − le retire de l'accueil. Pour en ajouter un, tire l'accueil vers le bas et glisse un espace ici.</p>
-      )}
-
       {/* Le partage et la sauvegarde vivent dans Réglages : ici seulement quand il y a un souci. */}
-      {!edition && (
-        <footer className="pied-accueil">
-          {(props.partage.ton === "urgent" || props.partage.horsLigne) && (
-            <button className={`etat-pied ${props.partage.ton}`} onClick={props.ouvrirPartage}>
-              <span className={`point-etat ${props.partage.ton}`} aria-hidden />
-              {props.partage.texte}
-            </button>
-          )}
-          {notificationsCoupees && (
-            <button className="etat-pied urgent" onClick={props.ouvrirNotifications}>
-              <span className="point-etat urgent" aria-hidden />
-              Notifications coupées sur ce téléphone
-            </button>
-          )}
-          {props.synchroniser && <BoutonSynchro synchroniser={props.synchroniser} />}
-          {sauvegardeDue(derniereSauvegarde, aujourdhui) && (
-            <button className="etat-pied" onClick={props.ouvrirSauvegarde}>
-              <Icone nom="sauvegarde" taille={15} />
-              Sauvegarde : {decrireDerniere(derniereSauvegarde, aujourdhui)}
-            </button>
-          )}
-        </footer>
-      )}
+      <footer className="pied-accueil">
+        {(props.partage.ton === "urgent" || props.partage.horsLigne) && (
+          <button className={`etat-pied ${props.partage.ton}`} onClick={props.ouvrirPartage}>
+            <span className={`point-etat ${props.partage.ton}`} aria-hidden />
+            {props.partage.texte}
+          </button>
+        )}
+        {notificationsCoupees && (
+          <button className="etat-pied urgent" onClick={props.ouvrirNotifications}>
+            <span className="point-etat urgent" aria-hidden />
+            Notifications coupées sur ce téléphone
+          </button>
+        )}
+        {props.synchroniser && <BoutonSynchro synchroniser={props.synchroniser} />}
+        {sauvegardeDue(derniereSauvegarde, aujourdhui) && (
+          <button className="etat-pied" onClick={props.ouvrirSauvegarde}>
+            <Icone nom="sauvegarde" taille={15} />
+            Sauvegarde : {decrireDerniere(derniereSauvegarde, aujourdhui)}
+          </button>
+        )}
+      </footer>
+
+      {/* Le bas de l'écran s'efface dans le fond, comme sous la barre d'iOS (le haut a la date repliée). */}
+      {props.auDessus && createPortal(<div className="fondu-bord" aria-hidden />, document.body)}
 
       {visite && (
         <Visite
@@ -545,25 +446,54 @@ export function Accueil(props: {
         }}
       />
 
+      <Feuille ouverte={apercu !== null} onFermer={() => setApercu(null)} titre={tuiles.find((t) => t.id === apercu)?.libelle}>
+        {apercu && (
+          <ContenuApercu
+            {...contenuApercu(apercu)}
+            libelle={tuiles.find((t) => t.id === apercu)!.libelle}
+            ouvrir={() => {
+              const id = apercu;
+              setApercu(null);
+              ouvrirEspace(id);
+            }}
+          />
+        )}
+      </Feuille>
+
+      <Feuille ouverte={ranger} onFermer={() => setRanger(false)} titre="Les piles de l'accueil">
+        <p className="discret">Kora les range selon le moment, et ce qui presse monte en haut. Ce choix reste sur ce téléphone.</p>
+        <ul className="carte groupe">
+          {CARTES.map((c) => {
+            const garde = !retirees.includes(c.id);
+            return (
+              <li key={c.id}>
+                <button
+                  className="ligne ligne-reglage"
+                  role="checkbox"
+                  aria-checked={garde}
+                  onClick={() => {
+                    vibrer();
+                    changerRetirees(basculerRetiree(retirees, c.id));
+                  }}
+                >
+                  <span className="picto-reglage"><Icone nom={PICTO_CARTE[c.id]} taille={17} /></span>
+                  <span className="ligne-texte">{c.titre}</span>
+                  {garde && <span className="coche-reglage"><Icone nom="coche" taille={18} /></span>}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </Feuille>
+
       <TousLesEspaces
         ouverte={espaces}
-        repliee={ajout !== null}
+        repliee={false}
         fermer={() => setEspaces(false)}
         donnees={props.donnees}
         aller={props.aller}
-        ouvrirModule={(id) => {
-          noterUsage("widget", id);
-          props.ouvrirModule(id);
-        }}
-        ajouter={
-          edition
-            ? (id) => {
-                changer(ajouterWidget(disposition, id));
-                setEspaces(false);
-              }
-            : undefined
-        }
-        glisser={commencerAjout}
+        ouvrirModule={ouvrirEspace}
+        glisser={(id) => remettre(id)}
         liens={{
           ouvrirReglages: props.ouvrirReglages,
           ouvrirRappels: props.ouvrirRappels,
@@ -575,20 +505,8 @@ export function Accueil(props: {
           moi: moi ? { prenom: moi.prenom, couleur: moi.couleur } : null,
         }}
       />
-
-      {ajout && (
-        <div className="fantome-widget" ref={fantome} aria-hidden>
-          <span className="tuile-picto"><Icone nom={PICTOS[ajout]} taille={22} /></span>
-          <span className="tuile-nom">{definition(ajout).titre}</span>
-        </div>
-      )}
     </main>
   );
-}
-
-/** Le widget sous le doigt, s'il y en a un. */
-function widgetSous(x: number, y: number): WidgetId | undefined {
-  return document.elementFromPoint(x, y)?.closest<HTMLElement>(".page-dessus [data-widget]")?.dataset.widget as WidgetId | undefined;
 }
 
 /** « Synchroniser » : la synchro passe déjà seule, mais on peut la demander d'un toucher. */

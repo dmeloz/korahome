@@ -1,8 +1,10 @@
 import { ajusterRythme, apprentissages, souvenirAppris, type Apprentissage } from "../domaine/apprentissage";
 import { recalerCommande } from "../domaine/mitsu";
-import { nettoyerDisposition, retirerWidget } from "../domaine/tableauDeBord";
+import { basculerRetiree, carteDeLEspace, CARTES } from "../domaine/ecranAccueil";
+import type { WidgetId } from "../domaine/tableauDeBord";
 import type { Depot } from "../donnees/depot";
-import { contexteReel, enregistrerDisposition, lireDisposition } from "./contexte";
+import { enregistrerRetirees, lireRetirees } from "./accueilLocal";
+import { contexteReel } from "./contexte";
 import type { DonneesModule } from "./modules";
 import { lirePreferences } from "./rappels";
 import { deciderPerso, lireDecisionsPerso, lireUsages, oublierDecisionPerso, signalerChangement } from "./usage";
@@ -16,6 +18,12 @@ function heureRappel(): number | null {
   return permis ? lirePreferences().heure : null;
 }
 
+/** Les espaces dont la carte est encore dans les piles de l'accueil de ce téléphone. */
+function cartesSurLAccueil(): WidgetId[] {
+  const retirees = lireRetirees();
+  return CARTES.map((c) => c.id).filter((id): id is WidgetId & typeof id => carteDeLEspace(id) === id && !retirees.includes(id));
+}
+
 export function calculerApprentissages(d: DonneesModule): Apprentissage[] {
   const decisions = Object.fromEntries(Object.entries(lireDecisionsPerso()).map(([cle, v]) => [cle, v.decision]));
   return apprentissages({
@@ -26,7 +34,8 @@ export function calculerApprentissages(d: DonneesModule): Apprentissage[] {
     animaux: d.animaux,
     souvenirs: d.souvenirs,
     usages: lireUsages(),
-    disposition: nettoyerDisposition(lireDisposition()),
+    // Depuis 0.0.72, l'accueil montre des piles : un espace délaissé est une carte qu'on peut retirer.
+    disposition: cartesSurLAccueil(),
     heureRappel: heureRappel(),
     decisionsPerso: decisions,
     aujourdhui: d.aujourdhui,
@@ -65,11 +74,12 @@ export async function deciderApprentissage(a: Apprentissage, garde: boolean, s: 
       await s.changerHeureRappel(action.heure);
       defaire.push(() => s.changerHeureRappel(avant));
     } else if (action.type === "retirerWidget") {
-      const avant = nettoyerDisposition(lireDisposition());
-      enregistrerDisposition(retirerWidget(avant, action.widget));
+      const avant = lireRetirees();
+      const carte = carteDeLEspace(action.widget);
+      if (carte && !avant.includes(carte)) enregistrerRetirees(basculerRetiree(avant, carte));
       signalerChangement();
       defaire.push(async () => {
-        enregistrerDisposition(avant);
+        enregistrerRetirees(avant);
         signalerChangement();
       });
     } else if (action.type === "recalerCommande") {
