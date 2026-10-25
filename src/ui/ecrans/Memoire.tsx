@@ -195,7 +195,7 @@ function RienQuATOi() {
         />
         <Interrupteur
           titre="Accueil qui s'adapte"
-          detail="Le matin, le midi et le soir, ce que tu ouvres le plus passe devant (après ce qui presse)."
+          detail="Les piles « En ce moment » changent avec le matin, le soir et le dimanche. Ce qui presse monte toujours en haut."
           actif={adaptations.accueilVivant}
           changer={(accueilVivant) => changerAdaptations({ accueilVivant })}
         />

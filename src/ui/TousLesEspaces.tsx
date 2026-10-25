@@ -246,7 +246,7 @@ export function TousLesEspaces(props: {
             </section>
           ))}
           <p className="discret espaces-pied">
-            {props.ajouter ? "Touche un espace pour l'ajouter, ou glisse-le à sa place." : "Garde le doigt sur un espace et glisse-le sur l'accueil pour en faire un widget."}
+            {props.ajouter ? "Touche un espace pour l'ajouter, ou glisse-le à sa place." : "Garde le doigt sur un espace pour remettre sa carte dans les piles de l'accueil."}
           </p>
         </div>
 

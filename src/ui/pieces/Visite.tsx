@@ -12,7 +12,7 @@ import { noter } from "../journal";
 const SELECTEURS: Record<CibleVisite, string> = {
   signes: ".page-dessus .signes-accueil",
   aujourdhui: ".page-dessus .ce-moment",
-  widget: ".page-dessus .widgets-accueil .widget",
+  widget: ".page-dessus .chiffres-accueil",
   fee: "body > .fee",
 };
 

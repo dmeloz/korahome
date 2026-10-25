@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { ProduitHabituel } from "../../domaine/catalogue";
 import { devinerArticles, noterAchat, oublierAchat, panierHabituel, suggestions } from "../../domaine/habitudes";
+import { noterCocheur } from "../../domaine/ecranAccueil";
 import { analyserSaisie, basculerCoche, basculerPourMoi, nouvelElement, organiserListe } from "../../domaine/listes";
 import type { Element, Foyer, Liste } from "../../domaine/types";
 import type { Depot } from "../../donnees/depot";
@@ -87,7 +88,7 @@ export function DetailListe(props: {
     vibrer();
     // Le dernier article pris : la liste est faite, une gerbe de confettis.
     const dernier = !el.coche && props.elements.filter((e) => !e.coche).length === 1;
-    const apres = basculerCoche(el, contexteReel);
+    const apres = noterCocheur(el, basculerCoche(el, contexteReel), props.membreId);
     if (dernier) feter();
     if (apres.coche) {
       clearTimeout(minuteries.current.get(el.id));
@@ -136,7 +137,7 @@ export function DetailListe(props: {
     if (!lot.length) return;
     vibrer();
     const cocher = lot.some((e) => !e.coche);
-    const apres = lot.filter((e) => e.coche !== cocher).map((e) => basculerCoche(e, contexteReel));
+    const apres = lot.filter((e) => e.coche !== cocher).map((e) => noterCocheur(e, basculerCoche(e, contexteReel), props.membreId));
     for (const e of apres) await props.depot.enregistrerElement(e);
     setChoisis(null);
     annoncer(`${apres.length === 1 ? "Un article" : `${apres.length} articles`} ${cocher ? "dans le panier" : "remis à prendre"}.`, async () => {

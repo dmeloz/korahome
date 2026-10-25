@@ -38,13 +38,13 @@ export function parcoursVisite(autre: string | null, fee = "Tael"): EtapeVisite[
       id: "aujourdhui",
       cible: "aujourdhui",
       titre: "Le moment présent",
-      texte: "Ce qui compte maintenant, la chose du moment en grand. Glisse-la vers la droite ou touche son rond : c'est fait. Touche l'heure pour la changer.",
+      texte: "Ce qui compte maintenant, une chose à la fois en grand : elles passent toutes seules, un toucher les arrête. Glisse-la vers la droite ou touche son rond : c'est fait.",
     },
     {
       id: "widget",
       cible: "widget",
-      titre: "Les widgets",
-      texte: "Chaque widget ouvre son espace. Un point rouge veut dire qu'il y a quelque chose à faire. Appui long pour les ranger, les agrandir ou les retirer.",
+      titre: "Les chiffres du jour",
+      texte: "Tâches, courses, budget, agenda d'un coup d'œil. Touche pour ouvrir, garde le doigt pour un aperçu. Dessous, deux piles qui suivent le moment : glisse-les.",
     },
     {
       id: "fee",

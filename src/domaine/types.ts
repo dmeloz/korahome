@@ -56,6 +56,8 @@ export interface Element {
   source?: "chef";
   creeLe: string;
   cocheLe: string | null;
+  /** Qui l'a coché (depuis Kora 0.0.72) : la pastille « en direct » de l'accueil. */
+  cochePar?: Id | null;
 }
 
 export const RAYONS = [
