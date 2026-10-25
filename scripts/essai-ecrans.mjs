@@ -89,13 +89,11 @@ try {
   };
 
   await capture("accueil");
-  // Les six espaces (Kora 0.0.62), et chaque onglet qui reprend une ancienne page.
+  // Les quatre espaces (Kora 0.0.75), et chaque onglet qui reprend une ancienne page.
   const ESPACES = {
-    Tâches: ["Entretien", "Administratif"],
-    Courses: ["Autres listes"],
-    Agenda: [],
-    Maison: ["Jardin", "Mitsu"],
-    Cuisine: ["Nos recettes", "Frigo"],
+    Organisation: ["Agenda", "Administratif"],
+    Cuisine: ["Courses", "Autres listes", "Recettes", "Frigo"],
+    Maison: ["Entretien", "Jardin", "Mitsu"],
     Budget: [],
   };
   for (const [espace, onglets] of Object.entries(ESPACES)) {

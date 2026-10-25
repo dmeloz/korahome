@@ -18,17 +18,15 @@ import {
 } from "./tableauDeBord";
 
 describe("tableau de bord", () => {
-  it("commence avec les tâches, les courses et la cuisine", () => {
-    expect(DISPOSITION_DE_DEPART).toEqual(["taches", "courses", "chef"]);
+  it("commence avec l'organisation et la cuisine", () => {
+    expect(DISPOSITION_DE_DEPART).toEqual(["taches", "chef"]);
   });
 
-  it("range les anciens widgets dans leurs six espaces, à la place du premier", () => {
+  it("range les anciens widgets dans leurs quatre espaces, à la place du premier", () => {
     expect(nettoyerDisposition(["taches", "courses", "listes", "agenda", "mitsu", "stock", "entretien", "jardin", "chef", "budget"])).toEqual([
       "taches",
-      "courses",
-      "agenda",
-      "maison",
       "chef",
+      "maison",
       "budget",
     ]);
     expect(nettoyerDisposition(["jardin", "taches"])).toEqual(["maison", "taches"]);
@@ -37,24 +35,24 @@ describe("tableau de bord", () => {
   it("ajoute l'espace d'une section fusionnée, une seule fois", () => {
     expect(ajouterWidget(["taches"], "stock")).toEqual(["taches", "chef"]);
     expect(ajouterWidget(["maison"], "jardin")).toEqual(["maison"]);
-    expect(poserWidget(["taches", "courses"], "mitsu", "courses")).toEqual(["taches", "maison", "courses"]);
+    expect(poserWidget(["taches", "chef"], "mitsu", "chef")).toEqual(["taches", "maison", "chef"]);
   });
 
   it("relit une disposition enregistrée sans garder l'inconnu ni les doublons", () => {
-    expect(nettoyerDisposition(["courses", "meteo", "courses", "agenda", "taches"])).toEqual(["courses", "agenda", "taches"]);
+    expect(nettoyerDisposition(["courses", "meteo", "courses", "agenda", "taches"])).toEqual(["chef", "taches"]);
     expect(nettoyerDisposition("n'importe quoi")).toEqual(DISPOSITION_DE_DEPART);
     expect(nettoyerDisposition([])).toEqual([]);
   });
 
   it("ajoute et retire un widget", () => {
-    const sansCourses = retirerWidget(DISPOSITION_DE_DEPART, "courses");
-    expect(sansCourses).toEqual(["taches", "chef"]);
-    expect(ajouterWidget(sansCourses, "courses")).toEqual(["taches", "chef", "courses"]);
-    expect(ajouterWidget(sansCourses, "taches")).toBe(sansCourses);
+    const sansCuisine = retirerWidget(DISPOSITION_DE_DEPART, "chef");
+    expect(sansCuisine).toEqual(["taches"]);
+    expect(ajouterWidget(sansCuisine, "courses")).toEqual(["taches", "chef"]);
+    expect(ajouterWidget(sansCuisine, "taches")).toBe(sansCuisine);
   });
 
-  it("ajoute l'agenda commun, désormais prêt", () => {
-    expect(ajouterWidget(["taches"], "agenda")).toEqual(["taches", "agenda"]);
+  it("range l'agenda dans Organisation", () => {
+    expect(ajouterWidget(["chef"], "agenda")).toEqual(["chef", "taches"]);
   });
 
   it("fait remonter l'urgent en gardant l'ordre choisi pour le reste", () => {
@@ -73,7 +71,7 @@ describe("taille et glisser des widgets", () => {
   });
 
   it("relit les tailles en ignorant le reste", () => {
-    expect(nettoyerTailles({ taches: "petit", courses: "grand", inconnu: "grand" })).toEqual({ courses: "grand" });
+    expect(nettoyerTailles({ taches: "petit", courses: "grand", inconnu: "grand" })).toEqual({ chef: "grand" });
     expect(nettoyerTailles("n'importe quoi")).toEqual({});
   });
 

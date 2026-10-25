@@ -11,11 +11,11 @@ import { RepereOnglet } from "../moteur/pieces";
 import { Page } from "../pieces";
 
 // Les notes de test, rangées comme dans Sanji : nouvelles (pas encore parties),
-// transmises (sur le serveur du foyer, où Claude les lit) et réglées.
+// reçues (sur le serveur du foyer, où Claude les lit ; « Transmises » jusqu'en 0.0.74) et réglées.
 
 const GROUPES: { etat: EtatRetour; titre: string }[] = [
   { etat: "nouvelle", titre: "Nouvelles" },
-  { etat: "transmise", titre: "Transmises" },
+  { etat: "transmise", titre: "Reçues" },
   { etat: "reglee", titre: "Réglées" },
 ];
 
@@ -87,13 +87,13 @@ export function RetoursTest(props: { depot: DepotLocal; foyer: Foyer; retours: R
         {props.partageActif ? (
           <p>
             {nouvelles === 0
-              ? "Toutes les notes sont transmises à Claude."
+              ? "Claude a reçu toutes les notes : pas besoin de les copier ni de les partager."
               : `${nouvelles} note${nouvelles > 1 ? "s partent" : " part"} vers Claude à la prochaine synchronisation.`}
           </p>
         ) : (
           <p>Les notes partent seules vers Claude dès que le partage est activé sur ce téléphone.</p>
         )}
-        <p className="discret">Les notes des deux iPhone arrivent au même endroit, avec les gestes qui les ont précédées.</p>
+        <p className="discret">Une note part seule dès qu'elle est écrite. Celles des deux iPhone arrivent au même endroit, avec les gestes qui les ont précédées.</p>
       </div>
 
       <div className="segments" role="tablist">

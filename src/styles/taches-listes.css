@@ -58,3 +58,11 @@
   backdrop-filter: blur(20px);
 }
 .barre-choix .lien:disabled { opacity: 0.4; }
+
+/* « Le reste » sous ses tâches : celles de l'autre et les libres, repliées (0.0.75). */
+.reste-taches { margin-top: 18px; }
+.reste-entete { display: flex; align-items: baseline; gap: 8px; width: 100%; min-height: 44px; padding: 0; background: none; border: none; color: var(--texte); text-align: left; }
+.reste-entete .rayon { margin: 0; }
+.reste-entete .discret { flex: 1; font-size: 13px; }
+.reste-chevron { align-self: center; display: grid; color: var(--discret); transition: transform 0.25s var(--courbe); }
+.reste-entete[aria-expanded="true"] .reste-chevron { transform: rotate(180deg); }
