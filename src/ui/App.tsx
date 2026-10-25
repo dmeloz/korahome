@@ -25,6 +25,7 @@ import { CentreRappels } from "./ecrans/CentreRappels";
 import { demanderRepartition } from "./ecrans/Taches";
 import { preparerDemande } from "./ecrans/Jarvis";
 import { BarreJarvis, FournisseurSaisie } from "./pieces";
+import { BarreHaut, type EspaceBarre } from "./pieces/BarreHaut";
 import { useEtatPartage } from "./etatPartage";
 import { lireRappels } from "./centreRappels";
 import { nonLus } from "../domaine/centreRappels";
@@ -34,7 +35,7 @@ import type { MiseAJour } from "./miseAJour";
 import { BORD_RETOUR, finRetour, gesteRetour } from "./gestes";
 import { noter } from "./journal";
 import { useMeteo } from "./meteo";
-import { MODULES, prechargerPages, type DonneesModule } from "./modules";
+import { MODULES, PICTOS, prechargerPages, type DonneesModule } from "./modules";
 import type { OngletMemoire } from "./ecrans/Memoire";
 import type { ServicesPartage } from "./ecrans/Partage";
 import { enregistrerPastilleVisible, lirePastilleVisible } from "./rapport";
@@ -98,6 +99,12 @@ type Page =
 
 /** Une page de la pile, avec l'endroit où elle était défilée quand on en est parti. */
 type Entree = Page & { defilement?: number };
+
+// Les six espaces de l'accueil, dans le sélecteur de la barre du haut.
+const ESPACES_BARRE: EspaceBarre[] = (["taches", "courses", "chef", "maison", "agenda", "budget"] as const).flatMap((id) => {
+  const module = MODULES[id];
+  return module ? [{ id, libelle: module.libelle, picto: PICTOS[id] }] : [];
+});
 
 // L'écran affiché, lu par le journal des retours de test à chaque geste.
 let ecranCourant = "Accueil";
@@ -286,6 +293,14 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       const haut = avant[avant.length - 1];
       return haut.nom === "module" ? [...avant.slice(0, -1), { ...haut, onglet }] : avant;
     });
+  /** Le sélecteur de la barre du haut : l'espace choisi remplace la page, l'accueil reste dessous. */
+  const allerEspace = (id: WidgetId) => {
+    widgetOuvert.current = null;
+    avecTransition("avant", () => {
+      setPile((avant) => [avant[0], { nom: "module", id }]);
+      window.scrollTo(0, 0);
+    });
+  };
   const ouvrirListe = (id: string) => ouvrir({ nom: "liste", id });
   const ouvertes = retours.filter((r) => !r.regleLe).length;
 
@@ -487,16 +502,21 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       const dessus = i === pile.length - 1;
       const avant = i > 0 ? pile[i - 1] : null;
       const retour = avant && (
-        <button className="retour" onClick={dessus ? revenirAnime : undefined} tabIndex={dessus ? undefined : -1}>
-          <Icone nom="retour" taille={22} />
-          {libelle(avant)}
-        </button>
+        <BarreHaut
+          retour={libelle(avant)}
+          revenir={revenirAnime}
+          titre={libelle(p)}
+          espaces={ESPACES_BARRE}
+          actuel={p.nom === "module" ? p.id : undefined}
+          allerA={allerEspace}
+          inerte={!dessus}
+        />
       );
       if (!dessus) {
         const visible = i === pile.length - 2 && glissement;
         return (
           <div
-            key={`${i}-${p.nom}`}
+            key={`${i}-${p.nom}${p.nom === "module" ? `-${p.id}` : ""}`}
             className={`contenu page-dessous${visible ? " visible" : ""}`}
             style={{ top: -(p.defilement ?? 0) }}
             aria-hidden
@@ -509,7 +529,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       }
       return (
     <div
-      key={`${i}-${p.nom}`}
+      key={`${i}-${p.nom}${p.nom === "module" ? `-${p.id}` : ""}`}
       className={`contenu page-dessus${glissement ? " retour-glisse" : ""}`}
     >
       {retour}

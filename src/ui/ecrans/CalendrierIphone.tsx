@@ -52,7 +52,7 @@ export function CalendrierIphone(props: { foyer: Foyer; membreId: Id | null; com
         {!d ? (
           <>
             <p className="discret">Une fois le foyer partagé, l'agenda pourra se relier à l'iCloud de chacun.</p>
-            <button className="bouton-principal" onClick={props.ouvrirPartage}>Activer le partage</button>
+            <button className="bouton-doux" onClick={props.ouvrirPartage}>Activer le partage</button>
           </>
         ) : (
           <>

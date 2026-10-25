@@ -50,14 +50,18 @@ export const demanderRepartition = () => {
   repartitionDemandee = true;
 };
 
-type Onglet = Filtre | "entretien" | "administratif";
 
-const FILTRES: { id: Onglet; libelle: string }[] = [
+// Trois onglets en segments, et sous « À faire » les puces de qui s'en occupe (0.0.71) :
+// cinq segments serrés coupaient leurs noms sur l'iPhone.
+const ONGLETS: { id: "afaire" | "entretien" | "administratif"; libelle: string }[] = [
+  { id: "afaire", libelle: "À faire" },
+  { id: "entretien", libelle: "Entretien" },
+  { id: "administratif", libelle: "Administratif" },
+];
+const FILTRES: { id: Filtre; libelle: string }[] = [
   { id: "toutes", libelle: "Toutes" },
   { id: "miennes", libelle: "Les miennes" },
   { id: "libres", libelle: "Libres" },
-  { id: "entretien", libelle: "Entretien" },
-  { id: "administratif", libelle: "Administratif" },
 ];
 
 export function Taches(props: {
@@ -253,14 +257,19 @@ export function Taches(props: {
 
       <Onglets
         libelle="Afficher"
-        onglets={FILTRES.filter((f) => (f.id !== "miennes" || moi) && (!vide || f.id === "toutes" || f.id === "entretien" || f.id === "administratif"))}
-        actif={entretien ? "entretien" : administratif ? "administratif" : filtre}
-        changer={(id) => {
-          if (id === "entretien" || id === "administratif") return props.changerOnglet(id);
-          props.changerOnglet(undefined);
-          setFiltre(id);
-        }}
+        onglets={ONGLETS}
+        actif={entretien ? "entretien" : administratif ? "administratif" : "afaire"}
+        changer={(id) => props.changerOnglet(id === "afaire" ? undefined : id)}
       />
+      {!entretien && !administratif && !vide && (
+        <div className="puces vues" role="group" aria-label="Qui s'en occupe">
+          {FILTRES.filter((f) => f.id !== "miennes" || moi).map((f) => (
+            <button key={f.id} className={`puce${f.id === filtre ? " active" : ""}`} aria-pressed={f.id === filtre} onClick={() => setFiltre(f.id)}>
+              {f.libelle}
+            </button>
+          ))}
+        </div>
+      )}
 
       {entretien ? (
         <Entretien depot={props.depot} membreId={moi} taches={props.taches} aujourdhui={aujourdhui} />

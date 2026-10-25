@@ -179,7 +179,7 @@ export function Notifications(props: {
       {etat === null ? null : !pret ? (
         <div className="carte rappels-carte">
           <p>Les rappels partent du serveur du foyer : active d'abord le partage sur ce téléphone.</p>
-          <button className="bouton-principal" onClick={props.ouvrirPartage}>Ouvrir le partage</button>
+          <button className="bouton-doux" onClick={props.ouvrirPartage}>Ouvrir le partage</button>
         </div>
       ) : etat === "ecran-accueil" ? (
         <div className="carte rappels-carte">

@@ -136,13 +136,16 @@
 .signe-humeur.sans { border-style: dashed; border-color: var(--discret); opacity: 0.6; }
 
 /* La date repliée dans une barre de verre quand on fait défiler. */
+/* Depuis 0.0.71, une bande de verre d'un bord à l'autre, comme la barre du haut des pages :
+   le contenu passe dessous au lieu d'apparaître autour d'une pastille. */
 .date-repliee {
-  position: fixed; top: calc(env(safe-area-inset-top) + 6px); left: 50%; z-index: 9; transform: translate(-50%, -140%);
-  padding: 6px 14px; border-radius: 999px; font-size: var(--t-detail); font-weight: 600; pointer-events: none; opacity: 0;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 9; transform: translateY(-100%);
+  display: grid; place-items: center; min-height: calc(env(safe-area-inset-top) + 44px); padding: env(safe-area-inset-top) 16px 0;
+  font-size: var(--t-corps); font-weight: 600; pointer-events: none; opacity: 0;
   background: var(--verre); -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4);
-  box-shadow: var(--reflet), 0 0 0 0.5px var(--verre-trait);
+  border-bottom: 0.5px solid var(--verre-trait);
 }
-.date-repliee.visible { transform: translate(-50%, 0); opacity: 1; }
+.date-repliee.visible { transform: none; opacity: 1; }
 @media (prefers-reduced-motion: no-preference) { .date-repliee { transition: transform 0.35s var(--courbe), opacity 0.2s ease; } }
 
 /* « Ce soir », sans cadre : un fil relie les ronds, l'heure à gauche quand il y en a une. */

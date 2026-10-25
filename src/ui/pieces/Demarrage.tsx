@@ -23,6 +23,8 @@ export function CarteDemarrage(props: {
 }) {
   const [rangee, setRangee] = useState(() => lireTexte(CLES.demarrageRange) === "1");
   const [notifications, setNotifications] = useState(false);
+  // Repliée en une ligne (0.0.71) : ouverte, elle prenait tout le premier écran de l'accueil.
+  const [ouverte, setOuverte] = useState(false);
   useEffect(() => {
     let vivant = true;
     etatRappels()
@@ -38,25 +40,30 @@ export function CarteDemarrage(props: {
   const faites = nombreFaites(etapes);
 
   return (
-    <section className="carte demarrage" aria-label="Mise en route">
+    <section className={`carte demarrage${ouverte ? " ouverte" : ""}`} aria-label="Mise en route">
       <header className="demarrage-entete">
-        <div>
-          <strong>{titreDemarrage(etapes)}</strong>
-          <span className="discret">{faites} sur {etapes.length}</span>
-        </div>
-        <button
-          className="lien"
-          onClick={() => {
-            // Stockage indisponible : la carte revient à la prochaine ouverture.
-            ecrireTexte(CLES.demarrageRange, "1");
-            setRangee(true);
-          }}
-        >
-          Plus tard
+        <button className="demarrage-resume" aria-expanded={ouverte} onClick={() => setOuverte((o) => !o)}>
+          <span className="demarrage-titres">
+            <strong>{titreDemarrage(etapes)}</strong>
+            <span className="discret">{faites} sur {etapes.length}</span>
+          </span>
+          <span className="demarrage-barre" aria-hidden><span style={{ width: `${(faites / etapes.length) * 100}%` }} /></span>
+          <span className="demarrage-chevron" aria-hidden><Icone nom="bas" taille={16} /></span>
         </button>
+        {ouverte && (
+          <button
+            className="lien"
+            onClick={() => {
+              // Stockage indisponible : la carte revient à la prochaine ouverture.
+              ecrireTexte(CLES.demarrageRange, "1");
+              setRangee(true);
+            }}
+          >
+            Plus tard
+          </button>
+        )}
       </header>
-      <div className="demarrage-barre" aria-hidden><span style={{ width: `${(faites / etapes.length) * 100}%` }} /></div>
-      <ul className="demarrage-etapes">
+      {ouverte && <ul className="demarrage-etapes">
         {etapes.map((e) => (
           <li key={e.id}>
             <button className={`demarrage-etape${e.faite ? " faite" : ""}`} onClick={e.ou && !e.faite ? () => props.ouvrir(e.ou!) : undefined} disabled={e.faite || !e.ou}>
@@ -69,7 +76,7 @@ export function CarteDemarrage(props: {
             </button>
           </li>
         ))}
-      </ul>
+      </ul>}
     </section>
   );
 }

@@ -94,7 +94,7 @@ export function Siri(props: { foyer: Foyer; membreId: Id | null; distant: { serv
         {!d ? (
           <>
             <p className="discret">Siri passe par le serveur du foyer : il faut d'abord activer le partage.</p>
-            <button className="bouton-principal" onClick={props.ouvrirPartage}>Activer le partage</button>
+            <button className="bouton-doux" onClick={props.ouvrirPartage}>Activer le partage</button>
           </>
         ) : relie ? (
           <>

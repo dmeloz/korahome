@@ -12,7 +12,7 @@
   color: var(--accent);
 }
 .partage-choix p, .partage-confirmation p, .partage-invitation p { margin: 0 0 8px; line-height: 1.4; }
-.partage-choix .bouton-principal, .partage-confirmation .bouton-principal { width: 100%; }
+.partage-choix .bouton-principal, .partage-choix .bouton-doux, .partage-confirmation .bouton-principal { width: 100%; }
 .partage-choix.formulaire { margin-top: 0; }
 .partage-choix .bouton-secondaire {
   width: 100%;
