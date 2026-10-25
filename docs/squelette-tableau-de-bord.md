@@ -8,7 +8,7 @@ C'est la structure de toutes les apps de la maison, à reprendre telle quelle po
 - L'accueil est un tableau de bord fait de widgets. Un appui long sur un widget passe en modification (le glisser pour le ranger, « − » pour le retirer, deux tailles) ; tirer l'accueil vers le bas ouvre « Tous les espaces », d'où l'on glisse un espace sur l'accueil pour en faire un widget. La disposition est gardée sur le téléphone.
 - L'ordre choisi reste stable, mais un widget qui a quelque chose d'urgent remonte en haut avec le signal « À faire ».
 - Chaque widget ouvre sa page. Chaque page a un bouton de retour vers la page précédente.
-- Les réglages s'ouvrent depuis « Tous les espaces » (l'avatar en haut).
+- Les réglages s'ouvrent par la petite roue en haut à droite de l'accueil (depuis 0.0.73 ; avant, depuis « Tous les espaces »). On cherche en écrivant à la fée.
 - Le style est sombre et élégant, graphite et laiton, et passe en clair avec l'iPhone. Les pictogrammes sont au trait, sans emoji.
 
 ## Comment c'est construit

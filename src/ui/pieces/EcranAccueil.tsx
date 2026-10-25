@@ -22,6 +22,8 @@ const SEUIL_FAIT = 84;
 const DELAI_VALIDER_MS = 1200;
 /** Au-delà de ce glissement de côté, la pile passe à la carte voisine. */
 const SEUIL_PILE = 40;
+/** Glissée d'autant vers le haut ou le bas, « Ce soir » passe à la chose suivante ou précédente. */
+const SEUIL_DEFILER = 30;
 
 /** Un appui long qui ne gêne ni le toucher ni le défilement. */
 function useAppuiLong(agir: () => void) {
@@ -140,7 +142,8 @@ export function CeSoir(props: {
   const [arrete, setArrete] = useState(false);
   const [dx, setDx] = useState(0);
   const [cochee, setCochee] = useState<string | null>(null);
-  const geste = useRef<{ x: number; y: number; h: boolean; passe: boolean } | null>(null);
+  const geste = useRef<{ x: number; y: number; h: boolean; v: boolean; passe: boolean } | null>(null);
+  const glisseVertical = useRef(false);
   const minuterie = useRef<number | undefined>(undefined);
   useEffect(() => () => clearTimeout(minuterie.current), []);
   const n = choses.length;
@@ -176,18 +179,29 @@ export function CeSoir(props: {
 
   const debut = (e: PointerEvent<HTMLDivElement>) => {
     setArrete(true);
-    if (!c?.tacheId || (e.target as Element).closest(".ce-soir-rond, .ce-soir-heure, .ce-soir-points")) return;
-    geste.current = { x: e.clientX, y: e.clientY, h: false, passe: false };
+    glisseVertical.current = false;
+    if (!c || (e.target as Element).closest(".ce-soir-rond, .ce-soir-heure, .ce-soir-points")) return;
+    geste.current = { x: e.clientX, y: e.clientY, h: false, v: false, passe: false };
   };
   const mouvement = (e: PointerEvent<HTMLDivElement>) => {
     const g = geste.current;
     if (!g) return;
     const x = e.clientX - g.x;
+    const y = e.clientY - g.y;
+    if (g.v) return;
     if (!g.h) {
-      if (Math.abs(e.clientY - g.y) > TOLERANCE_PX) geste.current = null;
-      else if (x > TOLERANCE_PX) {
-        g.h = true;
-        e.currentTarget.setPointerCapture(e.pointerId);
+      // Depuis 0.0.73, l'accueil ne défile plus : glisser vers le haut ou le bas passe d'une
+      // chose à l'autre, comme les points à côté. Vers la droite, une tâche est faite.
+      if (Math.abs(y) > TOLERANCE_PX && Math.abs(y) > Math.abs(x)) {
+        g.v = n > 1;
+        if (g.v) e.currentTarget.setPointerCapture(e.pointerId);
+        else geste.current = null;
+      } else if (x > TOLERANCE_PX) {
+        if (!c?.tacheId) geste.current = null;
+        else {
+          g.h = true;
+          e.currentTarget.setPointerCapture(e.pointerId);
+        }
       }
       return;
     }
@@ -198,9 +212,18 @@ export function CeSoir(props: {
     }
     setDx(Math.max(0, x));
   };
-  const fin = () => {
+  const fin = (e: PointerEvent<HTMLDivElement>) => {
     const g = geste.current;
     geste.current = null;
+    if (g?.v) {
+      const y = e.clientY - g.y;
+      if (Math.abs(y) > SEUIL_DEFILER) {
+        vibrer();
+        glisseVertical.current = true;
+        setIndex(y < 0 ? suivante(i, n) : (i - 1 + n) % n);
+      }
+      return;
+    }
     if (!g?.h) return;
     if (g.passe && c) {
       props.gesteFait();
@@ -226,7 +249,8 @@ export function CeSoir(props: {
           onPointerUp={fin}
           onPointerCancel={fin}
           onClickCapture={(e) => {
-            if (dx) e.stopPropagation();
+            if (dx || glisseVertical.current) e.stopPropagation();
+            glisseVertical.current = false;
           }}
         >
           {c.tacheId ? (
@@ -311,6 +335,7 @@ export function Pile(props: { cartes: CartePile[]; nom: string; ranger: () => vo
   const [index, setIndex] = useState(0);
   const [sens, setSens] = useState<"suivante" | "precedente">("suivante");
   const glisse = useRef<{ x: number; y: number } | null>(null);
+  const aGlisse = useRef(false);
   const long = useAppuiLong(props.ranger);
   const n = props.cartes.length;
   const i = Math.min(index, n - 1);
@@ -332,20 +357,26 @@ export function Pile(props: { cartes: CartePile[]; nom: string; ranger: () => vo
         onPointerDown={(e) => {
           long.handlers.onPointerDown(e);
           glisse.current = { x: e.clientX, y: e.clientY };
+          aGlisse.current = false;
         }}
         onPointerUp={(e) => {
           long.handlers.onPointerUp();
           const g = glisse.current;
           glisse.current = null;
           if (!g || n < 2) return;
+          // Dans tous les sens depuis 0.0.73 : à gauche ou vers le haut, la suivante.
           const dx = e.clientX - g.x;
-          if (Math.abs(dx) > SEUIL_PILE && Math.abs(dx) > Math.abs(e.clientY - g.y)) {
+          const dy = e.clientY - g.y;
+          const d = Math.abs(dx) >= Math.abs(dy) ? dx : dy;
+          if (Math.abs(d) > SEUIL_PILE) {
             vibrer();
-            aller(dx < 0 ? (i + 1) % n : (i - 1 + n) % n);
+            aGlisse.current = true;
+            aller(d < 0 ? (i + 1) % n : (i - 1 + n) % n);
           }
         }}
         onClickCapture={(e) => {
-          if (long.consommer()) e.stopPropagation();
+          if (long.consommer() || aGlisse.current) e.stopPropagation();
+          aGlisse.current = false;
         }}
       >
         <div className={`pile-contenu ${sens}`} key={carte.id}>

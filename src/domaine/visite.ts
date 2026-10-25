@@ -65,8 +65,8 @@ export function parcoursVisite(autre: string | null, fee = "Tael"): EtapeVisite[
     },
     {
       id: "espaces",
-      titre: "Tous les espaces",
-      texte: `Tire l'accueil vers le bas : chaque espace, la recherche, les rappels et tes réglages, où la visite se relance. Glisse un espace sur l'accueil pour en faire un widget.`,
+      titre: "Chercher et régler",
+      texte: `Pour chercher, écris à ta fée : ce qu'elle trouve dans Kora monte au-dessus. Tes réglages, où la visite se relance : la petite roue en haut à droite.`,
     },
   ];
 }

@@ -110,11 +110,10 @@ export function basculerTaille(tailles: Tailles, id: WidgetId): Tailles {
   return suivantes;
 }
 
-// ----- Tous les espaces -----
-// Tirer l'accueil vers le bas ouvre « Tous les espaces » : chaque module, rangé par usage du
-// quotidien, avec la recherche. Aucune catégorie ne disparaît : un widget retiré de l'accueil
-// reste ici. On glisse une tuile sur l'accueil pour en faire un widget. Les sections fusionnées
-// ne font plus de tuile : on les trouve en cherchant, ou dans l'onglet de leur espace.
+// ----- Les espaces et la recherche -----
+// Chaque module, rangé par usage du quotidien. Depuis 0.0.73, plus de feuille « Tous les
+// espaces » : les six espaces sont sur l'accueil et dans la barre du haut, et la recherche passe
+// par la fée. Les sections fusionnées se trouvent en cherchant, ou dans l'onglet de leur espace.
 
 export type EspaceId = "menage" | "courses" | "cuisine" | "budget" | "agenda";
 

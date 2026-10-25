@@ -1,6 +1,6 @@
 import type { Depot } from "../../donnees/depot";
 import type { ServeurJarvis } from "../../donnees/distant";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { bilanAOuvrir, bilanDeLaSemaine, remarqueDuJour } from "../../domaine/apprentissage";
 import { carteDuJour, resteAFaire, titreMoment, type ChoseDuJour } from "../../domaine/aujourdhui";
@@ -9,7 +9,6 @@ import { evenementsDe, ligneWidget, resumeAgenda } from "../../domaine/agenda";
 import {
   basculerRetiree,
   CARTES,
-  carteDeLEspace,
   composerPiles,
   decouperLigne,
   enDirect,
@@ -39,14 +38,14 @@ import { Feuille, Visite } from "../pieces";
 import { CarteDemarrage } from "../pieces/Demarrage";
 import { CeSoir, ChiffresDuJour, ContenuApercu, PastilleDirect, Pile, type CartePile, type LignePile, type TuileChiffre } from "../pieces/EcranAccueil";
 import { FeuilleHeure } from "../pieces/FeuilleHeure";
-import { DateRepliee, GrandeDate, Signes } from "../pieces/HautAccueil";
+import { GrandeDate, Signes } from "../pieces/HautAccueil";
 import { clinDejaDit, noterClinDit, useClinDuJour } from "../clinDuJour";
 import { direSiCalme, feteFee, taireFee } from "../fee";
 import { feter } from "../moteur/fete";
 import { nuitDeCeTelephone, useVieFee } from "../vieFee";
 import { enregistrerIndiceGlisse, enregistrerRetirees, lireIndiceGlisse, lireRetirees, lireSignes } from "../accueilLocal";
 import { abonnerVisite, finirVisite, visiteEnAttente } from "../visite";
-import { TousLesEspaces } from "../TousLesEspaces";
+import { RechercheFee } from "../pieces/RechercheFee";
 import { lireDerniereSauvegarde } from "../sauvegarde";
 import { fermerRemarque, lireAdaptations, lireDernierBilan, noterUsage, remarqueAMontrer, useApprentissageLocal } from "../usage";
 import { lireDerniereRepartition } from "./Taches";
@@ -57,7 +56,8 @@ import { ignorer } from "../journal";
 // L'accueil « tout sur un écran » (Kora 0.0.72) : la date et ses signes, la pastille « en
 // direct », quatre chiffres du jour, « Ce soir » qui tourne tout seul et deux piles sous « En ce
 // moment ». Ce que montrent les piles suit le moment (domaine/ecranAccueil.ts) ; chaque téléphone
-// peut en retirer des cartes (appui long sur une pile) ou les remettre depuis « Tous les espaces ».
+// peut en retirer ou en remettre des cartes (appui long sur une pile). Depuis 0.0.73, l'accueil ne
+// défile plus quand tout tient : la loupe près de la date ouvre la recherche et les autres pages.
 
 /** Combien de choses du jour « Ce soir » fait tourner. */
 const CHOSES_CARTE = 12;
@@ -68,8 +68,6 @@ function salutation(heure: number): string {
   return "Bonsoir";
 }
 
-/** Tirée vers le bas d'au moins autant (et 13 % de l'écran), depuis le haut, la page ouvre « Tous les espaces » au lâcher. */
-const TIRER_POUR_CHERCHER = 72;
 
 const PICTO_CARTE: Record<CarteId, NomIcone> = { maison: "maison", chef: "toque", courses: "panier", agenda: "calendrier", budget: "portefeuille", fil: "activite", bilan: "appris" };
 
@@ -113,7 +111,6 @@ export function Accueil(props: {
   }, [versionLocale]);
   const [ranger, setRanger] = useState(false);
   const [apercu, setApercu] = useState<TuileChiffre["id"] | null>(null);
-  const [espaces, setEspaces] = useState(false);
   const [signes, setSignes] = useState<Signe[]>(lireSignes);
   const [heureDe, setHeureDe] = useState<Tache | null>(null);
   const haut = useRef<HTMLElement>(null);
@@ -150,31 +147,21 @@ export function Accueil(props: {
   const visiteDemandee = useSyncExternalStore(abonnerVisite, visiteEnAttente);
   const [visite, setVisite] = useState(false);
   useEffect(() => {
-    if (!visiteDemandee || !props.auDessus || espaces) return;
+    if (!visiteDemandee || !props.auDessus) return;
     const id = setTimeout(() => {
       window.scrollTo(0, 0);
       setVisite(true);
     }, 700);
     return () => clearTimeout(id);
-  }, [visiteDemandee, props.auDessus, espaces]);
+  }, [visiteDemandee, props.auDessus]);
   const autre = foyer.membres.find((m) => m.id !== membreId)?.prenom ?? null;
-  usePourChercher(props.auDessus && !espaces && !visite && !ranger && !apercu, () => setEspaces(true));
+  // Tout tient sur un écran : la page ne défile plus, les zones (« Ce soir », les piles) se glissent.
+  useAccueilFixe(props.auDessus, haut);
 
   const changerRetirees = (r: CarteId[]) => {
     setRetirees(r);
     enregistrerRetirees(r);
   };
-  /** Un espace glissé ou touché dans « Tous les espaces » : sa carte revient dans les piles. */
-  const remettre = (id: WidgetId) => {
-    const carte = carteDeLEspace(id);
-    vibrer();
-    setEspaces(false);
-    if (!carte || !retirees.includes(carte)) return;
-    const avant = retirees;
-    changerRetirees(basculerRetiree(retirees, carte));
-    annoncer(`${CARTES.find((c) => c.id === carte)?.titre} revient dans les piles de l'accueil.`, () => changerRetirees(avant));
-  };
-
   // Ce que montre chaque espace, calculé par son module.
   const apercus = new Map<WidgetId, ApercuWidget>();
   for (const id of ["taches", "courses", "maison", "chef", "agenda", "budget"] as const) {
@@ -199,7 +186,7 @@ export function Accueil(props: {
   const clin = clinDuJour(props.donnees.couple, aujourdhui);
   const aDire = remarque && montrerRemarque ? `remarque:${remarque.cle}` : clin && !clinDejaDit(aujourdhui) ? `clin:${aujourdhui}` : null;
   useEffect(() => {
-    if (!aDire || !props.auDessus || espaces || visite) return;
+    if (!aDire || !props.auDessus || visite) return;
     // Elle attend un moment calme pour parler, et réessaie tant qu'elle n'a pas pu.
     const id = setInterval(() => {
       if (aDire.startsWith("remarque:") && remarque) {
@@ -209,7 +196,7 @@ export function Accueil(props: {
       } else if (clin && direSiCalme({ cle: aDire, texte: clin.texte })) noterClinDit(aujourdhui);
     }, 2500);
     return () => clearInterval(id);
-  }, [aDire, props.auDessus, espaces, visite]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [aDire, props.auDessus, visite]); // eslint-disable-line react-hooks/exhaustive-deps
   // En quittant l'accueil, ce qu'elle disait d'ici se tait.
   useEffect(() => {
     if (!props.auDessus) taireFee();
@@ -256,7 +243,7 @@ export function Accueil(props: {
   const agenda = resumeAgenda(evenements, props.donnees.animaux, aujourdhui);
   const prochainRdv = agenda.aujourdhui.find((o) => !o.evenement.heure || o.evenement.heure >= heureTexte) ?? agenda.semaine[0];
   useVieFee({
-    actif: props.auDessus && !espaces && !visite,
+    actif: props.auDessus && !visite,
     aujourdhui,
     carte,
     taches: props.donnees.taches,
@@ -351,13 +338,26 @@ export function Accueil(props: {
       <header className="haut-accueil" ref={haut}>
         <GrandeDate date={maintenant} />
         <Signes valeurs={valeursSignes} choisis={signes} changer={setSignes} toucher={ouvrirSigne} />
+        {/* Depuis 0.0.73 : plus de geste « tirer vers le bas ». On cherche en écrivant à la fée ;
+            Réglages, une petite roue discrète en haut à droite, et la cloche seulement quand un rappel attend. */}
+        <span className="coin-accueil">
+          {props.rappelsNonLus > 0 && (
+            <button className="coin-bouton avec-alerte" onClick={props.ouvrirRappels} aria-label={`Rappels, ${props.rappelsNonLus} nouveaux`}>
+              <Icone nom="cloche" taille={18} />
+              <span className="alerte" aria-hidden />
+            </button>
+          )}
+          <button className="coin-bouton avec-alerte" onClick={props.ouvrirReglages} aria-label={props.nouvelleVersion ? "Réglages, nouvelle version disponible" : "Réglages"}>
+            <Icone nom="reglages" taille={18} />
+            {props.nouvelleVersion && <span className="alerte" aria-hidden />}
+          </button>
+        </span>
         {/* La date tient lieu de salutation ; le titre reste pour VoiceOver. */}
         <h1 className="cache-visuel">
           {salutation(heure)}
           {moi ? `, ${moi.prenom}` : ""}
         </h1>
       </header>
-      <DateRepliee date={maintenant} cible={haut} />
 
       {direct && <PastilleDirect direct={direct} ouvrir={() => ouvrirEspace("courses")} />}
 
@@ -486,25 +486,7 @@ export function Accueil(props: {
         </ul>
       </Feuille>
 
-      <TousLesEspaces
-        ouverte={espaces}
-        repliee={false}
-        fermer={() => setEspaces(false)}
-        donnees={props.donnees}
-        aller={props.aller}
-        ouvrirModule={ouvrirEspace}
-        glisser={(id) => remettre(id)}
-        liens={{
-          ouvrirReglages: props.ouvrirReglages,
-          ouvrirRappels: props.ouvrirRappels,
-          ouvrirMots: props.ouvrirMots,
-          ouvrirJarvis: props.ouvrirJarvis,
-          ouvrirFil: props.ouvrirFil,
-          rappelsNonLus: props.rappelsNonLus,
-          nouvelleVersion: props.nouvelleVersion,
-          moi: moi ? { prenom: moi.prenom, couleur: moi.couleur } : null,
-        }}
-      />
+      {props.auDessus && <RechercheFee donnees={props.donnees} aller={props.aller} ouvrirModule={ouvrirEspace} />}
     </main>
   );
 }
@@ -532,81 +514,31 @@ function BoutonSynchro({ synchroniser }: { synchroniser: () => Promise<void> }) 
 }
 
 /**
- * Comme sur l'accueil de l'iPhone : tirer la page vers le bas depuis le haut ouvre « Tous les
- * espaces ». Seulement quand la page est déjà tout en haut. Pendant le geste, une petite
- * étiquette descend avec le doigt. Sur un ordinateur, la molette vers le haut fait pareil.
+ * L'accueil tient sur un écran (Kora 0.0.73) : tant que tout y tient, la page ne défile plus et
+ * les zones qui bougent (« Ce soir », les piles) reçoivent tous les glissements. Si le contenu
+ * déborde, il se resserre d'abord (une ligne par carte des piles), puis redéfile comme avant.
  */
-function usePourChercher(actif: boolean, ouvrir: () => void) {
-  const rappel = useRef(ouvrir);
-  rappel.current = ouvrir;
+function useAccueilFixe(actif: boolean, haut: RefObject<HTMLElement | null>) {
   useEffect(() => {
-    if (!actif) return;
-    let depart: { x: number; y: number } | null = null;
-    let pret = false;
-    const seuil = () => Math.max(TIRER_POUR_CHERCHER, window.innerHeight * 0.13);
-    const etiquette = document.createElement("div");
-    etiquette.className = "tirer-espaces";
-    etiquette.setAttribute("aria-hidden", "true");
-    etiquette.textContent = "Tous les espaces";
-    document.body.appendChild(etiquette);
-    const montrer = (dy: number) => {
-      const p = Math.min(1, dy / seuil());
-      etiquette.style.opacity = String(p);
-      etiquette.style.transform = `translate(-50%, ${Math.min(dy, seuil()) * 0.6}px)`;
+    const page = haut.current?.closest("main");
+    if (!actif || !page) return;
+    const racine = document.documentElement;
+    const tient = () => racine.scrollHeight <= window.innerHeight + 1;
+    // Trop haut : l'accueil se resserre (une ligne par carte des piles) avant de renoncer à rester fixe.
+    const mesurer = () => {
+      racine.classList.remove("accueil-serre");
+      if (!tient()) racine.classList.add("accueil-serre");
+      racine.classList.toggle("accueil-fixe", tient());
     };
-    const debut = (e: TouchEvent) => {
-      const cible = e.target instanceof Element ? e.target : null;
-      depart = window.scrollY <= 0 && e.touches.length === 1 && !cible?.closest(".feuille, .tous-espaces, .barre-zone, .fil.roulette, .widget.en-edition, input, textarea") ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
-    };
-    const mouvement = (e: TouchEvent) => {
-      if (!depart) return;
-      const dy = e.touches[0].clientY - depart.y;
-      const dx = Math.abs(e.touches[0].clientX - depart.x);
-      if (dx > dy) {
-        depart = null;
-        montrer(0);
-      } else {
-        // Comme la recherche de l'iPhone : on tire, l'étiquette suit, et c'est au lâcher que la
-        // feuille s'ouvre, si on a tiré assez loin (Kora 0.0.61 ; avant, elle s'ouvrait en route).
-        if (dy >= seuil() && !pret) {
-          pret = true;
-          vibrer();
-        } else if (dy < seuil()) pret = false;
-        montrer(Math.max(0, dy));
-      }
-    };
-    const fin = () => {
-      const ouvrir = !!depart && pret && window.scrollY <= 0;
-      depart = null;
-      pret = false;
-      montrer(0);
-      if (ouvrir) rappel.current();
-    };
-    let molette = 0;
-    const tourner = (e: WheelEvent) => {
-      if (window.scrollY > 0 || e.deltaY >= 0) {
-        molette = 0;
-        return;
-      }
-      molette -= e.deltaY;
-      if (molette > 120) {
-        molette = 0;
-        rappel.current();
-      }
-    };
-    montrer(0);
-    window.addEventListener("touchstart", debut, { passive: true });
-    window.addEventListener("touchmove", mouvement, { passive: true });
-    window.addEventListener("touchend", fin);
-    window.addEventListener("touchcancel", fin);
-    window.addEventListener("wheel", tourner, { passive: true });
+    mesurer();
+    window.scrollTo(0, 0);
+    const suivi = new ResizeObserver(mesurer);
+    suivi.observe(page);
+    window.addEventListener("resize", mesurer);
     return () => {
-      etiquette.remove();
-      window.removeEventListener("touchstart", debut);
-      window.removeEventListener("touchmove", mouvement);
-      window.removeEventListener("touchend", fin);
-      window.removeEventListener("touchcancel", fin);
-      window.removeEventListener("wheel", tourner);
+      suivi.disconnect();
+      window.removeEventListener("resize", mesurer);
+      racine.classList.remove("accueil-fixe", "accueil-serre");
     };
-  }, [actif]);
+  }, [actif, haut]);
 }

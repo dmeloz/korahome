@@ -1,5 +1,5 @@
 // Essai des écrans dans un iPhone simulé (Chromium de Playwright) : crée un foyer, ouvre chaque
-// espace depuis « Tous les espaces » et chaque page des Réglages, et signale toute erreur ou page
+// espace (tuile de l'accueil puis sélecteur de la barre du haut) et chaque page des Réglages, et signale toute erreur ou page
 // sans titre. À lancer avant une version : `npm run build`, puis `node scripts/essai-ecrans.mjs`.
 // Les captures vont dans le dossier donné en argument (par défaut un dossier temporaire).
 // Depuis 0.0.67, axe-core (le contrôleur d'accessibilité de Deque) passe sur chaque écran : une
@@ -73,13 +73,19 @@ try {
     await p.locator(".page-dessus .retour").click();
     await p.waitForTimeout(500);
   };
-  const tousLesEspaces = async () => {
-    // L'accueil s'est peut-être allongé (carte de mise en route) : on part du haut.
-    await p.evaluate(() => window.scrollTo(0, 0));
-    await p.waitForTimeout(200);
-    await p.mouse.move(200, 300);
-    await p.mouse.wheel(0, -400);
+  // Depuis 0.0.73, plus de « Tous les espaces » : on ouvre Tâches par sa tuile de l'accueil,
+  // puis chaque espace par le sélecteur de la barre du haut.
+  const allerEspace = async (espace) => {
+    if (!(await p.locator(".page-dessus .barre-haut-espaces").count())) {
+      await p.locator('.page-dessus .chiffres-accueil [data-widget="taches"]').click();
+      await p.waitForTimeout(700);
+    }
+    await p.locator(".page-dessus .barre-haut-espaces").click();
+    await p.locator(".barre-haut-menu").getByText(espace, { exact: true }).first().click();
     await p.waitForTimeout(700);
+  };
+  const accueil = async () => {
+    for (let i = 0; i < 4 && (await p.locator(".page-dessus .retour").count()); i++) await revenir();
   };
 
   await capture("accueil");
@@ -93,21 +99,20 @@ try {
     Budget: [],
   };
   for (const [espace, onglets] of Object.entries(ESPACES)) {
-    await tousLesEspaces();
-    await p.locator(".tous-espaces").getByText(espace, { exact: true }).first().click();
+    await allerEspace(espace);
     await verifier(espace);
     for (const onglet of onglets) {
       await p.locator(".page-dessus").getByRole("tab", { name: onglet }).first().click();
       await verifier(`${espace} › ${onglet}`);
     }
-    await revenir();
   }
-  // Le fil du foyer (0.0.65), depuis « Tous les espaces ».
-  await tousLesEspaces();
-  await p.locator(".tous-espaces").getByText("Chez nous", { exact: true }).first().click();
+  await accueil();
+  // Le fil du foyer (0.0.65), depuis sa carte dans les piles de l'accueil.
+  await p.locator('.page-dessus .pile-tirets [aria-label="Chez nous"]').first().click();
+  await p.waitForTimeout(400);
+  await p.locator('.page-dessus .pile-carte[aria-label$="Chez nous"] .pile-entete .lien').click();
   await verifier("Chez nous");
   await revenir();
-  await tousLesEspaces();
   await p.getByLabel(/^Réglages/).first().click();
   await verifier("Réglages");
   for (const ligne of ["Apparence", "Partage", "Sauvegarde", "Corbeille", "Notifications", "Calendrier de l'iPhone", "Siri", "Ce que", "Retours de test"]) {
