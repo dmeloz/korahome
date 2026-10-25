@@ -241,10 +241,11 @@
 .fondu-bord { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; height: calc(env(safe-area-inset-bottom) + 36px); pointer-events: none; background: linear-gradient(transparent, var(--fond) 75%); }
 @media (prefers-contrast: more) { .fondu-bord { display: none; } }
 
-/* ===== Kora 0.0.73 : l'accueil fixe =====
-   Plus de geste « tirer vers le bas » : la page ne défile pas quand elle tient dans l'écran
-   (classe posée par Accueil.tsx après mesure), seules ses zones glissent. On cherche en écrivant
-   à la fée ; Réglages, une petite roue discrète au bout de la ligne de la date. */
+/* ===== Kora 0.0.73-0.0.74 : l'accueil fixe =====
+   Plus de geste « tirer vers le bas » et la page ne défile jamais : elle prend la hauteur de
+   l'écran (classe posée par Accueil.tsx). Seules ses zones bougent : « Ce soir » et les piles
+   se glissent, et « En ce moment » défile dans sa zone s'il manque de place. On cherche en
+   écrivant à la fée ; Réglages, une petite roue discrète au bout de la ligne de la date. */
 .coin-accueil { position: absolute; right: -10px; top: 50%; transform: translateY(-50%); display: flex; }
 .coin-bouton {
   display: grid; place-items: center; width: 40px; height: 44px; border: none; border-radius: 50%;
@@ -255,8 +256,18 @@
 .haut-accueil:has(.coin-bouton + .coin-bouton) .signes-accueil { right: 72px; }
 html.accueil-fixe, html.accueil-fixe body { overflow: hidden; overscroll-behavior: none; }
 html.accueil-fixe .ce-soir-ligne, html.accueil-fixe .pile-carte { touch-action: none; }
-/* Trop haut pour l'écran : une ligne par carte et des écarts plus courts, avant de redéfiler. */
+html.accueil-fixe .fondu-bord { display: none; }
+html.accueil-fixe .contenu:has(> .accueil-un-ecran) {
+  box-sizing: border-box; height: 100dvh; display: flex; flex-direction: column;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 88px);
+}
+html.accueil-fixe .accueil-un-ecran { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+html.accueil-fixe .accueil-un-ecran > * { flex: none; }
+html.accueil-fixe .accueil-un-ecran > .en-ce-moment { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+html.accueil-fixe .accueil-un-ecran > .en-ce-moment::-webkit-scrollbar { display: none; }
+html.accueil-fixe .pied-accueil { margin: 8px 0 0; }
+html.accueil-fixe .pied-accueil:empty { display: none; }
+/* « En ce moment » manque de place : une ligne par carte et des écarts plus courts. */
 html.accueil-serre .accueil-un-ecran > * + * { margin-top: 10px; }
 html.accueil-serre .pile-ligne + .pile-ligne { display: none; }
-html.accueil-fixe .fondu-bord { display: none; }
-html.accueil-serre .contenu:has(> .accueil-un-ecran) { padding-bottom: calc(env(safe-area-inset-bottom) + 88px); }
+html.accueil-fixe .en-ce-moment > * { flex-shrink: 0; }

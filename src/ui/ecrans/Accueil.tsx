@@ -514,26 +514,27 @@ function BoutonSynchro({ synchroniser }: { synchroniser: () => Promise<void> }) 
 }
 
 /**
- * L'accueil tient sur un écran (Kora 0.0.73) : tant que tout y tient, la page ne défile plus et
- * les zones qui bougent (« Ce soir », les piles) reçoivent tous les glissements. Si le contenu
- * déborde, il se resserre d'abord (une ligne par carte des piles), puis redéfile comme avant.
+ * L'accueil est une page fixe (Kora 0.0.73, puis 0.0.74 à la demande de Melo) : la page ne
+ * défile jamais, elle prend la hauteur de l'écran. « Ce soir » et les piles reçoivent tous les
+ * glissements ; si « En ce moment » manque de place, il se resserre (une ligne par carte), puis
+ * défile seul dans sa zone.
  */
 function useAccueilFixe(actif: boolean, haut: RefObject<HTMLElement | null>) {
   useEffect(() => {
     const page = haut.current?.closest("main");
-    if (!actif || !page) return;
+    const zone = page?.querySelector<HTMLElement>(".en-ce-moment");
+    if (!actif || !page || !zone) return;
     const racine = document.documentElement;
-    const tient = () => racine.scrollHeight <= window.innerHeight + 1;
-    // Trop haut : l'accueil se resserre (une ligne par carte des piles) avant de renoncer à rester fixe.
+    racine.classList.add("accueil-fixe");
+    window.scrollTo(0, 0);
     const mesurer = () => {
       racine.classList.remove("accueil-serre");
-      if (!tient()) racine.classList.add("accueil-serre");
-      racine.classList.toggle("accueil-fixe", tient());
+      if (zone.scrollHeight > zone.clientHeight + 1) racine.classList.add("accueil-serre");
     };
     mesurer();
-    window.scrollTo(0, 0);
     const suivi = new ResizeObserver(mesurer);
     suivi.observe(page);
+    for (const enfant of zone.children) suivi.observe(enfant);
     window.addEventListener("resize", mesurer);
     return () => {
       suivi.disconnect();
