@@ -125,7 +125,8 @@ Deno.serve(async (req) => {
     const client = new Anthropic({ apiKey: cle });
     const reponse = await client.messages.create({
       model: modele,
-      max_tokens: reflechi ? 4000 : 2000,
+      // La réflexion de Claude compte dans max_tokens : un ticket de vingt lignes demande de la place.
+      max_tokens: reflechi ? 4000 : image ? 8000 : 2000,
       system: budgetFoyer ? CONSIGNES_BUDGET : conseil ? CONSIGNES_CONSEIL : CONSIGNES_JARVIS,
       tools: budgetFoyer ? [OUTIL_BUDGET] : OUTILS_JARVIS,
       ...(budgetFoyer ? { tool_choice: { type: "tool", name: OUTIL_BUDGET.name } } : {}),
@@ -155,6 +156,11 @@ Deno.serve(async (req) => {
     for (const bloc of reponse.content) {
       if (bloc.type === "text") textes.push(bloc.text);
       else if (bloc.type === "tool_use") appels.push({ nom: bloc.name, entree: bloc.input });
+    }
+    // Le journal du serveur garde la forme de la réponse, jamais son contenu.
+    console.log(JSON.stringify({ fin: reponse.stop_reason, image: !!image, outils: appels.map((a) => a.nom), entree: reponse.usage.input_tokens, sortie: reponse.usage.output_tokens }));
+    if (reponse.stop_reason === "max_tokens") {
+      return repondre({ texte: "Il y avait trop à écrire d'un coup et je me suis arrêté avant la fin. Réessaie, ou envoie le ticket en deux photos.", appels: [], budget });
     }
     return repondre({ texte: textes.join(" ").trim(), appels, budget });
   } catch (e) {
