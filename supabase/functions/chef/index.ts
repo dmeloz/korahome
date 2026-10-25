@@ -18,7 +18,7 @@
 import Anthropic from "npm:@anthropic-ai/sdk";
 import webpush from "npm:web-push@3.6.7";
 import { ctx } from "../_shared/contexte.ts";
-import { preflight, repondre } from "../_shared/http.ts";
+import { limiteDuCompte, preflight, repondre } from "../_shared/http.ts";
 import { cleCronValide, echec, estMembre, serveur, utilisateur } from "../_shared/supabase.ts";
 import {
   articlesARemplacer,
@@ -183,6 +183,8 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error(e);
     if (e instanceof PlafondAtteint) return repondre({ erreur: e.message }, 402);
+    const limite = limiteDuCompte(e, "Le Chef");
+    if (limite) return repondre({ erreur: limite }, 503);
     if (e instanceof Anthropic.RateLimitError) return repondre({ erreur: "Le Chef est très demandé, réessaie dans un instant." }, 429);
     if (e instanceof Anthropic.AuthenticationError) return repondre({ erreur: "La clé du Chef est refusée : il faut la remplacer sur le serveur." }, 503);
     if (e instanceof Anthropic.APIError) return repondre({ erreur: "Le Chef ne répond pas pour l'instant, réessaie." }, 502);
