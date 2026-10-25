@@ -15,7 +15,7 @@
 
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { aujourdhui, ctx } from "../_shared/contexte.ts";
-import { CORS, preflight, repondre } from "../_shared/http.ts";
+import { CORS, limiteDuCompte, preflight, repondre } from "../_shared/http.ts";
 import { empreinte, nouveauJeton } from "../_shared/jetons.ts";
 import { echec, estMembre, serveur, utilisateur } from "../_shared/supabase.ts";
 import {
@@ -169,6 +169,8 @@ Deno.serve(async (req) => {
     return repondre({ erreur: "Demande inconnue" }, 400);
   } catch (e) {
     console.error(e);
+    const limite = limiteDuCompte(e, "Ta fée");
+    if (limite) return dire(limite, 503);
     if (e instanceof Anthropic.RateLimitError) return dire("Je suis très demandé, réessaie dans un instant.", 429);
     if (e instanceof Anthropic.APIError) return dire("Je ne réponds pas pour l'instant, réessaie.", 502);
     return dire("Quelque chose a coincé, réessaie dans Kora.", 500);

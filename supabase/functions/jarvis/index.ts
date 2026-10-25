@@ -13,7 +13,7 @@
 // `npm run fonction`. Déploiement : docs/jarvis.md.
 
 import Anthropic from "npm:@anthropic-ai/sdk";
-import { preflight, repondre } from "../_shared/http.ts";
+import { limiteDuCompte, preflight, repondre } from "../_shared/http.ts";
 import { estMembre, serveur, utilisateur } from "../_shared/supabase.ts";
 import {
   CONSIGNES_BUDGET,
@@ -159,6 +159,8 @@ Deno.serve(async (req) => {
     return repondre({ texte: textes.join(" ").trim(), appels, budget });
   } catch (e) {
     console.error(e);
+    const limite = limiteDuCompte(e, "Jarvis");
+    if (limite) return repondre({ erreur: limite }, 503);
     if (e instanceof Anthropic.RateLimitError) return repondre({ erreur: "Jarvis est très demandé, réessaie dans un instant." }, 429);
     if (e instanceof Anthropic.AuthenticationError) return repondre({ erreur: "La clé de Jarvis est refusée : il faut la remplacer sur le serveur." }, 503);
     if (e instanceof Anthropic.APIError) return repondre({ erreur: "Jarvis ne répond pas pour l'instant, réessaie." }, 502);
