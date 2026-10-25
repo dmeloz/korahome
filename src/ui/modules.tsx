@@ -23,7 +23,8 @@ import { Courses } from "./ecrans/Listes";
 import { Taches } from "./ecrans/Taches";
 import { vibrer } from "./haptique";
 import type { NomIcone } from "./Icone";
-import { Espace } from "./pieces";
+import { Espace, Page } from "./pieces";
+import { Entretien } from "./ecrans/Entretien";
 import { ignorer } from "./journal";
 
 // Les pages les plus lourdes ne se chargent qu'à leur première ouverture : l'app démarre plus
@@ -186,18 +187,30 @@ const widgetJardin = (d: DonneesModule): ApercuWidget => {
   };
 };
 
-/** Maison : Mitsu et le jardin, ce qui presse d'abord. */
+const widgetEntretien = (d: DonneesModule): ApercuWidget => {
+  const lignes = organiserEntretien(d.taches, d.aujourdhui);
+  const dus = lignes.filter((l) => l.du);
+  return {
+    chiffre: dus.length,
+    legende: lignes.length === 0 ? "Choisis ce qui concerne la maison" : dus.length ? "à faire cette semaine" : "Rien cette semaine",
+    lignes: (dus.length ? dus : lignes).slice(0, 3).map((l) => `${l.tache.titre} · ${l.quand}`),
+    urgent: lignes.some((l) => l.quand.startsWith("en retard")),
+  };
+};
+
+/** Maison : Mitsu et le jardin, ce qui presse d'abord ; l'entretien en retard s'y ajoute. */
 function widgetMaison(d: DonneesModule): ApercuWidget {
   const mitsu = widgetMitsu(d);
   const jardin = widgetJardin(d);
+  const entretien = widgetEntretien(d);
   const [premier, second] = jardin.urgent && !mitsu.urgent ? [jardin, mitsu] : [mitsu, jardin];
   const chiffre = mitsu.chiffre + jardin.chiffre;
   const nom = d.animaux[0]?.nom ?? "Mitsu";
   return {
     chiffre,
     legende: !chiffre ? mitsu.legende : mitsu.chiffre && jardin.chiffre ? `à faire pour ${nom} et au jardin` : premier.chiffre ? premier.legende : second.legende,
-    lignes: [...premier.lignes, ...second.lignes].slice(0, 3),
-    urgent: mitsu.urgent || jardin.urgent,
+    lignes: [...premier.lignes, ...second.lignes, ...(entretien.urgent ? entretien.lignes.slice(0, 1).map((l) => `Entretien : ${l}`) : [])].slice(0, 3),
+    urgent: mitsu.urgent || jardin.urgent || entretien.urgent,
   };
 }
 
@@ -209,22 +222,26 @@ function widgetCuisine(d: DonneesModule): ApercuWidget {
   return { ...menus, lignes: [...frigo.lignes.slice(0, 1).map((l) => `Frigo : ${l}`), ...menus.lignes].slice(0, 3), urgent: true };
 }
 
-/** L'onglet de Maison qui s'ouvre : le jardin quand lui seul presse, sinon Mitsu. */
-const ongletMaison = (d: DonneesModule): "mitsu" | "jardin" => (widgetJardin(d).urgent && !widgetMitsu(d).urgent ? "jardin" : "mitsu");
+/** L'onglet de Maison qui s'ouvre : Mitsu s'il presse, sinon le jardin, sinon l'entretien dû, sinon Mitsu. */
+const ongletMaison = (d: DonneesModule): "entretien" | "mitsu" | "jardin" =>
+  widgetMitsu(d).urgent ? "mitsu" : widgetJardin(d).urgent ? "jardin" : widgetEntretien(d).chiffre > 0 ? "entretien" : "mitsu";
 
-/** Cuisine : les menus de la semaine, les recettes et le frigo. */
+/** Cuisine (0.0.75) : les courses et les autres listes, les menus de la semaine, les recettes et le frigo. */
 function PageCuisine(p: PropsPage) {
-  // « recette:<id> » : une recette trouvée par la recherche, ouverte sur l'onglet Nos recettes.
+  // « recette:<id> » : une recette trouvée par la recherche, ouverte sur l'onglet Recettes.
   const recette = p.onglet?.startsWith("recette:") ? p.onglet.slice("recette:".length) : null;
-  const onglet = p.onglet === "recettes" || recette ? "recettes" : p.onglet === "frigo" ? "frigo" : "semaine";
+  const onglet =
+    p.onglet === "courses" || p.onglet === "listes" ? "courses" : p.onglet === "recettes" || recette ? "recettes" : p.onglet === "frigo" ? "frigo" : "semaine";
   const aConsommer = resumeStock(p.produits, p.aujourdhui).aConsommer.length;
+  const courses = listeCourses(p);
   return (
     <Espace
       titre="Cuisine"
-      libelle="Menus, recettes ou frigo"
+      libelle="Courses, menus, recettes ou frigo"
       onglets={[
-        { id: "semaine", libelle: "Cette semaine" },
-        { id: "recettes", libelle: "Nos recettes", compte: recettesDe(p.menus).length },
+        { id: "courses", libelle: "Courses", compte: courses ? compterAPrendre(courses, p.elements) : 0 },
+        { id: "semaine", libelle: "Menus" },
+        { id: "recettes", libelle: "Recettes", compte: recettesDe(p.menus).length },
         { id: "frigo", libelle: "Frigo", compte: aConsommer },
       ] as const}
       actif={onglet}
@@ -233,7 +250,10 @@ function PageCuisine(p: PropsPage) {
         p.changerOnglet(o === "semaine" ? undefined : o);
       }}
     >
-      {onglet === "frigo" ? (
+      {onglet === "courses" ? (
+        // Les puces Courses et Autres listes de la page restent sous les onglets de Cuisine.
+        <Courses {...p} onglet={p.onglet === "listes" ? "listes" : undefined} changerOnglet={(o) => p.changerOnglet(o ?? "courses")} />
+      ) : onglet === "frigo" ? (
         <Stock depot={p.depot} membreId={p.membreId} produits={p.produits} catalogue={p.catalogue} listes={p.listes} elements={p.elements} aujourdhui={p.aujourdhui} jarvis={p.jarvis} donnees={p} />
       ) : (
         <Chef {...p} onglet={onglet} recette={recette} />
@@ -242,9 +262,36 @@ function PageCuisine(p: PropsPage) {
   );
 }
 
-/** Maison : Mitsu et le jardin, chacun dans son onglet. */
+/** Organisation (0.0.75) : les tâches, l'agenda et les démarches administratives. */
+function PageOrganisation(p: PropsPage) {
+  const onglet = p.onglet === "agenda" || p.onglet === "administratif" ? p.onglet : "taches";
+  return (
+    <Espace
+      titre="Organisation"
+      libelle="Tâches, agenda ou administratif"
+      onglets={[
+        { id: "taches", libelle: "Tâches" },
+        { id: "agenda", libelle: "Agenda" },
+        { id: "administratif", libelle: "Administratif" },
+      ] as const}
+      actif={onglet}
+      changer={(o) => {
+        vibrer();
+        p.changerOnglet(o === "taches" ? undefined : o);
+      }}
+    >
+      {onglet === "agenda" ? (
+        <Agenda {...p} />
+      ) : (
+        <Taches depot={p.depot} foyer={p.foyer} membreId={p.membreId} taches={p.taches} administratif={onglet === "administratif"} />
+      )}
+    </Espace>
+  );
+}
+
+/** Maison : l'entretien, Mitsu et le jardin, chacun dans son onglet. */
 function PageMaison(p: PropsPage) {
-  const onglet = p.onglet === "jardin" || p.onglet === "mitsu" ? p.onglet : null;
+  const onglet = p.onglet === "jardin" || p.onglet === "mitsu" || p.onglet === "entretien" ? p.onglet : null;
   const { changerOnglet } = p;
   const parDefaut = ongletMaison(p);
   // L'onglet choisi à l'ouverture reste en place, même si l'urgence change en route.
@@ -255,8 +302,9 @@ function PageMaison(p: PropsPage) {
   return (
     <Espace
       titre="Maison"
-      libelle="Mitsu ou jardin"
+      libelle="Entretien, Mitsu ou jardin"
       onglets={[
+        { id: "entretien", libelle: "Entretien", compte: widgetEntretien(p).chiffre },
         { id: "mitsu", libelle: p.animaux[0]?.nom ?? "Mitsu" },
         { id: "jardin", libelle: "Jardin" },
       ] as const}
@@ -268,6 +316,10 @@ function PageMaison(p: PropsPage) {
     >
       {actif === "jardin" ? (
         <Jardin {...p} />
+      ) : actif === "entretien" ? (
+        <Page titre="Entretien" sousTitre="Ce qui revient pour la maison">
+          <Entretien depot={p.depot} membreId={p.membreId} taches={p.taches} aujourdhui={p.aujourdhui} />
+        </Page>
       ) : (
         <Mitsu depot={p.depot} foyer={p.foyer} membreId={p.membreId} animaux={p.animaux} listes={p.listes} elements={p.elements} />
       )}
@@ -279,7 +331,7 @@ export const MODULES: Partial<Record<WidgetId, ModuleUI>> = {
   taches: {
     id: "taches",
     picto: "coche",
-    libelle: "Tâches",
+    libelle: "Organisation",
     widget: (d) => {
       const dues = compterDues(d.taches, d.aujourdhui);
       const total = dues.aujourdhui + dues.enRetard;
@@ -298,7 +350,7 @@ export const MODULES: Partial<Record<WidgetId, ModuleUI>> = {
         urgent: total > 0,
       };
     },
-    page: (p) => <Taches depot={p.depot} foyer={p.foyer} membreId={p.membreId} taches={p.taches} onglet={p.onglet} changerOnglet={p.changerOnglet} />,
+    page: (p) => <PageOrganisation {...p} />,
   },
 
   courses: {
@@ -318,7 +370,7 @@ export const MODULES: Partial<Record<WidgetId, ModuleUI>> = {
         urgent: false,
       };
     },
-    page: (p) => <Courses {...p} />,
+    ouvre: { id: "chef", onglet: "courses" },
   },
 
   listes: {
@@ -337,7 +389,7 @@ export const MODULES: Partial<Record<WidgetId, ModuleUI>> = {
         urgent: false,
       };
     },
-    ouvre: { id: "courses", onglet: "listes" },
+    ouvre: { id: "chef", onglet: "listes" },
   },
 
   agenda: {
@@ -358,7 +410,7 @@ export const MODULES: Partial<Record<WidgetId, ModuleUI>> = {
         urgent: false,
       };
     },
-    page: (p) => <Agenda {...p} />,
+    ouvre: { id: "taches", onglet: "agenda" },
   },
 
   maison: {
@@ -389,17 +441,8 @@ export const MODULES: Partial<Record<WidgetId, ModuleUI>> = {
     id: "entretien",
     picto: "outil",
     libelle: "Entretien",
-    widget: (d) => {
-      const lignes = organiserEntretien(d.taches, d.aujourdhui);
-      const dus = lignes.filter((l) => l.du);
-      return {
-        chiffre: dus.length,
-        legende: lignes.length === 0 ? "Choisis ce qui concerne la maison" : dus.length ? "à faire cette semaine" : "Rien cette semaine",
-        lignes: (dus.length ? dus : lignes).slice(0, 3).map((l) => `${l.tache.titre} · ${l.quand}`),
-        urgent: lignes.some((l) => l.quand.startsWith("en retard")),
-      };
-    },
-    ouvre: { id: "taches", onglet: "entretien" },
+    widget: widgetEntretien,
+    ouvre: { id: "maison", onglet: "entretien" },
   },
 
   jardin: {

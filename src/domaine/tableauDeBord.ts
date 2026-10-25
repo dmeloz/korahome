@@ -13,8 +13,9 @@ export interface DefinitionWidget {
   /** Faux tant que la section n'existe pas encore dans l'app. */
   disponible: boolean;
   /**
-   * Depuis Kora 0.0.62, l'accueil tient en six espaces : une section fusionnée devient un onglet
-   * de la page d'un autre (Frigo dans Cuisine, Mitsu et Jardin dans Maison). Elle se cherche et
+   * Depuis Kora 0.0.75, quatre espaces (0.0.62 : six) : une section fusionnée devient un onglet
+   * de la page d'un autre (Courses et Frigo dans Cuisine, Entretien, Mitsu et Jardin dans Maison,
+   * Agenda dans Organisation, l'espace des tâches). Elle se cherche et
    * s'ouvre encore, mais son widget est celui de l'espace qui l'accueille.
    */
   fusionneDans?: WidgetId;
@@ -22,16 +23,16 @@ export interface DefinitionWidget {
 
 // Le titre d'un widget est aussi celui de sa page : on retrouve toujours le même nom.
 export const CATALOGUE: readonly DefinitionWidget[] = [
-  { id: "taches", titre: "Tâches", description: "Ce qui est à faire aujourd'hui, l'entretien de la maison et l'administratif.", disponible: true },
-  { id: "courses", titre: "Courses", description: "Ce qu'il reste à acheter, et vos autres listes à côté.", disponible: true },
-  { id: "listes", titre: "Listes", description: "Cadeaux, bricolage et toutes vos autres listes, à côté des courses.", disponible: true, fusionneDans: "courses" },
-  { id: "agenda", titre: "Agenda", description: "Rendez-vous, anniversaires, vacances et sorties, à deux, relié au calendrier de l'iPhone.", disponible: true },
+  { id: "taches", titre: "Organisation", description: "Les tâches de chacun, ce qui est prévu et l'administratif.", disponible: true },
+  { id: "courses", titre: "Courses", description: "Ce qu'il reste à acheter, et vos autres listes à côté.", disponible: true, fusionneDans: "chef" },
+  { id: "listes", titre: "Listes", description: "Cadeaux, bricolage et toutes vos autres listes, à côté des courses.", disponible: true, fusionneDans: "chef" },
+  { id: "agenda", titre: "Agenda", description: "Rendez-vous, anniversaires, vacances et sorties, à deux, relié au calendrier de l'iPhone.", disponible: true, fusionneDans: "taches" },
   { id: "mitsu", titre: "Mitsu", description: "Croquettes, litière, poids et vétérinaire.", disponible: true, fusionneDans: "maison" },
   { id: "stock", titre: "Frigo et placards", description: "Ce qu'il y a à la maison et ce qui arrive à sa date.", disponible: true, fusionneDans: "chef" },
-  { id: "entretien", titre: "Entretien", description: "Détartrer, changer les filtres, tester le détecteur : un onglet des tâches, rien ne s'oublie.", disponible: true, fusionneDans: "taches" },
+  { id: "entretien", titre: "Entretien", description: "Détartrer, changer les filtres, tester le détecteur : un onglet de Maison, rien ne s'oublie.", disponible: true, fusionneDans: "maison" },
   { id: "jardin", titre: "Jardin", description: "Arrosage selon la pluie, alerte gel, calendrier du mois et plantes reconnues en photo.", disponible: true, fusionneDans: "maison" },
-  { id: "maison", titre: "Maison", description: "Mitsu et le jardin : ce qui presse chez l'un ou chez l'autre remonte ici.", disponible: true },
-  { id: "chef", titre: "Cuisine", description: "Les menus de la semaine, vos recettes et ce qu'il y a au frigo.", disponible: true },
+  { id: "maison", titre: "Maison", description: "L'entretien, Mitsu et le jardin : ce qui presse remonte ici.", disponible: true },
+  { id: "chef", titre: "Cuisine", description: "Les courses, les menus de la semaine, vos recettes et ce qu'il y a au frigo.", disponible: true },
   { id: "budget", titre: "Budget", description: "La carte courses, le plaisir, l'épargne et les factures à payer, calculés comme dans votre Excel.", disponible: true },
   { id: "infos", titre: "Infos de la maison", description: "Contrats, garanties et numéros utiles ; une photo d'un document et Jarvis note l'échéance.", disponible: false },
 ];
@@ -45,7 +46,7 @@ export function definition(id: WidgetId): DefinitionWidget {
 /** Les widgets posés sur le tableau, dans l'ordre choisi. */
 export type Disposition = WidgetId[];
 
-export const DISPOSITION_DE_DEPART: Disposition = ["taches", "courses", "chef"];
+export const DISPOSITION_DE_DEPART: Disposition = ["taches", "chef"];
 
 /** Le widget qui montre une section : elle-même, ou l'espace où elle a été fusionnée. */
 export function widgetDe(id: WidgetId): WidgetId {
@@ -112,10 +113,10 @@ export function basculerTaille(tailles: Tailles, id: WidgetId): Tailles {
 
 // ----- Les espaces et la recherche -----
 // Chaque module, rangé par usage du quotidien. Depuis 0.0.73, plus de feuille « Tous les
-// espaces » : les six espaces sont sur l'accueil et dans la barre du haut, et la recherche passe
-// par la fée. Les sections fusionnées se trouvent en cherchant, ou dans l'onglet de leur espace.
+// espaces » : les espaces sont dans la barre du haut, et la recherche passe par la fée. Les
+// sections fusionnées se trouvent en cherchant, ou dans l'onglet de leur espace. Quatre depuis 0.0.75.
 
-export type EspaceId = "menage" | "courses" | "cuisine" | "budget" | "agenda";
+export type EspaceId = "cuisine" | "maison" | "organisation" | "budget";
 
 export interface Espace {
   id: EspaceId;
@@ -125,11 +126,10 @@ export interface Espace {
 }
 
 export const ESPACES: readonly Espace[] = [
-  { id: "menage", titre: "Ménage", description: "Les tâches et l'entretien, Mitsu et le jardin.", widgets: ["taches", "maison"] },
-  { id: "courses", titre: "Courses", description: "Ce qu'il reste à acheter et vos autres listes.", widgets: ["courses"] },
-  { id: "cuisine", titre: "Cuisine", description: "Les menus de la semaine, les recettes et ce qu'il y a à la maison.", widgets: ["chef"] },
+  { id: "cuisine", titre: "Cuisine", description: "Les courses, les menus de la semaine, les recettes et le frigo.", widgets: ["chef"] },
+  { id: "maison", titre: "Maison", description: "L'entretien, Mitsu et le jardin.", widgets: ["maison"] },
+  { id: "organisation", titre: "Organisation", description: "Les tâches, l'agenda et l'administratif.", widgets: ["taches"] },
   { id: "budget", titre: "Budget", description: "Le budget du foyer et les papiers de la maison.", widgets: ["budget", "infos"] },
-  { id: "agenda", titre: "Agenda", description: "Rendez-vous, anniversaires et vacances.", widgets: ["agenda"] },
 ];
 
 export function espace(id: EspaceId): Espace {
@@ -143,7 +143,7 @@ export function modulesDeLEspace(id: EspaceId): WidgetId[] {
 
 /** Les autres mots qu'on emploie pour chaque module, pour le retrouver dans « Tous les espaces ». */
 export const MOTS_DES_MODULES: Record<WidgetId, readonly string[]> = {
-  taches: ["ménage", "corvées", "à faire", "litière", "poubelles", "linge", "administratif", "impôts", "démarches"],
+  taches: ["tâches", "ménage", "corvées", "à faire", "litière", "poubelles", "linge", "administratif", "impôts", "démarches"],
   courses: ["acheter", "supermarché", "coop", "migros", "panier"],
   listes: ["cadeaux", "bricolage", "idées"],
   agenda: ["calendrier", "rendez-vous", "rdv", "anniversaire", "vacances", "icloud"],

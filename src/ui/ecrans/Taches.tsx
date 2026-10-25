@@ -11,9 +11,9 @@ import {
   marquerFaite,
   nouvelleTache,
   tachesDeDepart,
+  organiserPourMoi,
   organiserTaches,
   prendre,
-  type Filtre,
 } from "../../domaine/taches";
 import type { Foyer, Tache } from "../../domaine/types";
 import type { Depot } from "../../donnees/depot";
@@ -23,14 +23,13 @@ import { Ligne, ListeVivante, Message } from "../moteur/pieces";
 import { vibrer } from "../haptique";
 import { equilibreDesTaches, equilibreVisible } from "../../domaine/apprentissage";
 import { noterUsage } from "../usage";
-import { LigneAjout, Onglets, Page } from "../pieces";
+import { LigneAjout, Page } from "../pieces";
 import { analyserTache } from "../../domaine/barre";
 import { useAnnoncer } from "../annulation";
 import { Icone } from "../Icone";
-import { Entretien } from "./Entretien";
 import { CLES, ecrireTexte, lireTexte } from "../stockageLocal";
 
-// Les tâches de la maison, et l'onglet Entretien. On en ajoute en l'écrivant sur la ligne du bas,
+// Les tâches de la maison. On en ajoute en l'écrivant sur la ligne du bas,
 // comme dans Rappels, ou d'une phrase à la fée (« linge chaque mercredi », « impôts le 30 à 9h ») ; on glisse une tâche vers la droite pour la marquer faite, vers la gauche
 // pour la supprimer ; un appui long ouvre sa fiche. Le dimanche, on se répartit la semaine.
 
@@ -51,30 +50,20 @@ export const demanderRepartition = () => {
 };
 
 
-// Trois onglets en segments, et sous « À faire » les puces de qui s'en occupe (0.0.71) :
-// cinq segments serrés coupaient leurs noms sur l'iPhone.
-const ONGLETS: { id: "afaire" | "entretien" | "administratif"; libelle: string }[] = [
-  { id: "afaire", libelle: "À faire" },
-  { id: "entretien", libelle: "Entretien" },
-  { id: "administratif", libelle: "Administratif" },
-];
-const FILTRES: { id: Filtre; libelle: string }[] = [
-  { id: "toutes", libelle: "Toutes" },
-  { id: "miennes", libelle: "Les miennes" },
-  { id: "libres", libelle: "Libres" },
-];
+// Depuis 0.0.75, la page est un onglet de l'espace Organisation (Tâches, Agenda, Administratif) ;
+// l'entretien est parti dans Maison. Ses tâches d'abord, et « le reste » replié en dessous
+// (à la place des puces Toutes, Les miennes, Libres).
 
 export function Taches(props: {
   depot: Depot;
   foyer: Foyer;
   membreId: string | null;
   taches: Tache[];
-  /** « entretien » : l'onglet de l'entretien de la maison ; « administratif » : papiers et démarches. */
-  onglet?: string;
-  changerOnglet: (onglet: string | undefined) => void;
+  /** L'onglet Administratif d'Organisation : les papiers et les démarches. */
+  administratif?: boolean;
 }) {
   const aujourdhui = aujourdhuiLocal();
-  const [filtre, setFiltre] = useState<Filtre>("toutes");
+  const [resteOuvert, setResteOuvert] = useState(false);
   const [ouverte, setOuverte] = useState<string | null>(null);
   const [aSupprimer, setASupprimer] = useState<string | null>(null);
   const [repartir, setRepartir] = useState(() => {
@@ -94,10 +83,16 @@ export function Taches(props: {
   const moi = props.membreId;
   const membre = (id: string | null) => props.foyer.membres.find((m) => m.id === id);
   const plusieurs = props.foyer.membres.length > 1;
-  const administratif = props.onglet === "administratif";
+  const administratif = !!props.administratif;
+  // À deux, la page ouvre sur ses tâches (tâches, entretien de la semaine, démarches) ; celles de l'autre et les libres attendent repliées.
+  const vueMoi = moi && plusieurs && !administratif ? organiserPourMoi(props.taches, aujourdhui, moi) : null;
   const { groupes, terminees } = administratif
     ? organiserTaches(props.taches.filter((t) => t.categorie === "administratif"), aujourdhui, "toutes", moi)
-    : organiserTaches(props.taches, aujourdhui, filtre, moi);
+    : vueMoi
+      ? { groupes: vueMoi.miennes, terminees: vueMoi.terminees }
+      : organiserTaches(props.taches, aujourdhui);
+  const reste = vueMoi?.reste ?? [];
+  const nombreReste = reste.reduce((n, g) => n + g.taches.length, 0);
 
   async function faire(t: Tache) {
     vibrer();
@@ -192,7 +187,6 @@ export function Taches(props: {
   const etalement = etalementPropose(props.taches, aujourdhui);
   const dues = groupes.filter((g) => g.cle === "retard" || g.cle === "aujourdhui").reduce((n, g) => n + g.taches.length, 0);
   const autre = props.foyer.membres.find((m) => m.id !== moi);
-  const entretien = props.onglet === "entretien";
 
   /** Une tâche écrite sur la ligne du bas : la phrase est lue comme par la fée (rythme, jour, heure). */
   async function ajouterEcrite(phrase: string) {
@@ -201,8 +195,8 @@ export function Taches(props: {
     const base = nouvelleTache(lu.titre, lu.recurrence, lu.echeance, contexteReel);
     const avecHeure = { ...(lu.heure ? { ...base, heure: lu.heure } : base), creePar: moi };
     const rangee = administratif ? { ...avecHeure, categorie: "administratif" as const } : avecHeure;
-    // Dans « Les miennes », elle est pour soi.
-    const tache = filtre === "miennes" && moi ? prendre(rangee, moi) : rangee;
+    // Écrite sous ses tâches, elle est pour soi ; sa fiche la donne à l'autre ou la rend libre.
+    const tache = vueMoi && moi ? prendre(rangee, moi) : rangee;
     await props.depot.enregistrerTache(tache);
     vibrer();
     annoncer(`« ${tache.titre} » ajoutée, ${decrireEcheance(tache.echeance, aujourdhui)}${lu.heure ? `, rappel à ${lu.heure}` : ""}.`, () => props.depot.supprimerTache(tache.id));
@@ -210,8 +204,8 @@ export function Taches(props: {
   return (
     <Page
       titre="Tâches"
-      sousTitre={entretien ? "Ce qui revient pour la maison" : administratif ? "Les papiers, les factures et les démarches" : vide ? undefined : dues ? `${dues} à faire aujourd'hui` : "Rien ne presse aujourd'hui"}
-      actions={plusieurs && !vide && !entretien && !administratif ? <button className="lien" onClick={() => setRepartir(true)}>Répartir</button> : undefined}
+      sousTitre={administratif ? "Les papiers, les factures et les démarches" : vide ? undefined : dues ? `${dues} à faire aujourd'hui` : "Rien ne presse aujourd'hui"}
+      actions={plusieurs && !vide && !administratif ? <button className="lien" onClick={() => setRepartir(true)}>Répartir</button> : undefined}
       aide={{ cle: "taches", texte: "Écris une tâche sous la liste, ou dis-la à ta fée avec son rythme : « linge chaque mercredi ». Glisse une tâche vers la droite quand elle est faite, vers la gauche pour la supprimer. Un appui long ouvre sa fiche." }}
     >
       <Repartition ouverte={repartir} fermer={() => setRepartir(false)} foyer={props.foyer} taches={props.taches} aujourdhui={aujourdhui} depot={props.depot} />
@@ -255,26 +249,6 @@ export function Taches(props: {
       </Feuille>
 
 
-      <Onglets
-        libelle="Afficher"
-        onglets={ONGLETS}
-        actif={entretien ? "entretien" : administratif ? "administratif" : "afaire"}
-        changer={(id) => props.changerOnglet(id === "afaire" ? undefined : id)}
-      />
-      {!entretien && !administratif && !vide && (
-        <div className="puces vues" role="group" aria-label="Qui s'en occupe">
-          {FILTRES.filter((f) => f.id !== "miennes" || moi).map((f) => (
-            <button key={f.id} className={`puce${f.id === filtre ? " active" : ""}`} aria-pressed={f.id === filtre} onClick={() => setFiltre(f.id)}>
-              {f.libelle}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {entretien ? (
-        <Entretien depot={props.depot} membreId={moi} taches={props.taches} aujourdhui={aujourdhui} />
-      ) : (
-      <>
 
       {administratif && groupes.length === 0 && terminees.length === 0 && (
         <p className="vide">Aucune démarche en cours. Dis-en une à ta fée : « déclaration d'impôts », « renouveler l'assurance chaque année ».</p>
@@ -301,8 +275,8 @@ export function Taches(props: {
         </div>
       )}
 
-      {!administratif && !vide && groupes.length === 0 && terminees.length === 0 && (
-        <p className="vide">{filtre === "miennes" ? "Tu ne t'occupes d'aucune tâche." : "Aucune tâche libre."}</p>
+      {!administratif && !vide && groupes.length === 0 && (vueMoi || terminees.length === 0) && (
+        <p className="vide">{vueMoi ? "Rien pour toi en ce moment." : "Aucune tâche à faire."}</p>
       )}
 
       {groupes.map((g) => (
@@ -315,6 +289,23 @@ export function Taches(props: {
         <LigneAjout placeholder={administratif ? "Nouvelle démarche" : "Nouvelle tâche"} ajouter={ajouterEcrite} />
       </div>
 
+      {nombreReste > 0 && (
+        <section className="reste-taches">
+          <button className="reste-entete" aria-expanded={resteOuvert} onClick={() => setResteOuvert((o) => !o)}>
+            <span className="rayon">Le reste ({nombreReste})</span>
+            <span className="discret">{autre ? `${autre.prenom} et les libres` : "Les libres"}</span>
+            <span className="reste-chevron" aria-hidden><Icone nom="bas" taille={16} /></span>
+          </button>
+          {resteOuvert &&
+            reste.map((g) => (
+              <section key={g.cle}>
+                <h3 className={`rayon${g.cle === "retard" ? " retard" : ""}`}>{g.titre}</h3>
+                <ListeVivante className="carte groupe">{g.taches.map(ligne)}</ListeVivante>
+              </section>
+            ))}
+        </section>
+      )}
+
       {terminees.length > 0 && (
         <section>
           <div className="entete-coches">
@@ -325,9 +316,6 @@ export function Taches(props: {
           </div>
           <ListeVivante className="carte groupe">{terminees.map(ligne)}</ListeVivante>
         </section>
-      )}
-
-      </>
       )}
 
       <Message visible={!!annulable}>

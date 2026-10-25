@@ -231,6 +231,22 @@ export function organiserTaches(
   return { groupes: groupes.filter((g) => g.taches.length > 0), terminees };
 }
 
+/**
+ * La page des tâches d'une personne : les siennes d'abord (tâches, entretien de la semaine,
+ * démarches), puis « le reste » (celles de l'autre et les libres), que l'écran garde replié.
+ */
+export function organiserPourMoi(
+  taches: Tache[],
+  aujourdhui: Jour,
+  moi: Id,
+): { miennes: GroupeTaches[]; reste: GroupeTaches[]; terminees: Tache[] } {
+  return {
+    miennes: organiserTaches(taches, aujourdhui, "miennes", moi).groupes,
+    reste: organiserTaches(taches.filter((t) => t.responsable !== moi), aujourdhui).groupes,
+    terminees: organiserTaches(taches, aujourdhui).terminees,
+  };
+}
+
 /** Ce que l'accueil affiche : combien de tâches sont dues aujourd'hui ou en retard. */
 export function compterDues(taches: Tache[], aujourdhui: Jour): { aujourdhui: number; enRetard: number } {
   let du = 0;

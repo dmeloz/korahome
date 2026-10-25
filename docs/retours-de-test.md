@@ -10,7 +10,7 @@ Chaque version se teste sur l'iPhone. Les notes reviennent seules à Claude par 
 3. C'est tout : avec le partage activé, la note part au serveur du foyer à la synchronisation suivante.
 4. **Réglages > Retours de test** range les notes comme dans Sanji :
    - **Nouvelles** : pas encore parties (hors ligne, ou partage pas activé) ;
-   - **Transmises** : sur le serveur, Claude peut les lire ;
+   - **Reçues** (« Transmises » jusqu'en 0.0.74) : sur le serveur, Claude peut les lire ;
    - **Réglées** : la correction est vérifiée (toucher le rond de la note ; le toucher de nouveau la rouvre).
 5. Les notes des deux iPhone se rejoignent : chacun voit toutes les notes du foyer.
 

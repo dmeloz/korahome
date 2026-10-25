@@ -100,8 +100,8 @@ type Page =
 /** Une page de la pile, avec l'endroit où elle était défilée quand on en est parti. */
 type Entree = Page & { defilement?: number };
 
-// Les six espaces de l'accueil, dans le sélecteur de la barre du haut.
-const ESPACES_BARRE: EspaceBarre[] = (["taches", "courses", "chef", "maison", "agenda", "budget"] as const).flatMap((id) => {
+// Les quatre espaces (0.0.75), dans le sélecteur de la barre du haut.
+const ESPACES_BARRE: EspaceBarre[] = (["chef", "maison", "taches", "budget"] as const).flatMap((id) => {
   const module = MODULES[id];
   return module ? [{ id, libelle: module.libelle, picto: PICTOS[id] }] : [];
 });
@@ -227,7 +227,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     if (p.nom === "calendrier") return "Calendrier de l'iPhone";
     if (p.nom === "siri") return "Siri";
     if (p.nom === "fee") return `Réglages de ${nomFee()}`;
-    if (p.nom === "module") return p.id === "courses" && p.onglet === "listes" ? "Listes" : (MODULES[p.id]?.libelle ?? "Retour");
+    if (p.nom === "module") return p.id === "chef" && p.onglet === "listes" ? "Listes" : (MODULES[p.id]?.libelle ?? "Retour");
     return listes.find((l) => l.id === p.id)?.nom ?? "Liste";
   }
   /** Le nom de l'écran tel qu'il apparaît dans les notes et le journal. */
@@ -271,7 +271,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   const donnees: DonneesModule = { foyer, membreId: membre, listes, elements, taches, animaux, produits, catalogue, zones, meteo, aujourdhui: aujourdhuiLocal(), souvenirs, retours, couple, menus, agenda, budget };
 
   const ouvrir = (demandee: Page) => {
-    // Le widget Listes ouvre l'onglet des listes de Courses, Entretien celui de Tâches.
+    // Courses et Listes ouvrent leur onglet de Cuisine, Agenda le sien d'Organisation, Entretien celui de Maison.
     const vers = demandee.nom === "module" ? MODULES[demandee.id]?.ouvre : undefined;
     const p: Page = vers ? { nom: "module", id: vers.id, onglet: vers.onglet } : demandee;
     // Depuis l'accueil, le widget touché grandit jusqu'à devenir sa page.
@@ -479,9 +479,10 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   // La fée, sur l'accueil, chaque module, chaque liste, la mémoire et Nos mots : là où l'on
   // ajoute quelque chose. Les réglages et la conversation ont leurs propres champs.
   // Sur l'onglet Entretien ou Autres listes, la phrase va à cet onglet.
-  // Dans Cuisine et Maison, l'onglet Frigo, Mitsu ou Jardin reçoit la phrase comme sa page d'avant.
+  // Dans un espace, l'onglet (Courses, Frigo, Agenda, Mitsu, Jardin…) reçoit la phrase comme sa page d'avant.
   const ongletBarre =
-    page.nom === "module" && (page.onglet === "entretien" || page.onglet === "administratif" || page.onglet === "listes" || page.onglet === "mitsu" || page.onglet === "jardin")
+    page.nom === "module" &&
+    (page.onglet === "entretien" || page.onglet === "administratif" || page.onglet === "listes" || page.onglet === "courses" || page.onglet === "agenda" || page.onglet === "mitsu" || page.onglet === "jardin")
       ? page.onglet
       : page.nom === "module" && page.onglet === "frigo"
         ? "stock"

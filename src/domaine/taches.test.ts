@@ -18,6 +18,7 @@ import {
   marquerFaite,
   nouvelleTache,
   organiserTaches,
+  organiserPourMoi,
   prendre,
   tachesDeDepart,
 } from "./taches";
@@ -146,6 +147,13 @@ describe("organiser l'écran", () => {
     expect(miennes.groupes.flatMap((g) => g.taches).map((t) => t.titre)).toEqual(["Poubelles"]);
     const libres = organiserTaches(toutes, aujourdhui, "libres");
     expect(libres.groupes.flatMap((g) => g.taches).map((t) => t.titre)).toEqual(["Linge", "Arrosage", "Vitres"]);
+  });
+
+  it("met mes tâches d'abord et range le reste à part", () => {
+    const { miennes, reste, terminees } = organiserPourMoi(toutes, aujourdhui, "melo");
+    expect(miennes.flatMap((g) => g.taches).map((t) => t.titre)).toEqual(["Poubelles"]);
+    expect(reste.flatMap((g) => g.taches).map((t) => t.titre)).toEqual(["Linge", "Arrosage", "Vitres"]);
+    expect(terminees.map((t) => t.titre)).toEqual(["Ampoule"]);
   });
 
   it("compte ce qui est dû pour l'accueil", () => {
