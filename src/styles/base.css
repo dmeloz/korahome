@@ -105,7 +105,6 @@
 /* iPad et grand écran : le contenu s'élargit. */
 @media (min-width: 760px) {
   .contenu { max-width: 980px; padding-left: 32px; padding-right: 32px; }
-  .grille-espaces { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 }
 
 * { box-sizing: border-box; }

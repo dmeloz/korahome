@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent, type RefObject } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { basculerSigne, SIGNES, SIGNES_MAX, type Signe, type ValeurSigne } from "../../domaine/signes";
 import { enregistrerDate, enregistrerSignes, lireDate, type ReglageDate } from "../accueilLocal";
 import { Feuille } from "../Feuille";
@@ -9,7 +9,6 @@ import { toucherFiable } from "../toucher";
 
 // Le haut de l'accueil, comme l'écran verrouillé de l'iPhone : une grande date seule, qu'on
 // glisse à gauche ou au centre, et au bout de sa ligne les petits signes que chacun choisit.
-// En défilant, la date se replie dans une petite barre de verre.
 // Équivalent natif : un Text en .largeTitle et une HStack de SF Symbols, toolbar(.principal).
 
 /** Au-delà, le doigt a glissé la date. */
@@ -53,24 +52,6 @@ export function GrandeDate({ date }: { date: Date }) {
         <b>{jour.charAt(0).toUpperCase() + jour.slice(1)}</b>
         <span>{mois}</span>
       </span>
-    </div>
-  );
-}
-
-/** La date repliée dans une petite barre de verre, quand on a fait défiler l'accueil. */
-export function DateRepliee({ date, cible }: { date: Date; cible: RefObject<HTMLElement | null> }) {
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const el = cible.current;
-    if (!el || typeof IntersectionObserver === "undefined") return;
-    const obs = new IntersectionObserver(([e]) => setVisible(!e.isIntersecting), { rootMargin: "-20px 0px 0px 0px" });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [cible]);
-  const jour = date.toLocaleDateString("fr-CH", { weekday: "long" });
-  return (
-    <div className={`date-repliee${visible ? " visible" : ""}`} aria-hidden>
-      {jour.charAt(0).toUpperCase() + jour.slice(1)} {date.getDate()}
     </div>
   );
 }

@@ -1,20 +1,7 @@
-/* ===== L'accueil : la date et ses signes, les chiffres du jour, « Ce soir », les piles, « Tous les espaces » ===== */
+/* ===== L'accueil : la date et ses signes, les chiffres du jour, « Ce soir », les piles ===== */
 
 /* La date et les boutons sur la première ligne, la salutation en entier dessous. */
 .cache-visuel { position: absolute !important; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-.avatar-reglages {
-  width: 44px;
-  height: 44px;
-  flex: none;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--trait));
-  color: var(--accent);
-  font-weight: 700;
-  font-size: var(--t-corps);
-  padding: 0;
-}
 .alerte.compte {
   width: auto;
   min-width: 18px;
@@ -58,7 +45,7 @@
 @media (prefers-reduced-motion: no-preference) { .grande-date { transition: justify-content 0.3s var(--courbe); } }
 
 /* Les petits signes au bout de la ligne de la date. */
-.signes-accueil { position: absolute; right: 0; top: 50%; transform: translateY(-50%); display: flex; gap: 4px; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.signes-accueil { position: absolute; right: 32px; top: 50%; transform: translateY(-50%); display: flex; gap: 4px; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 .signe { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; min-width: 44px; justify-content: center; padding: 4px 8px; border: none; border-radius: 999px; background: none; color: var(--accent); font-size: var(--t-legende); font-variant-numeric: tabular-nums; }
 .signe:active { background: var(--accent-doux); }
 .signe.urgent { color: var(--urgent); }
@@ -68,19 +55,6 @@
 .signe-humeur { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); color: var(--accent); }
 .signe-humeur + .signe-humeur { margin-left: -6px; background: var(--fond); }
 .signe-humeur.sans { border-style: dashed; border-color: var(--discret); opacity: 0.6; }
-
-/* La date repliée dans une barre de verre quand on fait défiler. */
-/* Depuis 0.0.71, une bande de verre d'un bord à l'autre, comme la barre du haut des pages :
-   le contenu passe dessous au lieu d'apparaître autour d'une pastille. */
-.date-repliee {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 9; transform: translateY(-100%);
-  display: grid; place-items: center; min-height: calc(env(safe-area-inset-top) + 44px); padding: env(safe-area-inset-top) 16px 0;
-  font-size: var(--t-corps); font-weight: 600; pointer-events: none; opacity: 0;
-  background: var(--verre); -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4);
-  border-bottom: 0.5px solid var(--verre-trait);
-}
-.date-repliee.visible { transform: none; opacity: 1; }
-@media (prefers-reduced-motion: no-preference) { .date-repliee { transition: transform 0.35s var(--courbe), opacity 0.2s ease; } }
 
 /* « Ce soir », sans cadre : un fil relie les ronds, l'heure à gauche quand il y en a une. */
 .ce-moment { margin: 6px 0 22px; --col-heure: 0px; }
@@ -146,46 +120,12 @@
 
 
 
-/* « Tous les espaces » : la feuille de verre qui descend du haut. */
-.voile-espaces { z-index: 24; }
-.tous-espaces {
-  position: fixed; left: 0; right: 0; top: 0; z-index: 25; max-width: 640px; margin: 0 auto;
-  display: flex; flex-direction: column; max-height: 88dvh;
-  padding: calc(env(safe-area-inset-top) + 10px) 16px 0; border-radius: 0 0 30px 30px;
-  background: var(--verre); -webkit-backdrop-filter: blur(28px) saturate(1.6); backdrop-filter: blur(28px) saturate(1.6);
-  box-shadow: var(--reflet), 0 0 0 0.5px var(--verre-trait), 0 24px 60px -24px rgb(0 0 0 / 0.7);
-}
-@media (prefers-reduced-motion: no-preference) {
-  .tous-espaces { animation: espaces-descend var(--ressort-feuille-duree, 0.45s) var(--ressort-feuille, var(--courbe)); transition: transform 0.32s var(--courbe), opacity 0.25s ease; }
-  .tous-espaces.tiree { transition: none; }
-}
-@keyframes espaces-descend { from { transform: translateY(-100%); } }
-.tous-espaces.sortie { transform: translateY(-100%); opacity: 0; pointer-events: none; }
-.espaces-haut { display: flex; align-items: center; gap: 8px; }
-.espaces-haut .champ-recherche { flex: 1; min-width: 0; margin: 0; background: color-mix(in srgb, var(--surface-haute) 80%, transparent); }
-.espaces-corps { overflow-y: auto; overscroll-behavior: contain; padding: 6px 2px 4px; }
-.espaces-corps .rayon { margin: 14px 0 8px; }
-.grille-espaces { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 8px; }
-.tuile-espace { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 4px 0; border: none; background: none; color: var(--texte); -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
-.tuile-picto { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 16px; color: var(--accent); background: color-mix(in srgb, var(--surface-haute) 85%, transparent); box-shadow: var(--reflet), 0 0 0 0.5px var(--verre-trait); }
-.tuile-espace:active .tuile-picto { transform: scale(0.93); }
-.tuile-nom { font-size: var(--t-legende); text-align: center; line-height: 1.2; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
-.espaces-pied { text-align: center; font-size: var(--t-legende); margin: 16px 0 4px; }
-.espaces-poignee { display: grid; place-items: center; height: 26px; touch-action: none; cursor: grab; }
-.espaces-poignee .poignee { margin: 0; }
-/* L'étiquette qui descend quand on tire l'accueil vers le bas. */
-.tirer-espaces {
-  position: fixed; top: calc(env(safe-area-inset-top) + 6px); left: 50%; z-index: 9; transform: translate(-50%, 0); opacity: 0; pointer-events: none;
-  padding: 5px 12px; border-radius: 999px; font-size: var(--t-legende); color: var(--accent);
-  background: var(--verre); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-shadow: var(--reflet), 0 0 0 0.5px var(--verre-trait);
-}
-
 /* ===== Kora 0.0.72 : l'accueil « tout sur un écran » (variante B du kit NEXUS) =====
    Posé sur le fond, sans verre : seules les couches qui flottent (date repliée, fée, feuilles)
    en gardent. Graphite et laiton, le rouge pour ce qui presse, rien d'autre. */
 .accueil-un-ecran .haut-accueil { margin: 6px 0 12px; }
 .accueil-un-ecran > * + * { margin-top: 14px; }
-.accueil-un-ecran > .haut-accueil + *, .accueil-un-ecran > .date-repliee + * { margin-top: 0; }
+.accueil-un-ecran > .haut-accueil + * { margin-top: 0; }
 .accueil-titre { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
 .accueil-titre h2 { flex: none; white-space: nowrap; margin: 0; font-family: var(--police-titre); font-size: var(--t-section); font-weight: 650; }
 .accueil-titre .discret { font-size: var(--t-legende); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -300,3 +240,23 @@
 /* Le bas de l'écran s'efface dans le fond (posé sur body, hors des pages qui glissent). */
 .fondu-bord { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; height: calc(env(safe-area-inset-bottom) + 36px); pointer-events: none; background: linear-gradient(transparent, var(--fond) 75%); }
 @media (prefers-contrast: more) { .fondu-bord { display: none; } }
+
+/* ===== Kora 0.0.73 : l'accueil fixe =====
+   Plus de geste « tirer vers le bas » : la page ne défile pas quand elle tient dans l'écran
+   (classe posée par Accueil.tsx après mesure), seules ses zones glissent. On cherche en écrivant
+   à la fée ; Réglages, une petite roue discrète au bout de la ligne de la date. */
+.coin-accueil { position: absolute; right: -10px; top: 50%; transform: translateY(-50%); display: flex; }
+.coin-bouton {
+  display: grid; place-items: center; width: 40px; height: 44px; border: none; border-radius: 50%;
+  background: none; color: var(--discret);
+}
+.coin-bouton:active { color: var(--accent); background: var(--accent-doux); }
+.coin-bouton .alerte { top: 10px; right: 8px; }
+.haut-accueil:has(.coin-bouton + .coin-bouton) .signes-accueil { right: 72px; }
+html.accueil-fixe, html.accueil-fixe body { overflow: hidden; overscroll-behavior: none; }
+html.accueil-fixe .ce-soir-ligne, html.accueil-fixe .pile-carte { touch-action: none; }
+/* Trop haut pour l'écran : une ligne par carte et des écarts plus courts, avant de redéfiler. */
+html.accueil-serre .accueil-un-ecran > * + * { margin-top: 10px; }
+html.accueil-serre .pile-ligne + .pile-ligne { display: none; }
+html.accueil-fixe .fondu-bord { display: none; }
+html.accueil-serre .contenu:has(> .accueil-un-ecran) { padding-bottom: calc(env(safe-area-inset-bottom) + 88px); }

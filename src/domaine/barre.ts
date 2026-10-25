@@ -192,7 +192,7 @@ export function invitation(lieu: LieuBarre): string {
     case "mots":
       return "Un mot doux, ou un compte à rebours";
     case "accueil":
-      return "Ajouter, demander à Jarvis…";
+      return "Ajouter, chercher, demander à Jarvis…";
     default:
       return "Demander à Jarvis…";
   }

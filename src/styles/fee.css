@@ -233,3 +233,18 @@ html.nuit-kora .page-dessus .accueil { filter: brightness(.72) saturate(.85); tr
   .fee .aile, .fee .flotte, .fee .halo, .fee .coeur, .attend svg, .fee svg, .fee .etincelles i, .fee::after { animation: none; }
   .fee, .attend { transition: opacity .3s; }
 }
+
+/* Kora 0.0.73 : sur l'accueil, ce qu'on écrit à la fée cherche aussi dans Kora. */
+.recherche-fee { display: flex; flex-direction: column; }
+.recherche-fee .surtitre { margin: 0 0 4px; }
+.trouvaille {
+  display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 2px; border: none; background: none;
+  color: var(--texte); text-align: left; font-size: var(--t-corps);
+}
+.trouvaille > :first-child { flex: none; color: var(--accent); }
+.trouvaille > :last-child { flex: none; color: var(--discret); }
+.trouvaille + .trouvaille { border-top: 0.5px solid var(--trait); }
+.trouvaille-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+.trouvaille-texte, .trouvaille-texte .discret { white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+.trouvaille-texte .discret { font-size: var(--t-legende); }
+.trouvaille:active { color: var(--accent); }
