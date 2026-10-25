@@ -28,6 +28,7 @@ Kora range l'interface en quelques pièces qui se répètent sur toutes les page
 | `GrandeDate`, `Signes` | `src/ui/pieces/HautAccueil.tsx` | `Text` en `.largeTitle` et une `HStack` de boutons ronds |
 | `Fee` (la fée, ses gestes, sa bulle) | `src/ui/pieces/Fee.tsx`, état dans `src/ui/fee.ts` | Une vue en `.overlay` avec `DragGesture`, `onTapGesture(count: 2)` et `onLongPressGesture`, la bulle en `.popover` compact ; les étincelles en `TimelineView` |
 | Vie de la fée | `src/ui/vieFee.ts`, règles `src/domaine/vieFee.ts` | Un `@Observable` piloté par un `Timer` sur l'accueil ; l'heure d'une tâche en `UNCalendarNotificationTrigger` local |
+| `BarreHaut` (la barre du haut de chaque page : retour, titre qui y monte en défilant, sélecteur des six espaces) | `src/ui/pieces/BarreHaut.tsx` | barre d'une `NavigationStack` en `.large`, avec un `Menu` dans `.toolbar(.topBarTrailing)` |
 | `BarreJarvis` (la saisie de la fée) | `src/ui/pieces/barre.tsx` | `.safeAreaInset(edge: .bottom)` avec un `TextField` et un `AppIntent`, ouvert par l'appui long |
 | `AuDessusDeLaBarre` | `src/ui/pieces/barre.tsx` | Contenu du même `safeAreaInset`, au-dessus du champ |
 | `Glissable` | `src/ui/Glissable.tsx` | `.swipeActions(edge: .leading / .trailing)` et `.contextMenu` |

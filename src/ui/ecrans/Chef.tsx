@@ -178,7 +178,7 @@ export function Chef(p: PropsPage & { recette?: string | null }) {
         {!p.jarvis ? (
           <div className="carte">
             <p className="discret">Le Chef passe par le serveur du foyer : il se réveille dès que le partage est activé.</p>
-            <button className="bouton-principal" onClick={p.ouvrirPartage}>Activer le partage</button>
+            <button className="bouton-doux" onClick={p.ouvrirPartage}>Activer le partage</button>
           </div>
         ) : (
           <section className="carte chef-entete">

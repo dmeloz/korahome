@@ -264,7 +264,7 @@ function Relier(props: {
           <div key={f.id} className="carte partage-choix">
             <p className="partage-etape">Ton foyer t'attend</p>
             <p><strong>Tu fais partie du foyer « {f.nom} »</strong></p>
-            <button className="bouton-principal" disabled={props.occupe} onClick={() => demander({ id: f.id })}>
+            <button className="bouton-doux" disabled={props.occupe} onClick={() => demander({ id: f.id })}>
               Retrouver ce foyer
             </button>
           </div>

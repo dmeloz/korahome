@@ -116,13 +116,91 @@
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  margin: 4px 0 0 -6px;
+  min-width: 0;
   padding: 8px 6px;
   background: none;
   border: none;
   color: var(--accent);
   font-size: var(--t-corps);
 }
+.retour-libelle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* La barre du haut (0.0.71), la même sur chaque page : elle reste en place, le contenu passe
+   dessous en se floutant, et le nom de la page y monte quand son grand titre a défilé. */
+.barre-haut {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  min-height: calc(env(safe-area-inset-top) + 48px);
+  margin: calc(-12px - env(safe-area-inset-top)) calc(-1 * var(--marge-cote)) 0;
+  padding: env(safe-area-inset-top) calc(var(--marge-cote) - 10px) 0 calc(var(--marge-cote) - 6px);
+  background: transparent;
+  border-bottom: 0.5px solid transparent;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.barre-haut.avec-titre {
+  background: var(--verre);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(20px) saturate(1.4);
+  border-bottom-color: var(--verre-trait);
+}
+.barre-haut .retour { justify-self: start; max-width: 100%; }
+.barre-haut-titre {
+  max-width: 52vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--t-corps);
+  font-weight: 600;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.2s ease, transform 0.25s var(--courbe);
+}
+.barre-haut.avec-titre .barre-haut-titre { opacity: 1; transform: none; }
+.barre-haut-espaces {
+  justify-self: end;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--accent);
+}
+.barre-haut-espaces[aria-expanded="true"] { background: var(--accent-doux); }
+.barre-haut-menu {
+  position: absolute;
+  top: calc(100% - 2px);
+  right: calc(var(--marge-cote) - 6px);
+  width: min(240px, calc(100vw - 32px));
+  display: grid;
+  padding: 6px;
+  border-radius: 16px;
+  /* Presque plein : sous la barre de verre, son propre flou ne verrait que la barre. */
+  background: color-mix(in srgb, var(--surface-haute) 97%, transparent);
+  box-shadow: var(--reflet), 0 0 0 0.5px var(--verre-trait), 0 18px 40px -16px rgb(0 0 0 / 0.55);
+  transform-origin: top right;
+}
+.barre-haut-menu button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: var(--texte);
+  text-align: left;
+}
+.barre-haut-menu button > span { flex: 1; }
+.barre-haut-menu button > svg:first-child { color: var(--discret); }
+.barre-haut-menu button.actuel { background: var(--surface-haute); font-weight: 600; }
+.barre-haut-menu button.actuel > svg { color: var(--accent); }
 
 .bouton-icone {
   width: 40px;
@@ -146,6 +224,19 @@
   padding: 14px 18px;
   margin-top: 4px;
 }
+
+/* Un bouton qui mène ailleurs, ou un parmi plusieurs : teinté, pas plein. Le laiton plein reste
+   à l'action de la page, une seule par écran (0.0.71). */
+.bouton-doux {
+  border: none;
+  border-radius: 12px;
+  background: var(--accent-doux);
+  color: var(--accent);
+  font-weight: 600;
+  padding: 14px 18px;
+  margin-top: 4px;
+}
+.bouton-doux:disabled { opacity: 0.4; }
 
 .formulaire { display: flex; flex-direction: column; gap: 16px; text-align: left; margin-top: 24px; padding: 20px; }
 .formulaire label { display: flex; flex-direction: column; gap: 6px; font-size: var(--t-detail); color: var(--discret); }
@@ -382,20 +473,20 @@ html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
 .page-entete h1 { margin: 0; }
 .page-sous-titre { margin: 4px 0 0; font-size: var(--t-detail); color: var(--discret); }
 .page-actions { display: flex; gap: 8px; flex: none; padding-bottom: 4px; }
-.aide-une-fois {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin: 0 0 14px;
-  padding: 12px 14px;
-  border-radius: 16px;
-  background: var(--accent-doux);
-  color: var(--texte);
+/* L'aide de la première visite : une ligne discrète, le texte entier d'un toucher. */
+.aide-une-fois { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 12px; }
+.aide-ligne {
+  flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; border: none; background: none;
+  color: var(--discret); text-align: left; font-size: var(--t-detail); line-height: 1.4;
 }
-.aide-une-fois p { margin: 0; flex: 1; font-size: var(--t-detail); line-height: 1.4; }
-.aide-picto { color: var(--accent); display: grid; padding-top: 1px; }
-.aide-une-fois .lien { flex: none; font-size: var(--t-detail); padding: 0; }
+.aide-texte { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aide-une-fois.ouverte .aide-texte { white-space: normal; color: var(--texte); }
+.aide-picto { color: var(--accent); display: grid; padding-top: 1px; flex: none; }
+.aide-une-fois .lien { flex: none; font-size: var(--t-detail); padding: 6px 0; }
 .segment-compte { margin-left: 6px; font-size: var(--t-legende); color: var(--accent); }
+.puce.active .segment-compte { color: inherit; opacity: 0.75; }
+/* Les vues d'une page rangée dans un espace : des puces sous les onglets de l'espace, jamais une deuxième rangée de segments. */
+.puces.vues { margin: 2px 0 12px; }
 
 /* Glisser à droite : fait. */
 .glissable-fait {
@@ -446,12 +537,16 @@ html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
 .corbeille-ligne strong { font-weight: 600; overflow-wrap: anywhere; }
 
 /* ===== À deux (Kora 0.0.65) : la carte de mise en route, le fil du foyer, les iPhone du foyer ===== */
-.demarrage { display: grid; gap: 10px; padding: 14px 16px; margin-bottom: 16px; }
+.demarrage { display: grid; gap: 10px; padding: 4px 16px; margin-bottom: 16px; }
+.demarrage.ouverte { padding-bottom: 12px; }
 .demarrage-entete { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.demarrage-entete > div { display: grid; gap: 1px; }
+.demarrage-resume { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 10px 0; border: none; background: none; color: var(--texte); text-align: left; }
+.demarrage-titres { display: grid; gap: 1px; flex: none; }
 .demarrage-entete .lien { padding: 4px 0; flex: none; }
-.demarrage-barre { height: 4px; border-radius: 2px; background: var(--surface-haute); overflow: hidden; }
+.demarrage-barre { flex: 1; min-width: 32px; height: 4px; border-radius: 2px; background: var(--surface-haute); overflow: hidden; }
 .demarrage-barre span { display: block; height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.4s var(--courbe); }
+.demarrage-chevron { display: grid; color: var(--discret); transition: transform 0.25s var(--courbe); }
+.demarrage.ouverte .demarrage-chevron { transform: rotate(180deg); }
 .demarrage-etapes { list-style: none; margin: 0; padding: 0; display: grid; }
 .demarrage-etape { display: flex; align-items: center; gap: 12px; width: 100%; padding: 9px 0; border: none; background: none; color: var(--texte); text-align: left; }
 .demarrage-etape:disabled { cursor: default; }

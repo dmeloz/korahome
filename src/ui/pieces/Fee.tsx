@@ -351,16 +351,17 @@ function Bulle({ parole, pos }: { parole: Parole; pos: Position }) {
     };
   }, [parole]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Elle sort du côté de l'écran où il y a de la place, au-dessus d'elle (en dessous près du haut).
+  // Elle sort à côté d'elle, du côté où il y a de la place, alignée sur son bas (0.0.71) : posée
+  // au-dessus, elle couvrait les lignes de la page. Près du haut, elle descend sous elle.
   const w = window.innerWidth;
   const h = window.innerHeight;
   const aGauche = pos.x + TAILLE / 2 > w / 2;
   const dessous = pos.y < 170;
   const style: React.CSSProperties = {};
-  if (aGauche) style.right = Math.max(10, w - pos.x - 8);
-  else style.left = Math.max(10, pos.x + TAILLE - 8);
+  if (aGauche) style.right = Math.max(10, w - pos.x + 2);
+  else style.left = Math.max(10, pos.x + TAILLE + 2);
   if (dessous) style.top = pos.y + TAILLE - 6;
-  else style.bottom = Math.max(10, h - pos.y - 14);
+  else style.bottom = Math.max(10, h - pos.y - TAILLE + 4);
 
   // Elle naît de la fée et y retourne, avec le ressort « apparition » du moteur.
   return (
