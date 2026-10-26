@@ -1226,6 +1226,7 @@ function nouvelleDepense(champs, par, ctx) {
 			nom: a.nom.trim(),
 			prix: auCentime(a.prix)
 		})) } : {},
+		...champs.etiquette ? { etiquette: champs.etiquette } : {},
 		par,
 		creeLe: ctx.maintenant()
 	};

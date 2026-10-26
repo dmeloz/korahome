@@ -307,14 +307,16 @@ function recevoirPaiement(entree, docs, par, jour, ctx) {
 	};
 }
 /** Classer un paiement : il devient une dépense du pot choisi (montant en francs, revu s'il venait d'une autre monnaie). */
-function classerPaiement(paiement, pot, montantChf, ctx) {
+function classerPaiement(paiement, pot, montantChf, ctx, etiquette) {
+	if (etiquette) pot = etiquette.pot;
 	return {
 		id: paiement.id,
 		genre: "depense",
 		jour: paiement.jour,
 		montant: auCentime(Math.max(0, montantChf)),
 		pot,
-		libelle: paiement.marchand ?? POTS[pot].nom,
+		libelle: etiquette?.nom ?? paiement.marchand ?? POTS[pot].nom,
+		...etiquette ? { etiquette: etiquette.id } : {},
 		magasin: paiement.marchand,
 		posteId: null,
 		echeance: null,

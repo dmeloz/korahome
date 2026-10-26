@@ -5,6 +5,7 @@ import { useAnnoncer } from "../../annulation";
 import { Glissable } from "../../Glissable";
 import { Icone } from "../../Icone";
 import type { PropsPage } from "../../modules";
+import { etiquetteDe, etiquettesDuPlan } from "../../../domaine/etiquettes";
 import { Feuille } from "../../pieces";
 import { FeuilleReleve } from "./Releve";
 import { InvitationApplePay } from "./Paiements";
@@ -96,6 +97,7 @@ export function Depenses(p: PropsPage & { plan: PlanBudget; filtre: Pot | null; 
                           <span className="tache-details">
                             {" "}
                             · {nomDuPot(plan, d.pot)}
+                            {etiquetteDe(plan, d.etiquette) && etiquetteDe(plan, d.etiquette)!.nom !== d.libelle ? ` · ${etiquetteDe(plan, d.etiquette)!.nom}` : ""}
                             {d.posteId ? " · facture" : ""}
                             {d.source === "ticket" || d.articles?.length ? " · ticket" : ""}
                             {d.source === "applepay" ? " · Apple Pay" : ""}
@@ -149,6 +151,19 @@ function FeuilleDepense(props: { plan: PlanBudget; depense: Depense | null; budg
             changer={(pot) => changer({ pot })}
             choix={(["perso", "courses", "plaisir", "factures", "commun", "epargne"] as Pot[]).map((v) => ({ v, libelle: nomDuPot(props.plan, v) }))}
           />
+          {etiquettesDuPlan(props.plan).length > 0 && (
+            <Puces
+              libelle="Catégorie"
+              valeur={etiquetteDe(props.plan, actuelle.etiquette)?.id ?? ""}
+              // Une catégorie donne son pot ; le nom ne change que s'il était celui du magasin ou d'une autre catégorie.
+              changer={(id) => {
+                const e = etiquetteDe(props.plan, id);
+                const nomDonne = actuelle.libelle === actuelle.magasin || !!props.plan.etiquettes?.some((x) => x.nom === actuelle.libelle);
+                changer(e ? { etiquette: e.id, pot: e.pot, ...(nomDonne ? { libelle: e.nom } : {}) } : { etiquette: undefined });
+              }}
+              choix={[{ v: "", libelle: "Aucune" }, ...etiquettesDuPlan(props.plan).map((e) => ({ v: e.id, libelle: e.nom }))]}
+            />
+          )}
           <p className="discret">
             {majuscule(leJour(actuelle.jour))}
             {actuelle.magasin && actuelle.magasin !== actuelle.libelle ? ` · ${actuelle.magasin}` : ""}

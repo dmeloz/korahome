@@ -1,4 +1,4 @@
-import { auCentime, depenses, formaterMontant, planDe, POTS, reglerFacture, type DocBudget, type Depense, type PaiementAClasser, type PlanBudget, type Pot } from "./budget";
+import { auCentime, depenses, formaterMontant, planDe, POTS, reglerFacture, type DocBudget, type Depense, type Etiquette, type PaiementAClasser, type PlanBudget, type Pot } from "./budget";
 import type { Contexte, Id, Jour } from "./types";
 import { sansAccents } from "./texte";
 
@@ -135,14 +135,17 @@ export function recevoirPaiement(
 }
 
 /** Classer un paiement : il devient une dépense du pot choisi (montant en francs, revu s'il venait d'une autre monnaie). */
-export function classerPaiement(paiement: PaiementAClasser, pot: Pot, montantChf: number, ctx: Contexte): Depense {
+export function classerPaiement(paiement: PaiementAClasser, pot: Pot, montantChf: number, ctx: Contexte, etiquette?: Etiquette): Depense {
+  // Avec une catégorie du foyer (0.0.78), la dépense prend son pot et son nom ; le commerçant reste en magasin.
+  if (etiquette) pot = etiquette.pot;
   return {
     id: paiement.id,
     genre: "depense",
     jour: paiement.jour,
     montant: auCentime(Math.max(0, montantChf)),
     pot,
-    libelle: paiement.marchand ?? POTS[pot].nom,
+    libelle: etiquette?.nom ?? paiement.marchand ?? POTS[pot].nom,
+    ...(etiquette ? { etiquette: etiquette.id } : {}),
     magasin: paiement.marchand,
     posteId: null,
     echeance: null,

@@ -39,7 +39,7 @@ import { etatAMoi } from "../../../domaine/aMoi";
 import { Depenses } from "./Depenses";
 import { Charges } from "./Charges";
 import { Analyse } from "./Analyse";
-import { FeuillePersonne, FeuillePoste, FeuilleProjet, FeuilleReglages } from "./Feuilles";
+import { FeuilleEtiquette, FeuillePersonne, FeuillePoste, FeuilleProjet, FeuilleReglages, type OuvertureEtiquette } from "./Feuilles";
 
 type Onglet = "mois" | "depenses" | "charges" | "analyse" | "conseiller";
 const estOnglet = (o: string | undefined): o is Onglet => o === "mois" || o === "depenses" || o === "charges" || o === "analyse" || o === "conseiller";
@@ -55,6 +55,7 @@ export function Budget(p: PropsPage) {
   const [personne, setPersonne] = useState<Id | null>(null);
   const [projet, setProjet] = useState(false);
   const [applePay, setApplePay] = useState(false);
+  const [etiquette, setEtiquette] = useState<OuvertureEtiquette>(null);
   const [filtre, setFiltre] = useState<Pot | null>(null);
   const [plus, setPlus] = useState(false);
   const conseiller = useConseiller(p);
@@ -201,6 +202,7 @@ export function Budget(p: PropsPage) {
       <FeuilleProjet plan={plan} ouverte={projet} fermer={() => setProjet(false)} enregistrer={enregistrer} />
       <FeuilleReglages
         plan={plan}
+        budget={p.budget}
         prenom={prenomDe(foyer, p.membreId) || "moi"}
         ouverte={reglages}
         fermer={() => setReglages(false)}
@@ -208,6 +210,19 @@ export function Budget(p: PropsPage) {
         ouvrirApplePay={() => {
           setReglages(false);
           setApplePay(true);
+        }}
+        ouvrirEtiquette={(o) => {
+          setReglages(false);
+          setEtiquette(o);
+        }}
+      />
+      <FeuilleEtiquette
+        plan={plan}
+        ouverture={etiquette}
+        enregistrer={enregistrer}
+        fermer={() => {
+          setEtiquette(null);
+          setReglages(true);
         }}
       />
       <FeuilleApplePay {...p} plan={plan} ouverte={applePay} fermer={() => setApplePay(false)} />

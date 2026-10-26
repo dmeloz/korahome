@@ -11,10 +11,14 @@ import {
   POTS,
   POTS_SUIVIS,
   retirerPoste,
+  type DocBudget,
+  type Etiquette,
   type PlanBudget,
   type Pot,
   type Poste,
 } from "../../../domaine/budget";
+import { ajouterEtiquette, etiquettesDuPlan, LONGUEUR_NOM, modifierEtiquette, supprimerEtiquette, usageDesEtiquettes } from "../../../domaine/etiquettes";
+import { POTS_DE_CARTE } from "../../../domaine/paiements";
 import type { Foyer, Id } from "../../../domaine/types";
 import { useAnnoncer } from "../../annulation";
 import { contexteReel } from "../../contexte";
@@ -161,8 +165,88 @@ export function FeuilleProjet(props: { plan: PlanBudget; ouverte: boolean; ferme
   );
 }
 
-export function FeuilleReglages(props: { plan: PlanBudget; ouverte: boolean; fermer: () => void; enregistrer: (p: PlanBudget) => Promise<void>; ouvrirApplePay: () => void; prenom: string }) {
+/** Ce qu'une feuille de catégorie ouvre : une nouvelle, ou une catégorie à corriger. */
+export type OuvertureEtiquette = { nouvelle: true; pot?: Pot } | { id: Id } | null;
+
+/**
+ * Une catégorie du foyer (0.0.78) : son nom et son pot. À la création, `creee` reçoit la catégorie
+ * (un paiement à classer la prend aussitôt). Depuis les réglages, on la renomme ou on la retire.
+ */
+export function FeuilleEtiquette(props: { plan: PlanBudget; ouverture: OuvertureEtiquette; fermer: () => void; enregistrer: (p: PlanBudget) => Promise<void>; creee?: (e: Etiquette) => void }) {
+  const { plan, ouverture } = props;
+  const actuelle = ouverture && "id" in ouverture ? plan.etiquettes?.find((e) => e.id === ouverture.id) : undefined;
+  const [nom, setNom] = useState("");
+  const [pot, setPot] = useState<Pot>("perso");
+  const [faute, setFaute] = useState<string | null>(null);
+  const [cle, setCle] = useState<string | null>(null);
+  // La feuille repart propre à chaque ouverture.
+  const cleOuverture = ouverture ? ("id" in ouverture ? ouverture.id : "nouvelle") : null;
+  if (cleOuverture !== cle) {
+    setCle(cleOuverture);
+    setNom(actuelle?.nom ?? "");
+    setPot(actuelle?.pot ?? (ouverture && "nouvelle" in ouverture ? ouverture.pot : undefined) ?? "perso");
+    setFaute(null);
+  }
+  const nomDuPot = (p: Pot) => plan.comptes[p] || POTS[p].nom;
+
+  async function garder() {
+    try {
+      if (actuelle) {
+        await props.enregistrer(modifierEtiquette(plan, actuelle.id, { nom, pot }, contexteReel));
+      } else {
+        const r = ajouterEtiquette(plan, nom, pot, contexteReel);
+        await props.enregistrer(r.plan);
+        props.creee?.(r.etiquette);
+      }
+      props.fermer();
+    } catch (e) {
+      setFaute(e instanceof Error ? e.message : "Impossible d'enregistrer.");
+    }
+  }
+
+  return (
+    <Feuille ouverte={!!ouverture} onFermer={props.fermer} titre={actuelle ? actuelle.nom : "Nouvelle catégorie"}>
+      <div className="formulaire">
+        <p className="discret">Un nom à toi, rangé dans un pot : « Essence », « Resto », « Vêtements ». Les paiements classés dedans gardent ce nom, et ta fée le reconnaît (« 45 essence »).</p>
+        <label>
+          Nom
+          <input value={nom} maxLength={LONGUEUR_NOM} placeholder="Ex. Essence" autoCapitalize="sentences" onChange={(e) => setNom(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void garder()} />
+        </label>
+        <Puces libelle="Dans le pot" valeur={pot} changer={setPot} choix={POTS_DE_CARTE.map((v) => ({ v, libelle: nomDuPot(v) }))} />
+        {faute && <p className="discret budget-faute">{faute}</p>}
+        <button type="button" className="bouton-principal" onClick={() => void garder()}>
+          {actuelle ? "Enregistrer" : "Créer la catégorie"}
+        </button>
+        {actuelle && (
+          <button
+            type="button"
+            className="lien danger"
+            onClick={() => {
+              props.fermer();
+              void props.enregistrer(supprimerEtiquette(plan, actuelle.id, contexteReel));
+            }}
+          >
+            Retirer cette catégorie (les dépenses gardent leur nom)
+          </button>
+        )}
+      </div>
+    </Feuille>
+  );
+}
+
+export function FeuilleReglages(props: {
+  plan: PlanBudget;
+  budget: readonly DocBudget[];
+  ouverte: boolean;
+  fermer: () => void;
+  enregistrer: (p: PlanBudget) => Promise<void>;
+  ouvrirApplePay: () => void;
+  ouvrirEtiquette: (o: OuvertureEtiquette) => void;
+  prenom: string;
+}) {
   const { plan } = props;
+  const etiquettes = etiquettesDuPlan(plan);
+  const usage = usageDesEtiquettes(plan, props.budget);
   const changer = (c: Parameters<typeof modifierPlan>[1]) => void props.enregistrer(modifierPlan(plan, c, contexteReel));
   const [verrou, setVerrou] = useState(verrouActif);
   const [motVerrou, setMotVerrou] = useState<string | null>(null);
@@ -191,6 +275,30 @@ export function FeuilleReglages(props: { plan: PlanBudget; ouverte: boolean; fer
         ))}
         <button type="button" className="bouton-secondaire" onClick={props.ouvrirApplePay}>
           Paiements Apple Pay{Object.keys(plan.cartes ?? {}).length ? ` · ${Object.keys(plan.cartes ?? {}).length} carte${Object.keys(plan.cartes ?? {}).length > 1 ? "s" : ""}` : ""}
+        </button>
+        <p className="surtitre">Vos catégories</p>
+        <p className="discret">Plus fin qu'un pot, pour classer les paiements : « Essence », « Resto ». Touche une catégorie pour la renommer, changer son pot ou la retirer.</p>
+        {etiquettes.length > 0 && (
+          <ul className="groupe">
+            {etiquettes.map((e) => (
+              <li key={e.id}>
+                <button type="button" className="ligne" onClick={() => props.ouvrirEtiquette({ id: e.id })} aria-haspopup="dialog">
+                  <span className={`budget-pastille pot-${e.pot}`} aria-hidden />
+                  <span className="ligne-texte">
+                    {e.nom}
+                    <span className="tache-details">
+                      {" "}
+                      · {plan.comptes[e.pot] || POTS[e.pot].nom}
+                      {usage[e.id] ? ` · ${usage[e.id]} dépense${usage[e.id] > 1 ? "s" : ""}` : ""}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <button type="button" className="bouton-secondaire" onClick={() => props.ouvrirEtiquette({ nouvelle: true })}>
+          Nouvelle catégorie
         </button>
         <label>
           Jour de paie
