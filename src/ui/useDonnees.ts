@@ -6,6 +6,7 @@ import type { DocCouple } from "../domaine/bandeau";
 import type { DocAgenda } from "../domaine/agenda";
 import type { DocBudget } from "../domaine/budget";
 import type { DocVetement } from "../domaine/vetements";
+import type { DocMaison } from "../domaine/maison";
 import type { DocChef } from "../domaine/chef";
 import type { Souvenir } from "../domaine/memoire";
 import type { Animal } from "../domaine/mitsu";
@@ -32,14 +33,15 @@ export interface Donnees {
   budget: DocBudget[];
   corbeille: EntreeCorbeille[];
   vetements: DocVetement[];
+  maison: DocMaison[];
 }
 
 /** Charge toutes les données et les recharge à chaque changement du dépôt. */
 export function useDonnees(depot: Depot): Donnees {
-  const [donnees, setDonnees] = useState<Donnees>({ pret: false, foyer: null, listes: [], elements: [], taches: [], retours: [], animaux: [], produits: [], catalogue: [], zones: [], souvenirs: [], couple: [], menus: [], agenda: [], budget: [], corbeille: [], vetements: [] });
+  const [donnees, setDonnees] = useState<Donnees>({ pret: false, foyer: null, listes: [], elements: [], taches: [], retours: [], animaux: [], produits: [], catalogue: [], zones: [], souvenirs: [], couple: [], menus: [], agenda: [], budget: [], corbeille: [], vetements: [], maison: [] });
 
   const charger = useCallback(async () => {
-    const [foyer, listes, elements, taches, retours, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda, budget, corbeille, vetements] = await Promise.all([
+    const [foyer, listes, elements, taches, retours, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda, budget, corbeille, vetements, maison] = await Promise.all([
       depot.lireFoyer(),
       depot.lireListes(),
       depot.lireElements(),
@@ -56,11 +58,12 @@ export function useDonnees(depot: Depot): Donnees {
       depot.lireBudget(),
       depot.lireCorbeille(),
       depot.lireVetements(),
+      depot.lireMaison(),
     ]);
     listes.sort((a, b) => a.creeLe.localeCompare(b.creeLe));
     animaux.sort((a, b) => a.creeLe.localeCompare(b.creeLe));
     zones.sort((a, b) => a.creeLe.localeCompare(b.creeLe));
-    setDonnees({ pret: true, foyer, listes, elements, taches, retours, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda, budget, corbeille, vetements });
+    setDonnees({ pret: true, foyer, listes, elements, taches, retours, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda, budget, corbeille, vetements, maison });
   }, [depot]);
 
   useEffect(() => {

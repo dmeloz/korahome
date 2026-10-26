@@ -1,6 +1,7 @@
 import { decrireCourt, evenementsDuMatin, type Evenement } from "./agenda";
 import { decrireEcheanceFacture } from "./budget";
 import { gestesDuJardin, type Zone } from "./jardin";
+import { collectesDuJour, phraseSortir, reglageDechets, type DocMaison } from "./maison";
 import { meteoFraiche, type Meteo } from "./meteo";
 import { choseAFaire, type Animal } from "./mitsu";
 import { resumeStock, type Produit } from "./stock";
@@ -212,6 +213,8 @@ export function rappelDuMatin(entree: {
   /** Le jardin et sa météo ; une météo de plus de 12 heures n'est pas prise en compte. */
   zones?: readonly Zone[];
   meteo?: Meteo | null;
+  /** La maison (les jours des déchets) ; absente, rien n'est dit des déchets. */
+  maison?: readonly DocMaison[];
   /** L'instant présent (ISO 8601), pour juger la météo ; sans lui, elle est prise telle quelle. */
   maintenant?: string;
   aujourdhui: Jour;
@@ -225,6 +228,15 @@ export function rappelDuMatin(entree: {
     const occ = evenementsDuMatin(entree.evenements, entree.membreId, aujourdhui);
     if (occ.length) lignes.push(`Agenda : ${enumerer(occ.map((o) => decrireCourt(o, aujourdhui)))}`);
     nombre += occ.length;
+  }
+
+  if (preferences.taches && entree.maison) {
+    // Le jour de la collecte, avec les tâches : « Déchets : sortir le papier et le carton ».
+    const dechets = collectesDuJour(reglageDechets(entree.maison), aujourdhui);
+    if (dechets.length) {
+      lignes.push(`Déchets : ${phraseSortir(dechets).replace(/^Sortir/, "sortir")}`);
+      nombre += 1;
+    }
   }
 
   if (preferences.taches) {

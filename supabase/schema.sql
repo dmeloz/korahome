@@ -39,11 +39,11 @@ create table if not exists public.documents (
 -- Les notes de test se partagent depuis Kora 0.0.7, le stock (frigo, congélateur, placard)
 -- depuis Kora 0.0.9, la Base des produits habituels depuis Kora 0.0.10, le jardin depuis
 -- Kora 0.0.15, la mémoire de Jarvis et le bandeau du couple depuis Kora 0.0.16, les menus du Chef
--- de la semaine depuis Kora 0.0.17, l'agenda commun depuis Kora 0.0.18, le budget depuis Kora 0.0.27, la corbeille depuis Kora 0.0.64, les vêtements depuis Kora 0.0.78 : une base plus ancienne
+-- de la semaine depuis Kora 0.0.17, l'agenda commun depuis Kora 0.0.18, le budget depuis Kora 0.0.27, la corbeille depuis Kora 0.0.64, les vêtements depuis Kora 0.0.79 : une base plus ancienne
 -- reçoit la nouvelle liste.
 alter table public.documents drop constraint if exists documents_collection_check;
 alter table public.documents add constraint documents_collection_check
-  check (collection in ('foyer', 'listes', 'elements', 'taches', 'animaux', 'stock', 'catalogue', 'jardin', 'memoire', 'couple', 'menus', 'agenda', 'budget', 'retours', 'corbeille', 'vetements'));
+  check (collection in ('foyer', 'listes', 'elements', 'taches', 'animaux', 'stock', 'catalogue', 'jardin', 'memoire', 'couple', 'menus', 'agenda', 'budget', 'retours', 'corbeille', 'vetements', 'maison'));
 
 create index if not exists documents_nouveautes on public.documents (foyer_id, maj_serveur);
 

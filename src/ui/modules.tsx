@@ -16,6 +16,7 @@ import type { ProduitHabituel } from "../domaine/catalogue";
 import { decrirePeremption, resumeStock, type Produit } from "../domaine/stock";
 import { compterDues, decaler, decrireEcheance, organiserTaches } from "../domaine/taches";
 import { compterVetements, type DocVetement } from "../domaine/vetements";
+import type { DocMaison } from "../domaine/maison";
 import type { Element, Foyer, Jour, Liste, Tache } from "../domaine/types";
 import type { Depot } from "../donnees/depot";
 import type { ServeurAgenda, ServeurJarvis } from "../donnees/distant";
@@ -27,6 +28,7 @@ import type { NomIcone } from "./Icone";
 import { Espace, Page } from "./pieces";
 import { Entretien } from "./ecrans/Entretien";
 import { Vetements } from "./ecrans/Vetements";
+import { Appareils, Dechets } from "./ecrans/Maison";
 import { ignorer } from "./journal";
 
 // Les pages les plus lourdes ne se chargent qu'à leur première ouverture : l'app démarre plus
@@ -83,6 +85,7 @@ export interface DonneesModule {
   budget: DocBudget[];
   /** Les vêtements : tailles, envies et pièces à trier de chacun. */
   vetements: DocVetement[];
+  maison: DocMaison[];
 }
 
 export interface PropsPage extends DonneesModule {
@@ -237,7 +240,7 @@ function PageCuisine(p: PropsPage) {
   const aConsommer = resumeStock(p.produits, p.aujourdhui).aConsommer.length;
   const courses = listeCourses(p);
   const aPrendre = courses ? compterAPrendre(courses, p.elements) : 0;
-  // Sans onglet demandé (0.0.78, choix de Melo) : les courses s'il y a quelque chose à acheter, sinon les menus.
+  // Sans onglet demandé (0.0.79, choix de Melo) : les courses s'il y a quelque chose à acheter, sinon les menus.
   const onglet =
     p.onglet === "courses" || p.onglet === "listes"
       ? "courses"
@@ -338,6 +341,8 @@ function PageMaison(p: PropsPage) {
       ) : actif === "entretien" ? (
         <Page titre="Entretien" sousTitre="Ce qui revient pour la maison">
           <Entretien depot={p.depot} membreId={p.membreId} taches={p.taches} aujourdhui={p.aujourdhui} />
+          <Dechets depot={p.depot} maison={p.maison} aujourdhui={p.aujourdhui} />
+          <Appareils depot={p.depot} maison={p.maison} aujourdhui={p.aujourdhui} />
         </Page>
       ) : (
         <Mitsu depot={p.depot} foyer={p.foyer} membreId={p.membreId} animaux={p.animaux} listes={p.listes} elements={p.elements} />

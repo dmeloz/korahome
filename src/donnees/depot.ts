@@ -3,6 +3,7 @@ import type { DocCouple } from "../domaine/bandeau";
 import type { DocAgenda } from "../domaine/agenda";
 import type { DocBudget } from "../domaine/budget";
 import type { DocVetement } from "../domaine/vetements";
+import type { DocMaison } from "../domaine/maison";
 import type { DocChef } from "../domaine/chef";
 import type { Souvenir } from "../domaine/memoire";
 import type { RetourTest } from "../domaine/retours";
@@ -82,6 +83,11 @@ export interface Depot {
   lireVetements(): Promise<DocVetement[]>;
   enregistrerVetement(doc: DocVetement): Promise<void>;
   supprimerVetement(id: Id): Promise<void>;
+
+  /** La maison : les jours des déchets et nos appareils (voir domaine/maison.ts). */
+  lireMaison(): Promise<DocMaison[]>;
+  enregistrerMaison(doc: DocMaison): Promise<void>;
+  supprimerMaison(id: Id): Promise<void>;
 
   /** Les notes de test écrites depuis le coin « Dev ». */
   lireRetours(): Promise<RetourTest[]>;

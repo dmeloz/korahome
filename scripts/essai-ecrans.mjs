@@ -4,7 +4,7 @@
 // Les captures vont dans le dossier donné en argument (par défaut un dossier temporaire).
 // Depuis 0.0.67, axe-core (le contrôleur d'accessibilité de Deque) passe sur chaque écran : une
 // faute « grave » ou « critique » (contraste, bouton sans nom, rôle mal formé) fait échouer l'essai.
-// Depuis 0.0.78, il passe aussi sur l'accueil, et toute la tournée se refait en mode clair, puis
+// Depuis 0.0.79, il passe aussi sur l'accueil, et toute la tournée se refait en mode clair, puis
 // avec la plus grande taille de texte de l'iPhone (23 px au lieu de 17) : rien ne doit déborder.
 import { spawn } from "node:child_process";
 import { mkdtempSync } from "node:fs";

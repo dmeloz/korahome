@@ -23,7 +23,7 @@ export const CLES = {
   demarrageRange: "korahome.demarrage.range",
   /** Préfixe des petites aides de page déjà rangées (« korahome.aide.<page> » = « 1 »). */
   prefixeAide: "korahome.aide.",
-  /** La version dont la fée a déjà annoncé la nouveauté sur ce téléphone (0.0.78). */
+  /** La version dont la fée a déjà annoncé la nouveauté sur ce téléphone (0.0.79). */
   nouveauteVue: "korahome.nouveaute.vue",
 
   // ----- L'accueil -----

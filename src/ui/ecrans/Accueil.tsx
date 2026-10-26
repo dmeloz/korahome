@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useSyncExternalStore, type RefObject } fro
 import { createPortal } from "react-dom";
 import { bilanAOuvrir, bilanDeLaSemaine, remarqueDuJour } from "../../domaine/apprentissage";
 import { carteDuJour, resteAFaire, titreMoment, type ChoseDuJour } from "../../domaine/aujourdhui";
+import { reglageDechets } from "../../domaine/maison";
 import { etatDesPots, facturesDuJour, planDe } from "../../domaine/budget";
 import { evenementsDe, ligneWidget, resumeAgenda } from "../../domaine/agenda";
 import {
@@ -225,6 +226,7 @@ export function Accueil(props: {
     factures: facturesDuJour(props.donnees.budget, aujourdhui, 1),
     sauvegardeDue: sauvegardeDue(derniereSauvegarde, aujourdhui) && maintenant.getDay() === 0,
     repartitionDue: repartitionDue(foyer, props.donnees.taches, aujourdhui, lireDerniereRepartition()),
+    dechets: reglageDechets(props.donnees.maison),
   }, CHOSES_CARTE);
   const cocherChose = async (c: ChoseDuJour) => {
     const avant = props.donnees.taches.find((t) => t.id === c.tacheId);

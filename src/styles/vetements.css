@@ -1,4 +1,4 @@
-/* Vêtements (Maison, 0.0.78) : les tailles de chacun, les envies, ce qui est à trier. */
+/* Vêtements (Maison, 0.0.79) : les tailles de chacun, les envies, ce qui est à trier. */
 .vetements-tuto ol { margin: 0 0 8px; padding-left: 18px; display: grid; gap: 6px; font-size: var(--t-detail); color: var(--discret); }
 .vetements-tuto strong { color: var(--texte); font-weight: 600; }
 .vetements-tuto .lien { padding: 4px 0 0; }
