@@ -98,7 +98,7 @@ try {
   const ESPACES = {
     Organisation: ["Agenda", "Administratif"],
     Cuisine: ["Courses", "Autres listes", "Recettes", "Frigo"],
-    Maison: ["Entretien", "Jardin", "Mitsu"],
+    Maison: ["Entretien", "Jardin", "Mitsu", "Vêtements"],
     Budget: [],
   };
   for (const [espace, onglets] of Object.entries(ESPACES)) {

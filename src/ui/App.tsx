@@ -320,6 +320,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       <Accueil
         donnees={donnees}
         ouvrirModule={(id) => ouvrir({ nom: "module", id })}
+        ouvrirOnglet={(id, onglet) => ouvrir({ nom: "module", id, onglet })}
         ouvrirJarvis={() => ouvrir({ nom: "jarvis" })}
         ouvrirReglages={() => ouvrir({ nom: "reglages" })}
         ouvrirMots={() => ouvrir({ nom: "mots" })}
