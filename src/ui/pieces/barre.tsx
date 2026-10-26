@@ -19,6 +19,7 @@ import { ecouter, voixDisponible } from "../jarvis";
 import type { DonneesModule } from "../modules";
 import { TicketDeCaisse } from "../TicketDeCaisse";
 import { Fee } from "./Fee";
+import { sauver } from "../sauver";
 
 // La fée et sa saisie : en bas de chaque page, la seule façon d'ajouter quoi que ce soit.
 // On touche la fée et on parle, ou on garde le doigt et on écrit ; Kora range seule la
@@ -216,7 +217,7 @@ export function BarreJarvis(props: {
               ecrire();
             },
           },
-          ...(moi && !aime ? [{ texte: "♥", faire: () => void depot.enregistrerCouple(basculerCoeur(a.mot, moi)).then(vibrer) }] : []),
+          ...(moi && !aime ? [{ texte: "♥", faire: () => sauver(depot.enregistrerCouple(basculerCoeur(a.mot, moi)).then(vibrer)) }] : []),
           { texte: "Vu" },
         ],
       });
@@ -230,7 +231,7 @@ export function BarreJarvis(props: {
           texte: "Renvoyer un cœur",
           faire: () => {
             vibrer();
-            void depot.enregistrerCouple(nouveauCoeur(moi, contexteReel));
+            sauver(depot.enregistrerCouple(nouveauCoeur(moi, contexteReel)));
           },
         },
         { texte: "Plus tard" },

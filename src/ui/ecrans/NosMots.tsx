@@ -26,6 +26,7 @@ import { Page, useGestionnaireBarre } from "../pieces";
 import type { DonneesModule } from "../modules";
 import { Ligne, ListeVivante } from "../moteur/pieces";
 import { ignorer } from "../journal";
+import { sauver } from "../sauver";
 
 type Quand = "maintenant" | "soir" | "matin";
 
@@ -199,7 +200,7 @@ export function NosMots(props: {
                 </span>
                 <button
                   className={`coeur-mot${aime ? " aime" : ""}${m.coeurs.length ? " rempli" : ""}`}
-                  onClick={() => moi && void depot.enregistrerCouple(basculerCoeur(m, moi)).then(vibrer)}
+                  onClick={() => moi && sauver(depot.enregistrerCouple(basculerCoeur(m, moi)).then(vibrer))}
                   aria-label={aime ? "Reprendre mon cœur" : "Envoyer un cœur"}
                   aria-pressed={aime}
                   disabled={!moi}

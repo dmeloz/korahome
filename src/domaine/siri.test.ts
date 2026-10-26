@@ -113,7 +113,9 @@ describe("Jarvis dans Siri", () => {
   it("donne au raccourci son nom, l'adresse et la question de confirmation", () => {
     const demande = demandeRaccourciSiri("https://x.supabase.co/functions/v1/siri?j=abc", "Tael");
     expect(demande).toContain("« Dis Siri, Tael »");
-    expect(demande).toContain("https://x.supabase.co/functions/v1/siri?j=abc");
+    expect(demande).toContain("- URL : https://x.supabase.co/functions/v1/siri\n");
+    expect(demande).not.toContain("?j=");
+    expect(demande).toContain("jeton = abc");
     expect(demande).toContain(OUI_OU_NON);
   });
 
@@ -123,7 +125,8 @@ describe("Jarvis dans Siri", () => {
     expect(d).toContain("« Aux courses »");
     expect(d).toContain("Quoi ajouter aux courses ?");
     expect(d).toContain("Ajoute aux courses : {saisie}");
-    expect(d).toContain("https://x.supabase.co/functions/v1/siri?j=abc");
+    expect(d).toContain("- URL : https://x.supabase.co/functions/v1/siri\n");
+    expect(d).toContain("jeton = abc");
     const s = demandeRaccourciEcran("https://x", "Navi", soir);
     expect(s).not.toContain("Demander une saisie");
     expect(s).toContain("telle quelle");

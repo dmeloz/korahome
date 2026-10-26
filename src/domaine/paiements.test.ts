@@ -100,7 +100,10 @@ describe("les paiements Apple Pay", () => {
 
   it("prépare la demande pour l'IA de Raccourcis avec l'adresse de cet iPhone", () => {
     const demande = demandeRaccourci("https://exemple.supabase.co/functions/v1/paiements?j=abc");
-    expect(demande).toContain("https://exemple.supabase.co/functions/v1/paiements?j=abc");
+    // La clé part dans le corps, pas dans l'adresse (elle finissait dans les journaux du serveur).
+    expect(demande).toContain("https://exemple.supabase.co/functions/v1/paiements,");
+    expect(demande).not.toContain("?j=");
+    expect(demande).toContain("jeton = abc");
     expect(demande.length).toBeLessThan(500);
     expect(demande).toContain("POST");
     expect(demande).toMatch(/montant[\s\S]*marchand[\s\S]*carte/);

@@ -18,6 +18,7 @@ import {
   type DonneesFoyer,
   type Modification,
 } from "./jarvis";
+import { champJeton, separerLien } from "./lienRaccourci";
 import { normaliser } from "./rayons";
 import type { Contexte, Foyer, Id, Jour } from "./types";
 
@@ -175,7 +176,7 @@ export function tourSiri(
 ): TourSiri {
   const actions = lireActions(appels);
   const directes = actions.filter((a) => !aConfirmer(a));
-  const attente = actions.find(aConfirmer) ?? null;
+  const attente = actions.find((a) => aConfirmer(a)) ?? null;
   const resultat = appliquerActions(directes, donnees, membreId, aujourdhui, ctx);
   const phrases = [texteModele, ...resultat.faits, ...resultat.echecs].filter(Boolean);
   if (attente) phrases.push(`${questionPour(attente).question} ${OUI_OU_NON}`);
@@ -189,8 +190,9 @@ export function confirmer(attente: ActionJarvis, donnees: DonneesFoyer, membreId
   return { dit: pourLaVoix([...resultat.faits, ...resultat.echecs].join(" ")) || "C'est fait.", modifications: resultat.modifications, attente: null };
 }
 
-/** La phrase à coller dans « Décrire un raccourci » (Raccourcis, iOS 26) : le raccourci entier, l'adresse dedans. */
-export function demandeRaccourciSiri(adresse: string, nom: string): string {
+/** La phrase à coller dans « Décrire un raccourci » (Raccourcis, iOS 26) : le raccourci entier, l'adresse et la clé dedans. */
+export function demandeRaccourciSiri(lien: string, nom: string): string {
+  const { adresse, jeton } = separerLien(lien);
   return [
     `Crée un raccourci nommé « ${nom} », pour que je puisse dire « Dis Siri, ${nom} ».`,
     "1. Action « Demander une saisie » : type Texte, question « Je t'écoute ».",
@@ -198,8 +200,9 @@ export function demandeRaccourciSiri(adresse: string, nom: string): string {
     `- URL : ${adresse}`,
     "- Méthode : POST",
     "- Corps de la requête : JSON, avec un champ de type Texte : demande = la saisie demandée à l'étape 1",
+    ...champJeton(jeton),
     "3. Action « Énoncer le texte » (ou « Afficher le résultat ») avec le contenu obtenu.",
-    `4. Si le contenu obtenu contient « ${OUI_OU_NON} » : redemander une saisie (question « Oui ou non ? »), l'envoyer de la même façon à la même URL (champ demande), puis énoncer la réponse.`,
+    `4. Si le contenu obtenu contient « ${OUI_OU_NON} » : redemander une saisie (question « Oui ou non ? »), l'envoyer de la même façon à la même URL (champ demande${jeton ? ", et le même champ jeton" : ""}), puis énoncer la réponse.`,
     "Pas d'autre action.",
   ].join("\n");
 }
@@ -223,7 +226,8 @@ export const RACCOURCIS_ECRAN: readonly RaccourciEcran[] = [
 ];
 
 /** La phrase à coller dans « Décrire un raccourci » pour un bouton de l'écran d'accueil, avec l'adresse de cet iPhone. */
-export function demandeRaccourciEcran(adresse: string, nomFee: string, r: RaccourciEcran): string {
+export function demandeRaccourciEcran(lien: string, nomFee: string, r: RaccourciEcran): string {
+  const { adresse, jeton } = separerLien(lien);
   const corps = r.question ? "le texte de l'étape 1 dans la demande ci-dessous à la place de {saisie}" : "la demande ci-dessous telle quelle";
   return [
     `Crée un raccourci nommé « ${r.nom} » à mettre sur l'écran d'accueil ; il parle à ${nomFee}, l'assistant de notre app, sans que j'aie à ouvrir l'app.`,
@@ -233,6 +237,7 @@ export function demandeRaccourciEcran(adresse: string, nomFee: string, r: Raccou
     "- Méthode : POST",
     `- Corps de la requête : JSON, un champ de type Texte nommé demande, qui contient ${corps} :`,
     `« ${r.demande} »`,
+    ...champJeton(jeton),
     `${r.question ? "3" : "2"}. Action « Afficher la notification » avec le contenu obtenu.`,
     "Pas d'autre action. Propose ensuite de l'ajouter à l'écran d'accueil.",
   ].join("\n");

@@ -363,6 +363,9 @@ describe("Jarvis apprend, modifie et note ses souhaits", () => {
   it("demande le oui de la personne avant de supprimer, et retient seul ce qu'il a remarqué", () => {
     expect(aConfirmer({ outil: "retenir", fait: "x", propose: false })).toBe(false);
     expect(aConfirmer({ outil: "retenir", fait: "On fait les courses le samedi", propose: true })).toBe(false);
+    // Avec un lien dans la demande, la page pourrait glisser une fausse information : on demande.
+    expect(aConfirmer({ outil: "retenir", fait: "Sarah adore le cumin", propose: false }, "regarde https://exemple.ch/recette")).toBe(true);
+    expect(aConfirmer({ outil: "ajouter_courses", articles: ["lait"] }, "regarde https://exemple.ch/recette")).toBe(false);
     expect(aConfirmer({ outil: "supprimer_tache", titre: "Litière" })).toBe(true);
     expect(aConfirmer({ outil: "retirer_du_stock", produits: ["lait"] })).toBe(true);
     expect(aConfirmer({ outil: "oublier", fait: "x" })).toBe(true);

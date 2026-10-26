@@ -11,6 +11,7 @@ import { Glissable } from "../Glissable";
 import { Feuille } from "../Feuille";
 import { vibrer } from "../haptique";
 import { Ligne, ListeVivante } from "../moteur/pieces";
+import { sauver } from "../sauver";
 
 /** L'onglet Entretien de Tâches : ce qui revient tous les quelques mois, du plus pressé au plus lointain. */
 export function Entretien(props: { depot: Depot; membreId: string | null; taches: Tache[]; aujourdhui: Jour }) {
@@ -82,7 +83,7 @@ export function Entretien(props: { depot: Depot; membreId: string | null; taches
           <p className="surtitre">{lignes.length ? "Ajouter" : "Pour commencer, touche ce qui concerne la maison"}</p>
           <div className="puces">
             {propositions.map((p) => (
-              <button key={p.titre} className="puce" onClick={() => void depot.enregistrerTache(nouvelEntretien(p, aujourdhui, contexteReel))}>
+              <button key={p.titre} className="puce" onClick={() => sauver(depot.enregistrerTache(nouvelEntretien(p, aujourdhui, contexteReel)))}>
                 {p.titre}
               </button>
             ))}

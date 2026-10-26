@@ -37,7 +37,7 @@ dans `src/domaine/siri.ts`. Le serveur ne change pas : c'est le même lien que S
 - `src/domaine/siri.ts` (testé) : relire le foyer depuis les documents du serveur, oui / non /
   annule, les documents à écrire, la phrase à dire, la demande pour Raccourcis. Copié dans
   `supabase/functions/siri/domaine.js` par `npm run fonction`, avec `jarvis.ts` et `jarvisModele.ts`.
-- `supabase/functions/siri/` : la fonction serveur. Avec le jeton de la personne (dans l'adresse),
+- `supabase/functions/siri/` : la fonction serveur. Avec le jeton de la personne (dans le corps JSON, champ `jeton`, depuis 0.0.84 ; l'ancienne forme `?j=` dans l'adresse marche encore mais finit dans les journaux du serveur),
   elle lit le foyer, interroge Claude avec les consignes et les outils de Jarvis, écrit elle-même
   les modifications dans `documents` (les téléphones les reçoivent à l'instant) et répond en texte
   simple. Avec une session du téléphone, elle crée (`lien`) ou efface (`retirer`) le jeton.

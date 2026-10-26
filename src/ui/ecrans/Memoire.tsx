@@ -13,6 +13,7 @@ import type { DonneesModule } from "../modules";
 import { Onglets, Page, useGestionnaireBarre } from "../pieces";
 import { changerAdaptations, effacerUsages, lireAdaptations, lireDecisionsPerso, oublierDecisionPerso, useApprentissageLocal } from "../usage";
 import { Ligne, ListeVivante } from "../moteur/pieces";
+import { sauver } from "../sauver";
 
 // Tout ce que Kora et la fée savent de vous, sur une seule page : le bilan de la semaine en
 // haut, puis ce qui concerne le foyer (partagé), ce qui ne concerne que toi (sur ce téléphone)
@@ -74,7 +75,7 @@ export function Memoire(props: { donnees: DonneesModule; depot: Depot; ouvrirBil
         <Equilibre>
           <button
             className={foyer.equilibre?.includes(membreId) ? "bouton-secondaire" : "bouton-principal"}
-            onClick={() => void depot.enregistrerFoyer(accepterEquilibre(foyer, membreId, !foyer.equilibre?.includes(membreId)))}
+            onClick={() => sauver(depot.enregistrerFoyer(accepterEquilibre(foyer, membreId, !foyer.equilibre?.includes(membreId))))}
           >
             {foyer.equilibre?.includes(membreId) ? "Retirer mon accord" : "Je suis d'accord"}
           </button>

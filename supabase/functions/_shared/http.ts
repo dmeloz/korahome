@@ -26,3 +26,17 @@ export function limiteDuCompte(e: unknown, qui: string): string | null {
   const retour = date ? `le ${Number(date[3])}.${date[2]}` : "le mois prochain";
   return `${qui} est en pause : le compte Claude a atteint la limite de dépense réglée dans la console Anthropic. Retour ${retour}, ou dès que la limite est relevée.`;
 }
+
+/** Une erreur dont le message est écrit pour la personne : il part tel quel vers le téléphone. */
+export class ErreurPublique extends Error {}
+
+/**
+ * Le message d'erreur à renvoyer au téléphone. Seuls les messages écrits pour la personne partent
+ * tels quels (ErreurPublique ici, ErreurValidation des règles) ; le reste (base de données, réseau,
+ * bug) reste dans le journal du serveur, et la personne lit une phrase simple (veille du 26 octobre 2026).
+ */
+export function messageErreur(e: unknown): string {
+  if (e instanceof ErreurPublique) return e.message;
+  if (e instanceof Error && e.constructor?.name === "ErreurValidation") return e.message;
+  return "Quelque chose a coincé sur le serveur. Réessaie dans un instant.";
+}

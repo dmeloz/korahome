@@ -28,6 +28,7 @@ import { analyserTache } from "../../domaine/barre";
 import { useAnnoncer } from "../annulation";
 import { Icone } from "../Icone";
 import { CLES, ecrireTexte, lireTexte } from "../stockageLocal";
+import { sauver } from "../sauver";
 
 // Les tâches de la maison. On en ajoute en l'écrivant sur la ligne du bas,
 // comme dans Rappels, ou d'une phrase à la fée (« linge chaque mercredi », « impôts le 30 à 9h ») ; on glisse une tâche vers la droite pour la marquer faite, vers la gauche
@@ -255,7 +256,7 @@ export function Taches(props: {
       )}
 
       {!administratif && etalement.length > 0 && (
-        <button className="carte proposition" onClick={() => void props.depot.enregistrerTaches(appliquerEtalement(etalement))}>
+        <button className="carte proposition" onClick={() => sauver(props.depot.enregistrerTaches(appliquerEtalement(etalement)))}>
           <span className="pictogramme"><Icone nom="calendrier" taille={20} /></span>
           <span className="proposition-texte">
             <strong>Étaler sur la semaine</strong>

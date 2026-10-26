@@ -13,7 +13,7 @@
 // Déploiement : docs/budget.md (sans vérification du JWT : le raccourci n'a pas de session).
 
 import { aujourdhui, ctx } from "../_shared/contexte.ts";
-import { preflight, repondre } from "../_shared/http.ts";
+import { messageErreur, preflight, repondre } from "../_shared/http.ts";
 import { empreinte, nouveauJeton } from "../_shared/jetons.ts";
 import { echec, estMembre, serveur, utilisateur } from "../_shared/supabase.ts";
 import { recevoirPaiement } from "./domaine.js";
@@ -69,6 +69,6 @@ Deno.serve(async (req) => {
     return repondre({ erreur: "Demande inconnue" }, 400);
   } catch (e) {
     console.error(e);
-    return repondre({ erreur: (e as Error).message }, 500);
+    return repondre({ erreur: messageErreur(e) }, 500);
   }
 });

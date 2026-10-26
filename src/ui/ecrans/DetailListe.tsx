@@ -14,6 +14,7 @@ import { vibrer } from "../haptique";
 import { Icone } from "../Icone";
 import { ajouterArticles } from "../ajouts";
 import { AuDessusDeLaBarre, LigneAjout, Page, useSaisieBarre } from "../pieces";
+import { sauver } from "../sauver";
 
 // Une liste (les courses ou une autre). On ajoute en l'écrivant sur la ligne du bas, comme dans
 // Rappels, ou en le disant à la fée ; ce qui est tapé fait apparaître les articles déjà achetés.
@@ -214,7 +215,7 @@ export function DetailListe(props: {
               aria-label={props.liste.pourMoi ? "Liste rien qu'à toi : la remettre en commun" : "Garder cette liste rien qu'à toi"}
               onClick={() => {
                 const apres = basculerPourMoi(props.liste, props.membreId!);
-                void props.depot.enregistrerListe(apres).then(() => setMessage(apres.pourMoi ? "Rien qu'à toi : elle n'apparaît que sur tes téléphones (une surprise, un cadeau)." : "Liste remise en commun."));
+                sauver(props.depot.enregistrerListe(apres).then(() => setMessage(apres.pourMoi ? "Rien qu'à toi : elle n'apparaît que sur tes téléphones (une surprise, un cadeau)." : "Liste remise en commun.")));
               }}
             >
               <Icone nom="cadenas" taille={20} />

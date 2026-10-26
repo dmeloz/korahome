@@ -12,7 +12,7 @@
 // (collection « agenda »). Les décisions viennent de src/domaine/icloud.ts (planSynchro), copié
 // dans domaine.js par `npm run fonction`. Déploiement : docs/agenda.md.
 
-import { preflight, repondre } from "../_shared/http.ts";
+import { messageErreur, preflight, repondre } from "../_shared/http.ts";
 import { cleCronValide, echec, estMembre, serveur, utilisateur } from "../_shared/supabase.ts";
 import {
   aRetirerDe,
@@ -332,6 +332,6 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error(e);
     if (e instanceof ErreurIcloud) return repondre({ erreur: e.message }, 502);
-    return repondre({ erreur: (e as Error).message }, 500);
+    return repondre({ erreur: messageErreur(e) }, 500);
   }
 });

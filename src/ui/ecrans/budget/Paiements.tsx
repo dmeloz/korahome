@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { formaterMontant, lireMontant, nomDuMois, POTS, reglerFacture, type Etiquette, type PaiementAClasser, type PlanBudget, type Pot } from "../../../domaine/budget";
 import { etiquetteProposee, etiquettesDuPlan } from "../../../domaine/etiquettes";
+import { AVERTISSEMENT_RACCOURCI, separerLien } from "../../../domaine/lienRaccourci";
 import { cartesDuFoyer, choixDeCarte, classerPaiement, demandeRaccourci, paiementsAClasser, POTS_DE_CARTE, retenirCarte, type ChoixCarte } from "../../../domaine/paiements";
 import { FeuilleEtiquette } from "./Feuilles";
 import { useAnnoncer } from "../../annulation";
@@ -9,6 +10,7 @@ import { vibrer } from "../../haptique";
 import type { PropsPage } from "../../modules";
 import { Feuille } from "../../pieces";
 import { CLES, ecrireTexte, effacer, lireTexte } from "../../stockageLocal";
+import { sauver } from "../../sauver";
 
 // Les paiements Apple Pay dans le budget : ceux qui attendent leur pot, et la mise en route
 // du raccourci sur chaque iPhone. Les règles sont dans src/domaine/paiements.ts.
@@ -169,7 +171,7 @@ const ETAPES = [
 const A_LA_MAIN = [
   "Nouveau raccourci, action « Obtenir le contenu de l'URL », colle l'adresse (bouton Copier l'adresse).",
   "Dans les options : Méthode POST, Corps de la requête JSON.",
-  "Trois champs Texte : montant, marchand, carte, avec les variables Montant, Commerçant et Carte de l'entrée du raccourci.",
+  "Quatre champs Texte : montant, marchand, carte, avec les variables Montant, Commerçant et Carte de l'entrée du raccourci, et jeton, avec la clé (bouton Copier la clé).",
   "Ajoute le déclencheur « Lorsque n'importe quelle carte est présentée » (Transaction), exécuté sans demander.",
 ];
 
@@ -225,7 +227,7 @@ export function FeuilleApplePay(p: PropsPage & { plan: PlanBudget; ouverte: bool
     }
   }
 
-  const changerCarte = (carte: string, choix: ChoixCarte | null) => void depot.enregistrerBudget(retenirCarte(plan, carte, choix, contexteReel));
+  const changerCarte = (carte: string, choix: ChoixCarte | null) => sauver(depot.enregistrerBudget(retenirCarte(plan, carte, choix, contexteReel)));
 
   return (
     <Feuille ouverte={p.ouverte} onFermer={p.fermer} titre="Paiements Apple Pay">
@@ -238,18 +240,22 @@ export function FeuilleApplePay(p: PropsPage & { plan: PlanBudget; ouverte: bool
         ) : adresse ? (
           <>
             <p className="surtitre">Cet iPhone est relié</p>
-            <p className="budget-adresse">{adresse}</p>
+            <p className="budget-adresse">{separerLien(adresse).adresse}</p>
             <div className="budget-actions">
               <button type="button" className="bouton-principal" onClick={() => void copier(demandeRaccourci(adresse), "Demande copiée : colle-la dans Raccourcis.")}>
                 Copier la demande
               </button>
-              <button type="button" className="bouton-secondaire" onClick={() => void copier(adresse)}>
+              <button type="button" className="bouton-secondaire" onClick={() => void copier(separerLien(adresse).adresse)}>
                 Copier l'adresse
+              </button>
+              <button type="button" className="bouton-secondaire" onClick={() => void copier(separerLien(adresse).jeton ?? "", "Clé copiée : champ jeton du corps JSON.")}>
+                Copier la clé
               </button>
               <button type="button" className="bouton-secondaire" disabled={occupe} onClick={() => void retirer()}>
                 Retirer le lien
               </button>
             </div>
+            <p className="discret">{AVERTISSEMENT_RACCOURCI}</p>
           </>
         ) : (
           <button type="button" className="bouton-principal" disabled={occupe} onClick={() => void creer()}>

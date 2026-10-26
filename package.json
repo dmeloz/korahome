@@ -1,7 +1,7 @@
 {
   "name": "korahome",
   "private": true,
-  "version": "0.0.83",
+  "version": "0.0.84",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -21,7 +21,7 @@
     "animejs": "4.5.0",
     "barcode-detector": "^3.2.2",
     "canvas-confetti": "^1.9.4",
-    "motion": "13.5.1",
+    "motion": "14.1.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },
