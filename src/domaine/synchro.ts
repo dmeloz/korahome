@@ -3,14 +3,17 @@
 // attente puis envoyé. Quand deux téléphones ont modifié la même chose, la modification
 // la plus récente gagne, document par document.
 
-export type CollectionSynchro = "foyer" | "listes" | "elements" | "taches" | "animaux" | "stock" | "catalogue" | "jardin" | "memoire" | "couple" | "menus" | "agenda" | "budget" | "retours" | "corbeille" | "vetements" | "maison";
+import { NOMS_COLLECTIONS, type CollectionSynchro } from "./collections";
+
+export type { CollectionSynchro };
 
 /**
- * Ce qui se partage. Les notes de test aussi : elles arrivent ainsi sur le serveur, où
- * Claude les lit, et les deux iPhone voient toutes les notes. Les réglages restent propres
- * à chaque téléphone. La corbeille aussi : ce que l'un efface, l'autre peut le remettre.
+ * Ce qui se partage : toutes les collections du registre (domaine/collections.ts). Les notes de
+ * test aussi : elles arrivent ainsi sur le serveur, où Claude les lit, et les deux iPhone voient
+ * toutes les notes. Les réglages restent propres à chaque téléphone. La corbeille aussi : ce que
+ * l'un efface, l'autre peut le remettre.
  */
-export const COLLECTIONS_SYNCHRO: readonly CollectionSynchro[] = ["foyer", "listes", "elements", "taches", "animaux", "stock", "catalogue", "jardin", "memoire", "couple", "menus", "agenda", "budget", "retours", "corbeille", "vetements", "maison"];
+export const COLLECTIONS_SYNCHRO: readonly CollectionSynchro[] = NOMS_COLLECTIONS;
 
 export interface Changement {
   collection: CollectionSynchro;
