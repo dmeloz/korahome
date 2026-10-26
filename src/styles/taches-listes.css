@@ -1,11 +1,11 @@
 /* ===== Tâches et listes : la date d'une tâche, ses actions, « Kora devine », l'équilibre du foyer ===== */
 
-.date-tache { display: flex; align-items: center; gap: 10px; font-size: var(--t-detail); color: var(--discret); }
+.date-tache { display: flex; align-items: center; gap: var(--espace-5); font-size: var(--t-detail); color: var(--discret); }
 .date-tache input {
   border: 1px solid var(--trait);
   background: var(--surface);
   color: var(--texte);
-  border-radius: 10px;
+  border-radius: var(--rayon-petit);
   padding: 6px 10px;
   font-size: var(--t-detail);
 }
@@ -19,7 +19,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--espace-1);
   background: none;
   border: none;
   text-align: left;
@@ -27,19 +27,19 @@
 }
 .tache-details { font-size: var(--t-legende); color: var(--discret); }
 .tache-details.retard, .rayon.retard { color: var(--urgent); }
-.tache-actions { display: flex; flex-wrap: wrap; gap: 4px 18px; padding: 0 16px 10px 52px; }
+.tache-actions { display: flex; flex-wrap: wrap; gap: var(--espace-2) var(--espace-6); padding: 0 16px 10px 52px; }
 .tache-actions .lien { font-size: var(--t-detail); padding: 4px 0; }
 
-.devinees { margin: 4px 0 14px; display: grid; gap: 6px; }
+.devinees { margin: 4px 0 14px; display: grid; gap: var(--espace-3); }
 .devinees .surtitre { margin: 0; }
 
 .saisie-devinee { margin: -4px 0 10px; }
-.equilibre { display: grid; gap: 8px; margin-top: 4px; }
+.equilibre { display: grid; gap: var(--espace-4); margin-top: 4px; }
 .equilibre .surtitre, .equilibre p { margin: 0; }
-.equilibre-barre { display: flex; gap: 3px; height: 8px; border-radius: 999px; overflow: hidden; }
+.equilibre-barre { display: flex; gap: var(--espace-2); height: 8px; border-radius: var(--rayon-rond); overflow: hidden; }
 .equilibre-barre span { min-width: 6px; opacity: 0.85; }
-.equilibre-noms { display: flex; gap: 16px; font-size: var(--t-detail); }
-.equilibre-noms > span { display: inline-flex; align-items: center; gap: 6px; }
+.equilibre-noms { display: flex; gap: var(--espace-6); font-size: var(--t-detail); }
+.equilibre-noms > span { display: inline-flex; align-items: center; gap: var(--espace-3); }
 .equilibre-point { width: 8px; height: 8px; border-radius: 50%; }
 
 /* Le mode « Choisir » d'une liste : un rond par article, la barre d'actions au-dessus de la fée. */
@@ -49,10 +49,10 @@
 .barre-choix {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--espace-5);
   padding: 12px 18px;
   margin: 0 12px 8px;
-  border-radius: 18px;
+  border-radius: var(--rayon-feuille);
   background: var(--surface-haute);
   border: 1px solid var(--trait);
   backdrop-filter: blur(20px);
@@ -61,7 +61,7 @@
 
 /* « Le reste » sous ses tâches : celles de l'autre et les libres, repliées (0.0.75). */
 .reste-taches { margin-top: 18px; }
-.reste-entete { display: flex; align-items: baseline; gap: 8px; width: 100%; min-height: 44px; padding: 0; background: none; border: none; color: var(--texte); text-align: left; }
+.reste-entete { display: flex; align-items: baseline; gap: var(--espace-4); width: 100%; min-height: 44px; padding: 0; background: none; border: none; color: var(--texte); text-align: left; }
 .reste-entete .rayon { margin: 0; }
 .reste-entete .discret { flex: 1; font-size: 13px; }
 .reste-chevron { align-self: center; display: grid; color: var(--discret); transition: transform 0.25s var(--courbe); }

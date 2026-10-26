@@ -335,7 +335,7 @@ function PageMaison(p: PropsPage) {
       {actif === "jardin" ? (
         <Jardin {...p} />
       ) : actif === "vetements" ? (
-        <Page titre="Vêtements" sousTitre="Tailles, envies, à trier" aide={{ cle: "vetements-aide", texte: "Les tailles et les envies de chacun, partagées : de quoi trouver un cadeau qui va." }}>
+        <Page titre="Vêtements" sousTitre="Tailles, envies, à trier" aide={{ cle: "vetements-aide", resume: "Tailles et envies de chacun, partagées", texte: "Les tailles et les envies de chacun, partagées : de quoi trouver un cadeau qui va." }}>
           <Vetements depot={p.depot} foyer={p.foyer} membreId={p.membreId} vetements={p.vetements} aujourdhui={p.aujourdhui} />
         </Page>
       ) : actif === "entretien" ? (

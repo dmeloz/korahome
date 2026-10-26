@@ -2,12 +2,12 @@
 
 /* Jarvis : une conversation sobre, la saisie collée en bas de l'écran. */
 .jarvis { padding-bottom: calc(env(safe-area-inset-bottom) + 96px); }
-.jarvis-accueil { display: grid; gap: 14px; }
-.jarvis-fil { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.jarvis-accueil { display: grid; gap: var(--espace-6); }
+.jarvis-fil { display: flex; flex-direction: column; gap: var(--espace-5); margin-top: 8px; }
 .bulle {
   max-width: 85%;
   padding: 10px 14px;
-  border-radius: 18px;
+  border-radius: var(--rayon-feuille);
   line-height: 1.35;
   animation: bulle-arrive 0.22s ease-out;
 }
@@ -18,12 +18,12 @@
 .bulle.annulee p { color: var(--discret); text-decoration: line-through; }
 .bulle .lien { font-size: var(--t-detail); padding: 6px 0 0; }
 .bulle-note { display: block; font-size: var(--t-legende); color: var(--discret); margin-top: 4px; }
-.bulle-choix { display: flex; gap: 8px; margin-top: 10px; }
-.bulle-choix button { flex: 1; min-height: 40px; border-radius: 12px; font-size: var(--t-detail); margin: 0; padding: 8px 12px; }
+.bulle-choix { display: flex; gap: var(--espace-4); margin-top: 10px; }
+.bulle-choix button { flex: 1; min-height: 40px; border-radius: var(--rayon-carte); font-size: var(--t-detail); margin: 0; padding: 8px 12px; }
 .bulle-choix .secondaire { background: transparent; color: var(--texte); border: 1px solid var(--trait); }
 .memoire .ligne { text-align: left; width: 100%; color: var(--texte); }
 .memoire-edition { margin: 0; padding: 8px 12px; }
-.bulle.attente { display: flex; gap: 5px; padding: 14px 16px; }
+.bulle.attente { display: flex; gap: var(--espace-3); padding: 14px 16px; }
 .bulle.attente span { width: 7px; height: 7px; border-radius: 50%; background: var(--discret); animation: attente 1s infinite ease-in-out; }
 .bulle.attente span:nth-child(2) { animation-delay: 0.15s; }
 .bulle.attente span:nth-child(3) { animation-delay: 0.3s; }
@@ -51,17 +51,17 @@
 }
 
 /* Le conseil de la semaine : une proposition qu'on coche ensemble. */
-.conseil-depart, .conseil-resume, .conseil-valide { padding: 16px; display: grid; gap: 10px; }
+.conseil-depart, .conseil-resume, .conseil-valide { padding: 16px; display: grid; gap: var(--espace-5); }
 .conseil-depart p, .conseil-resume p, .conseil-valide p { margin: 0; }
 .conseil-resume p { white-space: pre-wrap; line-height: 1.4; }
 .conseil-depart .bulle.attente { justify-self: start; }
-.conseil-boutons { display: grid; gap: 4px; margin-top: 16px; justify-items: center; }
+.conseil-boutons { display: grid; gap: var(--espace-2); margin-top: 16px; justify-items: center; }
 .conseil-boutons .bouton-principal { width: 100%; }
 .proposee { color: var(--texte); }
 .proposee .case { background: none; padding: 0; }
 .proposee.retenue .case { background: var(--accent); border-color: var(--accent); }
 .proposee:not(.retenue) .ligne-texte { color: var(--discret); }
-.jarvis-conseil { display: flex; align-items: center; gap: 12px; padding: 14px 16px; width: 100%; text-align: left; color: var(--texte); }
-.jarvis-conseil .ligne-texte { display: grid; gap: 2px; }
-.jarvis-photo { display: block; max-width: 160px; max-height: 160px; border-radius: 12px; margin-bottom: 6px; object-fit: cover; }
+.jarvis-conseil { display: flex; align-items: center; gap: var(--espace-5); padding: 14px 16px; width: 100%; text-align: left; color: var(--texte); }
+.jarvis-conseil .ligne-texte { display: grid; gap: var(--espace-1); }
+.jarvis-photo { display: block; max-width: 160px; max-height: 160px; border-radius: var(--rayon-carte); margin-bottom: 6px; object-fit: cover; }
 .jarvis-saisie .secondaire { background: var(--surface); color: var(--texte); border: 1px solid var(--trait); }

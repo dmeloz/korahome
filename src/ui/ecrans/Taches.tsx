@@ -23,7 +23,7 @@ import { Ligne, ListeVivante, Message } from "../moteur/pieces";
 import { vibrer } from "../haptique";
 import { equilibreDesTaches, equilibreVisible } from "../../domaine/apprentissage";
 import { noterUsage } from "../usage";
-import { LigneAjout, Page } from "../pieces";
+import { EtatVide, LigneAjout, Page } from "../pieces";
 import { analyserTache } from "../../domaine/barre";
 import { useAnnoncer } from "../annulation";
 import { Icone } from "../Icone";
@@ -207,7 +207,7 @@ export function Taches(props: {
       titre="Tâches"
       sousTitre={administratif ? "Les papiers, les factures et les démarches" : vide ? undefined : dues ? `${dues} à faire aujourd'hui` : "Rien ne presse aujourd'hui"}
       actions={plusieurs && !vide && !administratif ? <button className="lien" onClick={() => setRepartir(true)}>Répartir</button> : undefined}
-      aide={{ cle: "taches", texte: "Écris une tâche sous la liste, ou dis-la à ta fée avec son rythme : « linge chaque mercredi ». Glisse une tâche vers la droite quand elle est faite, vers la gauche pour la supprimer. Un appui long ouvre sa fiche." }}
+      aide={{ cle: "taches", resume: "Écris une tâche, ou dis-la à ta fée", texte: "Écris une tâche sous la liste, ou dis-la à ta fée avec son rythme : « linge chaque mercredi ». Glisse une tâche vers la droite quand elle est faite, vers la gauche pour la supprimer. Un appui long ouvre sa fiche." }}
     >
       <Repartition ouverte={repartir} fermer={() => setRepartir(false)} foyer={props.foyer} taches={props.taches} aujourdhui={aujourdhui} depot={props.depot} />
 
@@ -269,11 +269,9 @@ export function Taches(props: {
       {!administratif && !vide && equilibreVisible(props.foyer) && <CarteEquilibre foyer={props.foyer} taches={props.taches} aujourdhui={aujourdhui} />}
 
       {!administratif && vide && (
-        <div className="carte bientot">
-          <p>Aucune tâche pour l'instant.</p>
-          <p className="discret">Les tâches de la semaine que vous avez choisies : {TACHES_DE_LA_SEMAINE.join(", ")}. Kora les pose sur six jours différents.</p>
-          <button className="bouton-principal" onClick={ajouterSemaine}>Ajouter ces 6 tâches</button>
-        </div>
+        <EtatVide picto="coche" titre="Aucune tâche pour l'instant" action={<button className="bouton-principal" onClick={ajouterSemaine}>Ajouter ces 6 tâches</button>}>
+          Celles que vous avez choisies : {TACHES_DE_LA_SEMAINE.join(", ")}. Kora les pose sur six jours différents.
+        </EtatVide>
       )}
 
       {!administratif && !vide && groupes.length === 0 && (vueMoi || terminees.length === 0) && (

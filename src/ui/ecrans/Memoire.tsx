@@ -48,7 +48,7 @@ export function Memoire(props: { donnees: DonneesModule; depot: Depot; ouvrirBil
     <Page
       titre={`Ce que ${nomFee()} sait`}
       sousTitre="Rien n'est retenu sans votre accord"
-      aide={{ cle: "memoire", texte: `Dis à ${nomFee()} « retiens que Sarah n'aime pas la coriandre ». Touche une ligne pour la corriger, glisse-la vers la gauche pour l'oublier.` }}
+      aide={{ cle: "memoire", resume: `Ce que ${nomFee()} retient du foyer`, texte: `Dis à ${nomFee()} « retiens que Sarah n'aime pas la coriandre ». Touche une ligne pour la corriger, glisse-la vers la gauche pour l'oublier.` }}
     >
       <button className="carte proposition appris-bilan" onClick={props.ouvrirBilan}>
         <span className="pictogramme"><Icone nom="appris" taille={20} /></span>

@@ -36,6 +36,22 @@
   --t-detail: max(0.882rem, 13px);
   --t-legende: max(0.765rem, 13px);
 
+  /* Quatre arrondis (0.0.84), du plus fin au plus grand, et le rond des pastilles. Un cercle garde 50 %. */
+  --rayon-fin: 4px;
+  --rayon-petit: 10px;
+  --rayon-carte: 14px;
+  --rayon-feuille: 20px;
+  --rayon-rond: 999px;
+
+  /* Sept écarts entre les éléments (gap), sur une grille de 2 et 4 (0.0.84). */
+  --espace-1: 2px;
+  --espace-2: 4px;
+  --espace-3: 6px;
+  --espace-4: 8px;
+  --espace-5: 12px;
+  --espace-6: 16px;
+  --espace-7: 24px;
+
   /* Le mouvement : la courbe des feuilles de l'iPhone. */
   --courbe: cubic-bezier(0.32, 0.72, 0, 1);
   --duree-feuille: 0.5s;
@@ -194,7 +210,7 @@ html[data-sens="widget"]::view-transition-new(root) { animation: page-montre 0.3
 ::view-transition-group(widget-page) {
   animation-duration: var(--duree-widget);
   animation-timing-function: var(--courbe);
-  border-radius: 22px;
+  border-radius: var(--rayon-feuille);
   overflow: clip;
 }
 /* Le cadre grandit et découpe ; dedans, le widget et la page gardent leur taille réelle, calés en

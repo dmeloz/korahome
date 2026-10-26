@@ -15,7 +15,7 @@ import { feter } from "../moteur/fete";
 import { vibrer } from "../haptique";
 import { Icone } from "../Icone";
 import { ajouterArticles } from "../ajouts";
-import { AuDessusDeLaBarre, LigneAjout, Page, useSaisieBarre } from "../pieces";
+import { AuDessusDeLaBarre, EtatVide, LigneAjout, Page, useSaisieBarre } from "../pieces";
 import { sauver } from "../sauver";
 
 // Une liste (les courses ou une autre). On ajoute en l'écrivant sur la ligne du bas, comme dans
@@ -308,6 +308,11 @@ export function DetailListe(props: {
           <ListeVivante className="carte groupe">{g.elements.map(ligne)}</ListeVivante>
         </section>
       ))}
+      {courses && tous.length === 0 && !saisie && (
+        <EtatVide picto="panier" titre="Rien à acheter">
+          Écris sous la liste, ou dis-le à ta fée. Ce que le Chef prévoit arrive ici aussi.
+        </EtatVide>
+      )}
       {!choisis && (
         <div className="carte groupe ajout-seul">
           <LigneAjout placeholder={courses ? "Nouvel article" : "Nouvel élément"} ajouter={ajouterArticle} texte={enLigne} onChange={setEnLigne} />

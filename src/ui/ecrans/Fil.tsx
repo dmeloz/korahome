@@ -21,7 +21,7 @@ export function Fil(props: { donnees: DonneesModule }) {
     <Page
       titre="Chez nous"
       sousTitre={entrees.length === 0 ? "Ce que chacun fait, au fil des jours" : `${entrees.length} geste${entrees.length > 1 ? "s" : ""} cette semaine`}
-      aide={{ cle: "fil", texte: "Chaque tâche cochée, article ajouté, dépense notée, arrosage ou mot laissé apparaît ici avec son prénom. Ni score ni classement : juste ce qui s'est passé à la maison." }}
+      aide={{ cle: "fil", resume: "Qui a fait quoi, sans score", texte: "Chaque tâche cochée, article ajouté, dépense notée, arrosage ou mot laissé apparaît ici avec son prénom. Ni score ni classement : juste ce qui s'est passé à la maison." }}
     >
       {jours.length === 0 && <p className="vide">Rien cette semaine encore. Dès qu'un de vous coche une tâche ou ajoute aux courses, ça s'écrit ici.</p>}
       {jours.map((j) => (

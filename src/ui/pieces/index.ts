@@ -6,3 +6,4 @@ export { Feuille } from "../Feuille";
 export { Glissable } from "../Glissable";
 export { Visite } from "./Visite";
 export { LigneAjout } from "./LigneAjout";
+export { EtatVide } from "./EtatVide";

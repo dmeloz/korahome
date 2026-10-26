@@ -2,7 +2,7 @@
 
 /* Notifications : les rappels du matin */
 .rappels-intro { margin: 4px 0 20px; line-height: 1.45; }
-.rappels-carte { display: grid; gap: 8px; }
+.rappels-carte { display: grid; gap: var(--espace-4); }
 .rappels-carte p { margin: 0; line-height: 1.45; }
 .rappels-carte .bouton-principal { width: 100%; margin-top: 8px; }
 .rappels-heure {
@@ -14,16 +14,16 @@
   font-variant-numeric: tabular-nums;
   color: var(--texte);
 }
-.rappels-actifs { grid-template-columns: auto 1fr; align-items: center; gap: 12px; }
-.rappels-choix { display: flex; flex-direction: column; gap: 2px; }
+.rappels-actifs { grid-template-columns: auto 1fr; align-items: center; gap: var(--espace-5); }
+.rappels-choix { display: flex; flex-direction: column; gap: var(--espace-1); }
 .rappels-choix .discret { font-size: var(--t-legende); line-height: 1.35; }
-.rappels-actions { display: grid; justify-items: center; gap: 4px; margin-top: 20px; }
+.rappels-actions { display: grid; justify-items: center; gap: var(--espace-2); margin-top: 20px; }
 .rappels-actions .lien:disabled { opacity: 0.4; }
 .rappels-message { text-align: center; margin-top: 12px; }
 /* L'heure se touche comme une alarme : la roue de l'iPhone s'ouvre par-dessus. */
-.rappels-horloge { position: relative; display: grid; justify-items: center; gap: 6px; padding: 10px 0 6px; }
+.rappels-horloge { position: relative; display: grid; justify-items: center; gap: var(--espace-3); padding: 10px 0 6px; }
 .rappels-roue { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; font-size: var(--t-detail); -webkit-appearance: none; appearance: none; }
-.rappels-jours { display: flex; justify-content: space-between; gap: 6px; margin-top: 8px; }
+.rappels-jours { display: flex; justify-content: space-between; gap: var(--espace-3); margin-top: 8px; }
 .rappels-jour {
   flex: 1;
   max-width: 40px;
@@ -45,10 +45,10 @@
 /* Aperçu façon notification de l'iPhone : verre dépoli, coins très ronds. */
 .notification-ios {
   display: flex;
-  gap: 12px;
+  gap: var(--espace-5);
   align-items: flex-start;
   padding: 12px 14px;
-  border-radius: 22px;
+  border-radius: var(--rayon-feuille);
   background: color-mix(in srgb, var(--surface-haute) 82%, transparent);
   border: 1px solid var(--trait);
   -webkit-backdrop-filter: blur(20px);
@@ -61,7 +61,7 @@
   flex: none;
   display: grid;
   place-items: center;
-  border-radius: 9px;
+  border-radius: var(--rayon-petit);
   background: var(--fond);
   border: 1px solid var(--accent);
   color: var(--accent);
@@ -72,12 +72,12 @@
 }
 .notification-texte { flex: 1; min-width: 0; }
 .notification-texte p { margin: 0; font-size: var(--t-detail); line-height: 1.35; white-space: pre-line; }
-.notification-entete { display: flex; justify-content: space-between; gap: 8px; }
+.notification-entete { display: flex; justify-content: space-between; gap: var(--espace-4); }
 .notification-entete span { color: var(--discret); font-size: var(--t-legende); }
 
 /* Le centre des rappels. */
 .rappel-recu { align-items: flex-start; }
 .rappel-heure { flex: none; width: 46px; padding-top: 2px; font-size: var(--t-legende); color: var(--discret); font-variant-numeric: tabular-nums; }
-.rappel-recu .ligne-texte { display: flex; flex-direction: column; gap: 2px; }
+.rappel-recu .ligne-texte { display: flex; flex-direction: column; gap: var(--espace-1); }
 .rappel-corps { white-space: pre-line; }
 .rappel-recu.nouveau strong::after { content: ""; display: inline-block; width: 7px; height: 7px; margin-left: 8px; border-radius: 50%; background: var(--accent); vertical-align: middle; }
