@@ -68,6 +68,12 @@ plafond, il se tait jusqu'au 1er du mois suivant. Une demande ordinaire coûte m
 franc. Le compte se fait en millionièmes de franc, avec un dollar compté 0,90 CHF (prudent).
 Par sécurité, fixer aussi une limite mensuelle sur la console Anthropic (Limits > Spend limit).
 
+Depuis le 26 octobre 2026, l'assistant (Jarvis, le Chef, Siri) ne répond qu'aux foyers inscrits dans
+`prive.foyers_assistant` : le dépôt est public et la connexion anonyme ouverte, sans cette liste un
+inconnu pouvait créer un foyer et dépenser le crédit Claude. Un foyer absent voit « plafond
+atteint ». Pour un nouveau serveur ou un nouveau foyer, dans l'éditeur SQL de Supabase :
+`insert into prive.foyers_assistant (foyer_id) values ('<id du foyer>');`.
+
 ## Mise en route (une fois)
 
 1. Sur https://console.anthropic.com : créer une clé d'API (Settings > API keys) et une limite de

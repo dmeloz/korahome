@@ -210,6 +210,8 @@ create table if not exists public.abonnements_push (
   dernier_envoi date,
   cree_le timestamptz not null default now()
 );
+create index if not exists abonnements_push_foyer on public.abonnements_push (foyer_id);
+create index if not exists abonnements_push_user on public.abonnements_push (user_id);
 
 -- Les téléphones passent par les deux fonctions ci-dessous ; seule la fonction d'envoi lit la table.
 alter table public.abonnements_push enable row level security;
@@ -229,6 +231,10 @@ begin
   end if;
   if not est_membre(p_foyer_id) then
     raise exception 'Ce foyer appartient à un autre compte';
+  end if;
+  -- Seulement vers les services de notification connus (veille du 26 octobre 2026).
+  if p_endpoint !~ '^https://([a-z0-9-]+\.)*(push\.apple\.com|fcm\.googleapis\.com|push\.services\.mozilla\.com|notify\.windows\.com)/' then
+    raise exception 'Adresse de notification inconnue';
   end if;
   insert into abonnements_push (endpoint, foyer_id, user_id, membre_id, cles, preferences, heure)
   values (p_endpoint, p_foyer_id, auth.uid(), p_membre_id, p_cles, p_preferences, p_heure)
@@ -333,13 +339,26 @@ create table if not exists prive.conso_jarvis (
 );
 revoke all on prive.conso_jarvis from public, anon, authenticated;
 
+-- L'assistant est réservé aux foyers inscrits ici (veille du 26 octobre 2026) : le dépôt est
+-- public et la connexion anonyme ouverte, un foyer créé par un inconnu ne doit pas dépenser le
+-- crédit Claude. Pour en ajouter un : insert into prive.foyers_assistant (foyer_id) values ('…').
+create table if not exists prive.foyers_assistant (
+  foyer_id text primary key references public.foyers (id) on delete cascade,
+  ajoute_le timestamptz not null default now()
+);
+revoke all on prive.foyers_assistant from public, anon, authenticated;
+
 -- Ajoute une dépense (0 : simple lecture) et renvoie le total du mois. Fonction d'envoi seulement.
+-- Un foyer qui n'est pas inscrit voit un total bien au-delà du plafond : l'assistant refuse.
 create or replace function public.jarvis_compter(p_foyer_id text, p_mois text, p_micro_chf bigint)
 returns bigint
 language plpgsql security definer set search_path = prive as $$
 declare
   total bigint;
 begin
+  if not exists (select 1 from foyers_assistant a where a.foyer_id = p_foyer_id) then
+    return 1000000000;
+  end if;
   insert into conso_jarvis as c (foyer_id, mois, micro_chf, demandes)
   values (p_foyer_id, p_mois, p_micro_chf, case when p_micro_chf > 0 then 1 else 0 end)
   on conflict (foyer_id, mois) do update set

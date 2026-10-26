@@ -16,8 +16,8 @@ import {
   type ActionJarvis,
   type DonneesFoyer,
 } from "./jarvis";
-import { extraireRecette, lienAutorise, lienDans, lirePage, MAX_OUTILS_STRICTS,
-  MAX_UNIONS_STRICTES, messageDemande, texteDePage } from "./jarvisModele";
+import { decrireRecette, extraireRecette, lienAutorise, lienDans, lirePage, MAX_OUTILS_STRICTS,
+  MAX_UNIONS_STRICTES, messageDemande, moisDe, texteDePage } from "./jarvisModele";
 import { nouvelElement, nouvelleListe } from "./listes";
 import { ajouterPlante, nouvellePlante, nouvelleZone } from "./jardin";
 import { nouvelAnimal } from "./mitsu";
@@ -533,5 +533,15 @@ describe("Jarvis et les vêtements", () => {
     const { d } = foyerDeTest();
     const r = appliquerActions(lireActions([{ nom: "noter_envie", entree: { pour: "Paul", envie: "Pull" } }]), d, null, AUJOURDHUI, ctx());
     expect(r.echecs).toEqual(["Je ne connais pas « Paul » dans le foyer."]);
+  });
+});
+
+describe("petites règles du modèle", () => {
+  it("le compteur repart chaque mois", () => {
+    expect(moisDe("2026-10-26")).toBe("2026-10");
+  });
+  it("décrit une recette lue derrière un lien, avec ses étapes numérotées", () => {
+    const texte = decrireRecette({ titre: "Soupe", portions: "2 personnes", ingredients: ["1 poireau", "2 pommes de terre"], etapes: ["Couper", "Cuire"] } as Parameters<typeof decrireRecette>[0]);
+    expect(texte).toBe("Recette « Soupe » (2 personnes), ingrédients :\n- 1 poireau\n- 2 pommes de terre\nÉtapes :\n1. Couper\n2. Cuire");
   });
 });
