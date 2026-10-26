@@ -56,6 +56,10 @@ const POTS = {
 	epargne: {
 		nom: "Épargne",
 		description: "La réserve, et le projet pour lequel on économise."
+	},
+	perso: {
+		nom: "À moi",
+		description: "Ce que chacun paie de son côté, pour soi : seul lui le voit."
 	}
 };
 /** Arrondi au centime. */
@@ -177,6 +181,7 @@ const sansAccents = (t) => sansAccents$1(t).toLowerCase();
 //#region src/domaine/paiements.ts
 /** Les pots qu'on peut donner à une carte, dans l'ordre des puces. */
 const POTS_DE_CARTE = [
+	"perso",
 	"courses",
 	"plaisir",
 	"factures",

@@ -4,6 +4,7 @@ import { flushSync } from "react-dom";
 import { meteoFraiche } from "../domaine/meteo";
 import { rappelDuMatin } from "../domaine/rappels";
 import { facturesDuJour } from "../domaine/budget";
+import { budgetVisible } from "../domaine/aMoi";
 import type { WidgetId } from "../domaine/tableauDeBord";
 import type { Foyer } from "../domaine/types";
 import type { DepotLocal } from "../donnees/depotLocal";
@@ -268,7 +269,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   }
   // Tael ou Navi : la fée suit la personne de ce téléphone.
   definirFee(foyer.membres.find((m) => m.id === membre)?.prenom);
-  const donnees: DonneesModule = { foyer, membreId: membre, listes, elements, taches, animaux, produits, catalogue, zones, meteo, aujourdhui: aujourdhuiLocal(), souvenirs, retours, couple, menus, agenda, budget };
+  const donnees: DonneesModule = { foyer, membreId: membre, listes, elements, taches, animaux, produits, catalogue, zones, meteo, aujourdhui: aujourdhuiLocal(), souvenirs, retours, couple, menus, agenda, budget: budgetVisible(budget, membre) };
 
   const ouvrir = (demandee: Page) => {
     // Courses et Listes ouvrent leur onglet de Cuisine, Agenda le sien d'Organisation, Entretien celui de Maison.

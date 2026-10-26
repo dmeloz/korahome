@@ -195,3 +195,42 @@ button.budget-pot:active { transform: scale(0.98); }
 .siri-raccourcis li { display: flex; align-items: center; gap: 12px; }
 .siri-raccourcis .ligne-texte { flex: 1; display: grid; gap: 2px; min-width: 0; }
 .siri-raccourcis .lien { flex: none; margin: 0; }
+
+/* ----- Ce mois, version 4 (0.0.76) : « À toi » dans son anneau, le reste en bas ----- */
+.budget-amoi { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 0 4px; text-align: center; }
+.budget-anneau { position: relative; width: min(176px, 46vw); aspect-ratio: 1; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; border-radius: 50%; }
+.budget-anneau svg { width: 100%; height: 100%; display: block; }
+.budget-anneau circle { fill: none; stroke-width: 10; }
+.budget-anneau .fond { stroke: var(--surface-haute); }
+.budget-anneau .plein { stroke: var(--accent); stroke-linecap: round; transition: stroke-dasharray 0.9s var(--courbe); }
+.budget-anneau .trait { stroke: var(--texte); stroke-opacity: 0.6; stroke-width: 1.5; }
+.budget-anneau.en-attente .plein { stroke: var(--discret); stroke-opacity: 0.45; }
+.budget-anneau.negatif .budget-anneau-chiffre { color: var(--urgent); }
+.budget-anneau:active { transform: scale(0.985); }
+.budget-anneau-centre { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.budget-anneau-centre .surtitre { margin: 0; color: var(--accent); }
+.budget-anneau.en-attente .surtitre { color: var(--discret); }
+.budget-anneau-chiffre { font-family: var(--police-titre); font-size: clamp(32px, 10vw, 42px); font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; line-height: 1.05; }
+.budget-anneau-centre .discret { font-size: var(--t-detail); }
+.budget-par-jour { margin: 6px 0 0; font-size: 1.06rem; font-weight: 600; }
+.budget-phrase { margin: 0; max-width: 30ch; font-size: var(--t-detail); line-height: 1.35; color: var(--discret); }
+.budget-bas { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.budget-rangee { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 52px; padding: 10px 16px; border: 1px solid var(--trait); border-radius: 14px; background: var(--surface); color: var(--texte); font: inherit; text-align: left; cursor: pointer; }
+.budget-rangee > svg:last-child, .budget-rangee .icone { color: var(--discret); flex: none; }
+.budget-rangee-texte { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.budget-rangee-texte .discret { font-size: var(--t-detail); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.budget-rangee-texte .retard { color: var(--urgent); }
+.budget-barres { flex: none; width: 104px; height: 24px; }
+.budget-barres rect { fill: var(--trait); }
+.budget-barres rect.aujourdhui { fill: var(--accent); }
+.budget-tuiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.budget-tuiles .budget-rangee { padding: 12px 14px; }
+.budget-calcul .ligne.fort .ligne-texte, .budget-calcul .ligne.fort .budget-montant { font-weight: 600; }
+.budget-pots-liste { list-style: none; margin: 0 0 12px; padding: 0; }
+.budget-pot-ligne { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 12px 0; border: 0; border-bottom: 1px solid var(--trait); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.budget-pots-liste li:last-child .budget-pot-ligne { border-bottom: 0; }
+.budget-pot-haut { display: flex; justify-content: space-between; gap: 12px; }
+.budget-pot-ligne .discret { font-size: var(--t-detail); }
+.budget-pot-ligne.negatif .budget-montant { color: var(--urgent); }
+.budget-plus-liens { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@media (prefers-reduced-motion: reduce) { .budget-anneau .plein { transition: none; } }

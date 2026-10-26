@@ -493,9 +493,10 @@ const OUTILS_JARVIS = [
 						"plaisir",
 						"factures",
 						"epargne",
-						"commun"
+						"commun",
+						"perso"
 					],
-					description: "courses : alimentation et maison ; plaisir : sorties, cadeaux, envies ; factures : une facture ; epargne : un versement à l'épargne."
+					description: "courses : alimentation et maison ; plaisir : sorties, cadeaux, envies du foyer ; factures : une facture ; epargne : un versement à l'épargne ; perso : une dépense rien qu'à soi, payée de son côté (« pour moi »)."
 				},
 				jour: ouNul("Le jour, AAAA-MM-JJ, s'il est écrit (ticket) ; null pour aujourd'hui."),
 				charge: ouNul("Pour une facture payée : le nom de la charge telle qu'elle figure dans le budget ; null sinon."),

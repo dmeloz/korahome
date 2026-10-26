@@ -9,8 +9,12 @@ import { NOMS_MOIS, sansAccents as retirerAccents } from "./texte";
 // pot d'un mois à l'autre (ce qui reste est reporté), rappelle les factures et compte
 // les tickets de caisse. Aucun identifiant bancaire : un compte n'est qu'un nom.
 
-/** Les pots du compte commun. « commun » : payé directement par le compte commun (le loyer). */
-export type Pot = "commun" | "courses" | "factures" | "plaisir" | "epargne";
+/**
+ * Les pots du compte commun. « commun » : payé directement par le compte commun (le loyer).
+ * « perso » (Kora 0.0.76) : ce que chacun paie de son côté, pour soi ; il ne sort d'aucun pot
+ * commun et ne se montre que sur les téléphones de la personne qui l'a payé.
+ */
+export type Pot = "commun" | "courses" | "factures" | "plaisir" | "epargne" | "perso";
 
 export const POTS: Record<Pot, { nom: string; description: string }> = {
   commun: { nom: "Compte commun", description: "Ce qui part directement du compte commun, comme le loyer." },
@@ -18,6 +22,7 @@ export const POTS: Record<Pot, { nom: string; description: string }> = {
   factures: { nom: "Factures", description: "Mis de côté chaque mois pour les factures, y compris les grosses factures de l'année." },
   plaisir: { nom: "Plaisir", description: "La part du reste du mois pour se faire plaisir." },
   epargne: { nom: "Épargne", description: "La réserve, et le projet pour lequel on économise." },
+  perso: { nom: "À moi", description: "Ce que chacun paie de son côté, pour soi : seul lui le voit." },
 };
 
 /** Les pots dont Kora tient le solde, dans l'ordre de la page. */
@@ -309,6 +314,7 @@ export function bilanDuMois(plan: PlanBudget): BilanMois {
       factures: duPot("factures"),
       plaisir: auCentime(libre * part),
       epargne: auCentime(libre * (1 - part)),
+      perso: 0,
     },
     provisionAnnuelle: auCentime(communes.filter((p) => p.frequence === "an").reduce((t, p) => t + p.montant / 12, 0)),
   };
@@ -593,7 +599,7 @@ export interface SaisieDepense {
 
 /**
  * Une dépense écrite dans la barre du Budget : « Migros 84.30 », « 32 cinéma plaisir »,
- * « Sunrise 145 », « 200 épargne ». null quand la phrase n'a pas de montant.
+ * « Sunrise 145 », « 200 épargne », « 12 café pour moi » (à soi). null quand la phrase n'a pas de montant.
  */
 export function lireDepense(texte: string, plan: PlanBudget | null): SaisieDepense | null {
   const m = /(?:^|\s)(\d[\d’' ]*(?:[.,]\d{1,2})?)(?:\.-)?\s*(?:chf|fr\.?|francs?)?(?=\s|$)/i.exec(` ${texte.trim()} `);
@@ -608,6 +614,8 @@ export function lireDepense(texte: string, plan: PlanBudget | null): SaisieDepen
   if (/\bepargne\b|\breserve\b/.test(cle)) pot = "epargne";
   if (/\bcourses\b/.test(cle)) pot = "courses";
   if (/\bfactures?\b/.test(cle)) pot = "factures";
+  if (/\b(?:pour moi|a moi|perso)\b/.test(cle)) pot = "perso";
+  retirerMot(/(?:^|\s)(?:pour moi|[àa] moi|perso)(?=\s|$)/gi);
   retirerMot(/\b(?:sur |dans |pour |au |à |a |en |le |la |les )?(?:pot |compte |carte )?(?:plaisir|[ée]pargne|r[ée]serve|courses|factures?)\b/gi);
   retirerMot(/^\s*(?:j'ai |on a )?(?:pay[ée]e?s?|d[ée]pens[ée]|achet[ée])\s+/i);
   const magasin = MAGASINS.find((x) => new RegExp(`\\b${sansAccents(x)}\\b`).test(cle)) ?? null;
