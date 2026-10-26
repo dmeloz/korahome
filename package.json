@@ -26,6 +26,7 @@
     "react-dom": "^19.3.0"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.3.3",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^26.6.4",
     "@types/react": "^19.3.0",
@@ -33,6 +34,7 @@
     "@vitejs/plugin-react": "^6.1.2",
     "axe-core": "^4.14.0",
     "fake-indexeddb": "^6.2.5",
+    "happy-dom": "^21.0.4",
     "oxlint": "^1.89.0",
     "rolldown": "1.2.12",
     "typescript": "^7.0.2",

@@ -49,7 +49,7 @@ document (`src/domaine/synchro.ts`). Ce qui est effacé passe 30 jours dans la c
 
 | Quand | Quoi |
 | --- | --- |
-| À chaque PR (`verifier`) | Types, correcteur (oxlint), tests (Vitest), build |
+| À chaque PR (`verifier`) | Types, correcteur (oxlint), tests (Vitest), build. Les tests de règles tournent en Node ; `src/ui/App.test.tsx` monte l'app entière dans happy-dom (un navigateur simulé) avec le vrai dépôt, et vérifie ce que les données font apparaître (React Testing Library, en cherchant les boutons comme VoiceOver les lit) |
 | À chaque PR (`essai`) | Chaque écran dans un iPhone simulé, sombre, clair et grands caractères, avec axe ; captures gardées 14 jours |
 | À chaque fusion dans `main` | Les mêmes vérifications, puis publication sur GitHub Pages |
 | Deux nuits par semaine | La veille : serveur, sécurité, dépendances, données du foyer (`/mnt/project-files/veille/PROCEDURE.md`) |
