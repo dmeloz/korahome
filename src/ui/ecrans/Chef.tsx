@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { avisDuPlat, avisSurPlat, ceQuEfface, etatDesAjouts, menuDeLaSemaine, prochainPassage, reglageChef, reglerChef, devaliderSoir, retirerAjout, validerSoir, validerToutLeMenu, type AvisPlat, type MenuSemaine } from "../../domaine/chef";
+import { avisDuPlat, avisSurPlat, ceQuEfface, etatDesAjouts, menuDeLaSemaine, prochainPassage, reglageChef, reglerChef, relierRecette, devaliderSoir, retirerAjout, validerSoir, validerToutLeMenu, type AvisPlat, type MenuSemaine, type RepasChef } from "../../domaine/chef";
+import { aConfirmer, appliquerActions, decrireFoyer, lireActions } from "../../domaine/jarvis";
+import { annulerModifications, enregistrerModifications } from "../jarvis";
 import { Icone } from "../Icone";
 import { formaterHeure, HEURE_MAX, HEURE_MIN, JOURS_SEMAINE } from "../../domaine/rappels";
 import { ecartJours } from "../../domaine/taches";
@@ -45,6 +47,7 @@ export function Chef(p: PropsPage & { recette?: string | null }) {
   const menu = menuDeLaSemaine(p.menus, p.aujourdhui);
   const reglage = reglageChef(p.menus);
   const [ficheSemaine, setFicheSemaine] = useState(false);
+  const [ecriture, setEcriture] = useState<number | null>(null);
   const plats = platsDeLaSemaine(recettes, menu, p.aujourdhui);
   const croisee = plats.length >= 2 ? ficheDeLaSemaine(plats, p.produits) : null;
   const passage = prochainPassage(reglage, new Date());
@@ -105,6 +108,36 @@ export function Chef(p: PropsPage & { recette?: string | null }) {
   }
 
   /** Un soir validé envoie aux courses ce qui manque pour sa recette ; toucher à nouveau le retire. */
+  /** Un soir sans fiche : la fée écrit la recette (ingrédients pour deux, étapes), la range dans « Nos recettes » et la relie au soir. */
+  async function ecrireRecette(m: MenuSemaine, rang: number, r: RepasChef) {
+    if (!p.jarvis || ecriture !== null) return;
+    vibrer();
+    setEcriture(rang);
+    try {
+      const demande = `Écris la recette de « ${r.titre} » (${r.description}) pour deux personnes, avec tous ses ingrédients et leurs quantités et ses étapes courtes, et range-la dans nos recettes avec enregistrer_recette. N'ajoute rien aux courses.`;
+      const reponse = await p.jarvis.serveur.demanderJarvis({ foyerId: p.jarvis.foyerId, demande, etat: decrireFoyer(p, p.membreId, p.aujourdhui), historique: [] });
+      const actions = lireActions(reponse.appels).filter((a) => a.outil === "enregistrer_recette" && !aConfirmer(a));
+      const resultat = appliquerActions(actions, p, p.membreId, p.aujourdhui, contexteReel);
+      const rangee = resultat.modifications.find((x) => x.collection === "menus");
+      if (!rangee) {
+        annoncer(reponse.texte || `${nomFee()} n'a pas réussi à écrire cette recette, réessaie.`, () => {});
+        return;
+      }
+      const apres = relierRecette(m, rang, rangee.apres.id);
+      await enregistrerModifications(p.depot, resultat.modifications);
+      await p.depot.enregistrerMenu(apres);
+      annoncer(`Recette « ${r.titre} » écrite et rangée dans Nos recettes.`, async () => {
+        await p.depot.enregistrerMenu(m);
+        await annulerModifications(p.depot, resultat.modifications);
+      });
+      setFicheId(rangee.apres.id);
+    } catch (e) {
+      annoncer(e instanceof Error && e.message ? e.message : `${nomFee()} n'a pas pu écrire la recette, réessaie.`, () => {});
+    } finally {
+      setEcriture(null);
+    }
+  }
+
   async function basculerSoir(m: MenuSemaine, rang: number) {
     vibrer();
     const r = m.repas[rang];
@@ -259,7 +292,7 @@ export function Chef(p: PropsPage & { recette?: string | null }) {
         )}
 
         {menu && menu.repas.some((r) => !r.recetteId || !recettes.some((x) => x.id === r.recetteId)) && (
-          <p className="discret chef-sans-recette">Ces soirs n'ont pas encore leur recette : relance le Chef pour avoir les ingrédients, les étapes et la fiche de la semaine.</p>
+          <p className="discret chef-sans-recette">Ces soirs n'ont pas encore leur recette : « Écrire la recette » la demande à {nomFee()}, ou relance le Chef pour toute la semaine.</p>
         )}
 
         {menu && (
@@ -281,9 +314,13 @@ export function Chef(p: PropsPage & { recette?: string | null }) {
                   <button type="button" className={`lien chef-valider-soir${r.valideLe ? " valide" : ""}`} aria-pressed={!!r.valideLe} onClick={() => void basculerSoir(menu, i)}>
                     {r.valideLe ? <><Icone nom="coche" taille={14} /> Soir validé</> : "Valider ce soir"}
                   </button>
-                  {recette && (
+                  {recette ? (
                     <button type="button" className="lien chef-voir-recette" onClick={() => setFicheId(recette)}>Voir la recette</button>
-                  )}
+                  ) : p.jarvis ? (
+                    <button type="button" className="lien chef-voir-recette" disabled={ecriture !== null} onClick={() => void ecrireRecette(menu, i, r)}>
+                      {ecriture === i ? `${nomFee()} écrit…` : "Écrire la recette"}
+                    </button>
+                  ) : null}
                 </div>
                 <AvisChef avis={avisDuPlat(p.souvenirs, r.titre)?.avis ?? null} titre={r.titre} donner={(a) => void donnerAvis(r.titre, a)} />
               </li>

@@ -146,7 +146,10 @@ export function CalendrierIphone(props: { foyer: Foyer; membreId: Id | null; com
                       )
                     }
                   >
-                    <span className="ligne-texte">{cal.nom}</span>
+                    <span className="ligne-texte">
+                      {cal.couleur && <span className="agenda-pastille" style={{ background: cal.couleur }} aria-hidden />}
+                      {cal.nom}
+                    </span>
                     <span className={`interrupteur${cal.lu ? " actif" : ""}`} aria-hidden />
                   </button>
                 </li>

@@ -10,6 +10,7 @@ import {
   etatDesAjouts,
   lireProposition,
   menuDeLaSemaine,
+  relierRecette,
   messageChef,
   notificationChef,
   nouveauMenu,
@@ -73,6 +74,15 @@ describe("le réglage du passage", () => {
     expect(prochainPassage(reglage, new Date("2026-10-18T18:00:00Z"))).toBe("dimanche à 17 h");
     expect(prochainPassage({ ...reglage, jour: 3, heure: 9 }, new Date("2026-10-18T10:00:00Z"))).toBe("mercredi à 9 h");
     expect(prochainPassage({ ...reglage, actif: false }, new Date())).toBeNull();
+  });
+});
+
+describe("une recette écrite après coup", () => {
+  it("se relie au soir du Chef", () => {
+    const menu = { repas: [{ titre: "Soupe" }, { titre: "Risotto" }] } as unknown as Parameters<typeof relierRecette>[0];
+    const apres = relierRecette(menu, 1, "r1");
+    expect(apres.repas.map((r) => r.recetteId)).toEqual([undefined, "r1"]);
+    expect(menu.repas[1].recetteId).toBeUndefined();
   });
 });
 

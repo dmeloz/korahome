@@ -16,7 +16,8 @@ import {
   type ActionJarvis,
   type DonneesFoyer,
 } from "./jarvis";
-import { extraireRecette, lienAutorise, lienDans, lirePage, MAX_UNIONS_STRICTES, messageDemande, texteDePage } from "./jarvisModele";
+import { extraireRecette, lienAutorise, lienDans, lirePage, MAX_OUTILS_STRICTS,
+  MAX_UNIONS_STRICTES, messageDemande, texteDePage } from "./jarvisModele";
 import { nouvelElement, nouvelleListe } from "./listes";
 import { ajouterPlante, nouvellePlante, nouvelleZone } from "./jardin";
 import { nouvelAnimal } from "./mitsu";
@@ -103,6 +104,9 @@ describe("les demandes d'outils", () => {
     };
     const total = OUTILS_JARVIS.filter((o) => o.strict).reduce((n, o) => n + unions(o.input_schema), 0);
     expect(total).toBeLessThanOrEqual(MAX_UNIONS_STRICTES);
+  });
+  it("peu d'outils stricts, pour que la grammaire de l'API reste petite", () => {
+    expect(OUTILS_JARVIS.filter((o) => o.strict).length).toBeLessThanOrEqual(MAX_OUTILS_STRICTS);
   });
 });
 

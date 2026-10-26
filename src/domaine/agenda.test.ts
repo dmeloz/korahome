@@ -18,6 +18,7 @@ import {
   titreDe,
   type EntreeEvenement,
   type Evenement,
+  couleurIcloud,
 } from "./agenda";
 import { contexteTest } from "./contexteTest";
 import { ErreurValidation } from "./foyer";
@@ -277,6 +278,13 @@ describe("une date sans mois", () => {
 describe("un événement lu dans un autre calendrier iCloud", () => {
   const icloud = { href: "https://x/t.ics", etag: '"1"', importeLe: "2000-01-01T00:00:00.000Z" };
   const lu = { ...ev({ titre: "Réunion", jour: "2026-10-20", heure: "08:00" }), source: "iCloud de Melo", icloud };
+
+  it("prend la couleur du calendrier iCloud dont vient l'événement", () => {
+    const compte = { id: "icloud-compte-melo", membre: "melo", appleId: "d…@icloud.com", calendriers: [{ url: "https://x/", nom: "Travail", lu: true, couleur: "#1BADF8" }], derniereSynchro: null, erreur: null };
+    expect(couleurIcloud(lu, [compte])).toBe("#1BADF8");
+    expect(couleurIcloud(lu, [{ ...compte, calendriers: [{ url: "https://y/", nom: "Autre", lu: true, couleur: "#000000" }] }])).toBeNull();
+    expect(couleurIcloud(ev({ titre: "Nous", jour: "2026-10-20" }), [compte])).toBeNull();
+  });
 
   it("se modifie dans Kora, en gardant d'où il vient", () => {
     expect(occurrences([lu], "2026-10-20", "2026-10-20")[0].lectureSeule).toBe(false);

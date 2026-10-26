@@ -77,8 +77,8 @@ export interface CompteIcloud {
   membre: Id;
   /** L'identifiant Apple, à moitié masqué : « d.z…@icloud.com ». */
   appleId: string;
-  /** Les agendas trouvés dans iCloud ; ceux qui sont lus apparaissent dans Kora. */
-  calendriers: { url: string; nom: string; lu: boolean }[];
+  /** Les agendas trouvés dans iCloud ; ceux qui sont lus apparaissent dans Kora, avec la couleur qu'ils ont sur l'iPhone (depuis 0.0.80). */
+  calendriers: { url: string; nom: string; lu: boolean; couleur?: string }[];
   derniereSynchro: string | null;
   /** Le dernier problème rencontré (mot de passe retiré…) ; null : tout va bien. */
   erreur: string | null;
@@ -94,6 +94,21 @@ export const estEvenement = (d: DocAgenda): d is Evenement => "titre" in d && "j
 export const aRetirerDe = (docs: readonly DocAgenda[]): Evenement[] => docs.filter((d): d is Evenement => "titre" in d && !!(d as Evenement).aRetirer);
 export const evenementsDe = (docs: readonly DocAgenda[]): Evenement[] => docs.filter(estEvenement);
 export const comptesIcloudDe = (docs: readonly DocAgenda[]): CompteIcloud[] => docs.filter((d): d is CompteIcloud => "appleId" in d);
+
+/**
+ * La couleur d'un événement venu d'iCloud : celle de son calendrier sur l'iPhone (« Travail » en bleu,
+ * « Famille » en vert), retrouvée par l'adresse de l'événement, qui commence par celle du calendrier.
+ * Null pour les événements de Kora, qui prennent la couleur de la personne.
+ */
+export function couleurIcloud(evenement: Evenement, comptes: readonly CompteIcloud[]): string | null {
+  const href = evenement.icloud?.href;
+  if (!href) return null;
+  for (const c of comptes) {
+    const cal = c.calendriers.find((x) => x.couleur && href.startsWith(x.url));
+    if (cal?.couleur) return cal.couleur;
+  }
+  return null;
+}
 
 const RE_JOUR = /^\d{4}-\d{2}-\d{2}$/;
 const RE_HEURE = /^([01]\d|2[0-3]):[0-5]\d$/;

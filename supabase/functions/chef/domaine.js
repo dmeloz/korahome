@@ -1996,6 +1996,16 @@ function recettesDuChef(proposition, docs, ctx) {
 		recettes
 	};
 }
+/** Un soir du Chef resté sans fiche reçoit la recette écrite après coup par la fée (0.0.80). */
+function relierRecette(menu, rang, recetteId) {
+	return {
+		...menu,
+		repas: menu.repas.map((r, i) => i === rang ? {
+			...r,
+			recetteId
+		} : r)
+	};
+}
 function nouveauMenu(d, ctx) {
 	return {
 		id: idMenu(d.aujourdhui),
@@ -2160,4 +2170,4 @@ function avisDuPlat(souvenirs, titre) {
 	return null;
 }
 //#endregion
-export { AJOUTS_MAX, CONSIGNES_CHEF, HEURE_DU_CHEF, JOURS_ALERTE_MITSU, JOURS_A_FINIR, JOUR_DU_CHEF, MODELE_CHEF, NOMBRE_REPAS, REGLAGE_DE_DEPART, SCHEMA_CHEF, SOUVENIRS_DU_CHEF, alertesMitsu, articlesARemplacer, avisDuPlat, avisSurPlat, ceQuEfface, cleAvis, coutChef, devaliderSoir, estLHeureDuChef, etatBudget, etatDesAjouts, idMenu, jourEtHeure, lireProposition, menuDeLaSemaine, messageChef, moisDe, nomDuJour, notificationChef, nouveauMenu, preparerAjouts, prochainPassage, produitsAFinir, recettesDe, recettesDuChef, reglageChef, reglerChef, retirerAjout, tirerSemaine, validerMenu, validerSoir, validerToutLeMenu };
+export { AJOUTS_MAX, CONSIGNES_CHEF, HEURE_DU_CHEF, JOURS_ALERTE_MITSU, JOURS_A_FINIR, JOUR_DU_CHEF, MODELE_CHEF, NOMBRE_REPAS, REGLAGE_DE_DEPART, SCHEMA_CHEF, SOUVENIRS_DU_CHEF, alertesMitsu, articlesARemplacer, avisDuPlat, avisSurPlat, ceQuEfface, cleAvis, coutChef, devaliderSoir, estLHeureDuChef, etatBudget, etatDesAjouts, idMenu, jourEtHeure, lireProposition, menuDeLaSemaine, messageChef, moisDe, nomDuJour, notificationChef, nouveauMenu, preparerAjouts, prochainPassage, produitsAFinir, recettesDe, recettesDuChef, reglageChef, reglerChef, relierRecette, retirerAjout, tirerSemaine, validerMenu, validerSoir, validerToutLeMenu };

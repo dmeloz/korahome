@@ -100,7 +100,8 @@ describe("les paiements Apple Pay", () => {
 
   it("prépare la demande pour l'IA de Raccourcis avec l'adresse de cet iPhone", () => {
     const demande = demandeRaccourci("https://exemple.supabase.co/functions/v1/paiements?j=abc");
-    expect(demande).toContain("URL : https://exemple.supabase.co/functions/v1/paiements?j=abc");
+    expect(demande).toContain("https://exemple.supabase.co/functions/v1/paiements?j=abc");
+    expect(demande.length).toBeLessThan(500);
     expect(demande).toContain("POST");
     expect(demande).toMatch(/montant[\s\S]*marchand[\s\S]*carte/);
   });

@@ -194,14 +194,8 @@ export function cartesDuFoyer(plan: PlanBudget, docs: readonly DocBudget[]): { c
  */
 export function demandeRaccourci(adresse: string): string {
   return [
-    "Crée un raccourci nommé « Kora paiement » qui se lance tout seul, sans demander, lorsque n'importe quelle carte de Wallet est présentée pour payer (déclencheur Transaction), et reçoit cette transaction en entrée.",
-    "Il contient une seule action « Obtenir le contenu de l'URL » :",
-    `- URL : ${adresse}`,
-    "- Méthode : POST",
-    "- Corps de la requête : JSON, avec trois champs de type Texte :",
-    "  • montant = le Montant de la transaction (entrée du raccourci)",
-    "  • marchand = le Commerçant de la transaction",
-    "  • carte = le nom de la Carte de la transaction",
-    "Pas d'autre action, pas de notification, ne rien afficher.",
+    "Raccourci « Kora paiement », lancé tout seul sans demander à chaque transaction Wallet (déclencheur « Lorsque n'importe quelle carte est présentée »).",
+    `Une seule action : « Obtenir le contenu de l'URL » ${adresse}, méthode POST, corps JSON avec trois champs texte : montant (Montant de la transaction), marchand (Commerçant), carte (nom de la Carte).`,
+    "Rien d'autre : pas de notification, rien à l'écran.",
   ].join("\n");
 }

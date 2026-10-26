@@ -391,7 +391,7 @@ function versEvenementLu(props) {
 const XML = "<?xml version=\"1.0\" encoding=\"utf-8\"?>";
 const CORPS_PRINCIPAL = `${XML}<d:propfind xmlns:d="DAV:"><d:prop><d:current-user-principal/></d:prop></d:propfind>`;
 const CORPS_MAISON = `${XML}<d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop><c:calendar-home-set/></d:prop></d:propfind>`;
-const CORPS_CALENDRIERS = `${XML}<d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop><d:displayname/><d:resourcetype/><c:supported-calendar-component-set/></d:prop></d:propfind>`;
+const CORPS_CALENDRIERS = `${XML}<d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav" xmlns:a="http://apple.com/ns/ical/"><d:prop><d:displayname/><d:resourcetype/><c:supported-calendar-component-set/><a:calendar-color/></d:prop></d:propfind>`;
 /** Les événements d'un calendrier ; avec une période, seulement ceux qui la touchent. */
 function corpsEvenements(periode) {
 	const plage = periode ? `<c:time-range start="${dateIcs(periode.du)}T000000Z" end="${dateIcs(periode.au)}T235959Z"/>` : "";
@@ -428,12 +428,21 @@ function lireMultistatus(xml) {
 	}
 	return reponses;
 }
-/** Les calendriers d'événements trouvés dans le dossier des calendriers. */
+/** La couleur d'un calendrier telle qu'iCloud la donne (« #FF2968FF », avec l'opacité) ramenée à « #FF2968 » ; null si absente. */
+function couleurCalendrier(texte) {
+	const m = (texte ?? "").trim().match(/^#([0-9a-f]{6})(?:[0-9a-f]{2})?$/i);
+	return m ? `#${m[1].toUpperCase()}` : null;
+}
+/** Les calendriers d'événements trouvés dans le dossier des calendriers, avec leur couleur quand iCloud la donne. */
 function lireCalendriers(xml, base) {
-	return lireMultistatus(xml).filter((r) => /<(?:[\w-]+:)?calendar\b/.test(r.props.resourcetype ?? "") && /name=["']VEVENT["']/i.test(r.props["supported-calendar-component-set"] || "name=\"VEVENT\"")).map((r) => ({
-		url: new URL(r.href, base).href,
-		nom: decoderXml(r.props.displayname ?? "").trim() || "Calendrier"
-	}));
+	return lireMultistatus(xml).filter((r) => /<(?:[\w-]+:)?calendar\b/.test(r.props.resourcetype ?? "") && /name=["']VEVENT["']/i.test(r.props["supported-calendar-component-set"] || "name=\"VEVENT\"")).map((r) => {
+		const couleur = couleurCalendrier(decoderXml(r.props["calendar-color"] ?? ""));
+		return {
+			url: new URL(r.href, base).href,
+			nom: decoderXml(r.props.displayname ?? "").trim() || "Calendrier",
+			...couleur ? { couleur } : {}
+		};
+	});
 }
 /** Les événements d'un calendrier, avec leur adresse et leur version (etag). */
 function lireRessources(xml, base) {
@@ -771,4 +780,4 @@ function aujourdhuiAZurich(instant) {
 	return versZurich(instant.toISOString().slice(0, 10), instant.toISOString().slice(11, 16), "UTC").jour;
 }
 //#endregion
-export { CORPS_CALENDRIERS, CORPS_MAISON, CORPS_PRINCIPAL, COULEUR_KORA, FUSEAU, JOURS_A_VENIR, JOURS_PASSES, NOM_CALENDRIER_KORA, aRetirerDe, aujourdhuiAZurich, corpsCreerCalendrier, corpsEvenements, decaler, empreinte, evenementsDe, fusionnerIcs, icsEvenement, idCompteIcloud, lireCalendriers, lireIcs, lireMultistatus, lireRessources, masquerAppleId, planSynchro, prefixeImport, texteDe, uidDe, versZurich };
+export { CORPS_CALENDRIERS, CORPS_MAISON, CORPS_PRINCIPAL, COULEUR_KORA, FUSEAU, JOURS_A_VENIR, JOURS_PASSES, NOM_CALENDRIER_KORA, aRetirerDe, aujourdhuiAZurich, corpsCreerCalendrier, corpsEvenements, couleurCalendrier, decaler, empreinte, evenementsDe, fusionnerIcs, icsEvenement, idCompteIcloud, lireCalendriers, lireIcs, lireMultistatus, lireRessources, masquerAppleId, planSynchro, prefixeImport, texteDe, uidDe, versZurich };

@@ -386,6 +386,11 @@ export function recettesDuChef(proposition: PropositionChef, docs: readonly DocC
   return { repas, recettes };
 }
 
+/** Un soir du Chef resté sans fiche reçoit la recette écrite après coup par la fée (0.0.80). */
+export function relierRecette(menu: MenuSemaine, rang: number, recetteId: Id): MenuSemaine {
+  return { ...menu, repas: menu.repas.map((r, i) => (i === rang ? { ...r, recetteId } : r)) };
+}
+
 export function nouveauMenu(
   d: { proposition: PropositionChef; repas?: RepasChef[]; ajouts?: readonly Element[]; produits: readonly Produit[]; animaux: readonly Animal[]; aujourdhui: Jour; lance: MenuSemaine["lance"]; trame?: TrameSoir[] },
   ctx: Contexte,

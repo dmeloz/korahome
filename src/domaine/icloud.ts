@@ -327,7 +327,7 @@ function versEvenementLu(props: Propriete[]): EvenementLu | null {
 const XML = '<?xml version="1.0" encoding="utf-8"?>';
 export const CORPS_PRINCIPAL = `${XML}<d:propfind xmlns:d="DAV:"><d:prop><d:current-user-principal/></d:prop></d:propfind>`;
 export const CORPS_MAISON = `${XML}<d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop><c:calendar-home-set/></d:prop></d:propfind>`;
-export const CORPS_CALENDRIERS = `${XML}<d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop><d:displayname/><d:resourcetype/><c:supported-calendar-component-set/></d:prop></d:propfind>`;
+export const CORPS_CALENDRIERS = `${XML}<d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav" xmlns:a="http://apple.com/ns/ical/"><d:prop><d:displayname/><d:resourcetype/><c:supported-calendar-component-set/><a:calendar-color/></d:prop></d:propfind>`;
 
 /** Les événements d'un calendrier ; avec une période, seulement ceux qui la touchent. */
 export function corpsEvenements(periode?: { du: Jour; au: Jour }): string {
@@ -390,11 +390,20 @@ export function lireMultistatus(xml: string): ReponseDav[] {
   return reponses;
 }
 
-/** Les calendriers d'événements trouvés dans le dossier des calendriers. */
-export function lireCalendriers(xml: string, base: string): { url: string; nom: string }[] {
+/** La couleur d'un calendrier telle qu'iCloud la donne (« #FF2968FF », avec l'opacité) ramenée à « #FF2968 » ; null si absente. */
+export function couleurCalendrier(texte: string | undefined): string | null {
+  const m = (texte ?? "").trim().match(/^#([0-9a-f]{6})(?:[0-9a-f]{2})?$/i);
+  return m ? `#${m[1].toUpperCase()}` : null;
+}
+
+/** Les calendriers d'événements trouvés dans le dossier des calendriers, avec leur couleur quand iCloud la donne. */
+export function lireCalendriers(xml: string, base: string): { url: string; nom: string; couleur?: string }[] {
   return lireMultistatus(xml)
     .filter((r) => /<(?:[\w-]+:)?calendar\b/.test(r.props.resourcetype ?? "") && /name=["']VEVENT["']/i.test(r.props["supported-calendar-component-set"] || 'name="VEVENT"'))
-    .map((r) => ({ url: new URL(r.href, base).href, nom: decoderXml(r.props.displayname ?? "").trim() || "Calendrier" }));
+    .map((r) => {
+      const couleur = couleurCalendrier(decoderXml(r.props["calendar-color"] ?? ""));
+      return { url: new URL(r.href, base).href, nom: decoderXml(r.props.displayname ?? "").trim() || "Calendrier", ...(couleur ? { couleur } : {}) };
+    });
 }
 
 /** Les événements d'un calendrier, avec leur adresse et leur version (etag). */

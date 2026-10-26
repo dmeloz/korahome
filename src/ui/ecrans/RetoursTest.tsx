@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from "react";
-import { GENRES, basculerRegle, etatRetour, grouperParEcran, heureCourte, type EtatRetour, type RetourTest } from "../../domaine/retours";
+import { GENRES, basculerRegle, estPartie, etatRetour, grouperParEcran, heureCourte, type EtatRetour, type RetourTest } from "../../domaine/retours";
 import type { Foyer } from "../../domaine/types";
 import type { DepotLocal } from "../../donnees/depotLocal";
 import { useAnnoncer } from "../annulation";
@@ -10,8 +10,8 @@ import { construireRapport, copierRapport, partagerRapport } from "../rapport";
 import { RepereOnglet } from "../moteur/pieces";
 import { Page } from "../pieces";
 
-// Les notes de test, rangées comme dans Sanji : nouvelles (pas encore parties),
-// reçues (sur le serveur du foyer, où Claude les lit ; « Transmises » jusqu'en 0.0.74) et réglées.
+// Les notes de test, rangées comme dans Sanji : nouvelles (Claude ne les a pas encore lues),
+// reçues (Claude les a lues et marquées sur le serveur ; « Transmises » jusqu'en 0.0.74) et réglées.
 
 const GROUPES: { etat: EtatRetour; titre: string }[] = [
   { etat: "nouvelle", titre: "Nouvelles" },
@@ -39,7 +39,7 @@ export function RetoursTest(props: { depot: DepotLocal; foyer: Foyer; retours: R
   }, [props.depot]);
 
   const parEtat = (e: EtatRetour) =>
-    props.retours.filter((r) => etatRetour(r, enAttente, props.partageActif) === e).sort((a, b) => b.creeLe.localeCompare(a.creeLe));
+    props.retours.filter((r) => etatRetour(r) === e).sort((a, b) => b.creeLe.localeCompare(a.creeLe));
   const affichees = parEtat(ouvert);
 
   async function partager() {
@@ -79,6 +79,7 @@ export function RetoursTest(props: { depot: DepotLocal; foyer: Foyer; retours: R
   );
 
   const nouvelles = parEtat("nouvelle").length;
+  const enRoute = props.retours.filter((r) => !r.regleLe && !estPartie(r, enAttente, props.partageActif)).length;
 
   return (
     <Page titre="Retours de test" sousTitre={`Kora ${__VERSION__}`} className="avec-cadre">
@@ -86,9 +87,11 @@ export function RetoursTest(props: { depot: DepotLocal; foyer: Foyer; retours: R
       <div className="carte rapport">
         {props.partageActif ? (
           <p>
-            {nouvelles === 0
-              ? "Claude a reçu toutes les notes : pas besoin de les copier ni de les partager."
-              : `${nouvelles} note${nouvelles > 1 ? "s partent" : " part"} vers Claude à la prochaine synchronisation.`}
+            {enRoute > 0
+              ? `${enRoute} note${enRoute > 1 ? "s partent" : " part"} vers Claude à la prochaine synchronisation.`
+              : nouvelles === 0
+                ? "Claude a lu toutes les notes : pas besoin de les copier ni de les partager."
+                : `${nouvelles} note${nouvelles > 1 ? "s attendent" : " attend"} que Claude les lise : elles sont déjà sur le serveur.`}
           </p>
         ) : (
           <p>Les notes partent seules vers Claude dès que le partage est activé sur ce téléphone.</p>

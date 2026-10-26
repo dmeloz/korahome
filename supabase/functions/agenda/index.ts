@@ -211,7 +211,7 @@ async function synchroniserCompte(c: Compte, evenements: any[], foyer: any, anim
         id: idCompteIcloud(c.membre_id),
         membre: c.membre_id,
         appleId: masquerAppleId(c.apple_id),
-        calendriers: calendriers.filter((x) => x.url !== kora && x.nom !== NOM_CALENDRIER_KORA).map((x) => ({ url: x.url, nom: x.nom, lu: !c.ignores.includes(x.url) })),
+        calendriers: calendriers.filter((x) => x.url !== kora && x.nom !== NOM_CALENDRIER_KORA).map((x) => ({ url: x.url, nom: x.nom, lu: !c.ignores.includes(x.url), ...(x.couleur ? { couleur: x.couleur } : {}) })),
         derniereSynchro: maintenant,
         erreur: null,
       },

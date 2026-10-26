@@ -240,9 +240,13 @@ export function organiserPourMoi(
   aujourdhui: Jour,
   moi: Id,
 ): { miennes: GroupeTaches[]; reste: GroupeTaches[]; terminees: Tache[] } {
+  // Ce qui presse (dû aujourd'hui ou en retard) reste sous les yeux, à qui que ce soit la tâche :
+  // en 0.0.79, « Linge » due le jour même se cachait dans « Le reste » parce qu'elle était libre.
+  const presse = (t: Tache) => !estTerminee(t) && ecartJours(aujourdhui, t.echeance) <= 0;
+  const devant = (t: Tache) => t.responsable === moi || presse(t);
   return {
-    miennes: organiserTaches(taches, aujourdhui, "miennes", moi).groupes,
-    reste: organiserTaches(taches.filter((t) => t.responsable !== moi), aujourdhui).groupes,
+    miennes: organiserTaches(taches.filter(devant), aujourdhui).groupes,
+    reste: organiserTaches(taches.filter((t) => !devant(t)), aujourdhui).groupes,
     terminees: organiserTaches(taches, aujourdhui).terminees,
   };
 }
