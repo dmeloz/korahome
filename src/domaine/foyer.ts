@@ -134,3 +134,20 @@ export function decrireTelephones(telephones: readonly TelephoneRelie[], mainten
     .sort((a, b) => rang(a) - rang(b) || b.vu.localeCompare(a.vu))
     .map(({ vu: _vu, ...l }) => l);
 }
+
+/**
+ * Pour la carte « Chez nous » de l'accueil (Kora 0.0.85) : l'autre iPhone resté sur une version
+ * plus ancienne, en une ligne (« Sarah a encore Kora 0.0.81 »), ou null. Un appareil pas ouvert
+ * depuis plus de 14 jours ne compte pas : c'est sans doute un ancien téléphone.
+ */
+export function ligneRetard(foyer: Pick<Foyer, "membres">, membreId: Id | null, versionCourante: string, maintenant: string): string | null {
+  const enRetard = foyer.membres.filter(
+    (m) =>
+      m.id !== membreId &&
+      m.appareil &&
+      comparerVersions(m.appareil.version, versionCourante) < 0 &&
+      Date.parse(maintenant) - Date.parse(m.appareil.vuLe) <= JOURS_ANCIEN * 86_400_000,
+  );
+  if (!enRetard.length) return null;
+  return enRetard.map((m) => `${m.prenom} a encore Kora ${m.appareil!.version}`).join(", ");
+}

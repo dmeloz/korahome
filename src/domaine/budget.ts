@@ -87,6 +87,8 @@ export interface Etiquette {
   id: Id;
   nom: string;
   pot: Pot;
+  /** Un plafond par mois de budget, en francs (Kora 0.0.85) : une alerte douce à 80 %. */
+  plafond?: number | null;
 }
 
 export interface PlanBudget {

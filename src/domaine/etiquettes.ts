@@ -1,4 +1,4 @@
-import { depenses, POTS, type DocBudget, type Etiquette, type PlanBudget, type Pot } from "./budget";
+import { debutMoisBudget, depenses, finMoisBudget, formaterMontant, moisBudget, POTS, type DocBudget, type Etiquette, type PlanBudget, type Pot } from "./budget";
 import { ErreurValidation } from "./foyer";
 import { sansAccents } from "./texte";
 import type { Contexte, Id } from "./types";
@@ -33,12 +33,58 @@ export function ajouterEtiquette(plan: PlanBudget, nom: string, pot: Pot, ctx: C
   return { plan: { ...plan, etiquettes: [...(plan.etiquettes ?? []), etiquette], majLe: ctx.maintenant() }, etiquette };
 }
 
-/** Renommer une catégorie ou changer son pot. */
-export function modifierEtiquette(plan: PlanBudget, id: Id, champs: { nom?: string; pot?: Pot }, ctx: Contexte): PlanBudget {
+/** Renommer une catégorie, changer son pot ou son plafond du mois (null : sans plafond). */
+export function modifierEtiquette(plan: PlanBudget, id: Id, champs: { nom?: string; pot?: Pot; plafond?: number | null }, ctx: Contexte): PlanBudget {
   const actuelle = etiquetteDe(plan, id);
   if (!actuelle) return plan;
   const nom = champs.nom === undefined ? actuelle.nom : nomPropre(plan, champs.nom, id);
-  return { ...plan, etiquettes: (plan.etiquettes ?? []).map((e) => (e.id === id ? { ...e, nom, pot: champs.pot ?? e.pot } : e)), majLe: ctx.maintenant() };
+  if (champs.plafond != null && (!Number.isFinite(champs.plafond) || champs.plafond < 0)) throw new ErreurValidation("Le plafond est un montant en francs.");
+  const plafond = champs.plafond === undefined ? actuelle.plafond : champs.plafond ? Math.round(champs.plafond) : null;
+  return {
+    ...plan,
+    etiquettes: (plan.etiquettes ?? []).map((e) => (e.id === id ? { ...e, nom, pot: champs.pot ?? e.pot, ...(plafond ? { plafond } : { plafond: null }) } : e)),
+    majLe: ctx.maintenant(),
+  };
+}
+
+// ----- Plafond par catégorie (Kora 0.0.85) -----
+// « Resto : 80 francs par mois. » Kora compte ce que la catégorie a dépensé depuis la paie et le dit
+// doucement à 80 %, sans rouge ni blocage : c'est un repère que le foyer s'est donné.
+
+/** À partir de cette part du plafond, Kora le dit. */
+export const SEUIL_PLAFOND = 0.8;
+
+export interface EtatPlafond {
+  etiquette: Etiquette;
+  depense: number;
+  plafond: number;
+  /** La part du plafond déjà dépensée (1 = tout). */
+  part: number;
+}
+
+/** Les catégories qui ont un plafond, avec ce qu'elles ont dépensé ce mois de budget ; la plus avancée d'abord. */
+export function etatDesPlafonds(plan: PlanBudget, docs: readonly DocBudget[], jour: string): EtatPlafond[] {
+  const avec = (plan.etiquettes ?? []).filter((e) => (e.plafond ?? 0) > 0);
+  if (!avec.length) return [];
+  const mois = moisBudget(plan, jour);
+  const debut = debutMoisBudget(plan, mois);
+  const fin = finMoisBudget(plan, mois);
+  const du = depenses(docs).filter((d) => d.etiquette && d.jour >= debut && d.jour <= fin);
+  return avec
+    .map((e) => {
+      const depense = Math.round(du.filter((d) => d.etiquette === e.id).reduce((t, d) => t + d.montant, 0) * 100) / 100;
+      return { etiquette: e, depense, plafond: e.plafond!, part: depense / e.plafond! };
+    })
+    .sort((a, b) => b.part - a.part);
+}
+
+/** Les plafonds à dire : 80 % et plus. */
+export const plafondsAAlerter = (etats: readonly EtatPlafond[]) => etats.filter((e) => e.part >= SEUIL_PLAFOND);
+
+/** « Resto : 85 % du mois, 68 sur 80 CHF » ou « Resto : plafond dépassé, 92 sur 80 CHF ». */
+export function phrasePlafond(e: EtatPlafond): string {
+  const chiffres = `${formaterMontant(e.depense, false)} sur ${formaterMontant(e.plafond)}`;
+  return e.part >= 1 ? `${e.etiquette.nom} : plafond dépassé, ${chiffres}` : `${e.etiquette.nom} : ${Math.floor(e.part * 100)} % du mois, ${chiffres}`;
 }
 
 /** Retirer une catégorie : les dépenses déjà classées gardent leur nom et leur pot. */

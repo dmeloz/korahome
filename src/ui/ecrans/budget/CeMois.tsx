@@ -27,6 +27,7 @@ import type { PropsPage } from "../../modules";
 import { Feuille, PointEtat } from "../../pieces";
 import { apercuAutre, depensesParJour, etatAMoi, type AMoi } from "../../../domaine/aMoi";
 import { moisACloturer } from "../../../domaine/budgetConseil";
+import { etatDesPlafonds, phrasePlafond, plafondsAAlerter } from "../../../domaine/etiquettes";
 import { PaiementsAClasser } from "./Paiements";
 import { JaugeRythme, MotDeJarvis, phraseRythme } from "./Visuels";
 import { ChampMontant, leJour, majuscule, montant, nomDuPot, prenomDe } from "./communs";
@@ -244,6 +245,8 @@ function CeMoisAMoi(p: PropsCeMois & { etat: AMoi }) {
   const plusHaut = Math.max(1, ...jours.map((j) => j.total));
   const autre = plan.personnes.find((x) => x.membreId !== etat.membreId)?.membreId ?? null;
   const pots = etatDesPots(plan, p.budget, aujourdhui);
+  // Le plafond d'une catégorie atteint à 80 % : une ligne, la plus avancée seulement (0.0.85).
+  const alertes = plafondsAAlerter(etatDesPlafonds(plan, p.budget, aujourdhui));
 
   return (
     <>
@@ -290,6 +293,15 @@ function CeMoisAMoi(p: PropsCeMois & { etat: AMoi }) {
             })}
           </svg>
         </button>
+        {alertes[0] && (
+          <button type="button" className="budget-rangee" onClick={p.voirDepenses}>
+            <span className="budget-rangee-texte">
+              {phrasePlafond(alertes[0])}
+              <span className="discret">{alertes.length > 1 ? `Et ${alertes.length - 1} autre${alertes.length > 2 ? "s" : ""} catégorie${alertes.length > 2 ? "s" : ""} près du plafond` : "Le plafond que vous vous êtes donné"}</span>
+            </span>
+            <Icone nom="suivant" taille={16} />
+          </button>
+        )}
         <button type="button" className="budget-rangee" onClick={() => setFeuille("factures")}>
           <span className="budget-rangee-texte">
             {prochaine ? prochaine.poste.libelle : "Factures"}

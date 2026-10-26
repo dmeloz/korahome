@@ -177,6 +177,7 @@ export function FeuilleEtiquette(props: { plan: PlanBudget; ouverture: Ouverture
   const actuelle = ouverture && "id" in ouverture ? plan.etiquettes?.find((e) => e.id === ouverture.id) : undefined;
   const [nom, setNom] = useState("");
   const [pot, setPot] = useState<Pot>("perso");
+  const [plafond, setPlafond] = useState("");
   const [faute, setFaute] = useState<string | null>(null);
   const [cle, setCle] = useState<string | null>(null);
   // La feuille repart propre à chaque ouverture.
@@ -185,17 +186,19 @@ export function FeuilleEtiquette(props: { plan: PlanBudget; ouverture: Ouverture
     setCle(cleOuverture);
     setNom(actuelle?.nom ?? "");
     setPot(actuelle?.pot ?? (ouverture && "nouvelle" in ouverture ? ouverture.pot : undefined) ?? "perso");
+    setPlafond(actuelle?.plafond ? String(actuelle.plafond) : "");
     setFaute(null);
   }
   const nomDuPot = (p: Pot) => plan.comptes[p] || POTS[p].nom;
 
   async function garder() {
     try {
+      const n = plafond.trim() ? Number(plafond.replace(",", ".").replace(/[^\d.]/g, "")) : null;
       if (actuelle) {
-        await props.enregistrer(modifierEtiquette(plan, actuelle.id, { nom, pot }, contexteReel));
+        await props.enregistrer(modifierEtiquette(plan, actuelle.id, { nom, pot, plafond: n }, contexteReel));
       } else {
         const r = ajouterEtiquette(plan, nom, pot, contexteReel);
-        await props.enregistrer(r.plan);
+        await props.enregistrer(n ? modifierEtiquette(r.plan, r.etiquette.id, { plafond: n }, contexteReel) : r.plan);
         props.creee?.(r.etiquette);
       }
       props.fermer();
@@ -213,6 +216,11 @@ export function FeuilleEtiquette(props: { plan: PlanBudget; ouverture: Ouverture
           <input value={nom} maxLength={LONGUEUR_NOM} placeholder="Ex. Essence" autoCapitalize="sentences" onChange={(e) => setNom(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void garder()} />
         </label>
         <Puces libelle="Dans le pot" valeur={pot} changer={setPot} choix={POTS_DE_CARTE.map((v) => ({ v, libelle: nomDuPot(v) }))} />
+        <label>
+          Plafond par mois (facultatif)
+          <input inputMode="decimal" value={plafond} placeholder="Ex. 80" onChange={(e) => setPlafond(e.target.value)} />
+        </label>
+        <p className="discret">Kora le dit doucement dans « Ce mois » quand la catégorie atteint 80 %. Rien n'est bloqué.</p>
         {faute && <p className="discret budget-faute">{faute}</p>}
         <button type="button" className="bouton-principal" onClick={() => void garder()}>
           {actuelle ? "Enregistrer" : "Créer la catégorie"}
@@ -290,6 +298,7 @@ export function FeuilleReglages(props: {
                       {" "}
                       · {plan.comptes[e.pot] || POTS[e.pot].nom}
                       {usage[e.id] ? ` · ${usage[e.id]} dépense${usage[e.id] > 1 ? "s" : ""}` : ""}
+                      {e.plafond ? ` · plafond ${e.plafond}` : ""}
                     </span>
                   </span>
                 </button>

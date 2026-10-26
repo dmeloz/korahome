@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { lireDepense, nouveauPlan, nouvelleDepense, type DocBudget } from "./budget";
 import { contexteTest } from "./contexteTest";
-import { ajouterEtiquette, etiquetteProposee, etiquettesDuPlan, modifierEtiquette, supprimerEtiquette, usageDesEtiquettes } from "./etiquettes";
+import { ajouterEtiquette, etatDesPlafonds, etiquetteProposee, etiquettesDuPlan, modifierEtiquette, phrasePlafond, plafondsAAlerter, supprimerEtiquette, usageDesEtiquettes } from "./etiquettes";
 import { classerPaiement, recevoirPaiement } from "./paiements";
 
 const ctx = contexteTest();
@@ -52,5 +52,30 @@ describe("les catégories du foyer", () => {
     expect(lireDepense("45 essentiel", plan)).not.toHaveProperty("etiquette");
     const docs: DocBudget[] = [plan, nouvelleDepense({ ...lireDepense("45 essence", plan)!, jour: "2026-11-03" }, "melo", ctx)];
     expect(usageDesEtiquettes(plan, docs)).toEqual({ [etiquette.id]: 1 });
+  });
+});
+
+describe("le plafond d'une catégorie", () => {
+  it("compte le mois de budget et le dit doucement à 80 %", () => {
+    const r = ajouterEtiquette({ ...plan0, jourDePaie: null }, "Resto", "plaisir", ctx);
+    const plan = modifierEtiquette(r.plan, r.etiquette.id, { plafond: 80 }, ctx);
+    const resto = (montant: number, jour: string) => nouvelleDepense({ montant, pot: "plaisir", libelle: "Resto", jour, etiquette: r.etiquette.id }, null, ctx);
+    const docs: DocBudget[] = [plan, resto(30, "2026-10-03"), resto(40, "2026-10-20"), resto(55, "2026-09-28")];
+    const [etat] = etatDesPlafonds(plan, docs, "2026-10-26");
+    expect(etat).toMatchObject({ depense: 70, plafond: 80 });
+    expect(plafondsAAlerter([etat])).toHaveLength(1);
+    expect(phrasePlafond(etat)).toBe("Resto : 87 % du mois, 70 sur 80 CHF");
+    const [depasse] = etatDesPlafonds(plan, [...docs, resto(15, "2026-10-25")], "2026-10-26");
+    expect(phrasePlafond(depasse)).toBe("Resto : plafond dépassé, 85 sur 80 CHF");
+    expect(plafondsAAlerter(etatDesPlafonds(plan, [plan, resto(20, "2026-10-03")], "2026-10-26"))).toHaveLength(0);
+  });
+
+  it("se règle et se retire, jamais négatif", () => {
+    const r = ajouterEtiquette(plan0, "Resto", "plaisir", ctx);
+    const avec = modifierEtiquette(r.plan, r.etiquette.id, { plafond: 79.6 }, ctx);
+    expect(avec.etiquettes?.[0].plafond).toBe(80);
+    expect(modifierEtiquette(avec, r.etiquette.id, { plafond: null }, ctx).etiquettes?.[0].plafond).toBeNull();
+    expect(() => modifierEtiquette(avec, r.etiquette.id, { plafond: -5 }, ctx)).toThrow(/montant/);
+    expect(etatDesPlafonds(r.plan, [r.plan], "2026-10-26")).toEqual([]);
   });
 });

@@ -20,6 +20,7 @@ import {
   nettoyerJours,
   PREFERENCES_DE_DEPART,
   rappelDu,
+  messagePush,
   rappelDuMatin,
   tachesDuMatin,
 } from "./rappels";
@@ -79,6 +80,14 @@ describe("le rappel du matin", () => {
     const entree = { foyer, membreId: melo.id, taches: [], animaux: [], evenements, aujourdhui: AUJOURDHUI };
     expect(rappelDuMatin({ ...entree, preferences: PREFERENCES_DE_DEPART })).toEqual({ titre: "Bonjour Melo", corps: "Agenda : Vacances (jusqu'au 14 oct.), Dentiste à 14:30", nombre: 2 });
     expect(rappelDuMatin({ ...entree, preferences: { ...PREFERENCES_DE_DEPART, agenda: false } })).toBeNull();
+  });
+
+  it("annonce un anniversaire une semaine avant, pour le cadeau", () => {
+    const c = contexteTest();
+    const lea = preparerEvenement({ titre: "Léa", jour: "1996-10-19", categorie: "anniversaire", repetition: "annee", pour: sarah.id }, null, c);
+    const entree = { foyer, membreId: melo.id, taches: [], animaux: [], evenements: [lea], preferences: PREFERENCES_DE_DEPART };
+    expect(rappelDuMatin({ ...entree, aujourdhui: "2026-10-12" })).toEqual({ titre: "Bonjour Melo", corps: "Anniversaire dans une semaine : Léa · 30 ans", nombre: 1 });
+    expect(rappelDuMatin({ ...entree, aujourdhui: "2026-10-13" })).toBeNull();
   });
 
   it("n'envoie rien quand il n'y a rien à faire", () => {
@@ -261,5 +270,17 @@ describe("les heures calmes", () => {
     expect(fenetreMotsCalmes(new Date("2026-10-21T05:00:30Z"))).toEqual({ apres: "2026-10-20T20:00:00.000Z", jusqua: "2026-10-21T05:00:00.000Z" });
     expect(fenetreMotsCalmes(new Date("2026-10-21T05:01:00Z"))).toBeNull();
     expect(fenetreMotsCalmes(new Date("2026-10-21T06:00:00Z"))).toBeNull();
+  });
+});
+
+describe("messagePush", () => {
+  it("porte la forme déclarative d'iOS 18.4 et l'ancienne pour le service worker", () => {
+    const m = messagePush({ titre: "Bonjour Melo", corps: "Aujourd'hui : Linge", nombre: 2 });
+    expect(m).toMatchObject({ titre: "Bonjour Melo", corps: "Aujourd'hui : Linge", nombre: 2, url: "./", web_push: 8030 });
+    expect(m.notification).toEqual({ title: "Bonjour Melo", body: "Aujourd'hui : Linge", navigate: "https://dmeloz.github.io/korahome/", lang: "fr", app_badge: "2" });
+  });
+
+  it("sans nombre, pas de pastille", () => {
+    expect(messagePush({ titre: "Menus de la semaine", corps: "5 soirs" }).notification).not.toHaveProperty("app_badge");
   });
 });

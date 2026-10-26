@@ -21,6 +21,7 @@ import {
 } from "../../domaine/ecranAccueil";
 import type { EtatPartage } from "../../domaine/etatPartage";
 import { filDuFoyer, quiDe, resumeDuJour } from "../../domaine/fil";
+import { ligneRetard } from "../../domaine/foyer";
 import type { OuRecherche } from "../../domaine/recherche";
 import { repartitionDue } from "../../domaine/repartition";
 import { decrireDerniere, sauvegardeDue } from "../../domaine/sauvegarde";
@@ -314,10 +315,15 @@ export function Accueil(props: {
     const base = { id, titre: CARTES.find((c) => c.id === id)!.titre, picto: PICTO_CARTE[id] };
     if (id === "fil") {
       const resume = resumeDuJour(filEntrees, aujourdhui, jourLocal, foyer, membreId);
+      // L'autre iPhone resté sur une vieille version : une ligne discrète, en tête (0.0.85).
+      const retard = foyer ? ligneRetard(foyer, membreId, __VERSION__, maintenant.toISOString()) : null;
       return {
         ...base,
         contexte: resume ? `Aujourd'hui : ${resume}` : filEntrees.length ? "Rien de neuf aujourd'hui" : "Ce que chacun fait, au fil des jours",
-        lignes: filEntrees.slice(0, 2).map((e) => ({ texte: `${quiDe(e, foyer, membreId)} ${e.texte}`, fin: jourLocal(e.quand) === aujourdhui ? heureMinute(new Date(e.quand)) : "avant" })),
+        lignes: [
+          ...(retard ? [{ texte: retard, fin: "à mettre à jour" }] : []),
+          ...filEntrees.slice(0, 2).map((e) => ({ texte: `${quiDe(e, foyer, membreId)} ${e.texte}`, fin: jourLocal(e.quand) === aujourdhui ? heureMinute(new Date(e.quand)) : "avant" })),
+        ].slice(0, 2),
         urgent: false,
         ouvrir: props.ouvrirFil,
       };

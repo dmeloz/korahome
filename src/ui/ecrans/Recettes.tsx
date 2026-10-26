@@ -37,7 +37,7 @@ import type { PropsPage } from "../modules";
 import { useGestionnaireBarre, useInvitationBarre } from "../pieces";
 import { nomFee } from "../fee";
 import { Ligne, ListeVivante } from "../moteur/pieces";
-import { ignorer } from "../journal";
+import { useEcranAllume } from "../eveil";
 import { texteRecette } from "../../domaine/exports";
 import { partagerTexte } from "../partage";
 
@@ -490,28 +490,10 @@ function ModeCuisine(props: { titre: string; portions: number; ingredients: Ingr
   const total = props.etapes.length + 1;
 
   // L'écran reste allumé tant que le mode cuisine est ouvert (iOS 18.4 et plus).
+  useEcranAllume(true);
   useEffect(() => {
-    let verrou: WakeLockSentinel | null = null;
-    let fini = false;
-    const demander = () => {
-      navigator.wakeLock
-        ?.request("screen")
-        .then((v) => {
-          if (fini) void v.release();
-          else verrou = v;
-        })
-        .catch(ignorer);
-    };
-    demander();
-    const revenir = () => document.visibilityState === "visible" && demander();
-    document.addEventListener("visibilitychange", revenir);
     document.documentElement.classList.add("feuille-ouverte");
-    return () => {
-      fini = true;
-      document.removeEventListener("visibilitychange", revenir);
-      document.documentElement.classList.remove("feuille-ouverte");
-      void verrou?.release();
-    };
+    return () => document.documentElement.classList.remove("feuille-ouverte");
   }, []);
 
   const aller = (n: number) => {

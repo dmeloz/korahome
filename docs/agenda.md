@@ -59,3 +59,10 @@ le recrée et le remplit, sans rien effacer de l'agenda.
 3. Redéployer `rappels` (l'agenda du jour dans le rappel du matin) et `jarvis` (ses nouveaux outils).
 4. Programmer le passage du quart d'heure :
    `select prive.programmer_agenda('https://ffnmyfrzqvhvafnxvyxx.supabase.co');`
+
+## Préparer la veille (depuis 0.0.85)
+
+La fiche d'un événement à venir propose « À préparer la veille » (« Penser au cadeau la veille »
+pour un anniversaire) : une tâche « Préparer : Vétérinaire » ou « Cadeau : Léa », due la veille
+(aujourd'hui si la veille est passée), pour la personne de l'événement (`tacheDeLaVeille` dans
+`src/domaine/agenda.ts`). Le rappel du matin annonce aussi un anniversaire une semaine avant.

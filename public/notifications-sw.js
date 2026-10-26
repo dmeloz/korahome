@@ -1,4 +1,7 @@
 // KoraHome : ce que fait le service worker quand le serveur envoie un rappel.
+// Le message porte aussi sa forme déclarative (web_push 8030, messagePush dans src/domaine/rappels.ts) :
+// depuis iOS 18.4 l'iPhone l'affiche seul si ce fichier ne répond pas à temps ; sinon la notification
+// montrée ici la remplace.
 // Chargé par le service worker de l'app (vite.config.ts, workbox.importScripts).
 
 self.addEventListener("push", (event) => {

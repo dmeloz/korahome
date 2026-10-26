@@ -15,6 +15,7 @@ import {
   occurrences,
   preparerEvenement,
   resumeAgenda,
+  tacheDeLaVeille,
   titreDe,
   type EntreeEvenement,
   type Evenement,
@@ -302,5 +303,25 @@ describe("un événement lu dans un autre calendrier iCloud", () => {
   it("le carnet de Mitsu reste en lecture seule", () => {
     const carnet = { ...ev({ titre: "Vaccin", jour: "2026-10-20" }), source: "Carnet de Mitsu" };
     expect(occurrences([carnet], "2026-10-20", "2026-10-20")[0].lectureSeule).toBe(true);
+  });
+});
+
+describe("tacheDeLaVeille", () => {
+  it("prépare la veille, pour la personne de l'événement", () => {
+    const e = { ...ev({ titre: "Vétérinaire", jour: "2026-10-30" }), pour: "sarah" };
+    const [o] = occurrences([e], "2026-10-30", "2026-10-30");
+    const t = tacheDeLaVeille(o, "2026-10-26", contexteTest());
+    expect(t.titre).toBe("Préparer : Vétérinaire");
+    expect(t.echeance).toBe("2026-10-29");
+    expect(t.responsable).toBe("sarah");
+  });
+
+  it("un anniversaire demande un cadeau, et une veille passée devient aujourd'hui", () => {
+    const e = { ...ev({ titre: "Léa", jour: "2026-10-27" }), categorie: "anniversaire" as const, pour: null };
+    const [o] = occurrences([e], "2026-10-27", "2026-10-27");
+    const t = tacheDeLaVeille(o, "2026-10-27", contexteTest());
+    expect(t.titre).toBe("Cadeau : Léa");
+    expect(t.echeance).toBe("2026-10-27");
+    expect(t.responsable).toBeNull();
   });
 });

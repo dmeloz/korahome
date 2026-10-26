@@ -70,3 +70,15 @@ programmé entre 22 h et 7 h (heure du foyer) n'est pas annoncé à ce télépho
 de 7 h 00, la fonction `rappels` rattrape les mots devenus visibles depuis 22 h la veille pour ces
 téléphones seulement (`enHeuresCalmes`, `fenetreMotsCalmes` dans `src/domaine/rappels.ts`). Les cœurs ne
 sont jamais rattrapés. Le rappel du matin garde son heure.
+
+## Notifications déclaratives (depuis 0.0.85)
+
+Chaque message envoyé (`messagePush` dans `src/domaine/rappels.ts`, utilisé par `rappels` et `chef`)
+porte deux formes. La forme déclarative (`web_push: 8030`, `notification` avec `title`, `body`,
+`navigate` et `app_badge`) est lue par l'iPhone lui-même depuis iOS 18.4 : la notification s'affiche
+et la pastille de l'icône se pose même si le service worker ne se réveille pas à temps. L'ancienne
+forme (`titre`, `corps`, `nombre`, `url`) reste lue par `public/notifications-sw.js`, qui reçoit
+toujours l'évènement : sa notification remplace celle proposée et il garde le rappel pour la cloche.
+
+Le rappel du matin annonce aussi les anniversaires de l'agenda une semaine avant
+(`anniversairesBientot` dans `src/domaine/agenda.ts`).
