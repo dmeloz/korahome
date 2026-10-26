@@ -99,8 +99,8 @@ export function Jarvis(props: {
       });
       const actions = lireActions(reponse.appels);
       // Supprimer, ou retenir ce qu'il a remarqué seul : chaque fois, une question avant d'agir.
-      const enAttente = actions.filter(aConfirmer);
-      const resultat = appliquerActions(actions.filter((a) => !aConfirmer(a)), avecVersion, donnees.membreId, donnees.aujourdhui, contexteReel);
+      const enAttente = actions.filter((a) => aConfirmer(a, texte));
+      const resultat = appliquerActions(actions.filter((a) => !aConfirmer(a, texte)), avecVersion, donnees.membreId, donnees.aujourdhui, contexteReel);
       await enregistrerModifications(depot, resultat.modifications);
       if (resultat.modifications.length) vibrer();
       const dit = [reponse.texte, ...resultat.faits, ...resultat.echecs].filter(Boolean).join(" ") || (enAttente.length ? "" : "C'est fait.");

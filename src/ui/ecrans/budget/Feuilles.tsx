@@ -337,7 +337,7 @@ export function FeuilleReglages(props: {
             <button type="button" className="bouton-secondaire" onClick={() => void basculerVerrou()}>
               {verrou ? "Retirer le verrou Face ID" : "Protéger le Budget avec Face ID"}
             </button>
-            <p className="discret">{motVerrou ?? "Un rideau devant la page du Budget, pour que personne qui prend ton iPhone ne tombe dessus. Les chiffres restent synchronisés comme avant."}</p>
+            <p className="discret">{motVerrou ?? "Un rideau devant la page du Budget, pour que personne qui prend ton iPhone ne tombe dessus. C'est un rideau, pas un coffre : la fée, la recherche et l'accueil peuvent encore dire un montant. Les chiffres restent synchronisés comme avant."}</p>
           </>
         )}
       </div>

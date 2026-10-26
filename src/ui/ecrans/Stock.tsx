@@ -55,6 +55,7 @@ import { Glissable } from "../Glissable";
 import { Ligne, ListeVivante } from "../moteur/pieces";
 import { Icone } from "../Icone";
 import { AuDessusDeLaBarre, Onglets, Page, useGestionnaireBarre, useSaisieBarre } from "../pieces";
+import { sauver } from "../sauver";
 
 // Frigo, congélateur et placard : ce qu'il y a à la maison, ce qui arrive à sa date
 // en tête. On ajoute d'une phrase (tapée ou dictée), d'un scan ou d'un toucher sur un
@@ -478,7 +479,7 @@ export function Stock(props: {
                   type="button"
                   className={`puce${l === produitOuvert.lieu ? " active" : ""}`}
                   aria-pressed={l === produitOuvert.lieu}
-                  onClick={() => void depot.enregistrerProduit(deplacer(produitOuvert, l))}
+                  onClick={() => sauver(depot.enregistrerProduit(deplacer(produitOuvert, l)))}
                 >
                   {LIEUX[l]}
                 </button>
@@ -486,7 +487,7 @@ export function Stock(props: {
             </div>
             <label>
               À consommer avant le
-              <input type="date" value={produitOuvert.peremption ?? ""} onChange={(e) => void depot.enregistrerProduit(avecQuantite({ ...produitOuvert, peremption: e.target.value || null }))} />
+              <input type="date" value={produitOuvert.peremption ?? ""} onChange={(e) => sauver(depot.enregistrerProduit(avecQuantite({ ...produitOuvert, peremption: e.target.value || null })))} />
             </label>
             {courses && (
               <button type="button" className="bouton-principal" onClick={() => { const pr = produitOuvert; setOuvert(null); void aRacheter(pr); }}>
@@ -523,7 +524,7 @@ function Base(props: { depot: Depot; catalogue: ProduitHabituel[]; remettre: (h:
     );
   }
 
-  const changer = (h: ProduitHabituel, modif: Partial<ProduitHabituel>) => void props.depot.enregistrerHabituel({ ...h, ...modif });
+  const changer = (h: ProduitHabituel, modif: Partial<ProduitHabituel>) => sauver(props.depot.enregistrerHabituel({ ...h, ...modif }));
 
   return (
     <>
@@ -535,7 +536,7 @@ function Base(props: { depot: Depot; catalogue: ProduitHabituel[]; remettre: (h:
             <Ligne key={h.id}>
               <Glissable
                 onSupprimer={() => {
-                  void props.depot.supprimerHabituel(h.id);
+                  sauver(props.depot.supprimerHabituel(h.id));
                   annoncer(`« ${h.nom} » retiré de la Base.`, () => props.depot.enregistrerHabituel(h));
                 }}
               >

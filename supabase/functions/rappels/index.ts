@@ -13,7 +13,7 @@
 // dans domaine.js par `npm run fonction`. Déploiement : docs/notifications.md.
 
 import webpush from "npm:web-push@3.6.7";
-import { preflight, repondre } from "../_shared/http.ts";
+import { messageErreur, preflight, repondre } from "../_shared/http.ts";
 import { echec, estMembre, serveur, utilisateur } from "../_shared/supabase.ts";
 import { adresseMeteo, enHeuresCalmes, evenementsDe, facturesDuJour, fenetreMotsCalmes, fenetreMotsProgrammes, formaterHeure, FUSEAU_DU_FOYER, jourEtHeure, lireMeteo, notificationHeure, notificationMot, PREFERENCES_DE_DEPART, rappelDu, rappelDuMatin, tachesALHeure } from "./domaine.js";
 
@@ -248,6 +248,6 @@ Deno.serve(async (req) => {
     return repondre({ erreur: "Demande inconnue" }, 400);
   } catch (e) {
     console.error(e);
-    return repondre({ erreur: (e as Error).message }, 500);
+    return repondre({ erreur: messageErreur(e) }, 500);
   }
 });

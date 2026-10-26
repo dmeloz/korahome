@@ -15,6 +15,7 @@ import { Montant } from "../../moteur/Chiffre";
 import { csvDepenses } from "../../../domaine/exports";
 import { partagerFichier } from "../../partage";
 import { ignorer } from "../../journal";
+import { sauver } from "../../sauver";
 
 // ----- Les dépenses -----
 
@@ -132,7 +133,7 @@ export function Depenses(p: PropsPage & { plan: PlanBudget; filtre: Pot | null; 
 function FeuilleDepense(props: { plan: PlanBudget; depense: Depense | null; budget: PropsPage["budget"]; depot: PropsPage["depot"]; fermer: () => void }) {
   const annoncer = useAnnoncer();
   const actuelle = props.depense ? (depenses(props.budget).find((d) => d.id === props.depense!.id) ?? props.depense) : null;
-  const changer = (c: Partial<Depense>) => actuelle && void props.depot.enregistrerBudget({ ...actuelle, ...c });
+  const changer = (c: Partial<Depense>) => actuelle && sauver(props.depot.enregistrerBudget({ ...actuelle, ...c }));
   return (
     <Feuille ouverte={!!actuelle} onFermer={props.fermer} titre={actuelle?.libelle}>
       {actuelle && (
@@ -175,7 +176,7 @@ function FeuilleDepense(props: { plan: PlanBudget; depense: Depense | null; budg
             className="lien danger"
             onClick={() => {
               props.fermer();
-              void props.depot.supprimerBudget(actuelle.id);
+              sauver(props.depot.supprimerBudget(actuelle.id));
               annoncer(`${actuelle.libelle} retirée.`, () => props.depot.enregistrerBudget(actuelle));
             }}
           >

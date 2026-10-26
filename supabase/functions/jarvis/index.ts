@@ -14,7 +14,7 @@
 
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { avecAlerte, PanneSignalee } from "../_shared/alerte.ts";
-import { limiteDuCompte, preflight, repondre } from "../_shared/http.ts";
+import { limiteDuCompte, messageErreur, preflight, repondre } from "../_shared/http.ts";
 import { estMembre, serveur, utilisateur } from "../_shared/supabase.ts";
 import {
   CONSIGNES_BUDGET,
@@ -175,6 +175,6 @@ Deno.serve(async (req) => {
     if (e instanceof Anthropic.RateLimitError) return repondre({ erreur: "Jarvis est très demandé, réessaie dans un instant." }, 429);
     if (e instanceof Anthropic.AuthenticationError) return repondre({ erreur: "La clé de Jarvis est refusée : il faut la remplacer sur le serveur." }, 503);
     if (e instanceof Anthropic.APIError) return repondre({ erreur: "Jarvis ne répond pas pour l'instant, réessaie." }, 502);
-    return repondre({ erreur: (e as Error).message }, 500);
+    return repondre({ erreur: messageErreur(e) }, 500);
   }
 });

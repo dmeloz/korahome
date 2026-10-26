@@ -19,7 +19,7 @@ import Anthropic from "npm:@anthropic-ai/sdk";
 import webpush from "npm:web-push@3.6.7";
 import { ctx } from "../_shared/contexte.ts";
 import { avecAlerte, PanneSignalee } from "../_shared/alerte.ts";
-import { limiteDuCompte, preflight, repondre } from "../_shared/http.ts";
+import { ErreurPublique, limiteDuCompte, messageErreur, preflight, repondre } from "../_shared/http.ts";
 import { cleCronValide, echec, estMembre, serveur, utilisateur } from "../_shared/supabase.ts";
 import {
   articlesARemplacer,
@@ -88,12 +88,12 @@ async function annoncer(foyerId: string, message: { titre: string; corps: string
   return envoyes;
 }
 
-class PlafondAtteint extends Error {}
+class PlafondAtteint extends ErreurPublique {}
 
 /** Le passage du Chef pour un foyer : menus, ajouts aux courses, notification. */
 async function cuisiner(foyerId: string, lance: "auto" | "maintenant") {
   const cle = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!cle) throw new Error("Le Chef n'est pas encore branché : sa clé manque sur le serveur.");
+  if (!cle) throw new ErreurPublique("Le Chef n'est pas encore branché : sa clé manque sur le serveur.");
   if (etatBudget(await compter(foyerId, 0)).atteint) throw new PlafondAtteint("Le plafond de Jarvis est atteint ce mois-ci : le Chef reprend le 1er du mois prochain.");
 
   const aujourdhui = jourEtHeure(new Date()).jour;
@@ -113,10 +113,10 @@ async function cuisiner(foyerId: string, lance: "auto" | "maintenant") {
     messages: [{ role: "user", content: messageChef({ produits: d.produits, enCourses, aujourdhui, souvenirs: d.souvenirs, recettes: recettesDe(d.menus), trame }) }],
   }));
   const budget = etatBudget(await compter(foyerId, coutChef(reponse.usage)));
-  if (reponse.stop_reason === "refusal") throw new Error("Le Chef n'a pas pu préparer les menus cette fois.");
+  if (reponse.stop_reason === "refusal") throw new ErreurPublique("Le Chef n'a pas pu préparer les menus cette fois.");
   const texte = reponse.content.map((b) => (b.type === "text" ? b.text : "")).join("");
   const proposition = lireProposition(JSON.parse(texte));
-  if (!proposition) throw new Error("Le Chef n'a pas proposé de repas, réessaie.");
+  if (!proposition) throw new ErreurPublique("Le Chef n'a pas proposé de repas, réessaie.");
 
   // Relancé dans la semaine : il retire d'abord ses propres articles encore à prendre.
   const ancien = menuDeLaSemaine(d.menus, aujourdhui);
@@ -192,6 +192,6 @@ Deno.serve(async (req) => {
     if (e instanceof Anthropic.RateLimitError) return repondre({ erreur: "Le Chef est très demandé, réessaie dans un instant." }, 429);
     if (e instanceof Anthropic.AuthenticationError) return repondre({ erreur: "La clé du Chef est refusée : il faut la remplacer sur le serveur." }, 503);
     if (e instanceof Anthropic.APIError) return repondre({ erreur: "Le Chef ne répond pas pour l'instant, réessaie." }, 502);
-    return repondre({ erreur: (e as Error).message }, 500);
+    return repondre({ erreur: messageErreur(e) }, 500);
   }
 });

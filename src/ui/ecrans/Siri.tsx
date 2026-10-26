@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AVERTISSEMENT_RACCOURCI, separerLien } from "../../domaine/lienRaccourci";
 import { demandeRaccourciEcran, demandeRaccourciSiri, nomPropose, RACCOURCIS_ECRAN } from "../../domaine/siri";
 import type { Foyer, Id } from "../../domaine/types";
 import type { ServeurJarvis } from "../../donnees/distant";
@@ -26,7 +27,7 @@ export const siriRelie = () => !!lire();
 
 const ETAPES = [
   "Dans Raccourcis, touche + puis colle la demande copiée dans « Décrire un raccourci ».",
-  "Vérifie le résultat : « Demander une saisie », puis « Obtenir le contenu de » avec ton adresse (Méthode POST, Corps JSON, champ demande), puis « Énoncer le texte ».",
+  "Vérifie le résultat : « Demander une saisie », puis « Obtenir le contenu de » avec ton adresse (Méthode POST, Corps JSON, champs demande et jeton), puis « Énoncer le texte ».",
   "Dis « Dis Siri » suivi du nom du raccourci, puis ta demande : « ajoute du lait », « qu'est-ce qu'on a demain ? ». Pour supprimer, il te demande oui ou non ; « annule » défait ce qu'il vient de faire.",
 ];
 
@@ -99,18 +100,22 @@ export function Siri(props: { foyer: Foyer; membreId: Id | null; distant: { serv
         ) : relie ? (
           <>
             <p className="surtitre">Cet iPhone est relié · « {relie.nom} »</p>
-            <p className="budget-adresse">{relie.adresse}</p>
+            <p className="budget-adresse">{separerLien(relie.adresse).adresse}</p>
             <div className="budget-actions">
               <button type="button" className="bouton-principal" onClick={() => void copier(demandeRaccourciSiri(relie.adresse, relie.nom), "Demande copiée : colle-la dans Raccourcis.")}>
                 Copier la demande
               </button>
-              <button type="button" className="bouton-secondaire" onClick={() => void copier(relie.adresse, "Adresse copiée.")}>
+              <button type="button" className="bouton-secondaire" onClick={() => void copier(separerLien(relie.adresse).adresse, "Adresse copiée.")}>
                 Copier l'adresse
+              </button>
+              <button type="button" className="bouton-secondaire" onClick={() => void copier(separerLien(relie.adresse).jeton ?? "", "Clé copiée : champ jeton du corps JSON.")}>
+                Copier la clé
               </button>
               <button type="button" className="bouton-secondaire" disabled={occupe} onClick={() => void retirer()}>
                 Retirer le lien
               </button>
             </div>
+            <p className="discret">{AVERTISSEMENT_RACCOURCI}</p>
             <p className="surtitre">Des boutons sur l'écran d'accueil</p>
             <p className="discret">Trois raccourcis prêts, à poser à côté de Kora : un toucher, sans parler ni ouvrir l'app. Copie la demande, colle-la dans « Décrire un raccourci », puis « Ajouter à l'écran d'accueil ».</p>
             <ul className="siri-raccourcis">

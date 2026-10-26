@@ -40,6 +40,7 @@ import { Depenses } from "./Depenses";
 import { Charges } from "./Charges";
 import { Analyse } from "./Analyse";
 import { FeuilleEtiquette, FeuillePersonne, FeuillePoste, FeuilleProjet, FeuilleReglages, type OuvertureEtiquette } from "./Feuilles";
+import { sauver } from "../../sauver";
 
 type Onglet = "mois" | "depenses" | "charges" | "analyse" | "conseiller";
 const estOnglet = (o: string | undefined): o is Onglet => o === "mois" || o === "depenses" || o === "charges" || o === "analyse" || o === "conseiller";
@@ -110,7 +111,7 @@ export function Budget(p: PropsPage) {
       <Page titre="Budget" sousTitre="Le budget du foyer">
         <section className="carte">
           <p>Le budget du foyer : chacun son salaire et sa part au compte commun, les courses, les factures, le plaisir et l'épargne. Kora fait les calculs et reporte ce qui reste d'un mois à l'autre.</p>
-          <button type="button" className="bouton-principal" onClick={() => void depot.enregistrerBudget(nouveauPlan(foyer.membres.map((m) => m.id), aujourdhui, contexteReel))}>
+          <button type="button" className="bouton-principal" onClick={() => sauver(depot.enregistrerBudget(nouveauPlan(foyer.membres.map((m) => m.id), aujourdhui, contexteReel)))}>
             Commencer
           </button>
         </section>

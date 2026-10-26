@@ -55,6 +55,7 @@ import { lireDerniereRepartition } from "./Taches";
 import { heureMinute } from "../../domaine/texte";
 import { etatRappels } from "../rappels";
 import { ignorer } from "../journal";
+import { sauver } from "../sauver";
 
 // L'accueil « tout sur un écran » (Kora 0.0.72) : la date et ses signes, la pastille « en
 // direct », quatre chiffres du jour, « Ce soir » qui tourne tout seul et deux piles sous « En ce
@@ -273,7 +274,7 @@ export function Accueil(props: {
       if (!t) return;
       const dans = new Date(Date.now() + 15 * 60_000);
       const heure = heureMinute(dans);
-      void props.depot.enregistrerTache({ ...t, heure });
+      sauver(props.depot.enregistrerTache({ ...t, heure }));
     },
   });
   const quiFait = (c: ChoseDuJour) => {
@@ -454,7 +455,7 @@ export function Accueil(props: {
         fermer={() => setHeureDe(null)}
         enregistrer={(t) => {
           setHeureDe(t);
-          void props.depot.enregistrerTache(t);
+          sauver(props.depot.enregistrerTache(t));
         }}
       />
 

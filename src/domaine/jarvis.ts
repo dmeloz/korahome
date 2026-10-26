@@ -221,7 +221,10 @@ export type ActionJarvis =
  * Ce qui attend le oui de la personne avant de se faire : supprimer. Ce que Jarvis remarque seul,
  * il le retient tout de suite (Kora 0.0.70, souhait du foyer) ; « Annuler » ou sa page l'efface.
  */
-export function aConfirmer(action: ActionJarvis): boolean {
+export function aConfirmer(action: ActionJarvis, demande = ""): boolean {
+  // Une page web derrière un lien pourrait glisser une fausse information à retenir : avec un
+  // lien dans la demande, « retenir » attend le oui (veille du 26 octobre 2026).
+  if (action.outil === "retenir" && /https?:\/\//i.test(demande)) return true;
   return (
     action.outil === "supprimer_tache" ||
     action.outil === "retirer_du_stock" ||

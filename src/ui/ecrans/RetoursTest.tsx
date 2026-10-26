@@ -9,6 +9,8 @@ import { effacerJournal, lireJournal } from "../journal";
 import { construireRapport, copierRapport, partagerRapport } from "../rapport";
 import { RepereOnglet } from "../moteur/pieces";
 import { Page } from "../pieces";
+import { ignorer } from "../journal";
+import { sauver } from "../sauver";
 
 // Les notes de test, rangées comme dans Sanji : nouvelles (Claude ne les a pas encore lues),
 // reçues (Claude les a lues et marquées sur le serveur ; « Transmises » jusqu'en 0.0.74) et réglées.
@@ -33,7 +35,10 @@ export function RetoursTest(props: { depot: DepotLocal; foyer: Foyer; retours: R
   // Les notes qui attendent encore leur envoi ; relu à chaque changement (une synchro qui part, une note écrite).
   useEffect(() => {
     const lire = () =>
-      void props.depot.lireEnAttente().then((liste) => setEnAttente(new Set(liste.filter((c) => c.collection === "retours").map((c) => c.id))));
+      props.depot
+        .lireEnAttente()
+        .then((liste) => setEnAttente(new Set(liste.filter((c) => c.collection === "retours").map((c) => c.id))))
+        .catch(ignorer);
     lire();
     return props.depot.abonner(lire);
   }, [props.depot]);
@@ -62,7 +67,7 @@ export function RetoursTest(props: { depot: DepotLocal; foyer: Foyer; retours: R
       <button
         className="case"
         aria-label={r.regleLe ? "Rouvrir la note" : "Marquer la note réglée"}
-        onClick={() => void props.depot.enregistrerRetour(basculerRegle(r, contexteReel))}
+        onClick={() => sauver(props.depot.enregistrerRetour(basculerRegle(r, contexteReel)))}
       >
         {r.regleLe ? "✓" : ""}
       </button>

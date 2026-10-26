@@ -1,6 +1,7 @@
 import { auCentime, depenses, formaterMontant, planDe, POTS, reglerFacture, type DocBudget, type Depense, type Etiquette, type PaiementAClasser, type PlanBudget, type Pot } from "./budget";
 import type { Contexte, Id, Jour } from "./types";
 import { sansAccents } from "./texte";
+import { separerLien } from "./lienRaccourci";
 
 // Les paiements Apple Pay arrivent seuls dans le budget (Kora 0.0.29).
 //
@@ -192,10 +193,11 @@ export function cartesDuFoyer(plan: PlanBudget, docs: readonly DocBudget[]): { c
  * le raccourci « Kora paiement » avec son déclencheur « Lorsque n'importe quelle carte est présentée »,
  * l'adresse de cet iPhone déjà dedans.
  */
-export function demandeRaccourci(adresse: string): string {
+export function demandeRaccourci(lien: string): string {
+  const { adresse, jeton } = separerLien(lien);
   return [
     "Raccourci « Kora paiement », lancé tout seul sans demander à chaque transaction Wallet (déclencheur « Lorsque n'importe quelle carte est présentée »).",
-    `Une seule action : « Obtenir le contenu de l'URL » ${adresse}, méthode POST, corps JSON avec trois champs texte : montant (Montant de la transaction), marchand (Commerçant), carte (nom de la Carte).`,
+    `Une seule action : « Obtenir le contenu de l'URL » ${adresse}, méthode POST, corps JSON avec ${jeton ? "quatre" : "trois"} champs texte : montant (Montant de la transaction), marchand (Commerçant), carte (nom de la Carte)${jeton ? `, jeton = ${jeton}` : ""}.`,
     "Rien d'autre : pas de notification, rien à l'écran.",
   ].join("\n");
 }

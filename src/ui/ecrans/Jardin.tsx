@@ -36,6 +36,7 @@ import { annulerModifications, enregistrerModifications, photoPourJarvis } from 
 import type { PropsPage } from "../modules";
 import { Page } from "../pieces";
 import { nomFee } from "../fee";
+import { sauver } from "../sauver";
 
 const enumerer = (mots: string[]) =>
   mots.length <= 1 ? (mots[0] ?? "") : `${mots.slice(0, -1).join(", ")} et ${mots[mots.length - 1]}`;
@@ -132,7 +133,7 @@ export function Jardin(p: PropsPage) {
   }
 
   function supprimerZone(zone: Zone) {
-    void depot.supprimerZone(zone.id).then(() => annoncer(`« ${zone.nom} » retirée du jardin.`, () => depot.enregistrerZone(zone)));
+    sauver(depot.supprimerZone(zone.id).then(() => annoncer(`« ${zone.nom} » retirée du jardin.`, () => depot.enregistrerZone(zone))));
   }
 
   const ouvrirFormulaire = (nomPropose = "") => {
