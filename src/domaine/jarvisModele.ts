@@ -382,7 +382,7 @@ export const OUTILS_JARVIS = [
         montant: { type: "number", description: "Le montant en francs : le total payé pour un ticket." },
         libelle: texte("Ce que c'est, en deux ou trois mots : « Courses Migros », « Cinéma »."),
         magasin: ouNul("Le magasin du ticket (Migros, Coop, Lidl, Denner…) ; null sinon."),
-        pot: { type: "string", enum: ["courses", "plaisir", "factures", "epargne", "commun"], description: "courses : alimentation et maison ; plaisir : sorties, cadeaux, envies ; factures : une facture ; epargne : un versement à l'épargne." },
+        pot: { type: "string", enum: ["courses", "plaisir", "factures", "epargne", "commun", "perso"], description: "courses : alimentation et maison ; plaisir : sorties, cadeaux, envies du foyer ; factures : une facture ; epargne : un versement à l'épargne ; perso : une dépense rien qu'à soi, payée de son côté (« pour moi »)." },
         jour: ouNul("Le jour, AAAA-MM-JJ, s'il est écrit (ticket) ; null pour aujourd'hui."),
         charge: ouNul("Pour une facture payée : le nom de la charge telle qu'elle figure dans le budget ; null sinon."),
         articles: {

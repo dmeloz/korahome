@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  avanceeMoisBudget,
   bilanDuMois,
   depenses,
   enregistrerPoste,
@@ -33,7 +34,8 @@ import { CarteConseiller, useConseiller } from "./Conseiller";
 import { FeuilleApplePay } from "./Paiements";
 import { TicketDeCaisse } from "../../TicketDeCaisse";
 import { montant, prenomDe } from "./communs";
-import { CeMois } from "./CeMois";
+import { CeMois, FeuillePlus } from "./CeMois";
+import { etatAMoi } from "../../../domaine/aMoi";
 import { Depenses } from "./Depenses";
 import { Charges } from "./Charges";
 import { Analyse } from "./Analyse";
@@ -54,6 +56,7 @@ export function Budget(p: PropsPage) {
   const [projet, setProjet] = useState(false);
   const [applePay, setApplePay] = useState(false);
   const [filtre, setFiltre] = useState<Pot | null>(null);
+  const [plus, setPlus] = useState(false);
   const conseiller = useConseiller(p);
   const plan = planDe(p.budget);
   useInvitationBarre(onglet === "conseiller" && p.jarvis ? "Une question, ex. où économiser ?" : null);
@@ -129,6 +132,7 @@ export function Budget(p: PropsPage) {
   }
 
   const enregistrer = (nouveau: PlanBudget) => depot.enregistrerBudget(nouveau);
+  const aMoi = !!p.membreId && !!etatAMoi(plan, p.budget, p.membreId, aujourdhui);
   const aide =
     onglet === "conseiller"
       ? "Pose ta question au conseiller par ta fée : « Où peut-on économiser ? », « Nos courses mois par mois ». Il répond avec des chiffres, un tableau et des conseils."
@@ -136,12 +140,21 @@ export function Budget(p: PropsPage) {
       ? "La fin du mois prévue, les derniers mois, l'année des factures et l'épargne, calculés depuis vos dépenses."
       : onglet === "charges"
       ? "Dis une charge à ta fée : « Netflix 20 », « Assurance maison 118 par an ». Touche une ligne pour la régler."
-      : `Dis une dépense à ta fée : « Migros 84.30 », « 32 cinéma ». Le bouton ticket en haut lit un ticket de caisse (photo ou PDF) : le total compte dans les courses, les produits vont au Frigo.`;
+      : `Dis une dépense à ta fée : « Migros 84.30 », « 12 café pour moi ». Le bouton ticket en haut lit un ticket de caisse (photo ou PDF).`;
+  const voirPot = (pot: Pot) => {
+    if (pot === "epargne") setOnglet("analyse");
+    else {
+      setFiltre(pot);
+      setOnglet("depenses");
+    }
+  };
 
   return (
     <Page
       titre="Budget"
-      sousTitre={`${nommerMois(moisBudget(plan, aujourdhui)).replace(/^./, (c) => c.toUpperCase())} · ${montant(bilanDuMois(plan).resteCommun)} de reste au commun`}
+      sousTitre={`${nommerMois(moisBudget(plan, aujourdhui)).replace(/^./, (c) => c.toUpperCase())} · ${
+        aMoi ? `jour ${avanceeMoisBudget(plan, aujourdhui).jour} sur ${avanceeMoisBudget(plan, aujourdhui).jours}` : `${montant(bilanDuMois(plan).resteCommun)} de reste au commun`
+      }`}
       actions={
         <>
           {p.jarvis && <TicketDeCaisse jarvis={p.jarvis} donnees={p} depot={depot} catalogue={p.catalogue} classe="bouton-icone" />}
@@ -155,14 +168,13 @@ export function Budget(p: PropsPage) {
     >
       <Onglets
         libelle="Vue du budget"
-        actif={onglet}
-        changer={setOnglet}
+        actif={onglet === "analyse" || onglet === "conseiller" ? "plus" : onglet}
+        changer={(o) => (o === "plus" ? setPlus(true) : setOnglet(o))}
         onglets={[
           { id: "mois", libelle: "Ce mois", compte: facturesAPayer(plan, p.budget, aujourdhui, 7).length + paiementsAClasser(p.budget).length + (moisACloturer(plan, p.budget, aujourdhui) ? 1 : 0) },
           { id: "depenses", libelle: "Dépenses" },
           { id: "charges", libelle: "Charges" },
-          { id: "analyse", libelle: "Analyse" },
-          { id: "conseiller", libelle: "Conseiller" },
+          { id: "plus", libelle: onglet === "analyse" ? "Analyse" : onglet === "conseiller" ? "Conseiller" : "Plus" },
         ]}
       />
 
@@ -171,13 +183,8 @@ export function Budget(p: PropsPage) {
           {...p}
           plan={plan}
           voirCharges={() => setOnglet("charges")}
-          voirPot={(pot) => {
-            if (pot === "epargne") setOnglet("analyse");
-            else {
-              setFiltre(pot);
-              setOnglet("depenses");
-            }
-          }}
+          voirPot={voirPot}
+          ouvrirPlus={() => setPlus(true)}
           voirDepenses={() => {
             setFiltre(null);
             setOnglet("depenses");
@@ -204,6 +211,21 @@ export function Budget(p: PropsPage) {
         }}
       />
       <FeuilleApplePay {...p} plan={plan} ouverte={applePay} fermer={() => setApplePay(false)} />
+      <FeuillePlus
+        {...p}
+        plan={plan}
+        ouverte={plus}
+        fermer={() => setPlus(false)}
+        voirPot={(pot) => {
+          setPlus(false);
+          voirPot(pot);
+        }}
+        aller={(o) => {
+          setPlus(false);
+          if (o === "comptes") setReglages(true);
+          else setOnglet(o);
+        }}
+      />
     </Page>
   );
 }

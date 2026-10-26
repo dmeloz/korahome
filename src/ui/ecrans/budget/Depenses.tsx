@@ -59,7 +59,7 @@ export function Depenses(p: PropsPage & { plan: PlanBudget; filtre: Pot | null; 
         <button type="button" className={`puce${!p.filtre ? " active" : ""}`} aria-pressed={!p.filtre} onClick={() => p.filtrer(null)}>
           Tout
         </button>
-        {(["courses", "plaisir", "factures", "commun", "epargne"] as Pot[]).map((pot) => (
+        {(["perso", "courses", "plaisir", "factures", "commun", "epargne"] as Pot[]).map((pot) => (
           <button type="button" key={pot} className={`puce${p.filtre === pot ? " active" : ""}`} aria-pressed={p.filtre === pot} onClick={() => p.filtrer(p.filtre === pot ? null : pot)}>
             {nomDuPot(plan, pot)}
           </button>
@@ -147,7 +147,7 @@ function FeuilleDepense(props: { plan: PlanBudget; depense: Depense | null; budg
             libelle="Pot"
             valeur={actuelle.pot}
             changer={(pot) => changer({ pot })}
-            choix={(["courses", "plaisir", "factures", "commun", "epargne"] as Pot[]).map((v) => ({ v, libelle: nomDuPot(props.plan, v) }))}
+            choix={(["perso", "courses", "plaisir", "factures", "commun", "epargne"] as Pot[]).map((v) => ({ v, libelle: nomDuPot(props.plan, v) }))}
           />
           <p className="discret">
             {majuscule(leJour(actuelle.jour))}

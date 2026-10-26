@@ -11,11 +11,11 @@ import { sansAccents } from "./texte";
 // encore inconnue, ou un paiement dans une autre monnaie, attend d'être classé d'un toucher.
 // Aucun identifiant bancaire : le nom de la carte est gardé sans ses chiffres.
 
-/** Ce qu'une carte paie : un pot, ou rien (une carte personnelle, hors du budget du foyer). */
+/** Ce qu'une carte paie : un pot (« perso » : les dépenses à soi de qui paie), ou rien (hors du budget). */
 export type ChoixCarte = Pot | "aucun";
 
 /** Les pots qu'on peut donner à une carte, dans l'ordre des puces. */
-export const POTS_DE_CARTE: readonly Pot[] = ["courses", "plaisir", "factures", "commun", "epargne"];
+export const POTS_DE_CARTE: readonly Pot[] = ["perso", "courses", "plaisir", "factures", "commun", "epargne"];
 
 /** « CHF 12.50 », « 12,50 CHF », « €8.90 », « 1’234.50 », 12.5 → le montant et sa monnaie ; null si illisible. */
 export function lireMontantPaye(valeur: unknown): { montant: number; devise: string } | null {
