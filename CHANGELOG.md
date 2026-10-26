@@ -6,6 +6,8 @@ test le vérifie). Le détail de chaque version est dans sa PR ; les règles dur
 
 | Version | Date | Ce qu'elle apporte | PR |
 | --- | --- | --- | --- |
+| 0.0.83 | 2026-10-27 | Rien de visible : les collections déclarées en un seul endroit, chargement sélectif des données, essai sur iPhone simulé dans la CI, journal des versions, carte d'architecture et décisions | [#100](https://github.com/dmeloz/korahome/pull/100) |
+| 0.0.82 | 2026-10-26 | Alerte quand l'assistant tombe, téléphones reliés, recettes gardées, fonctions allégées | [#99](https://github.com/dmeloz/korahome/pull/99) |
 | 0.0.82 | 2026-10-27 | Alerte quand l'assistant tombe, téléphones reliés, recettes gardées, fonctions allégées | [#99](https://github.com/dmeloz/korahome/pull/99) |
 | 0.0.81 | 2026-10-26 | Veille du 26 octobre, sécurité et entretien | [#98](https://github.com/dmeloz/korahome/pull/98) |
 | 0.0.80 | 2026-10-26 | Rapport 0.0.79 | [#97](https://github.com/dmeloz/korahome/pull/97) |
