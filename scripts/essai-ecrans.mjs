@@ -4,6 +4,8 @@
 // Les captures vont dans le dossier donné en argument (par défaut un dossier temporaire).
 // Depuis 0.0.67, axe-core (le contrôleur d'accessibilité de Deque) passe sur chaque écran : une
 // faute « grave » ou « critique » (contraste, bouton sans nom, rôle mal formé) fait échouer l'essai.
+// Depuis 0.0.79, il passe aussi sur l'accueil, et toute la tournée se refait en mode clair, puis
+// avec la plus grande taille de texte de l'iPhone (23 px au lieu de 17) : rien ne doit déborder.
 import { spawn } from "node:child_process";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -43,13 +45,14 @@ try {
     await p.waitForTimeout(300);
   }
 
-  const capture = (nom) => p.screenshot({ path: join(dossier, `${nom}.png`) });
+  let theme = "";
+  const capture = (nom) => p.screenshot({ path: join(dossier, `${nom}${theme}.png`) });
   const verifier = async (nom) => {
     await p.waitForTimeout(700);
     const titre = await p.locator(".page-dessus h1").first().textContent({ timeout: 3000 }).catch(() => null);
-    if (!titre) erreurs.push(`« ${nom} » : pas de titre`);
+    if (!titre) erreurs.push(`« ${nom} »${theme} : pas de titre`);
     await capture(nom.replace(/\W+/g, "-"));
-    const fautes = await accessibilite(nom);
+    const fautes = (await accessibilite(nom)) + (await debordement(nom));
     console.log(`${titre && !fautes ? "ok " : "?? "} ${nom}${titre ? ` → ${titre}` : ""}${fautes ? ` · ${fautes} faute${fautes > 1 ? "s" : ""} d'accessibilité` : ""}`);
   };
   /** axe sur la page du dessus : WCAG A et AA, fautes graves et critiques seulement. Rend leur nombre. */
@@ -65,9 +68,23 @@ try {
     const graves = resultat.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
     for (const v of graves) {
       const cible = v.nodes[0]?.target?.join(" ") ?? "";
-      erreurs.push(`« ${nom} » : ${v.help} (${v.id}, ${v.nodes.length}×)${cible ? ` — ${cible}` : ""}`);
+      erreurs.push(`« ${nom} »${theme} : ${v.help} (${v.id}, ${v.nodes.length}×)${cible ? ` — ${cible}` : ""}`);
     }
     return graves.length;
+  };
+  /** Ce qui dépasse de l'écran en largeur (texte trop grand, ligne trop longue). Rend 0 ou 1. */
+  const debordement = async (nom) => {
+    const hors = await p.evaluate(() => {
+      const w = innerWidth;
+      const vus = new Set();
+      for (const el of document.querySelectorAll(".page-dessus *")) {
+        const r = el.getBoundingClientRect();
+        if (r.width && (r.right > w + 1 || r.left < -1)) vus.add(`${el.tagName.toLowerCase()}${[...el.classList].map((c) => `.${c}`).join("")}`);
+      }
+      return [...vus].slice(0, 4);
+    });
+    if (hors.length) erreurs.push(`« ${nom} »${theme} : dépasse de l'écran — ${hors.join(", ")}`);
+    return hors.length ? 1 : 0;
   };
   const revenir = async () => {
     await p.locator(".page-dessus .retour").click();
@@ -88,12 +105,15 @@ try {
     for (let i = 0; i < 4 && (await p.locator(".page-dessus .retour").count()); i++) await revenir();
   };
 
+  const tournee = async () => {
   await capture("accueil");
+  const fautesAccueil = await accessibilite("Accueil");
+  console.log(`${fautesAccueil ? "?? " : "ok "} Accueil${theme}${fautesAccueil ? ` · ${fautesAccueil} faute${fautesAccueil > 1 ? "s" : ""} d'accessibilité` : ""}`);
   // Les quatre espaces (Kora 0.0.75), et chaque onglet qui reprend une ancienne page.
   const ESPACES = {
     Organisation: ["Agenda", "Administratif"],
     Cuisine: ["Courses", "Autres listes", "Recettes", "Frigo"],
-    Maison: ["Entretien", "Jardin", "Mitsu"],
+    Maison: ["Entretien", "Jardin", "Mitsu", "Vêtements"],
     Budget: [],
   };
   for (const [espace, onglets] of Object.entries(ESPACES)) {
@@ -118,6 +138,18 @@ try {
     await verifier(ligne);
     await revenir();
   }
+  await accueil();
+  };
+  await tournee();
+  // La même tournée en mode clair : le laiton y est plus sombre, son contraste se vérifie à part.
+  theme = "-clair";
+  await p.emulateMedia({ colorScheme: "light" });
+  await tournee();
+  // Puis en grandes lettres (Réglages › Luminosité et affichage, dernier cran hors accessibilité).
+  theme = "-grand";
+  await p.emulateMedia({ colorScheme: "dark" });
+  await p.addStyleTag({ content: "html { font-size: 23px !important; }" });
+  await tournee();
 } finally {
   await navigateur.close();
   serveur.kill();

@@ -3,6 +3,7 @@ import { avanceeDuJour, carteDuJour, choseDuMoment, chosesDuJour, repasDuSoir, r
 import { preparerEvenement } from "./agenda";
 import type { MenuSemaine } from "./chef";
 import { contexteTest } from "./contexteTest";
+import { reglerCollecte } from "./maison";
 import { nouveauProduit } from "./stock";
 import { changerHeure, marquerFaite, nouvelleTache } from "./taches";
 
@@ -100,6 +101,16 @@ describe("la carte Aujourd'hui", () => {
   it("propose la sauvegarde et la répartition au calme, en dernier", () => {
     const choses = chosesDuJour(entree({ taches: [nouvelleTache("Linge", semaine, auj, ctx)], sauvegardeDue: true, repartitionDue: true }));
     expect(choses.map((c) => c.destination)).toEqual(["taches", "repartition", "sauvegarde"]);
+  });
+});
+
+describe("les déchets sur l'accueil", () => {
+  it("dit la veille au soir ce qu'il faut sortir", () => {
+    // Le 19 octobre 2026 est un lundi : le verre passe le mardi.
+    const dechets = reglerCollecte(null, "verre", { jour: 2, rythme: "semaine" }, ctx);
+    const choses = chosesDuJour(entree({ dechets }));
+    expect(choses).toEqual([{ cle: "dechets", texte: "Sortir le verre", quand: "ce soir", etat: "jour", destination: "maison" }]);
+    expect(chosesDuJour(entree({ dechets, aujourdhui: "2026-10-20" }))).toEqual([]);
   });
 });
 

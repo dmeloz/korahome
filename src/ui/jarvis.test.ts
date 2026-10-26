@@ -28,6 +28,10 @@ function depotEspion() {
       supprimerBudget: noter("supprimer-budget"),
       enregistrerMenu: noter("menu"),
       supprimerMenu: noter("supprimer-menu"),
+      enregistrerVetement: noter("vetement"),
+      supprimerVetement: noter("supprimer-vetement"),
+      enregistrerMaison: noter("maison"),
+      supprimerMaison: noter("supprimer-maison"),
     },
   };
 }

@@ -31,9 +31,6 @@
   transition: transform 0.15s, filter 0.15s, opacity 0.15s;
 }
 .humeur-bouton.active { background: var(--accent-doux); border-color: var(--accent); filter: none; opacity: 1; transform: scale(1.08); }
-.compte-nouveau { flex-wrap: wrap; }
-.compte-nouveau input:first-child { flex-basis: 100%; }
-.compte-nouveau input[type="date"] { color: var(--discret); min-height: 48px; }
 .mots .mot { display: flex; align-items: center; gap: 10px; }
 .mots .mot .ligne-texte { flex: 1; }
 .coeur-mot {

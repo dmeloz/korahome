@@ -112,7 +112,7 @@ let ecranCourant = "Accueil";
 export const ecranAffiche = () => ecranCourant;
 
 export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJour: MiseAJour; partage: ServicesPartage | null }) {
-  const { pret, foyer, listes, elements, taches, retours, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda, budget, corbeille } = useDonnees(depot);
+  const { pret, foyer, listes, elements, taches, retours, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda, budget, corbeille, vetements, maison } = useDonnees(depot);
   // La météo sert au jardin et au bandeau de l'accueil. Trop ancienne (téléphone resté
   // hors ligne), elle ne déclenche plus d'alerte.
   const meteoLue = useMeteo(true);
@@ -269,7 +269,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   }
   // Tael ou Navi : la fée suit la personne de ce téléphone.
   definirFee(foyer.membres.find((m) => m.id === membre)?.prenom);
-  const donnees: DonneesModule = { foyer, membreId: membre, listes, elements, taches, animaux, produits, catalogue, zones, meteo, aujourdhui: aujourdhuiLocal(), souvenirs, retours, couple, menus, agenda, budget: budgetVisible(budget, membre) };
+  const donnees: DonneesModule = { foyer, membreId: membre, listes, elements, taches, animaux, produits, catalogue, zones, meteo, aujourdhui: aujourdhuiLocal(), souvenirs, retours, couple, menus, agenda, budget: budgetVisible(budget, membre), vetements, maison };
 
   const ouvrir = (demandee: Page) => {
     // Courses et Listes ouvrent leur onglet de Cuisine, Agenda le sien d'Organisation, Entretien celui de Maison.
@@ -320,6 +320,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       <Accueil
         donnees={donnees}
         ouvrirModule={(id) => ouvrir({ nom: "module", id })}
+        ouvrirOnglet={(id, onglet) => ouvrir({ nom: "module", id, onglet })}
         ouvrirJarvis={() => ouvrir({ nom: "jarvis" })}
         ouvrirReglages={() => ouvrir({ nom: "reglages" })}
         ouvrirMots={() => ouvrir({ nom: "mots" })}
@@ -461,7 +462,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       return <NosMots donnees={donnees} depot={depot} notifier={notifier} />;
     },
     rappels: () => <CentreRappels ouvrirNotifications={() => ouvrir({ nom: "notifications" })} />,
-    sauvegarde: () => <Sauvegarde depot={depot} aujourdhui={donnees.aujourdhui} contenu={{ foyer: leFoyer, listes, elements, taches, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda, budget, retours }} />,
+    sauvegarde: () => <Sauvegarde depot={depot} aujourdhui={donnees.aujourdhui} contenu={{ foyer: leFoyer, listes, elements, taches, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda, budget, retours, vetements, maison }} />,
     fil: () => <Fil donnees={donnees} />,
     corbeille: () => <Corbeille depot={depot} foyer={leFoyer} corbeille={corbeille} />,
     calendrier: () => <CalendrierIphone foyer={leFoyer} membreId={membre} comptes={comptesIcloudDe(agenda)} distant={agendaPartage} ouvrirPartage={() => ouvrir({ nom: "partage" })} />,

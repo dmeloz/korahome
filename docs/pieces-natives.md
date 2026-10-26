@@ -24,7 +24,6 @@ Kora range l'interface en quelques pièces qui se répètent sur toutes les page
 | `Visite` (visite guidée de l'accueil) | `src/ui/pieces/Visite.tsx`, parcours dans `src/domaine/visite.ts` | Une suite de `TipKit` (`popoverTip`) avec `Tips.showAllTipsForTesting()` pour la relancer |
 | `Onglets` | `src/ui/pieces/Page.tsx` | `Picker` en style `.segmented` |
 | `PointEtat` (urgent, aujourd'hui, calme) | `src/ui/pieces/Page.tsx` | `Circle().fill(...)` avec trois couleurs d'état |
-| `CarteAujourdhui` | `src/ui/pieces/Aujourdhui.tsx` | La même vue, et le widget de l'écran d'accueil (`WidgetKit`) |
 | `GrandeDate`, `Signes` | `src/ui/pieces/HautAccueil.tsx` | `Text` en `.largeTitle` et une `HStack` de boutons ronds |
 | `Fee` (la fée, ses gestes, sa bulle) | `src/ui/pieces/Fee.tsx`, état dans `src/ui/fee.ts` | Une vue en `.overlay` avec `DragGesture`, `onTapGesture(count: 2)` et `onLongPressGesture`, la bulle en `.popover` compact ; les étincelles en `TimelineView` |
 | Vie de la fée | `src/ui/vieFee.ts`, règles `src/domaine/vieFee.ts` | Un `@Observable` piloté par un `Timer` sur l'accueil ; l'heure d'une tâche en `UNCalendarNotificationTrigger` local |
@@ -37,7 +36,6 @@ Kora range l'interface en quelques pièces qui se répètent sur toutes les page
 | `ListeVivante` / `Ligne` | `src/ui/moteur/pieces.tsx` | Une `List` : insertions et suppressions animées d'office, `.animation(.spring, value:)` |
 | `Apparait`, `Message` | `src/ui/moteur/pieces.tsx` | `.transition(.scale.combined(with: .opacity))` dans un `withAnimation` |
 | `RepereOnglet` | `src/ui/moteur/pieces.tsx` | `Picker` en `.segmented` ; sinon `.matchedGeometryEffect` |
-| « Ce soir » en roulette, rond de Rappels | `src/ui/pieces/Aujourdhui.tsx` | `ScrollView` avec `.scrollTargetBehavior(.viewAligned)` et `.visualEffect` (`rotation3DEffect` selon la distance au centre), `.sensoryFeedback(.selection)` au cran |
 | Le widget qui s'ouvre en page (et y rentre) | `src/ui/transitions.ts` | `.matchedTransitionSource(id:in:)` sur le widget, `.navigationTransition(.zoom(sourceID:in:))` sur la page |
 | `Chiffre`, `Montant` : les chiffres qui roulent (NumberFlow) | `src/ui/moteur/Chiffre.tsx` | `Text(…).contentTransition(.numericText())` |
 | `feter` : la gerbe de confettis | `src/ui/moteur/fete.ts` | Un `CAEmitterLayer` (ou un paquet comme ConfettiSwiftUI) |

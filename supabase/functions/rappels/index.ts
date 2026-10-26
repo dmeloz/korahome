@@ -38,18 +38,18 @@ async function reglages(): Promise<{ publique: string; privee: string; cleCron: 
   return { publique: r.vapid_publique, privee: r.vapid_privee, cleCron: r.cle_cron };
 }
 
-/** Le foyer, ses tâches, ses animaux, son stock, son jardin, son agenda et ses factures, tels que les téléphones les ont partagés. */
+/** Le foyer, ses tâches, ses animaux, son stock, son jardin, son agenda, ses factures et sa maison (déchets), tels que les téléphones les ont partagés. */
 async function donneesDuFoyer(foyerId: string) {
   const lignes = await echec(
     serveur
       .from("documents")
       .select("collection, donnees")
       .eq("foyer_id", foyerId)
-      .in("collection", ["foyer", "taches", "animaux", "stock", "jardin", "agenda", "budget"])
+      .in("collection", ["foyer", "taches", "animaux", "stock", "jardin", "agenda", "budget", "maison"])
       .not("donnees", "is", null),
   );
   const de = (c: string) => (lignes as { collection: string; donnees: any }[]).filter((l) => l.collection === c).map((l) => l.donnees);
-  return { foyer: de("foyer")[0] ?? null, taches: de("taches"), animaux: de("animaux"), produits: de("stock"), zones: de("jardin"), evenements: evenementsDe(de("agenda")), budget: de("budget") };
+  return { foyer: de("foyer")[0] ?? null, taches: de("taches"), animaux: de("animaux"), produits: de("stock"), zones: de("jardin"), evenements: evenementsDe(de("agenda")), budget: de("budget"), maison: de("maison") };
 }
 
 /** La météo du jardin (Open-Meteo, sans clé) ; sans elle, le rappel parle seulement de l'arrosage. */

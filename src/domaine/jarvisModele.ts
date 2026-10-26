@@ -429,6 +429,35 @@ export const OUTILS_JARVIS = [
     },
   },
   {
+    name: "noter_taille",
+    description: "Note la taille d'un vêtement pour une personne du foyer (« Sarah fait du 39 », « je fais du M en haut »). Une taille par pièce et par personne : la nouvelle remplace l'ancienne.",
+    strict: true,
+    input_schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["pour", "piece", "valeur"],
+      properties: {
+        pour: texte("Le prénom de la personne ; celui de la personne qui parle pour « je »."),
+        piece: { type: "string", enum: ["haut", "pantalon", "robe", "chaussures", "sousVetements", "manteau"], description: "La pièce : haut (t-shirt, pull, chemise), pantalon (jean, jupe), robe (robe, costume), chaussures, sousVetements, manteau (veste, manteau)." },
+        valeur: texte("La taille telle qu'on la dit : « M », « 38 », « W30 L32 », « 85B »."),
+      },
+    },
+  },
+  {
+    name: "noter_envie",
+    description: "Note un vêtement ou un accessoire qu'une personne du foyer aimerait acheter (« j'aimerais une veste en laine », « note des bottes pour Sarah, 120 francs »). L'autre voit la liste : utile pour un cadeau.",
+    strict: true,
+    input_schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["pour", "envie"],
+      properties: {
+        pour: texte("Le prénom de la personne ; celui de la personne qui parle pour « je »."),
+        envie: texte("La pièce en quelques mots, le prix au bout s'il est dit : « veste en laine 120 »."),
+      },
+    },
+  },
+  {
     name: "noter_souhait",
     description:
       "Quand on te demande une chose que tu ne sais pas faire (aucun outil ne convient, ou l'app n'a pas cette fonction), note-la comme souhait d'amélioration pour Claude, qui fait évoluer l'app.",
@@ -464,6 +493,7 @@ Avec une page de carnet de santé ou une facture de vétérinaire : note chaque 
 Quand on te dit qu'un animal a vomi, n'a pas mangé, ou que la litière est changée, note-le avec noter_journal ; si une tâche correspond (litière), marque-la aussi faite.
 Avec une recette (un lien, une photo de page de livre ou de fiche, ou une recette dictée) : range-la dans les recettes du foyer (enregistrer_recette) avec tous ses ingrédients et leurs quantités, et ses étapes réécrites courtes en français. Pour un lien, mets l'adresse dans lien, puis compare ses ingrédients au stock et à la liste de courses et n'ajoute aux courses que ce qui manque, avec les quantités de la recette. Pour une photo ou une dictée, n'ajoute aux courses que si on te le demande.
 « Qu'est-ce qu'on mange ce soir ? » : propose une ou deux recettes du foyer (état du foyer) qu'on peut faire avec le stock, celles qu'on aime d'abord, en disant ce qui manque ; si aucune ne va, une idée simple avec ce qu'il y a. Ne propose jamais une recette marquée « pas pour eux ».
+Les vêtements : « quelle pointure fait Sarah ? », « qu'est-ce qui ferait plaisir à Dany ? » se répondent depuis les vêtements de l'état du foyer (tailles et envies). « Je fais du 38 », « note une robe pour Sarah » : noter_taille, noter_envie.
 Avec une photo de plante : reconnais-la (nom courant en français, le plus précis possible). Si on te demande de l'ajouter, utilise ajouter_plante, et écris quand même une phrase : son nom, puis son besoin principal (soleil, arrosage, gel). Si tu n'es pas sûr, dis-le et donne les deux noms les plus probables.`;
 
 /** Le conseil du dimanche : Jarvis prépare la semaine, le foyer valide ensemble. */

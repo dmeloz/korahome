@@ -4,6 +4,8 @@ import type { Zone } from "../domaine/jardin";
 import type { DocCouple } from "../domaine/bandeau";
 import type { DocAgenda } from "../domaine/agenda";
 import type { DocBudget } from "../domaine/budget";
+import type { DocVetement } from "../domaine/vetements";
+import type { DocMaison } from "../domaine/maison";
 import type { DocChef } from "../domaine/chef";
 import type { Souvenir } from "../domaine/memoire";
 import type { Animal } from "../domaine/mitsu";
@@ -25,9 +27,11 @@ import type { Depot } from "./depot";
 // Version 12 : l'agenda commun ; relecture du serveur une fois, pour la même raison.
 // Version 13 : le budget du foyer ; relecture du serveur une fois, pour la même raison.
 // Version 14 : la corbeille du foyer ; relecture du serveur une fois, pour la même raison.
+// Version 15 : les vêtements ; relecture du serveur une fois, pour la même raison.
+// Version 16 : la maison (déchets, appareils) ; relecture du serveur une fois, pour la même raison.
 // La mise à jour crée seulement les magasins manquants.
-const VERSION = 14;
-const MAGASINS = ["foyer", "listes", "elements", "taches", "retours", "animaux", "stock", "catalogue", "jardin", "memoire", "couple", "menus", "agenda", "budget", "corbeille", "attente", "synchro"] as const;
+const VERSION = 16;
+const MAGASINS = ["foyer", "listes", "elements", "taches", "retours", "animaux", "stock", "catalogue", "jardin", "memoire", "couple", "menus", "agenda", "budget", "corbeille", "vetements", "maison", "attente", "synchro"] as const;
 type Magasin = (typeof MAGASINS)[number];
 const CLES: Partial<Record<Magasin, string>> = { attente: "cle" };
 
@@ -93,7 +97,7 @@ function ouvrir(nomBase: string, fabrique: IDBFactory): Promise<IDBDatabase> {
           }
         });
       }
-      if (evenement.oldVersion < 14 && avant.contains("synchro")) {
+      if (evenement.oldVersion < 16 && avant.contains("synchro")) {
         const synchro = req.transaction!.objectStore("synchro");
         puis(synchro.get("etat") as IDBRequest<{ curseur: string | null } | undefined>, (etat) => {
           if (etat) synchro.put({ ...etat, curseur: null });
@@ -253,6 +257,13 @@ export function creerDepotLocal(
     lireBudget: () => tous<DocBudget>("budget"),
     enregistrerBudget: (doc) => poser("budget", [doc]),
     supprimerBudget: (id) => supprimer("budget", [id]),
+
+    lireVetements: () => tous<DocVetement>("vetements"),
+    enregistrerVetement: (doc) => poser("vetements", [doc]),
+    supprimerVetement: (id) => supprimer("vetements", [id]),
+    lireMaison: () => tous<DocMaison>("maison"),
+    enregistrerMaison: (doc) => poser("maison", [doc]),
+    supprimerMaison: (id) => supprimer("maison", [id]),
 
     lireRetours: () => tous<RetourTest>("retours"),
     enregistrerRetour: (retour) => poser("retours", [retour]),

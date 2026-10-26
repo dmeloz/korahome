@@ -46,7 +46,8 @@
 }
 
 /* Clair doux : papier chaud, laiton plus profond. Automatique quand l'iPhone est en clair,
-   ou choisi pour ce téléphone. */
+   ou choisi pour ce téléphone. Le laiton #845d1c (0.0.79) se lit à 4,5:1 au moins sur le papier,
+   la surface et le laiton doux, comme le demande la règle de contraste des petits textes. */
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="sombre"]) {
     --fond: #f4efe6;
@@ -55,10 +56,10 @@
     --texte: #2a2620;
     --discret: #6e675c;
     --trait: #e6dccb;
-    --accent: #a5762a;
+    --accent: #845d1c;
     --accent-doux: #f3e4c4;
     --sur-accent: #fffaf0;
-    --urgent: #b4532f;
+    --urgent: #a64b29;
     --coche: #9a9488;
     --ombre: 0 10px 24px -18px rgb(90 70 40 / 0.35);
     --verre: rgb(255 252 246 / 0.78);
@@ -76,10 +77,10 @@
   --texte: #2a2620;
   --discret: #6e675c;
   --trait: #e6dccb;
-  --accent: #a5762a;
+  --accent: #845d1c;
   --accent-doux: #f3e4c4;
   --sur-accent: #fffaf0;
-  --urgent: #b4532f;
+  --urgent: #a64b29;
   --coche: #9a9488;
   --ombre: 0 10px 24px -18px rgb(90 70 40 / 0.35);
   --verre: rgb(255 252 246 / 0.78);

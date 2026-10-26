@@ -33,6 +33,10 @@ function effacerDeNouveau(depot: Depot, e: EntreeCorbeille): Promise<void> {
       return depot.supprimerAgenda(id);
     case "budget":
       return depot.supprimerBudget(id);
+    case "vetements":
+      return depot.supprimerVetement(id);
+    case "maison":
+      return depot.supprimerMaison(id);
   }
 }
 

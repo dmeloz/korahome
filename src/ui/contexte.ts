@@ -1,6 +1,6 @@
 import type { Contexte, Jour } from "../domaine/types";
 import { deuxChiffres as deux } from "../domaine/texte";
-import { CLES, ecrireJson, ecrireTexte, lireJson, lireTexte } from "./stockageLocal";
+import { CLES, ecrireTexte, lireTexte } from "./stockageLocal";
 
 export const contexteReel: Contexte = {
   maintenant: () => new Date().toISOString(),
@@ -20,24 +20,4 @@ export function lireMembreCourant(): string | null {
 export function choisirMembreCourant(id: string): void {
   // Stockage indisponible (navigation privée) : on redemandera.
   ecrireTexte(CLES.membreCourant, id);
-}
-
-/** La disposition du tableau de bord. Propre à chaque téléphone. */
-export function lireDisposition(): unknown {
-  return lireJson<unknown>(CLES.tableauDeBord, undefined);
-}
-
-export function enregistrerDisposition(disposition: readonly string[]): void {
-  // Stockage indisponible : la disposition vaut pour cette visite seulement.
-  ecrireJson(CLES.tableauDeBord, disposition);
-}
-
-/** La taille de chaque widget (petit ou grand). Propre à chaque téléphone, comme la disposition. */
-export function lireTailles(): unknown {
-  return lireJson<unknown>(CLES.taillesWidgets, undefined);
-}
-
-export function enregistrerTailles(tailles: object): void {
-  // Stockage indisponible : les tailles valent pour cette visite seulement.
-  ecrireJson(CLES.taillesWidgets, tailles);
 }

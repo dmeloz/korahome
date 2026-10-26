@@ -3,6 +3,8 @@ import type { DocCouple } from "./bandeau";
 import type { DocBudget } from "./budget";
 import type { ProduitHabituel } from "./catalogue";
 import type { DocChef } from "./chef";
+import type { DocVetement } from "./vetements";
+import type { DocMaison } from "./maison";
 import { ErreurValidation } from "./foyer";
 import type { Zone } from "./jardin";
 import type { Souvenir } from "./memoire";
@@ -37,6 +39,8 @@ export interface ContenuFoyer {
   agenda: DocAgenda[];
   budget: DocBudget[];
   retours: RetourTest[];
+  vetements: DocVetement[];
+  maison: DocMaison[];
 }
 
 export interface Sauvegarde extends ContenuFoyer {
@@ -47,7 +51,7 @@ export interface Sauvegarde extends ContenuFoyer {
   creeLe: string;
 }
 
-const COLLECTIONS = ["listes", "elements", "taches", "animaux", "produits", "catalogue", "zones", "souvenirs", "couple", "menus", "agenda", "budget", "retours"] as const;
+const COLLECTIONS = ["listes", "elements", "taches", "animaux", "produits", "catalogue", "zones", "souvenirs", "couple", "menus", "agenda", "budget", "retours", "vetements", "maison"] as const;
 
 export function creerSauvegarde(contenu: ContenuFoyer, versionKora: string, maintenant: string): Sauvegarde {
   return { format: FORMAT_SAUVEGARDE, versionFormat: VERSION_FORMAT, versionKora, creeLe: maintenant, ...contenu };

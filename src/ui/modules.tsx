@@ -15,6 +15,8 @@ import type { WidgetId } from "../domaine/tableauDeBord";
 import type { ProduitHabituel } from "../domaine/catalogue";
 import { decrirePeremption, resumeStock, type Produit } from "../domaine/stock";
 import { compterDues, decaler, decrireEcheance, organiserTaches } from "../domaine/taches";
+import { compterVetements, type DocVetement } from "../domaine/vetements";
+import type { DocMaison } from "../domaine/maison";
 import type { Element, Foyer, Jour, Liste, Tache } from "../domaine/types";
 import type { Depot } from "../donnees/depot";
 import type { ServeurAgenda, ServeurJarvis } from "../donnees/distant";
@@ -25,6 +27,8 @@ import { vibrer } from "./haptique";
 import type { NomIcone } from "./Icone";
 import { Espace, Page } from "./pieces";
 import { Entretien } from "./ecrans/Entretien";
+import { Vetements } from "./ecrans/Vetements";
+import { Appareils, Dechets } from "./ecrans/Maison";
 import { ignorer } from "./journal";
 
 // Les pages les plus lourdes ne se chargent qu'à leur première ouverture : l'app démarre plus
@@ -79,6 +83,9 @@ export interface DonneesModule {
   agenda: DocAgenda[];
   /** Le budget du foyer : son plan, les mois versés, les dépenses. */
   budget: DocBudget[];
+  /** Les vêtements : tailles, envies et pièces à trier de chacun. */
+  vetements: DocVetement[];
+  maison: DocMaison[];
 }
 
 export interface PropsPage extends DonneesModule {
@@ -230,16 +237,26 @@ const ongletMaison = (d: DonneesModule): "entretien" | "mitsu" | "jardin" =>
 function PageCuisine(p: PropsPage) {
   // « recette:<id> » : une recette trouvée par la recherche, ouverte sur l'onglet Recettes.
   const recette = p.onglet?.startsWith("recette:") ? p.onglet.slice("recette:".length) : null;
-  const onglet =
-    p.onglet === "courses" || p.onglet === "listes" ? "courses" : p.onglet === "recettes" || recette ? "recettes" : p.onglet === "frigo" ? "frigo" : "semaine";
   const aConsommer = resumeStock(p.produits, p.aujourdhui).aConsommer.length;
   const courses = listeCourses(p);
+  const aPrendre = courses ? compterAPrendre(courses, p.elements) : 0;
+  // Sans onglet demandé (0.0.79, choix de Melo) : les courses s'il y a quelque chose à acheter, sinon les menus.
+  const onglet =
+    p.onglet === "courses" || p.onglet === "listes"
+      ? "courses"
+      : p.onglet === "recettes" || recette
+        ? "recettes"
+        : p.onglet === "frigo"
+          ? "frigo"
+          : p.onglet === "semaine" || aPrendre === 0
+            ? "semaine"
+            : "courses";
   return (
     <Espace
       titre="Cuisine"
       libelle="Courses, menus, recettes ou frigo"
       onglets={[
-        { id: "courses", libelle: "Courses", compte: courses ? compterAPrendre(courses, p.elements) : 0 },
+        { id: "courses", libelle: "Courses", compte: aPrendre },
         { id: "semaine", libelle: "Menus" },
         { id: "recettes", libelle: "Recettes", compte: recettesDe(p.menus).length },
         { id: "frigo", libelle: "Frigo", compte: aConsommer },
@@ -247,7 +264,7 @@ function PageCuisine(p: PropsPage) {
       actif={onglet}
       changer={(o) => {
         vibrer();
-        p.changerOnglet(o === "semaine" ? undefined : o);
+        p.changerOnglet(o);
       }}
     >
       {onglet === "courses" ? (
@@ -291,7 +308,7 @@ function PageOrganisation(p: PropsPage) {
 
 /** Maison : l'entretien, Mitsu et le jardin, chacun dans son onglet. */
 function PageMaison(p: PropsPage) {
-  const onglet = p.onglet === "jardin" || p.onglet === "mitsu" || p.onglet === "entretien" ? p.onglet : null;
+  const onglet = p.onglet === "jardin" || p.onglet === "mitsu" || p.onglet === "entretien" || p.onglet === "vetements" ? p.onglet : null;
   const { changerOnglet } = p;
   const parDefaut = ongletMaison(p);
   // L'onglet choisi à l'ouverture reste en place, même si l'urgence change en route.
@@ -302,11 +319,12 @@ function PageMaison(p: PropsPage) {
   return (
     <Espace
       titre="Maison"
-      libelle="Entretien, Mitsu ou jardin"
+      libelle="Entretien, Mitsu, jardin ou vêtements"
       onglets={[
         { id: "entretien", libelle: "Entretien", compte: widgetEntretien(p).chiffre },
         { id: "mitsu", libelle: p.animaux[0]?.nom ?? "Mitsu" },
         { id: "jardin", libelle: "Jardin" },
+        { id: "vetements", libelle: "Vêtements", compte: compterVetements(p.vetements, p.membreId, `${p.aujourdhui}T12:00:00.000Z`) },
       ] as const}
       actif={actif}
       changer={(o) => {
@@ -316,9 +334,15 @@ function PageMaison(p: PropsPage) {
     >
       {actif === "jardin" ? (
         <Jardin {...p} />
+      ) : actif === "vetements" ? (
+        <Page titre="Vêtements" sousTitre="Tailles, envies, à trier" aide={{ cle: "vetements-aide", texte: "Les tailles et les envies de chacun, partagées : de quoi trouver un cadeau qui va." }}>
+          <Vetements depot={p.depot} foyer={p.foyer} membreId={p.membreId} vetements={p.vetements} aujourdhui={p.aujourdhui} />
+        </Page>
       ) : actif === "entretien" ? (
         <Page titre="Entretien" sousTitre="Ce qui revient pour la maison">
           <Entretien depot={p.depot} membreId={p.membreId} taches={p.taches} aujourdhui={p.aujourdhui} />
+          <Dechets depot={p.depot} maison={p.maison} aujourdhui={p.aujourdhui} />
+          <Appareils depot={p.depot} maison={p.maison} aujourdhui={p.aujourdhui} />
         </Page>
       ) : (
         <Mitsu depot={p.depot} foyer={p.foyer} membreId={p.membreId} animaux={p.animaux} listes={p.listes} elements={p.elements} />

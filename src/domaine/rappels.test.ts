@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { preparerEvenement } from "./agenda";
 import { contexteTest } from "./contexteTest";
 import { creerFoyer } from "./foyer";
+import { reglerCollecte } from "./maison";
 import { ajouterPlante, nouvellePlante, nouvelleZone } from "./jardin";
 import { ajouterSoin, nouvelAnimal, nouveauSoin } from "./mitsu";
 import {
@@ -48,6 +49,15 @@ describe("le rappel du matin", () => {
   it("salue la personne et résume sa journée", () => {
     const r = rappelDuMatin({ foyer, membreId: sarah.id, taches, animaux: [], aujourdhui: AUJOURDHUI, preferences: PREFERENCES_DE_DEPART });
     expect(r).toEqual({ titre: "Bonjour Sarah", corps: "Aujourd'hui : Arrosage, Ménage\nEn retard : Linge", nombre: 3 });
+  });
+
+  it("dit les déchets du jour, avec les tâches", () => {
+    const faites = taches.map((t) => marquerFaite(t, melo.id, AUJOURDHUI, ctx));
+    const jour = new Date(`${AUJOURDHUI}T12:00:00Z`).getUTCDay();
+    const maison = [reglerCollecte(null, "papier", { jour, rythme: "semaine" }, ctx)];
+    const entree = { foyer, membreId: melo.id, taches: faites, animaux: [], maison, aujourdhui: AUJOURDHUI };
+    expect(rappelDuMatin({ ...entree, preferences: PREFERENCES_DE_DEPART })).toEqual({ titre: "Bonjour Melo", corps: "Déchets : sortir le papier et le carton", nombre: 1 });
+    expect(rappelDuMatin({ ...entree, preferences: { ...PREFERENCES_DE_DEPART, taches: false } })).toBeNull();
   });
 
   it("dit ce qui arrive à sa date au frigo, sauf si on ne le veut pas", () => {

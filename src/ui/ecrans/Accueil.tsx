@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useSyncExternalStore, type RefObject } fro
 import { createPortal } from "react-dom";
 import { bilanAOuvrir, bilanDeLaSemaine, remarqueDuJour } from "../../domaine/apprentissage";
 import { carteDuJour, resteAFaire, titreMoment, type ChoseDuJour } from "../../domaine/aujourdhui";
+import { reglageDechets } from "../../domaine/maison";
 import { etatDesPots, facturesDuJour, planDe } from "../../domaine/budget";
 import { evenementsDe, ligneWidget, resumeAgenda } from "../../domaine/agenda";
 import {
@@ -40,6 +41,8 @@ import { CeSoir, ChiffresDuJour, ContenuApercu, PastilleDirect, Pile, type Carte
 import { FeuilleHeure } from "../pieces/FeuilleHeure";
 import { GrandeDate, Signes } from "../pieces/HautAccueil";
 import { clinDejaDit, noterClinDit, useClinDuJour } from "../clinDuJour";
+import { nouveauteADire } from "../../domaine/nouveautes";
+import { CLES, ecrireTexte, lireTexte } from "../stockageLocal";
 import { direSiCalme, feteFee, taireFee } from "../fee";
 import { feter } from "../moteur/fete";
 import { nuitDeCeTelephone, useVieFee } from "../vieFee";
@@ -78,6 +81,8 @@ const lignesDe = (a: ApercuWidget): LignePile[] => a.lignes.map((l, i) => ({ ...
 export function Accueil(props: {
   donnees: DonneesModule;
   ouvrirModule: (id: WidgetId) => void;
+  /** Une page d'un espace, sur un onglet précis (la nouveauté annoncée par la fée). */
+  ouvrirOnglet: (id: WidgetId, onglet?: string) => void;
   ouvrirReglages: () => void;
   ouvrirMots: () => void;
   ouvrirJarvis: () => void;
@@ -184,12 +189,18 @@ export function Accueil(props: {
   // Le mot du jour, puis le clin d'œil du foyer : la fée les dit une fois, quand l'accueil est calme.
   useClinDuJour({ donnees: props.donnees, depot: props.depot, jarvis: props.jarvis });
   const clin = clinDuJour(props.donnees.couple, aujourdhui);
-  const aDire = remarque && montrerRemarque ? `remarque:${remarque.cle}` : clin && !clinDejaDit(aujourdhui) ? `clin:${aujourdhui}` : null;
+  // Après une mise à jour, la nouveauté passe avant tout le reste, une seule fois.
+  const nouveaute = nouveauteADire(__VERSION__, lireTexte(CLES.nouveauteVue), props.donnees.elements.length + props.donnees.taches.length > 0);
+  const aDire = nouveaute ? `nouveaute:${nouveaute.version}` : remarque && montrerRemarque ? `remarque:${remarque.cle}` : clin && !clinDejaDit(aujourdhui) ? `clin:${aujourdhui}` : null;
   useEffect(() => {
     if (!aDire || !props.auDessus || visite) return;
     // Elle attend un moment calme pour parler, et réessaie tant qu'elle n'a pas pu.
     const id = setInterval(() => {
-      if (aDire.startsWith("remarque:") && remarque) {
+      if (aDire.startsWith("nouveaute:") && nouveaute) {
+        const dit = direSiCalme({ cle: aDire, texte: nouveaute.texte, actions: [{ texte: "Voir", faire: () => props.ouvrirOnglet(nouveaute.ou.id, nouveaute.ou.onglet) }, { texte: "Merci" }] });
+        // Stockage indisponible : elle le redira à la prochaine ouverture.
+        if (dit) ecrireTexte(CLES.nouveauteVue, nouveaute.version);
+      } else if (aDire.startsWith("remarque:") && remarque) {
         const module = remarque.module;
         const dit = direSiCalme({ cle: aDire, texte: remarque.texte, actions: module ? [{ texte: "Voir", faire: () => props.ouvrirModule(module) }, { texte: "Merci" }] : [{ texte: "Merci" }] });
         if (dit) fermerRemarque(remarque.cle, aujourdhui);
@@ -215,6 +226,7 @@ export function Accueil(props: {
     factures: facturesDuJour(props.donnees.budget, aujourdhui, 1),
     sauvegardeDue: sauvegardeDue(derniereSauvegarde, aujourdhui) && maintenant.getDay() === 0,
     repartitionDue: repartitionDue(foyer, props.donnees.taches, aujourdhui, lireDerniereRepartition()),
+    dechets: reglageDechets(props.donnees.maison),
   }, CHOSES_CARTE);
   const cocherChose = async (c: ChoseDuJour) => {
     const avant = props.donnees.taches.find((t) => t.id === c.tacheId);

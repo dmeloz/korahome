@@ -58,59 +58,7 @@
 
 /* « Ce soir », sans cadre : un fil relie les ronds, l'heure à gauche quand il y en a une. */
 .ce-moment { margin: 6px 0 22px; --col-heure: 0px; }
-.ce-moment.avec-heures { --col-heure: 44px; }
-.ce-moment-entete { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
-.ce-moment-entete h2 { margin: 0; font-family: var(--police-titre); font-size: var(--t-section); font-weight: 650; }
-.ce-moment-entete .discret { font-size: var(--t-legende); }
-.ce-moment-vide { margin: 4px 0; color: var(--discret); font-size: var(--t-detail); }
-.fil { position: relative; list-style: none; margin: 0; padding: 0; }
-.fil > li { position: relative; display: grid; grid-template-columns: var(--col-heure) 34px minmax(0, 1fr); align-items: center; }
-/* Le fil : un trait fin d'un rond au suivant. */
-.fil > li + li::before { content: ""; position: absolute; left: calc(var(--col-heure) + 16.5px); top: -14px; height: 28px; width: 1px; background: color-mix(in srgb, var(--discret) 35%, transparent); }
-.fil > li.phare + li::before { top: -18px; height: 36px; }
-.moment-heure { justify-self: start; padding: 0; border: none; background: none; min-height: 44px; min-width: 40px; text-align: left; font-size: var(--t-legende); color: var(--discret); font-variant-numeric: tabular-nums; }
-.moment-heure.passee { color: var(--urgent); }
-.moment-rond { position: relative; z-index: 1; display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 1.5px solid color-mix(in srgb, var(--discret) 70%, transparent); background: var(--fond); color: transparent; }
-.moment-rond::after { content: ""; position: absolute; inset: -11px; }
-.moment-rond.urgent { border-color: var(--urgent); }
-.moment-rond.jour { border-color: var(--accent); }
-.moment-rond:active { background: var(--accent); border-color: var(--accent); color: var(--sur-accent); }
-.moment-rond.point { width: 9px; height: 9px; margin-left: 6.5px; border: none; background: color-mix(in srgb, var(--discret) 55%, transparent); }
-.moment-rond.point.urgent { background: var(--urgent); }
-.moment-rond.point.jour { background: var(--accent); }
-.moment-corps { display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 46px; padding: 6px 0; border: none; background: none; text-align: left; color: var(--texte); }
-.moment-texte { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.suivante .moment-texte, .roue:not([data-centre]) .moment-texte { color: color-mix(in srgb, var(--texte) 78%, transparent); }
-.moment-quand { flex: none; font-size: var(--t-legende); color: var(--discret); }
-.moment-quand.urgent { color: var(--urgent); }
-/* La chose du moment, en grand. */
-.phare { min-height: 64px; touch-action: pan-y; }
 .suivante, .roue { touch-action: pan-y; }
-.phare .moment-rond, .roue[data-centre] .moment-rond { width: 26px; height: 26px; margin-left: -2px; border-width: 2px; }
-.phare .moment-corps, .roue[data-centre] .moment-corps { flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; min-height: 64px; }
-.phare .moment-texte, .roue[data-centre] .moment-texte { font-family: var(--police-titre); font-size: var(--t-section); font-weight: 600; width: 100%; }
-.moment-sous { font-size: var(--t-legende); color: var(--discret); }
-.moment-sous:empty { display: none; }
-.suivante .moment-sous, .roue:not([data-centre]) .moment-sous { display: none; }
-.moment-sous.urgent { color: var(--urgent); }
-.glisse .moment-corps, .glisse .moment-rond { transform: translateX(var(--glisse)); }
-.glisse .moment-rond { background: color-mix(in srgb, var(--accent) calc(min(var(--glisse) / 84px, 1) * 100%), var(--fond)); }
-.fil > li:not(.glisse) .moment-corps, .fil > li:not(.glisse) .moment-rond { transition: transform var(--ressort-ligne-duree, 0.3s) var(--ressort-ligne, var(--courbe)); }
-
-/* Kora 0.0.59 : « Ce soir » en roulette, et le rond de Rappels. */
-.fil.roulette { --cran: 56px; height: calc(var(--cran) * 3); overflow-y: auto; overscroll-behavior: contain; scroll-snap-type: y mandatory; padding-block: var(--cran); scrollbar-width: none; -webkit-mask-image: linear-gradient(transparent, #000 30%, #000 70%, transparent); mask-image: linear-gradient(transparent, #000 30%, #000 70%, transparent); }
-.fil.roulette::-webkit-scrollbar { display: none; }
-.fil.roulette > li { min-height: var(--cran); overflow: hidden; scroll-snap-align: center; transform-origin: 50% 50%; will-change: transform, opacity; animation: none; }
-.fil.roulette > li, .fil.roulette > li .moment-corps { min-height: var(--cran); }
-.fil.roulette > li + li::before { top: -14px; height: 28px; }
-.fil.roulette > li .moment-texte { transition: font-size .2s var(--courbe); }
-.moment-rond.coche { background: var(--accent); border-color: var(--accent); color: var(--sur-accent); animation: rond-rempli .28s var(--courbe); }
-@keyframes rond-rempli { 0% { transform: scale(.7); } 60% { transform: scale(1.12); } 100% { transform: scale(1); } }
-.cochee .moment-texte { color: var(--discret); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--discret) 70%, transparent); }
-.cochee .moment-sous { opacity: .5; }
-@media (prefers-reduced-motion: reduce) { .moment-rond.coche { animation: none; } }
-.ce-moment-plus { display: block; padding: 6px 0 0 calc(var(--col-heure) + 34px); font-size: var(--t-detail); }
-@media (prefers-reduced-motion: no-preference) { .fil > li { animation: bulle-arrive 0.3s var(--courbe) both; } }
 
 /* L'heure d'une tâche, comme une alarme. */
 .feuille-heure { display: grid; gap: 8px; }

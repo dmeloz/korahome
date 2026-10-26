@@ -5,6 +5,7 @@ import type { Meteo } from "./meteo";
 import { choseAFaire, type Animal } from "./mitsu";
 import { tachesDuMatin } from "./rappels";
 import { etatProduit, resumeStock, type Produit } from "./stock";
+import { aSortirCeSoir, phraseSortir, type ReglageDechets } from "./maison";
 import { ecartJours, enMinutes, heureDe } from "./taches";
 import type { Id, Jour, Tache } from "./types";
 
@@ -22,7 +23,7 @@ export type EtatChose =
   | "calme";
 
 /** Où mène le toucher : un module de l'accueil, ou une action de Kora. */
-export type DestinationChose = "taches" | "agenda" | "mitsu" | "stock" | "jardin" | "chef" | "budget" | "sauvegarde" | "repartition";
+export type DestinationChose = "taches" | "agenda" | "mitsu" | "stock" | "jardin" | "chef" | "budget" | "sauvegarde" | "repartition" | "maison";
 
 export interface ChoseDuJour {
   /** Stable d'un affichage à l'autre (pour React, et pour ne pas répéter un rappel). */
@@ -70,6 +71,8 @@ export interface EntreeDuJour {
   sauvegardeDue?: boolean;
   /** Dimanche : on se répartit la semaine. */
   repartitionDue?: boolean;
+  /** Les jours des déchets réglés par le foyer (Maison › Entretien). */
+  dechets?: ReglageDechets | null;
 }
 
 const ORDRE: Record<EtatChose, number> = { urgent: 0, jour: 1, calme: 2 };
@@ -132,6 +135,10 @@ export function chosesDuJour(e: EntreeDuJour): ChoseDuJour[] {
 
   const ceSoir = repasDuSoir(e.menus, aujourdhui);
   if (ceSoir) choses.push({ cle: "chef-ce-soir", texte: ceSoir, quand: "ce soir", etat: "jour", destination: "chef" });
+
+  // Les déchets de demain se sortent la veille au soir.
+  const aSortir = aSortirCeSoir(e.dechets ?? null, aujourdhui);
+  if (aSortir.length) choses.push({ cle: "dechets", texte: phraseSortir(aSortir), quand: "ce soir", etat: "jour", destination: "maison" });
 
   if (e.repartitionDue) choses.push({ cle: "repartition", texte: "On se répartit la semaine ?", quand: "dimanche", etat: "calme", destination: "repartition" });
   if (e.sauvegardeDue) choses.push({ cle: "sauvegarde", texte: "Sauvegarde de la semaine", quand: "un toucher", etat: "calme", destination: "sauvegarde" });

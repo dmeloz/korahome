@@ -48,6 +48,20 @@ export interface LigneEntretien {
   /** « dans 12 jours », « en retard de 3 jours » */
   quand: string;
   du: boolean;
+  /** « fait il y a 12 jours », quand on l'a déjà fait une fois ; sinon null. Discret : on sait d'un coup d'œil depuis combien de temps. */
+  depuis: string | null;
+}
+
+/** Depuis combien de temps la dernière fois : « fait hier », « fait il y a 3 mois ». */
+export function derniereFois(t: Tache, aujourdhui: Jour): string | null {
+  const dernier = t.historique?.reduce<Jour | null>((m, f) => (!m || f.le > m ? f.le : m), null) ?? null;
+  if (!dernier) return null;
+  const jours = ecartJours(dernier, aujourdhui);
+  if (jours <= 0) return "fait aujourd'hui";
+  if (jours === 1) return "fait hier";
+  if (jours < 60) return `fait il y a ${jours} jours`;
+  const mois = Math.round(jours / 30.4);
+  return mois < 24 ? `fait il y a ${mois} mois` : `fait il y a ${Math.round(mois / 12)} ans`;
 }
 
 /** Le plus pressé d'abord ; « dû » quand la date est passée ou tombe dans la semaine. */
@@ -59,5 +73,6 @@ export function organiserEntretien(taches: readonly Tache[], aujourdhui: Jour): 
       tache,
       quand: decrireEcheance(tache.echeance, aujourdhui),
       du: ecartJours(aujourdhui, tache.echeance) <= 7,
+      depuis: derniereFois(tache, aujourdhui),
     }));
 }

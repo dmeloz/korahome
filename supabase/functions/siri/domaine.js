@@ -1868,6 +1868,50 @@ const OUTILS_JARVIS = [
 		}
 	},
 	{
+		name: "noter_taille",
+		description: "Note la taille d'un vêtement pour une personne du foyer (« Sarah fait du 39 », « je fais du M en haut »). Une taille par pièce et par personne : la nouvelle remplace l'ancienne.",
+		strict: true,
+		input_schema: {
+			type: "object",
+			additionalProperties: false,
+			required: [
+				"pour",
+				"piece",
+				"valeur"
+			],
+			properties: {
+				pour: texte("Le prénom de la personne ; celui de la personne qui parle pour « je »."),
+				piece: {
+					type: "string",
+					enum: [
+						"haut",
+						"pantalon",
+						"robe",
+						"chaussures",
+						"sousVetements",
+						"manteau"
+					],
+					description: "La pièce : haut (t-shirt, pull, chemise), pantalon (jean, jupe), robe (robe, costume), chaussures, sousVetements, manteau (veste, manteau)."
+				},
+				valeur: texte("La taille telle qu'on la dit : « M », « 38 », « W30 L32 », « 85B ».")
+			}
+		}
+	},
+	{
+		name: "noter_envie",
+		description: "Note un vêtement ou un accessoire qu'une personne du foyer aimerait acheter (« j'aimerais une veste en laine », « note des bottes pour Sarah, 120 francs »). L'autre voit la liste : utile pour un cadeau.",
+		strict: true,
+		input_schema: {
+			type: "object",
+			additionalProperties: false,
+			required: ["pour", "envie"],
+			properties: {
+				pour: texte("Le prénom de la personne ; celui de la personne qui parle pour « je »."),
+				envie: texte("La pièce en quelques mots, le prix au bout s'il est dit : « veste en laine 120 ».")
+			}
+		}
+	},
+	{
 		name: "noter_souhait",
 		description: "Quand on te demande une chose que tu ne sais pas faire (aucun outil ne convient, ou l'app n'a pas cette fonction), note-la comme souhait d'amélioration pour Claude, qui fait évoluer l'app.",
 		strict: true,
@@ -1901,6 +1945,7 @@ Avec une page de carnet de santé ou une facture de vétérinaire : note chaque 
 Quand on te dit qu'un animal a vomi, n'a pas mangé, ou que la litière est changée, note-le avec noter_journal ; si une tâche correspond (litière), marque-la aussi faite.
 Avec une recette (un lien, une photo de page de livre ou de fiche, ou une recette dictée) : range-la dans les recettes du foyer (enregistrer_recette) avec tous ses ingrédients et leurs quantités, et ses étapes réécrites courtes en français. Pour un lien, mets l'adresse dans lien, puis compare ses ingrédients au stock et à la liste de courses et n'ajoute aux courses que ce qui manque, avec les quantités de la recette. Pour une photo ou une dictée, n'ajoute aux courses que si on te le demande.
 « Qu'est-ce qu'on mange ce soir ? » : propose une ou deux recettes du foyer (état du foyer) qu'on peut faire avec le stock, celles qu'on aime d'abord, en disant ce qui manque ; si aucune ne va, une idée simple avec ce qu'il y a. Ne propose jamais une recette marquée « pas pour eux ».
+Les vêtements : « quelle pointure fait Sarah ? », « qu'est-ce qui ferait plaisir à Dany ? » se répondent depuis les vêtements de l'état du foyer (tailles et envies). « Je fais du 38 », « note une robe pour Sarah » : noter_taille, noter_envie.
 Avec une photo de plante : reconnais-la (nom courant en français, le plus précis possible). Si on te demande de l'ajouter, utilise ajouter_plante, et écris quand même une phrase : son nom, puis son besoin principal (soleil, arrosage, gel). Si tu n'es pas sûr, dis-le et donne les deux noms les plus probables.`;
 /** Les derniers échanges, pour que « et du beurre aussi » se comprenne. */
 const TOURS_RETENUS = 6;
@@ -3218,7 +3263,105 @@ function evenementsAvant(journal, quand, nombre = 6) {
 	return journal.filter((e) => e.h <= quand && e.type !== "note").slice(-nombre);
 }
 //#endregion
+//#region src/domaine/vetements.ts
+/** Les pièces dont on retient la taille. Le texte de la taille reste libre (« M », « 38 », « W30 L32 »). */
+const PIECES = [
+	{
+		id: "haut",
+		nom: "Haut",
+		exemple: "M, 38"
+	},
+	{
+		id: "pantalon",
+		nom: "Pantalon",
+		exemple: "38, W30 L32"
+	},
+	{
+		id: "robe",
+		nom: "Robe ou costume",
+		exemple: "36, 48"
+	},
+	{
+		id: "chaussures",
+		nom: "Chaussures",
+		exemple: "39"
+	},
+	{
+		id: "sousVetements",
+		nom: "Sous-vêtements",
+		exemple: "S, 85B"
+	},
+	{
+		id: "manteau",
+		nom: "Manteau",
+		exemple: "L"
+	}
+];
+const idTaille = (membreId, piece) => `taille-${membreId}-${piece}`;
+/** La taille d'une pièce pour une personne, ou null. */
+function tailleDe(docs, membreId, piece) {
+	return docs.find((d) => d.type === "taille" && d.membreId === membreId && d.piece === piece) ?? null;
+}
+/** Poser ou changer une taille ; une valeur vide la retire (rend null : à supprimer). */
+function poserTaille(membreId, piece, valeur, ctx) {
+	const v = valeur.trim().slice(0, 20);
+	if (!v) return null;
+	return {
+		id: idTaille(membreId, piece),
+		type: "taille",
+		membreId,
+		piece,
+		valeur: v,
+		modifieLe: ctx.maintenant()
+	};
+}
+const PRIX_AU_BOUT = /\s+(?:CHF\s*)?(\d{1,5}(?:[.,]\d{1,2})?)(?:\s*(?:CHF|fr\.?|francs?|\.-|-))?\s*$/i;
+/** Lit une envie écrite d'une traite : le titre, et le prix s'il est au bout. */
+function lireEnvie(texte) {
+	const t = texte.trim().replace(/\s+/g, " ");
+	const m = PRIX_AU_BOUT.exec(t);
+	if (!m || m.index === 0) return {
+		titre: t.slice(0, 80),
+		prix: null
+	};
+	return {
+		titre: t.slice(0, m.index).trim().slice(0, 80),
+		prix: Number(m[1].replace(",", "."))
+	};
+}
+function nouvelleEnvie(texte, membreId, ajoutePar, ctx) {
+	const { titre, prix } = lireEnvie(texte);
+	if (!titre) return null;
+	return {
+		id: ctx.nouvelId(),
+		type: "envie",
+		membreId,
+		titre,
+		prix,
+		ou: null,
+		creeLe: ctx.maintenant(),
+		ajoutePar,
+		acheteLe: null
+	};
+}
+const recent = (quand, maintenant) => !quand || Date.parse(maintenant) - Date.parse(quand) < 2592e6;
+/** Les envies d'une personne : à acheter d'abord (les plus récentes en haut), puis achetées ces trente jours. */
+function enviesDe(docs, membreId, maintenant) {
+	return docs.filter((d) => d.type === "envie" && d.membreId === membreId && recent(d.acheteLe, maintenant)).sort((a, b) => Number(!!a.acheteLe) - Number(!!b.acheteLe) || b.creeLe.localeCompare(a.creeLe));
+}
+//#endregion
 //#region src/domaine/jarvis.ts
+/** Les tailles et les envies de chacun, une ligne par personne. */
+function decrireVetements(docs, foyer, maintenant) {
+	const lignes = [];
+	for (const m of foyer.membres) {
+		const tailles = PIECES.map((p) => [p.nom, tailleDe(docs, m.id, p.id)?.valeur]).filter((x) => x[1]);
+		const envies = enviesDe(docs, m.id, maintenant).filter((e) => !e.acheteLe);
+		if (!tailles.length && !envies.length) continue;
+		lignes.push(`Vêtements de ${m.prenom} : ${tailles.length ? `tailles ${tailles.map(([n, v]) => `${n.toLowerCase()} ${v}`).join(", ")}` : "tailles pas notées"}${envies.length ? ` ; envies ${envies.map((e) => `${e.titre}${e.prix !== null ? ` (${e.prix} CHF)` : ""}`).join(", ")}` : ""}.`);
+	}
+	return lignes;
+}
 const listeCourses = (d) => d.listes.find((l) => l.type === "courses") ?? null;
 const prenomDe = (foyer, id) => foyer.membres.find((m) => m.id === id)?.prenom ?? null;
 function nomDuJour(jour) {
@@ -3272,6 +3415,7 @@ function decrireFoyer(d, membreId, aujourdhui) {
 	if (d.zones?.length) lignes.push(...decrireJardin(d.zones, d.meteo ?? null, aujourdhui));
 	if (d.agenda) lignes.push(...decrireAgenda(evenementsDe(d.agenda), d.foyer, aujourdhui));
 	if (d.budget) lignes.push(...decrireBudget(d.budget, (id) => prenomDe(d.foyer, id) ?? "", aujourdhui));
+	if (d.vetements?.length) lignes.push(...decrireVetements(d.vetements, d.foyer, `${aujourdhui}T12:00:00.000Z`));
 	return lignes.join("\n");
 }
 /**
@@ -3480,6 +3624,20 @@ function lireActions(appels) {
 					nom: a.nom.trim(),
 					prix: a.prix
 				}))
+			});
+		} else if (nom === "noter_taille") {
+			const piece = PIECES.find((p) => p.id === e.piece)?.id;
+			if (estTexte(e.pour) && estTexte(e.valeur) && piece) actions.push({
+				outil: nom,
+				pour: e.pour.trim(),
+				piece,
+				valeur: e.valeur.trim()
+			});
+		} else if (nom === "noter_envie") {
+			if (estTexte(e.pour) && estTexte(e.envie)) actions.push({
+				outil: nom,
+				pour: e.pour.trim(),
+				envie: e.envie.trim()
 			});
 		} else if (nom === "enregistrer_recette") {
 			const recette = lireBrouillon(e, estTexte(e.lien) ? "lien" : "jarvis");
@@ -3922,6 +4080,39 @@ function appliquerActions(actions, donnees, membreId, aujourdhui, ctx) {
 				faits.push(avant ? `« ${recette.titre} » était déjà dans vos recettes : elle monte dans la liste.` : `« ${recette.titre} » rangée dans vos recettes.`);
 				break;
 			}
+			case "noter_taille": {
+				const personne = trouverParNom(donnees.foyer.membres, action.pour, (m) => m.prenom);
+				if (!personne) {
+					echecs.push(`Je ne connais pas « ${action.pour} » dans le foyer.`);
+					break;
+				}
+				const avant = tailleDe(donnees.vetements ?? [], personne.id, action.piece);
+				const apres = poserTaille(personne.id, action.piece, action.valeur, ctx);
+				if (!apres) break;
+				modifications.push({
+					collection: "vetements",
+					avant,
+					apres
+				});
+				faits.push(`Taille notée pour ${personne.prenom} : ${PIECES.find((p) => p.id === action.piece).nom.toLowerCase()} ${apres.valeur}.`);
+				break;
+			}
+			case "noter_envie": {
+				const personne = trouverParNom(donnees.foyer.membres, action.pour, (m) => m.prenom);
+				if (!personne) {
+					echecs.push(`Je ne connais pas « ${action.pour} » dans le foyer.`);
+					break;
+				}
+				const envie = nouvelleEnvie(action.envie, personne.id, membreId, ctx);
+				if (!envie) break;
+				modifications.push({
+					collection: "vetements",
+					avant: null,
+					apres: envie
+				});
+				faits.push(`Envie notée pour ${personne.prenom} : ${envie.titre.toLowerCase()}${envie.prix !== null ? ` (${formaterMontant(envie.prix)})` : ""}.`);
+				break;
+			}
 			case "noter_souhait": {
 				const texte = `Souhait pour Jarvis : ${action.demande}${action.manque ? ` (il faudrait : ${action.manque})` : ""}`;
 				if ((donnees.retours ?? []).some((r) => !r.regleLe && normaliser(r.texte) === normaliser(texte))) {
@@ -3978,6 +4169,8 @@ function decrireAction(action) {
 		case "ajouter_evenement": return `Agenda : ${action.titre}, le ${action.jour}${action.heure ? ` à ${action.heure}` : ""}${action.pour ? `, pour ${action.pour}` : ""}`;
 		case "supprimer_evenement": return `Retirer de l'agenda : ${action.titre}`;
 		case "noter_depense": return `Budget : ${action.charge ?? action.libelle ?? action.magasin ?? ""} ${formaterMontant(action.montant)}`;
+		case "noter_taille": return `Taille de ${action.pour} : ${PIECES.find((p) => p.id === action.piece).nom.toLowerCase()} ${action.valeur}`;
+		case "noter_envie": return `Envie de ${action.pour} : ${lireEnvie(action.envie).titre}`;
 	}
 }
 /** Ce qui remet chaque document dans son état d'avant, dans l'ordre inverse. */
@@ -4012,7 +4205,8 @@ const COLLECTIONS_SIRI = [
 	"retours",
 	"agenda",
 	"budget",
-	"menus"
+	"menus",
+	"vetements"
 ];
 /** Une question en attente, ou le dernier tour (pour « annule » et la suite de la conversation), au plus tant de minutes. */
 const MINUTES_RETENUES = 10;
@@ -4054,6 +4248,7 @@ function donneesDepuisDocuments(lignes, version = "Siri") {
 		agenda: de("agenda"),
 		budget: de("budget"),
 		menus: de("menus"),
+		vetements: de("vetements"),
 		version
 	};
 }

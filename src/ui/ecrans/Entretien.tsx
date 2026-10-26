@@ -1,6 +1,6 @@
 import { feteFee } from "../fee";
 import { useState } from "react";
-import { entretiensAProposer, nouvelEntretien, organiserEntretien } from "../../domaine/entretien";
+import { derniereFois, entretiensAProposer, nouvelEntretien, organiserEntretien } from "../../domaine/entretien";
 import { decrireEcheance, decrireRecurrence, marquerFaite } from "../../domaine/taches";
 import { noterUsage } from "../usage";
 import type { Jour, Tache } from "../../domaine/types";
@@ -40,7 +40,7 @@ export function Entretien(props: { depot: Depot; membreId: string | null; taches
       <Feuille ouverte={!!t} onFermer={() => setOuverte(null)} titre={t?.titre}>
         {t && (
           <div className="formulaire tache-feuille">
-            <p className="discret">{decrireRecurrence(t.recurrence)} · {decrireEcheance(t.echeance, aujourdhui)}</p>
+            <p className="discret">{decrireRecurrence(t.recurrence)} · {decrireEcheance(t.echeance, aujourdhui)}{derniereFois(t, aujourdhui) ? ` · ${derniereFois(t, aujourdhui)}` : ""}</p>
             <button type="button" className="bouton-principal" onClick={() => { setOuverte(null); void faire(t); }}>
               Fait aujourd'hui
             </button>
@@ -58,7 +58,7 @@ export function Entretien(props: { depot: Depot; membreId: string | null; taches
 
       {lignes.length > 0 && (
         <ListeVivante className="carte groupe">
-          {lignes.map(({ tache, quand, du }) => (
+          {lignes.map(({ tache, quand, du, depuis }) => (
             <Ligne key={tache.id}>
               <Glissable onSupprimer={() => void retirer(tache)} libelle="Retirer">
                 <div className="ligne tache">
@@ -67,6 +67,7 @@ export function Entretien(props: { depot: Depot; membreId: string | null; taches
                     <span className="ligne-texte">{tache.titre}</span>
                     <span className={`tache-details${du ? " retard" : ""}`}>
                       {decrireRecurrence(tache.recurrence)} · {quand}
+                      {depuis && <span className="entretien-depuis"> · {depuis}</span>}
                     </span>
                   </button>
                 </div>

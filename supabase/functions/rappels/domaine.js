@@ -617,7 +617,7 @@ function moisDe$1(jour) {
 }
 const depenses = (docs) => docs.filter((d) => d.genre === "depense").sort((a, b) => b.jour.localeCompare(a.jour) || b.creeLe.localeCompare(a.creeLe));
 /** Le premier jour de paie du mois (le dernier jour du mois si la paie tombe un 31 en février). */
-function jourDuMois(mois, jour) {
+function jourDuMois$1(mois, jour) {
 	const [a, m] = mois.split("-").map(Number);
 	const dernier = new Date(Date.UTC(a, m, 0)).getUTCDate();
 	return `${mois}-${String(Math.min(Math.max(1, jour), dernier)).padStart(2, "0")}`;
@@ -632,14 +632,14 @@ function echeancesDe(poste, de, a) {
 	if (poste.frequence === "an") {
 		if (!poste.mois) return jours;
 		for (let annee = Number(de.slice(0, 4)); annee <= Number(a.slice(0, 4)); annee++) {
-			const j = jourDuMois(`${annee}-${String(poste.mois).padStart(2, "0")}`, poste.jour ?? 1);
+			const j = jourDuMois$1(`${annee}-${String(poste.mois).padStart(2, "0")}`, poste.jour ?? 1);
 			if (j >= de && j <= a) jours.push(j);
 		}
 		return jours;
 	}
 	if (!poste.jour) return jours;
 	for (let mois = moisDe$1(de); mois <= moisDe$1(a); mois = moisSuivant(mois)) {
-		const j = jourDuMois(mois, poste.jour);
+		const j = jourDuMois$1(mois, poste.jour);
 		if (j >= de && j <= a) jours.push(j);
 	}
 	return jours;
@@ -1234,6 +1234,70 @@ function gestesDuJardin(zones, meteo, aujourdhui) {
 	return gestes;
 }
 //#endregion
+//#region src/domaine/maison.ts
+const TYPES_DECHETS = [
+	{
+		id: "ordures",
+		nom: "Ordures ménagères",
+		sortir: "Sortir les ordures"
+	},
+	{
+		id: "papier",
+		nom: "Papier et carton",
+		sortir: "Sortir le papier et le carton"
+	},
+	{
+		id: "verre",
+		nom: "Verre",
+		sortir: "Sortir le verre"
+	},
+	{
+		id: "verts",
+		nom: "Déchets verts",
+		sortir: "Sortir les déchets verts"
+	},
+	{
+		id: "encombrants",
+		nom: "Encombrants",
+		sortir: "Sortir les encombrants"
+	}
+];
+const reglageDechets = (docs) => docs.find((d) => d.type === "dechets") ?? null;
+const nomDechet = (type) => TYPES_DECHETS.find((t) => t.id === type).nom;
+const jourDeLaSemaine$1 = (jour) => (/* @__PURE__ */ new Date(`${jour}T12:00:00Z`)).getUTCDay();
+const decalerJours = (jour, n) => new Date(Date.parse(`${jour}T12:00:00Z`) + n * 864e5).toISOString().slice(0, 10);
+/** Le premier jour de ce nom à partir de `depuis` (lui compris). */
+function prochainJourNomme(depuis, jour) {
+	return decalerJours(depuis, (jour - jourDeLaSemaine$1(depuis) + 7) % 7);
+}
+/** Le n-ième jour de ce nom dans le mois de `jour`. */
+function jourDuMois(jour, nomJour, n) {
+	const premier = prochainJourNomme(`${jour.slice(0, 7)}-01`, nomJour);
+	return decalerJours(premier, (n - 1) * 7);
+}
+/** Vrai si ce jour est un jour de collecte. */
+function collecteCeJour(c, jour) {
+	if (jourDeLaSemaine$1(jour) !== c.jour) return false;
+	if (c.rythme === "semaine") return true;
+	if (c.rythme === "quinzaine") {
+		const ref = c.reference ? prochainJourNomme(c.reference, c.jour) : prochainJourNomme("2026-01-01", c.jour);
+		return Math.abs(ecartJours(ref, jour)) % 14 === 0;
+	}
+	return jourDuMois(jour, c.jour, c.semaineDuMois ?? 1) === jour;
+}
+/** Les collectes du jour, pour le rappel du matin. */
+function collectesDuJour(reglage, aujourdhui) {
+	if (!reglage) return [];
+	return reglage.collectes.filter((c) => collecteCeJour(c, aujourdhui)).map((c) => c.type);
+}
+/** « Sortir le papier et le carton », « Sortir les ordures et le verre ». */
+function phraseSortir(types) {
+	if (!types.length) return "";
+	if (types.length === 1) return TYPES_DECHETS.find((t) => t.id === types[0]).sortir;
+	const noms = types.map((t) => nomDechet(t).toLowerCase());
+	return `Sortir : ${noms.slice(0, -1).join(", ")} et ${noms[noms.length - 1]}`;
+}
+//#endregion
 //#region src/domaine/listes.ts
 const UNITES = "(?:kg|g|l|cl|ml|x|paquets?|boites?|boîtes?|bouteilles?|pots?|sachets?|tranches?)";
 new RegExp(`^(\\d+(?:[.,]\\d+)?\\s*${UNITES}?)\\s+(?:de\\s+|d')?(.+)$`, "i");
@@ -1497,6 +1561,13 @@ function rappelDuMatin(entree) {
 		const occ = evenementsDuMatin(entree.evenements, entree.membreId, aujourdhui);
 		if (occ.length) lignes.push(`Agenda : ${enumerer(occ.map((o) => decrireCourt(o, aujourdhui)))}`);
 		nombre += occ.length;
+	}
+	if (preferences.taches && entree.maison) {
+		const dechets = collectesDuJour(reglageDechets(entree.maison), aujourdhui);
+		if (dechets.length) {
+			lignes.push(`Déchets : ${phraseSortir(dechets).replace(/^Sortir/, "sortir")}`);
+			nombre += 1;
+		}
 	}
 	if (preferences.taches) {
 		const t = tachesDuMatin(entree.taches, entree.membreId, aujourdhui);

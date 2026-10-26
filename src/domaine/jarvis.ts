@@ -46,6 +46,7 @@ import { decrirePeremption, LIEUX, nouveauProduit, type Lieu, type Produit } fro
 import { decaler, decrireEcheance, decrireRecurrence, ecartJours, estTerminee, marquerFaite, nouvelleTache } from "./taches";
 import type { Contexte, Element, Foyer, Id, Jour, Liste, Recurrence, Tache } from "./types";
 import { NOMS_JOURS } from "./texte";
+import { enviesDe, lireEnvie, nouvelleEnvie, PIECES, poserTaille, tailleDe, type DocVetement, type Piece } from "./vetements";
 export {
   coutMicroChf,
   etatBudget,
@@ -82,6 +83,23 @@ export interface DonneesFoyer {
   budget?: readonly DocBudget[];
   /** Les menus du Chef et les recettes du foyer. */
   menus?: readonly DocChef[];
+  /** Les vêtements : tailles, envies et pièces à trier de chacun. */
+  vetements?: readonly DocVetement[];
+}
+
+/** Les tailles et les envies de chacun, une ligne par personne. */
+function decrireVetements(docs: readonly DocVetement[], foyer: Foyer, maintenant: string): string[] {
+  const lignes: string[] = [];
+  for (const m of foyer.membres) {
+    const tailles = PIECES.map((p) => [p.nom, tailleDe(docs, m.id, p.id)?.valeur] as const).filter((x) => x[1]);
+    const envies = enviesDe(docs, m.id, maintenant).filter((e) => !e.acheteLe);
+    if (!tailles.length && !envies.length) continue;
+    lignes.push(
+      `Vêtements de ${m.prenom} : ${tailles.length ? `tailles ${tailles.map(([n, v]) => `${n.toLowerCase()} ${v}`).join(", ")}` : "tailles pas notées"}` +
+        `${envies.length ? ` ; envies ${envies.map((e) => `${e.titre}${e.prix !== null ? ` (${e.prix} CHF)` : ""}`).join(", ")}` : ""}.`,
+    );
+  }
+  return lignes;
 }
 
 const listeCourses = (d: DonneesFoyer) => d.listes.find((l) => l.type === "courses") ?? null;
@@ -156,6 +174,7 @@ export function decrireFoyer(d: DonneesFoyer, membreId: Id | null, aujourdhui: J
   if (d.zones?.length) lignes.push(...decrireJardin(d.zones, d.meteo ?? null, aujourdhui));
   if (d.agenda) lignes.push(...decrireAgenda(evenementsDe(d.agenda), d.foyer, aujourdhui));
   if (d.budget) lignes.push(...decrireBudget(d.budget, (id) => prenomDe(d.foyer, id) ?? "", aujourdhui));
+  if (d.vetements?.length) lignes.push(...decrireVetements(d.vetements, d.foyer, `${aujourdhui}T12:00:00.000Z`));
   return lignes.join("\n");
 }
 
@@ -194,7 +213,9 @@ export type ActionJarvis =
       lieu: string | null;
     }
   | { outil: "supprimer_evenement"; titre: string; jour: Jour | null }
-  | { outil: "noter_depense"; montant: number; libelle: string; magasin: string | null; pot: Pot; jour: Jour | null; charge: string | null; articles: ArticleTicket[] };
+  | { outil: "noter_depense"; montant: number; libelle: string; magasin: string | null; pot: Pot; jour: Jour | null; charge: string | null; articles: ArticleTicket[] }
+  | { outil: "noter_taille"; pour: string; piece: Piece; valeur: string }
+  | { outil: "noter_envie"; pour: string; envie: string };
 
 /**
  * Ce qui attend le oui de la personne avant de se faire : supprimer. Ce que Jarvis remarque seul,
@@ -332,6 +353,11 @@ export function lireActions(appels: readonly { nom: string; entree: unknown }[])
           .slice(0, 80)
           .map((a) => ({ nom: a.nom.trim(), prix: a.prix })),
       });
+    } else if (nom === "noter_taille") {
+      const piece = PIECES.find((p) => p.id === e.piece)?.id;
+      if (estTexte(e.pour) && estTexte(e.valeur) && piece) actions.push({ outil: nom, pour: e.pour.trim(), piece, valeur: e.valeur.trim() });
+    } else if (nom === "noter_envie") {
+      if (estTexte(e.pour) && estTexte(e.envie)) actions.push({ outil: nom, pour: e.pour.trim(), envie: e.envie.trim() });
     } else if (nom === "enregistrer_recette") {
       const recette = lireBrouillon(e, estTexte(e.lien) ? "lien" : "jarvis");
       if (recette) actions.push({ outil: nom, recette });
@@ -356,7 +382,8 @@ export type Modification =
   | { collection: "retours"; avant: null; apres: RetourTest }
   | { collection: "agenda"; avant: Evenement | null; apres: Evenement; supprime?: true }
   | { collection: "budget"; avant: Depense | null; apres: Depense }
-  | { collection: "menus"; avant: Recette | null; apres: Recette };
+  | { collection: "menus"; avant: Recette | null; apres: Recette }
+  | { collection: "vetements"; avant: DocVetement | null; apres: DocVetement };
 
 export interface ResultatActions {
   modifications: Modification[];
@@ -709,6 +736,31 @@ export function appliquerActions(
           faits.push(avant ? `« ${recette.titre} » était déjà dans vos recettes : elle monte dans la liste.` : `« ${recette.titre} » rangée dans vos recettes.`);
           break;
         }
+        case "noter_taille": {
+          const personne = trouverParNom(donnees.foyer.membres, action.pour, (m) => m.prenom);
+          if (!personne) {
+            echecs.push(`Je ne connais pas « ${action.pour} » dans le foyer.`);
+            break;
+          }
+          const avant = tailleDe(donnees.vetements ?? [], personne.id, action.piece);
+          const apres = poserTaille(personne.id, action.piece, action.valeur, ctx);
+          if (!apres) break;
+          modifications.push({ collection: "vetements", avant, apres });
+          faits.push(`Taille notée pour ${personne.prenom} : ${PIECES.find((p) => p.id === action.piece)!.nom.toLowerCase()} ${apres.valeur}.`);
+          break;
+        }
+        case "noter_envie": {
+          const personne = trouverParNom(donnees.foyer.membres, action.pour, (m) => m.prenom);
+          if (!personne) {
+            echecs.push(`Je ne connais pas « ${action.pour} » dans le foyer.`);
+            break;
+          }
+          const envie = nouvelleEnvie(action.envie, personne.id, membreId, ctx);
+          if (!envie) break;
+          modifications.push({ collection: "vetements", avant: null, apres: envie });
+          faits.push(`Envie notée pour ${personne.prenom} : ${envie.titre.toLowerCase()}${envie.prix !== null ? ` (${formaterMontantCourt(envie.prix)})` : ""}.`);
+          break;
+        }
         case "noter_souhait": {
           const texte = `Souhait pour Jarvis : ${action.demande}${action.manque ? ` (il faudrait : ${action.manque})` : ""}`;
           const deja = (donnees.retours ?? []).some((r) => !r.regleLe && normaliser(r.texte) === normaliser(texte));
@@ -776,6 +828,10 @@ export function decrireAction(action: ActionJarvis): string {
       return `Retirer de l'agenda : ${action.titre}`;
     case "noter_depense":
       return `Budget : ${action.charge ?? action.libelle ?? action.magasin ?? ""} ${formaterMontantCourt(action.montant)}`;
+    case "noter_taille":
+      return `Taille de ${action.pour} : ${PIECES.find((p) => p.id === action.piece)!.nom.toLowerCase()} ${action.valeur}`;
+    case "noter_envie":
+      return `Envie de ${action.pour} : ${lireEnvie(action.envie).titre}`;
   }
 }
 

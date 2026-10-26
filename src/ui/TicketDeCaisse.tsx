@@ -36,6 +36,8 @@ export function TicketDeCaisse(props: {
   classe?: string;
   /** Un mot à côté de l'icône (« Ticket »), pour un bouton visible dans une page. */
   libelle?: string;
+  /** -1 quand le bouton est caché avec sa barre : VoiceOver et le clavier ne doivent pas l'atteindre. */
+  tabIndex?: number;
 }) {
   const { depot, donnees } = props;
   const choix = useRef<HTMLInputElement>(null);
@@ -137,6 +139,7 @@ export function TicketDeCaisse(props: {
         onClick={() => choix.current?.click()}
         aria-label={props.libelle ? undefined : "Scanner un ticket de caisse"}
         disabled={etat === "lecture"}
+        tabIndex={props.tabIndex}
       >
         <Icone nom="ticket" taille={props.libelle ? 20 : 22} />
         {props.libelle && <span>{props.libelle}</span>}
