@@ -13,6 +13,7 @@
 // `npm run fonction`. Déploiement : docs/jarvis.md.
 
 import Anthropic from "npm:@anthropic-ai/sdk";
+import { avecAlerte, PanneSignalee } from "../_shared/alerte.ts";
 import { limiteDuCompte, preflight, repondre } from "../_shared/http.ts";
 import { estMembre, serveur, utilisateur } from "../_shared/supabase.ts";
 import {
@@ -29,8 +30,10 @@ import {
   MODELE_CONSEIL,
   MODELE_JARVIS,
   moisDe,
+  noteServeur,
   OUTIL_BUDGET,
   OUTILS_JARVIS,
+  phrasePanne,
 } from "./domaine.js";
 
 /** Le mois en cours à Zurich, « AAAA-MM ». */
@@ -123,7 +126,8 @@ Deno.serve(async (req) => {
     const message = messageDemande(texte(corps.etat, budgetFoyer ? 40000 : 20000), demande, historique, lien ? (page ?? "(page illisible : dis-le et propose de coller les ingrédients)") : null);
 
     const client = new Anthropic({ apiKey: cle });
-    const reponse = await client.messages.create({
+    // Une panne (pas l'affluence, pas la limite du compte) laisse une note « Bug serveur ».
+    const reponse = await avecAlerte(foyerId, "Jarvis", noteServeur, () => client.messages.create({
       model: modele,
       // La réflexion de Claude compte dans max_tokens : un ticket de vingt lignes demande de la place.
       max_tokens: reflechi ? 4000 : image ? 8000 : 2000,
@@ -145,7 +149,7 @@ Deno.serve(async (req) => {
             : message,
         },
       ],
-    });
+    }));
 
     const budget = etatBudget(await compter(foyerId, coutMicroChf(reponse.usage, modele)));
     if (reponse.stop_reason === "refusal") {
@@ -167,6 +171,7 @@ Deno.serve(async (req) => {
     console.error(e);
     const limite = limiteDuCompte(e, "Jarvis");
     if (limite) return repondre({ erreur: limite }, 503);
+    if (e instanceof PanneSignalee) return repondre({ erreur: phrasePanne("Jarvis") }, 502);
     if (e instanceof Anthropic.RateLimitError) return repondre({ erreur: "Jarvis est très demandé, réessaie dans un instant." }, 429);
     if (e instanceof Anthropic.AuthenticationError) return repondre({ erreur: "La clé de Jarvis est refusée : il faut la remplacer sur le serveur." }, 503);
     if (e instanceof Anthropic.APIError) return repondre({ erreur: "Jarvis ne répond pas pour l'instant, réessaie." }, 502);

@@ -106,6 +106,28 @@ export function creerServicesSupabase(url: string, cle: string): ServicesDistant
       if (!data) throw new Error("Code inconnu : vérifie-le sur l'autre iPhone.");
       return data as string;
     },
+    async nommerTelephone(foyerId, nom) {
+      echec((await (await supabase()).rpc("nommer_appareil", { p_foyer_id: foyerId, p_nom: nom })).error);
+    },
+    async telephones(foyerId) {
+      const { data, error } = await (await supabase()).rpc("appareils_foyer", { p_foyer_id: foyerId });
+      echec(error);
+      return ((data ?? []) as { id: string; nom: string | null; rejoint_le: string; actif_le: string | null; moi: boolean }[]).map((t) => ({
+        id: t.id,
+        nom: t.nom,
+        rejointLe: new Date(t.rejoint_le).toISOString(),
+        actifLe: t.actif_le ? new Date(t.actif_le).toISOString() : null,
+        moi: t.moi,
+      }));
+    },
+    async retirerTelephone(foyerId, id) {
+      echec((await (await supabase()).rpc("retirer_appareil", { p_foyer_id: foyerId, p_id: id })).error);
+    },
+    async nouveauCode(foyerId) {
+      const { data, error } = await (await supabase()).rpc("nouveau_code_foyer", { p_foyer_id: foyerId });
+      echec(error);
+      return data as string;
+    },
 
     async lire(foyerId, depuis) {
       const sb = await supabase();

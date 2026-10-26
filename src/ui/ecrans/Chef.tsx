@@ -162,19 +162,16 @@ export function Chef(p: PropsPage & { recette?: string | null }) {
     });
   }
 
-  /** Effacer : le menu, ses articles pas encore achetés et, s'il n'était pas validé, ses recettes jamais faites. */
+  /** Effacer : le menu et ses articles pas encore achetés ; ses recettes restent dans Nos recettes. */
   async function effacer(m: MenuSemaine) {
     setAEffacer(false);
-    const efface = ceQuEfface(m, recettes, p.elements);
-    const recettesParties = recettes.filter((r) => efface.recettes.includes(r.id));
+    const efface = ceQuEfface(m, p.elements);
     const articles = p.elements.filter((e) => efface.elements.includes(e.id));
     await p.depot.supprimerMenu(m.id);
-    for (const r of recettesParties) await p.depot.supprimerMenu(r.id);
     if (articles.length) await p.depot.supprimerElements(articles.map((e) => e.id));
     vibrer();
     annoncer(articles.length ? `Menu effacé, ${articles.length} article${articles.length > 1 ? "s" : ""} retiré${articles.length > 1 ? "s" : ""} des courses.` : "Menu effacé.", async () => {
       await p.depot.enregistrerMenu(m);
-      for (const r of recettesParties) await p.depot.enregistrerMenu(r);
       for (const e of articles) await p.depot.enregistrerElement(e);
     });
   }
@@ -201,8 +198,7 @@ export function Chef(p: PropsPage & { recette?: string | null }) {
         <Feuille ouverte={aEffacer} onFermer={() => setAEffacer(false)} titre="Effacer ce menu ?">
           <div className="formulaire">
             <p className="discret">
-              Les articles du Chef pas encore cochés quittent la liste de courses.
-              {menu?.valideLe ? " Le menu est validé : ses recettes restent dans Nos recettes." : " Ses recettes jamais cuisinées quittent aussi Nos recettes ; valide le menu d'abord pour les garder."}
+              Les articles du Chef pas encore cochés quittent la liste de courses. Ses recettes restent dans Nos recettes.
             </p>
             <button type="button" className="bouton-principal" onClick={() => menu && void effacer(menu)}>Effacer</button>
           </div>

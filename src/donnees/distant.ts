@@ -1,6 +1,7 @@
 import type { MenuSemaine } from "../domaine/chef";
 import type { EtatBudget, TourJarvis } from "../domaine/jarvis";
 import type { PreferencesRappels } from "../domaine/rappels";
+import type { TelephoneRelie } from "../domaine/foyer";
 import type { Changement } from "../domaine/synchro";
 import type { Id } from "../domaine/types";
 
@@ -35,6 +36,14 @@ export interface Compte {
   creerFoyer(id: Id, nom: string): Promise<FoyerPartage>;
   /** Rejoint le foyer de ce code ; renvoie son identifiant (erreur « Code inconnu » sinon). */
   rejoindreFoyer(code: string): Promise<Id>;
+  /** Ce téléphone dit au serveur qui il est (« Dany · iPhone · Kora 0.0.82 ») et qu'il vient de s'ouvrir. */
+  nommerTelephone(foyerId: Id, nom: string): Promise<void>;
+  /** Les téléphones reliés au foyer (dix au plus). */
+  telephones(foyerId: Id): Promise<TelephoneRelie[]>;
+  /** Retire un autre téléphone : sa place se libère, ses rappels s'arrêtent. */
+  retirerTelephone(foyerId: Id, id: string): Promise<void>;
+  /** Un nouveau code pour rejoindre le foyer ; l'ancien ne marche plus. */
+  nouveauCode(foyerId: Id): Promise<string>;
 }
 
 /** L'inscription d'un téléphone aux rappels du matin (Web Push). */

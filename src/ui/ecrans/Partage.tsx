@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, useSyncExternalStore, type FormEvent } from "react";
 import { expliquerErreur } from "../../domaine/erreurs";
-import { decrireAppareils } from "../../domaine/foyer";
+import { decrireAppareils, decrireTelephones, type TelephoneRelie } from "../../domaine/foyer";
 import { afficherCode, decrireDerniereSynchro, normaliserCode } from "../../domaine/synchro";
 import type { Foyer } from "../../domaine/types";
 import type { Compte, FoyerPartage, ServeurAgenda, ServeurJarvis, ServeurRappels, TempsReel } from "../../donnees/distant";
@@ -103,6 +103,8 @@ function PartageActif({ compte, synchro, foyer }: ServicesPartage & { foyer: Foy
           foyer={foyer}
           foyerPartage={foyers?.find((f) => f.id === foyer.id) ?? null}
           synchroniser={() => void synchro.synchroniser()}
+          compte={compte}
+          rafraichir={() => chargerFoyers().catch((e) => setErreur(message(e)))}
         />
       ) : (
         <Relier
@@ -321,6 +323,8 @@ function FoyerRelie(props: {
   foyer: Foyer;
   foyerPartage: FoyerPartage | null;
   synchroniser: () => void;
+  compte: Compte;
+  rafraichir: () => void;
 }) {
   const [maintenant, setMaintenant] = useState(() => new Date().toISOString());
   const [copie, setCopie] = useState(false);
@@ -383,8 +387,118 @@ function FoyerRelie(props: {
               {copie ? "Code copié" : "Copier le code"}
             </button>
           )}
+          <NouveauCode compte={props.compte} foyerId={props.foyer.id} change={() => { setCopie(false); props.rafraichir(); }} />
         </div>
       )}
+      <TelephonesRelies compte={props.compte} foyerId={props.foyer.id} maintenant={maintenant} />
     </>
+  );
+}
+
+/** Changer le code du foyer : un code vu sur une capture d'écran ne donne plus l'accès pour toujours. */
+function NouveauCode({ compte, foyerId, change }: { compte: Compte; foyerId: string; change: () => void }) {
+  const [demande, setDemande] = useState(false);
+  const [occupe, setOccupe] = useState(false);
+  const [erreur, setErreur] = useState<string | null>(null);
+  if (!demande) {
+    return <button className="lien" onClick={() => setDemande(true)}>Nouveau code</button>;
+  }
+  return (
+    <div className="partage-confirmer">
+      <p className="discret">L'ancien code ne permettra plus d'entrer. Les téléphones déjà reliés le restent.</p>
+      <button
+        className="bouton-doux"
+        disabled={occupe}
+        onClick={async () => {
+          setOccupe(true);
+          setErreur(null);
+          try {
+            await compte.nouveauCode(foyerId);
+            setDemande(false);
+            change();
+          } catch (e) {
+            setErreur(message(e));
+          } finally {
+            setOccupe(false);
+          }
+        }}
+      >
+        {occupe ? "Un instant…" : "Changer le code"}
+      </button>
+      <button className="lien" disabled={occupe} onClick={() => setDemande(false)}>Annuler</button>
+      {erreur && <p className="erreur" role="alert">{erreur}</p>}
+    </div>
+  );
+}
+
+/** Les téléphones reliés au foyer sur le serveur (dix au plus) : retirer une vieille installation ou un téléphone perdu. */
+function TelephonesRelies({ compte, foyerId, maintenant }: { compte: Compte; foyerId: string; maintenant: string }) {
+  const [telephones, setTelephones] = useState<TelephoneRelie[] | null>(null);
+  const [aRetirer, setARetirer] = useState<string | "anciens" | null>(null);
+  const [occupe, setOccupe] = useState(false);
+  const [erreur, setErreur] = useState<string | null>(null);
+
+  const charger = useCallback(() => compte.telephones(foyerId).then(setTelephones, (e) => setErreur(message(e))), [compte, foyerId]);
+  useEffect(() => {
+    void charger();
+  }, [charger]);
+
+  if (!telephones) return erreur ? <p className="erreur" role="alert">{erreur}</p> : null;
+  const lignes = decrireTelephones(telephones, maintenant);
+  const anciens = lignes.filter((l) => l.ancien);
+
+  const retirer = async (ids: string[]) => {
+    setOccupe(true);
+    setErreur(null);
+    try {
+      for (const id of ids) await compte.retirerTelephone(foyerId, id);
+      setARetirer(null);
+      await charger();
+    } catch (e) {
+      setErreur(message(e));
+    } finally {
+      setOccupe(false);
+    }
+  };
+
+  return (
+    <section className="partage-telephones" aria-labelledby="titre-telephones">
+      <p className="partage-etape" id="titre-telephones">Téléphones reliés · {lignes.length} sur 10</p>
+      <ul className="carte groupe">
+        {lignes.map((l) => (
+          <li key={l.id} className={`ligne${l.ancien ? " partage-ancien" : ""}`}>
+            <span className="ligne-texte">
+              <strong>{l.titre}</strong>
+              <span className="discret">{l.detail}</span>
+            </span>
+            {!l.moi &&
+              (aRetirer === l.id ? (
+                <span className="partage-confirmer-ligne">
+                  <button className="lien danger" disabled={occupe} onClick={() => retirer([l.id])}>
+                    {occupe ? "…" : "Retirer"}
+                  </button>
+                  <button className="lien" disabled={occupe} onClick={() => setARetirer(null)}>Garder</button>
+                </span>
+              ) : (
+                <button className="lien" aria-label={`Retirer ${l.titre}`} onClick={() => setARetirer(l.id)}>Retirer</button>
+              ))}
+          </li>
+        ))}
+      </ul>
+      {anciens.length > 1 &&
+        (aRetirer === "anciens" ? (
+          <div className="partage-confirmer">
+            <p className="discret">Les {anciens.length} anciennes installations quittent le foyer. Elles pourront revenir avec le code.</p>
+            <button className="bouton-doux" disabled={occupe} onClick={() => retirer(anciens.map((l) => l.id))}>
+              {occupe ? "Un instant…" : `Retirer les ${anciens.length}`}
+            </button>
+            <button className="lien" disabled={occupe} onClick={() => setARetirer(null)}>Annuler</button>
+          </div>
+        ) : (
+          <button className="lien" onClick={() => setARetirer("anciens")}>Retirer les {anciens.length} anciennes installations</button>
+        ))}
+      <p className="discret">Un téléphone retiré quitte le foyer et ses rappels s'arrêtent ; avec le code, il peut revenir.</p>
+      {erreur && <p className="erreur" role="alert">{erreur}</p>}
+    </section>
   );
 }

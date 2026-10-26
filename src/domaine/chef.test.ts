@@ -300,23 +300,12 @@ describe("effacer ou valider le menu", () => {
     lance: "maintenant",
     creeLe: "2026-10-18T08:00:00.000Z",
   };
-  const recettes = [
-    { id: "r-gratin", source: "chef", fois: 0, vue: 1 },
-    { id: "r-soupe", source: "chef", fois: 2, vue: 3 },
-    { id: "r-tarte", source: "photo", fois: 0, vue: 1 },
-    { id: "r-autre", source: "chef", fois: 0, vue: 1 },
-  ];
   const ctx = contexteTest();
   const el = (id: string, coche: boolean) => ({ ...nouvelElement(courses, id, null, ctx), id, coche });
   const elements = [el("e1", false), el("e2", true)];
 
-  it("retire les articles pas cochés et les recettes jamais faites venues de ce menu", () => {
-    expect(ceQuEfface(menu, recettes, elements)).toEqual({ recettes: ["r-gratin"], elements: ["e1"] });
-  });
-
-  it("un menu validé garde ses recettes", () => {
-    const valide = validerMenu(menu, ctx);
-    expect(valide.valideLe).toBeTruthy();
-    expect(ceQuEfface(valide, recettes, elements)).toEqual({ recettes: [], elements: ["e1"] });
+  it("retire les articles pas cochés et garde toutes les recettes", () => {
+    expect(ceQuEfface(menu, elements)).toEqual({ elements: ["e1"] });
+    expect(ceQuEfface(validerMenu(menu, ctx), elements)).toEqual({ elements: ["e1"] });
   });
 });

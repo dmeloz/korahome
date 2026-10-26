@@ -29,7 +29,9 @@ export {
   messageDemande,
   MODELE_JARVIS,
   moisDe,
+  noteServeur,
   OUTILS_JARVIS,
+  phrasePanne,
   TOURS_RETENUS,
 } from "./jarvisModele";
 export { annulation, aConfirmer, appliquerActions, decrireFoyer, lireActions, questionPour };

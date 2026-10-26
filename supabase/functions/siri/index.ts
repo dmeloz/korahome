@@ -15,6 +15,7 @@
 
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { aujourdhui, ctx } from "../_shared/contexte.ts";
+import { avecAlerte, PanneSignalee } from "../_shared/alerte.ts";
 import { CORS, limiteDuCompte, preflight, repondre } from "../_shared/http.ts";
 import { empreinte, nouveauJeton } from "../_shared/jetons.ts";
 import { echec, estMembre, serveur, utilisateur } from "../_shared/supabase.ts";
@@ -34,6 +35,7 @@ import {
   MODELE_JARVIS,
   moisDe,
   nomAssistant,
+  noteServeur,
   OUTILS_JARVIS,
   reponseCourte,
   suiteRecente,
@@ -105,14 +107,14 @@ async function ecouter(jeton: string, corps: Record<string, unknown>): Promise<R
   if (avant.atteint) return dire(`J'ai atteint le plafond de ${formaterChf(avant.plafondChf)} ce mois-ci. Je reviens le 1er du mois prochain.`);
 
   const client = new Anthropic({ apiKey: cle });
-  const reponse = await client.messages.create({
+  const reponse = await avecAlerte(qui.foyer_id, "Siri", noteServeur, () => client.messages.create({
     model: MODELE_JARVIS,
     max_tokens: 2000,
     system: consignesSiri(CONSIGNES_JARVIS, nom),
     tools: OUTILS_JARVIS,
     output_config: { effort: "low" },
     messages: [{ role: "user", content: messageDemande(decrireFoyer(donnees, qui.membre_id, jour).slice(0, 20000), demande, suite?.tours ?? []) }],
-  });
+  }));
   await compter(qui.foyer_id, coutMicroChf(reponse.usage, MODELE_JARVIS));
   if (reponse.stop_reason === "refusal") return dire("Je ne peux pas t'aider pour ça.");
 
@@ -171,6 +173,7 @@ Deno.serve(async (req) => {
     console.error(e);
     const limite = limiteDuCompte(e, "Ta fée");
     if (limite) return dire(limite, 503);
+    if (e instanceof PanneSignalee) return dire("J'ai un souci de mon côté. Claude est prévenu ; réessaie un peu plus tard.", 502);
     if (e instanceof Anthropic.RateLimitError) return dire("Je suis très demandé, réessaie dans un instant.", 429);
     if (e instanceof Anthropic.APIError) return dire("Je ne réponds pas pour l'instant, réessaie.", 502);
     return dire("Quelque chose a coincé, réessaie dans Kora.", 500);
