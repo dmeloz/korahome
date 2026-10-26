@@ -47,7 +47,7 @@ Kora range l'interface en quelques pièces qui se répètent sur toutes les page
 
 ## Les données qui servent ailleurs
 
-- `carteDuJour` et `phraseDuJour` (`src/domaine/aujourdhui.ts`) donnent la forme exacte d'un futur widget iPhone et de la réponse de Siri à « Qu'est-ce qu'on a aujourd'hui ? ».
+- `carteDuJour` (`src/domaine/aujourdhui.ts`) donne la forme exacte d'un futur widget iPhone et de la réponse de Siri à « Qu'est-ce qu'on a aujourd'hui ? ».
 - `comprendrePhrase` (`src/domaine/barre.ts`) dit où va une phrase : c'est le futur `AppIntent` de la fée et de Siri.
 - `feeDe`, `attentesDuCouple` (`src/domaine/fee.ts`) et `vieFee.ts` décrivent qui est la fée, ce qui attend au-dessus d'elle et quand elle parle ; l'app native les reprend telles quelles.
 - `tachesALHeure` et `notificationHeure` (`src/domaine/rappels.ts`) disent quelle tâche rappeler à quelle minute, ce que la fonction serveur `rappels` envoie aujourd'hui.
