@@ -13,7 +13,7 @@ import type { Produit } from "../domaine/stock";
 import type { RetourTest } from "../domaine/retours";
 import { cleDe, COLLECTIONS_SYNCHRO, distantGagne, type Changement, type CollectionSynchro } from "../domaine/synchro";
 import type { Element, Foyer, Id, Liste, Tache } from "../domaine/types";
-import type { Depot } from "./depot";
+import type { Changees, Depot } from "./depot";
 
 // Version 2 : ajout des tâches. Version 3 : notes de test. Version 4 : suivi de Mitsu.
 // Version 5 : partage (modifications en attente d'envoi, état de la synchro).
@@ -31,8 +31,9 @@ import type { Depot } from "./depot";
 // Version 16 : la maison (déchets, appareils) ; relecture du serveur une fois, pour la même raison.
 // La mise à jour crée seulement les magasins manquants.
 const VERSION = 16;
-const MAGASINS = ["foyer", "listes", "elements", "taches", "retours", "animaux", "stock", "catalogue", "jardin", "memoire", "couple", "menus", "agenda", "budget", "corbeille", "vetements", "maison", "attente", "synchro"] as const;
-type Magasin = (typeof MAGASINS)[number];
+// Un magasin par collection du registre (domaine/collections.ts), plus la file d'attente et l'état du partage.
+const MAGASINS = [...COLLECTIONS_SYNCHRO, "attente", "synchro"] as const;
+type Magasin = CollectionSynchro | "attente" | "synchro";
 const CLES: Partial<Record<Magasin, string>> = { attente: "cle" };
 
 /** Où en est le partage sur ce téléphone. */
@@ -141,14 +142,16 @@ export function creerDepotLocal(
   auteur: () => Id | null = () => null,
 ): DepotLocal {
   const base = ouvrir(nomBase, fabrique);
-  const abonnes = new Set<() => void>();
+  const abonnes = new Set<(changees: Changees) => void>();
   const canal = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel(`${nomBase}-changements`) : null;
-  const prevenir = () => abonnes.forEach((r) => r());
-  canal?.addEventListener("message", prevenir);
-  const signaler = () => {
-    prevenir();
-    canal?.postMessage("change");
+  const prevenir = (changees: Changees) => abonnes.forEach((r) => r(changees));
+  // Un autre onglet envoie la liste des collections changées ; une version plus ancienne envoyait « change ».
+  canal?.addEventListener("message", (m: MessageEvent<unknown>) => prevenir(Array.isArray(m.data) ? m.data.filter((c): c is CollectionSynchro => typeof c === "string" && estPartage(c as Magasin)) : null));
+  const signaler = (changees: Changees) => {
+    prevenir(changees);
+    canal?.postMessage(changees ?? "change");
   };
+  const partagees = (magasins: Iterable<Magasin>): CollectionSynchro[] => [...new Set(magasins)].filter(estPartage);
 
   async function tous<T>(magasin: Magasin): Promise<T[]> {
     const db = await base;
@@ -163,7 +166,7 @@ export function creerDepotLocal(
     const magasins = new Set<Magasin>(operations.map((o) => o.magasin));
     if (operations.some((o) => estPartage(o.magasin))) magasins.add("attente");
     if (operations.some((o) => !o.doc && estCollectionCorbeille(o.magasin))) magasins.add("corbeille");
-    if (magasins.size === 0) return signaler();
+    if (magasins.size === 0) return signaler([]);
     const db = await base;
     const tx = db.transaction([...magasins], "readwrite");
     const maj = horloge();
@@ -191,7 +194,7 @@ export function creerDepotLocal(
       if (estPartage(magasin)) enAttente(magasin, id, doc);
     }
     await terminer(tx);
-    signaler();
+    signaler(partagees(magasins));
   }
 
   const poser = (magasin: Magasin, docs: readonly { id: Id }[]) => modifier(docs.map((doc) => ({ magasin, id: doc.id, doc })));
@@ -199,6 +202,8 @@ export function creerDepotLocal(
   const sansCle = ({ collection, id, donnees, maj }: EnAttente): Changement => ({ collection, id, donnees, maj });
 
   return {
+    lire: (collection) => tous(collection),
+
     async lireFoyer() {
       return (await tous<Foyer>("foyer"))[0] ?? null;
     },
@@ -315,7 +320,7 @@ export function creerDepotLocal(
         });
       }
       await terminer(tx);
-      signaler();
+      signaler(partagees(distants.map((d) => d.collection)));
     },
 
     async remplacerTout(distants) {
@@ -327,7 +332,7 @@ export function creerDepotLocal(
       for (const c of notesEnAttente) tx.objectStore("attente").put(c);
       for (const d of distants) if (d.donnees !== null) tx.objectStore(d.collection).put(d.donnees);
       await terminer(tx);
-      signaler();
+      signaler(null);
     },
 
     async toutMettreEnAttente() {

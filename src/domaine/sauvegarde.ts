@@ -1,3 +1,4 @@
+import { DONNEES_SAUVEGARDEES } from "./collections";
 import type { DocAgenda } from "./agenda";
 import type { DocCouple } from "./bandeau";
 import type { DocBudget } from "./budget";
@@ -51,7 +52,8 @@ export interface Sauvegarde extends ContenuFoyer {
   creeLe: string;
 }
 
-const COLLECTIONS = ["listes", "elements", "taches", "animaux", "produits", "catalogue", "zones", "souvenirs", "couple", "menus", "agenda", "budget", "retours", "vetements", "maison"] as const;
+// Les listes sauvegardées, dans l'ordre du registre des collections.
+const COLLECTIONS = DONNEES_SAUVEGARDEES;
 
 export function creerSauvegarde(contenu: ContenuFoyer, versionKora: string, maintenant: string): Sauvegarde {
   return { format: FORMAT_SAUVEGARDE, versionFormat: VERSION_FORMAT, versionKora, creeLe: maintenant, ...contenu };

@@ -7,15 +7,19 @@
 // Depuis 0.0.79, il passe aussi sur l'accueil, et toute la tournée se refait en mode clair, puis
 // avec la plus grande taille de texte de l'iPhone (23 px au lieu de 17) : rien ne doit déborder.
 import { spawn } from "node:child_process";
-import { mkdtempSync } from "node:fs";
+import { existsSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createRequire } from "node:module";
 
 const AXE = createRequire(import.meta.url).resolve("axe-core/axe.min.js");
 
-const PLAYWRIGHT = process.env.PLAYWRIGHT_MODULE ?? "/opt/node22/lib/node_modules/playwright/index.mjs";
-const NAVIGATEUR = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
+// Playwright et son Chromium : ceux du conteneur de Claude s'ils sont là, sinon ceux installés par
+// `npx playwright install chromium` (la CI de GitHub, le Mac).
+const MODULE_CONTENEUR = "/opt/node22/lib/node_modules/playwright/index.mjs";
+const CHROMIUM_CONTENEUR = "/opt/pw-browsers/chromium";
+const PLAYWRIGHT = process.env.PLAYWRIGHT_MODULE ?? (existsSync(MODULE_CONTENEUR) ? MODULE_CONTENEUR : "playwright");
+const NAVIGATEUR = process.env.PLAYWRIGHT_CHROMIUM ?? (existsSync(CHROMIUM_CONTENEUR) ? CHROMIUM_CONTENEUR : undefined);
 const { chromium, devices } = await import(PLAYWRIGHT);
 const dossier = process.argv[2] ?? mkdtempSync(join(tmpdir(), "kora-essai-"));
 const port = 4300 + Math.floor(Math.random() * 500);

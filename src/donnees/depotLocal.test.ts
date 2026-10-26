@@ -62,6 +62,7 @@ describe("dépôt local", () => {
     const [courses] = listesInitiales(ctx);
     await depot.enregistrerListe(courses);
     expect(rappel).toHaveBeenCalledTimes(1);
+    expect(rappel).toHaveBeenLastCalledWith(["listes"]);
     desabonner();
     await depot.supprimerElements([]);
     expect(rappel).toHaveBeenCalledTimes(1);
@@ -283,6 +284,29 @@ describe("dépôt local : modifications en attente de partage", () => {
     depot.abonner(rappel);
     await depot.appliquer([ch("pain", "2026-10-09T10:00:00.000Z", { id: "pain" })]);
     expect(rappel).toHaveBeenCalledTimes(1);
+    expect(rappel).toHaveBeenLastCalledWith(["elements"]);
+  });
+
+  it("dit quelles collections ont changé, corbeille comprise, et tout quand on rejoint un foyer", async () => {
+    const ctx = contexteTest();
+    const depot = depotNeuf();
+    const [courses] = listesInitiales(ctx);
+    await depot.enregistrerListe(courses);
+    const rappel = vi.fn();
+    depot.abonner(rappel);
+    await depot.supprimerListe(courses.id);
+    expect([...rappel.mock.lastCall![0]].sort()).toEqual(["corbeille", "listes"]);
+    await depot.remplacerTout([]);
+    expect(rappel).toHaveBeenLastCalledWith(null);
+  });
+
+  it("lit n'importe quelle collection du registre par son nom", async () => {
+    const ctx = contexteTest();
+    const depot = depotNeuf();
+    const [courses] = listesInitiales(ctx);
+    await depot.enregistrerListe(courses);
+    expect(await depot.lire("listes")).toEqual(await depot.lireListes());
+    expect(await depot.lire("vetements")).toEqual([]);
   });
 
   it("met tout en attente au moment de partager, notes de test comprises", async () => {

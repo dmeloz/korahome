@@ -1,4 +1,5 @@
 import { flushSync } from "react-dom";
+import { ignorer } from "./journal";
 
 // Le passage d'une page à l'autre glisse comme sur l'iPhone : la nouvelle page arrive par
 // la droite, le retour la ramène par la gauche (View Transitions de Safari 18).
@@ -24,7 +25,7 @@ const nommer = (el: Element | null, nom: string) => {
 // Moins d'animations demandées dans l'iPhone : un fondu à la place du glissement.
 
 export function avecTransition(sens: Sens, changer: () => void, metamorphose?: Metamorphose): void {
-  const doc = document as Document & { startViewTransition?: (maj: () => void) => { finished: Promise<void> } };
+  const doc = document as Document & { startViewTransition?: (maj: () => void) => TransitionDeVue };
   const reduit = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   if (!doc.startViewTransition) {
     changer();
@@ -34,7 +35,7 @@ export function avecTransition(sens: Sens, changer: () => void, metamorphose?: M
   // Moins d'animations demandées : un simple fondu, sans glissement.
   document.documentElement.dataset.sens = reduit ? "fondu" : depart ? "widget" : sens;
   if (!depart) {
-    doc.startViewTransition(() => flushSync(changer));
+    sansAccroc(doc.startViewTransition(() => flushSync(changer)));
     return;
   }
   nommer(depart, NOM_WIDGET);
@@ -46,7 +47,20 @@ export function avecTransition(sens: Sens, changer: () => void, metamorphose?: M
     arrivee = metamorphose!.arrivee();
     nommer(arrivee, NOM_WIDGET);
   });
-  void transition.finished.finally(() => nommer(arrivee, ""));
+  sansAccroc(transition);
+  void transition.finished.catch(ignorer).finally(() => nommer(arrivee, ""));
+}
+
+interface TransitionDeVue {
+  ready: Promise<void>;
+  finished: Promise<void>;
+}
+
+// Une transition interrompue (l'écran tourne, une autre commence) rejette ses promesses : la page
+// a déjà changé, on le note seulement au journal au lieu d'une erreur non rattrapée.
+function sansAccroc(transition: TransitionDeVue): void {
+  transition.ready.catch(ignorer);
+  transition.finished.catch(ignorer);
 }
 
 /** Un widget hors de l'écran ne se métamorphose pas : la page glisse comme d'habitude. */

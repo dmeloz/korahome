@@ -12,6 +12,37 @@ import type { EntreeCorbeille } from "../domaine/corbeille";
 import type { Zone } from "../domaine/jardin";
 import type { Produit } from "../domaine/stock";
 import type { Element, Foyer, Id, Liste, Tache } from "../domaine/types";
+import type { CollectionSynchro } from "../domaine/collections";
+
+/** Le type des documents de chaque collection du registre (domaine/collections.ts). */
+interface DocumentsParCollection {
+  foyer: Foyer;
+  listes: Liste;
+  elements: Element;
+  taches: Tache;
+  animaux: Animal;
+  stock: Produit;
+  catalogue: ProduitHabituel;
+  jardin: Zone;
+  memoire: Souvenir;
+  couple: DocCouple;
+  menus: DocChef;
+  agenda: DocAgenda;
+  budget: DocBudget;
+  retours: RetourTest;
+  corbeille: EntreeCorbeille;
+  vetements: DocVetement;
+  maison: DocMaison;
+}
+
+/** Une collection du registre sans son type ici ne compile pas. */
+export type Documents = { [C in CollectionSynchro]: DocumentsParCollection[C] };
+
+/**
+ * Ce que prévient `abonner` : les collections qui ont changé, ou null quand tout a pu changer
+ * (un foyer rejoint, un autre onglet d'une version plus ancienne).
+ */
+export type Changees = readonly CollectionSynchro[] | null;
 
 /**
  * Seul point d'accès aux données. L'interface ne parle qu'à ce contrat :
@@ -19,6 +50,9 @@ import type { Element, Foyer, Id, Liste, Tache } from "../domaine/types";
  * (synchro entre les deux iPhones), sans toucher aux écrans ni au domaine.
  */
 export interface Depot {
+  /** Tous les documents d'une collection, dans l'ordre du stockage. */
+  lire<C extends CollectionSynchro>(collection: C): Promise<Documents[C][]>;
+
   lireFoyer(): Promise<Foyer | null>;
   enregistrerFoyer(foyer: Foyer): Promise<void>;
 
@@ -102,5 +136,5 @@ export interface Depot {
   viderCorbeille(ids: Id[]): Promise<void>;
 
   /** Prévient l'abonné à chaque changement, y compris venant d'un autre onglet ou appareil. */
-  abonner(rappel: () => void): () => void;
+  abonner(rappel: (changees: Changees) => void): () => void;
 }

@@ -1,9 +1,17 @@
 name: CI
 
+# À chaque PR et à chaque arrivée dans main : types, correcteur, tests, build (« verifier »), puis
+# l'essai de chaque écran dans un iPhone simulé (« essai » : sombre, clair, grands caractères,
+# accessibilité axe). Les captures de l'essai restent 14 jours dans l'onglet « Actions » de la PR.
+
 on:
   pull_request:
   push:
     branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   verifier:
@@ -19,3 +27,32 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          retention-days: 1
+
+  essai:
+    needs: verifier
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      # Playwright n'est pas une dépendance de l'app : installé ici seulement, à la version du conteneur de Claude.
+      - run: npm install --no-save playwright@1.63.0 && npx playwright install --with-deps chromium
+      - run: node scripts/essai-ecrans.mjs captures-essai
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: captures-essai
+          path: captures-essai
+          retention-days: 14
