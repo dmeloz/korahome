@@ -160,9 +160,9 @@ export function InvitationApplePay(props: { ouvrir: () => void }) {
 
 /** Avec l'IA de Raccourcis (iOS 26) : la phrase copiée crée le raccourci et son déclencheur. */
 const ETAPES = [
-  "Dans Raccourcis, crée un nouveau raccourci et colle la demande copiée dans « Décrire un raccourci ».",
-  "Vérifie le résultat : un bloc « Lorsque n'importe quelle carte est présentée », puis « Obtenir le contenu de » avec ton adresse. Touche › au bout de l'adresse : Méthode POST, Corps JSON, champs carte, montant, marchand.",
-  "Touche › après « est présentée » et choisis de l'exécuter sans demander. Au premier paiement de chaque carte, Kora demande une fois son pot ; ensuite tout se range seul.",
+  "Touche « Créer le lien » : Kora prépare la demande et la copie.",
+  "Ouvre Raccourcis, nouveau raccourci, « Décrire un raccourci », colle, laisse l'IA faire.",
+  "Vérifie que le raccourci s'exécute « sans demander », puis paie une fois : le paiement apparaît dans Kora.",
 ];
 
 /** Sans l'IA : le même raccourci, fait à la main. */
@@ -256,7 +256,7 @@ export function FeuilleApplePay(p: PropsPage & { plan: PlanBudget; ouverte: bool
             {occupe ? "Création…" : "Créer le lien de cet iPhone"}
           </button>
         )}
-        {etat && <p className="discret">{etat}</p>}
+        {etat && <p className="budget-etat" role="status">{etat}</p>}
 
         {p.jarvis && (
           <>
@@ -274,6 +274,7 @@ export function FeuilleApplePay(p: PropsPage & { plan: PlanBudget; ouverte: bool
                 ))}
               </ol>
             </details>
+              <a className="bouton-doux budget-ouvrir-raccourcis" href="shortcuts://create-shortcut">Ouvrir Raccourcis</a>
             <p className="discret">À faire sur chaque iPhone qui paie avec les cartes du foyer, chacun avec son propre lien. Les paiements par numéro de carte (en ligne) n'y passent pas : dis-les à ta fée.</p>
           </>
         )}

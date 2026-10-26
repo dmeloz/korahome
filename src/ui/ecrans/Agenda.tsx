@@ -3,6 +3,8 @@ import { expliquerErreur } from "../../domaine/erreurs";
 import {
   analyserPhrase,
   CATEGORIES,
+  comptesIcloudDe,
+  couleurIcloud,
   decrireDans,
   decrireHoraire,
   decrireJour,
@@ -18,6 +20,7 @@ import {
   REPETITIONS,
   titreDe,
   type Categorie,
+  type CompteIcloud,
   type Evenement,
   type Filtre,
   type Occurrence,
@@ -53,7 +56,9 @@ function synchroniserBientot(distant: Distant) {
   attente = setTimeout(() => void distant.serveur.synchroniserAgenda(distant.foyerId).catch(ignorer), 5000);
 }
 
-const couleurDe = (foyer: Foyer, pour: Id | null) => (pour ? (foyer.membres.find((m) => m.id === pour)?.couleur ?? "var(--discret)") : "var(--accent)");
+/** Un événement venu d'iCloud garde la couleur de son calendrier (comme sur l'iPhone) ; ceux de Kora prennent celle de la personne. */
+const couleurDe = (foyer: Foyer, e: Evenement, comptes: readonly CompteIcloud[]) =>
+  couleurIcloud(e, comptes) ?? (e.pour ? (foyer.membres.find((m) => m.id === e.pour)?.couleur ?? "var(--discret)") : "var(--accent)");
 const prenomDe = (foyer: Foyer, pour: Id | null) => (pour ? (foyer.membres.find((m) => m.id === pour)?.prenom ?? "") : "Nous deux");
 
 function Puces<T extends string>(props: { valeur: T; choix: Record<T, string>; changer: (v: T) => void; libelle: string }) {
@@ -74,6 +79,7 @@ export function Agenda(p: PropsPage) {
   const annoncer = useAnnoncer();
   const docs = p.agenda;
   const evenements = useMemo(() => evenementsDe(docs), [docs]);
+  const comptes = useMemo(() => comptesIcloudDe(docs), [docs]);
   const [vue, setVue] = useState<Vue>("semaine");
   const [filtre, setFiltre] = useState<Filtre>("tout");
   const [choisi, setChoisi] = useState<Jour>(aujourdhui);
@@ -178,7 +184,7 @@ export function Agenda(p: PropsPage) {
                     // Le mois montre les titres, comme Calendrier : deux au plus, puis « +n ».
                     <span className="agenda-titres" aria-hidden>
                       {ce.slice(0, ce.length > 2 ? 1 : 2).map((o) => (
-                        <span key={o.cle} className="agenda-mini" style={{ ["--couleur" as string]: couleurDe(foyer, o.evenement.pour) }}>
+                        <span key={o.cle} className="agenda-mini" style={{ ["--couleur" as string]: couleurDe(foyer, o.evenement, comptes) }}>
                           {o.evenement.titre}
                         </span>
                       ))}
@@ -187,7 +193,7 @@ export function Agenda(p: PropsPage) {
                   ) : (
                     <span className="agenda-points" aria-hidden>
                       {ce.slice(0, 3).map((o) => (
-                        <span key={o.cle} style={{ background: couleurDe(foyer, o.evenement.pour) }} />
+                        <span key={o.cle} style={{ background: couleurDe(foyer, o.evenement, comptes) }} />
                       ))}
                     </span>
                   )}
@@ -199,20 +205,21 @@ export function Agenda(p: PropsPage) {
       )}
 
       {vue === "avenir" ? (
-        <AVenir occ={occ} aujourdhui={aujourdhui} foyer={foyer} ouvrir={setOuvert} />
+        <AVenir occ={occ} aujourdhui={aujourdhui} foyer={foyer} comptes={comptes} ouvrir={setOuvert} />
       ) : vue === "jour" ? (
         <VueJour
           occ={occ}
           jour={choisi}
           aujourdhui={aujourdhui}
           foyer={foyer}
+          comptes={comptes}
           ouvrir={setOuvert}
           ajouter={(heure) => setEdition({ avant: null, jour: choisi, heure })}
         />
       ) : (
         <section>
           <h2 className="rayon">{decrireJour(choisi, aujourdhui)}</h2>
-          <JourneeListe occ={duJour(occ, choisi)} jour={choisi} foyer={foyer} ouvrir={setOuvert} vide="Rien de prévu ce jour-là." />
+          <JourneeListe occ={duJour(occ, choisi)} jour={choisi} foyer={foyer} comptes={comptes} ouvrir={setOuvert} vide="Rien de prévu ce jour-là." />
         </section>
       )}
 
@@ -223,7 +230,7 @@ export function Agenda(p: PropsPage) {
               {decrireJour(ouvert.debut, aujourdhui)} · {decrireHoraire(ouvert)}
             </p>
             <p className="discret">
-              <span className="agenda-pastille" style={{ background: couleurDe(foyer, ouvert.evenement.pour) }} aria-hidden />
+              <span className="agenda-pastille" style={{ background: couleurDe(foyer, ouvert.evenement, comptes) }} aria-hidden />
               {prenomDe(foyer, ouvert.evenement.pour)} · {CATEGORIES[ouvert.evenement.categorie]}
               {ouvert.evenement.repetition !== "aucune" ? ` · ${REPETITIONS[ouvert.evenement.repetition].toLowerCase()}` : ""}
             </p>
@@ -274,7 +281,7 @@ const maintenantEnMinutes = () => {
 };
 
 /** La journée heure par heure, comme dans Calendrier : toucher une heure libre y ajoute un événement. */
-function VueJour(props: { occ: Occurrence[]; jour: Jour; aujourdhui: Jour; foyer: Foyer; ouvrir: (o: Occurrence) => void; ajouter: (heure: string) => void }) {
+function VueJour(props: { occ: Occurrence[]; jour: Jour; aujourdhui: Jour; foyer: Foyer; comptes: readonly CompteIcloud[]; ouvrir: (o: Occurrence) => void; ajouter: (heure: string) => void }) {
   const { journee, places } = useMemo(() => dispositionDuJour(props.occ, props.jour), [props.occ, props.jour]);
   const defilement = useRef<HTMLDivElement>(null);
   const estAujourdhui = props.jour === props.aujourdhui;
@@ -300,7 +307,7 @@ function VueJour(props: { occ: Occurrence[]; jour: Jour; aujourdhui: Jour; foyer
         <ul className="agenda-journee" aria-label="Toute la journée">
           {journee.map((o) => (
             <li key={o.cle}>
-              <button className="agenda-bloc journee" style={{ ["--couleur" as string]: couleurDe(props.foyer, o.evenement.pour) }} onClick={() => props.ouvrir(o)} aria-haspopup="dialog">
+              <button className="agenda-bloc journee" style={{ ["--couleur" as string]: couleurDe(props.foyer, o.evenement, props.comptes) }} onClick={() => props.ouvrir(o)} aria-haspopup="dialog">
                 <span className="agenda-bloc-titre">{titreDe(o)}</span>
                 {o.fin !== o.debut && <span className="agenda-bloc-heure">{decrireHoraire(o)}</span>}
               </button>
@@ -333,7 +340,7 @@ function VueJour(props: { occ: Occurrence[]; jour: Jour; aujourdhui: Jour; foyer
                   height: hauteur - 2,
                   left: `calc(var(--marge-heures) + (100% - var(--marge-heures)) * ${p.colonne / p.colonnes})`,
                   width: `calc((100% - var(--marge-heures)) / ${p.colonnes} - 3px)`,
-                  ["--couleur" as string]: couleurDe(props.foyer, e.pour),
+                  ["--couleur" as string]: couleurDe(props.foyer, e, props.comptes),
                 }}
                 onClick={() => props.ouvrir(p.occurrence)}
                 aria-haspopup="dialog"
@@ -358,7 +365,7 @@ function VueJour(props: { occ: Occurrence[]; jour: Jour; aujourdhui: Jour; foyer
   );
 }
 
-function JourneeListe(props: { occ: Occurrence[]; jour: Jour; foyer: Foyer; ouvrir: (o: Occurrence) => void; vide: string }) {
+function JourneeListe(props: { occ: Occurrence[]; jour: Jour; foyer: Foyer; comptes: readonly CompteIcloud[]; ouvrir: (o: Occurrence) => void; vide: string }) {
   if (!props.occ.length) return <p className="vide agenda-vide">{props.vide}</p>;
   return (
     <ul className="carte groupe agenda-liste">
@@ -379,7 +386,7 @@ function JourneeListe(props: { occ: Occurrence[]; jour: Jour; foyer: Foyer; ouvr
                   <span>{enCours ? "En cours" : "Journée"}</span>
                 )}
               </span>
-              <span className="agenda-barre" style={{ background: couleurDe(props.foyer, e.pour) }} aria-hidden />
+              <span className="agenda-barre" style={{ background: couleurDe(props.foyer, e, props.comptes) }} aria-hidden />
               <span className="agenda-texte">
                 <span className="ligne-texte">{titreDe(o)}</span>
                 <span className="tache-details">
@@ -394,7 +401,7 @@ function JourneeListe(props: { occ: Occurrence[]; jour: Jour; foyer: Foyer; ouvr
   );
 }
 
-function AVenir(props: { occ: Occurrence[]; aujourdhui: Jour; foyer: Foyer; ouvrir: (o: Occurrence) => void }) {
+function AVenir(props: { occ: Occurrence[]; aujourdhui: Jour; foyer: Foyer; comptes: readonly CompteIcloud[]; ouvrir: (o: Occurrence) => void }) {
   // Ce qui revient chaque jour ou chaque semaine (le travail) n'apparaît qu'une fois : la suite est dans la semaine.
   const vus = new Set<string>();
   const occ = props.occ.filter((o) => {
@@ -417,6 +424,7 @@ function AVenir(props: { occ: Occurrence[]; aujourdhui: Jour; foyer: Foyer; ouvr
             occ={occ.filter((o) => (o.debut < props.aujourdhui ? props.aujourdhui : o.debut) === j)}
             jour={j}
             foyer={props.foyer}
+            comptes={props.comptes}
             ouvrir={props.ouvrir}
             vide=""
           />

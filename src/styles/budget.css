@@ -256,3 +256,7 @@ button.budget-pot:active { transform: scale(0.98); }
 .budget-pot-ligne.negatif .budget-montant { color: var(--urgent); }
 .budget-plus-liens { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 @media (prefers-reduced-motion: reduce) { .budget-anneau .plein { transition: none; } }
+
+/* Paiements Apple Pay (0.0.80) : le retour « copié » se voit, et Raccourcis s'ouvre d'un toucher. */
+.budget-etat { margin: 8px 0 0; padding: 8px 12px; border-radius: 10px; background: color-mix(in oklab, var(--accent) 14%, transparent); color: var(--texte); font-size: var(--t-detail); }
+.budget-ouvrir-raccourcis { display: inline-block; margin-top: 8px; text-decoration: none; }

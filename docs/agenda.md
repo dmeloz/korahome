@@ -26,7 +26,9 @@ ou à chaque modification :
 - y écrit tout l'agenda du foyer (avec le prénom devant ce qui concerne l'autre : « Sarah · Dentiste ») ;
 - reprend dans Kora ce qui y est ajouté, modifié ou supprimé sur l'iPhone (le plus récent gagne) ;
 - lit les autres calendriers choisis (« Travail », « Famille »…) et les montre dans Kora, marqués
-  « iCloud de … ». Ils se règlent dans « Régler ». Leur propriétaire peut les modifier ou les retirer
+  « iCloud de … », chacun dans la couleur qu'il a sur l'iPhone (depuis 0.0.80 : `calendar-color`
+  lu avec la liste des calendriers, gardé dans `CompteIcloud.calendriers[].couleur`, `couleurIcloud`
+  dans `agenda.ts` ; les événements de Kora gardent la couleur de la personne). Ils se règlent dans « Régler ». Leur propriétaire peut les modifier ou les retirer
   dans Kora : le changement retourne dans le même calendrier iCloud (alertes, invités et exceptions
   gardés ; si l'iPhone l'a changé plus récemment, l'iPhone gagne). Un retrait attend le serveur
   (`aRetirer`) pour être effacé d'iCloud avant de quitter Kora.

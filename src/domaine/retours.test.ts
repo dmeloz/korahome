@@ -13,6 +13,7 @@ import {
   nouveauRetour,
   rapportVersion,
   type EvenementJournal,
+  estPartie,
   etatRetour,
 } from "./retours";
 
@@ -166,11 +167,13 @@ describe("état des notes, comme dans Sanji", () => {
   const ctx = contexteTest();
   const note = nouveauRetour({ texte: "Bouton trop petit", genre: "gene", ecran: "Courses", version: "0.0.7", auteur: null }, ctx);
 
-  it("une note est nouvelle tant qu'elle n'est pas partie, transmise une fois sur le serveur, réglée ensuite", () => {
-    expect(etatRetour(note, new Set([note.id]), true)).toBe("nouvelle");
-    expect(etatRetour(note, new Set(), false)).toBe("nouvelle");
-    expect(etatRetour(note, new Set(), true)).toBe("transmise");
-    expect(etatRetour(basculerRegle(note, ctx), new Set([note.id]), true)).toBe("reglee");
+  it("une note est nouvelle tant que Claude ne l'a pas lue, reçue quand il l'a marquée, réglée ensuite", () => {
+    expect(etatRetour(note)).toBe("nouvelle");
+    expect(estPartie(note, new Set([note.id]), true)).toBe(false);
+    expect(estPartie(note, new Set(), false)).toBe(false);
+    expect(estPartie(note, new Set(), true)).toBe(true);
+    expect(etatRetour({ ...note, recuLe: "2026-10-26T06:00:00.000Z" })).toBe("transmise");
+    expect(etatRetour(basculerRegle({ ...note, recuLe: "2026-10-26T06:00:00.000Z" }, ctx))).toBe("reglee");
   });
 
   it("garde avec la note les gestes qui l'ont précédée", () => {

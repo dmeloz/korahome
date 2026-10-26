@@ -74,10 +74,13 @@ const texte = (description: string) => ({ type: "string", description });
 const ouNul = (description: string) => ({ type: ["string", "null"], description });
 
 /**
- * L'API refuse toute la demande au-delà de 16 champs « ou null » dans l'ensemble des outils
- * stricts. Les outils qui en ont le plus (agenda, dépense, recette) ne sont donc pas stricts :
- * lireActions vérifie de toute façon chaque action avant de l'appliquer.
+ * L'API compile les outils stricts en une grammaire dont la taille est plafonnée : au-delà,
+ * toute la demande est refusée (« compiled grammar is too large », Tael muet le 25 octobre 2026
+ * avec 20 outils stricts). Seuls les six outils les plus courants et les plus simples restent
+ * stricts ; les autres sont vérifiés par lireActions avant d'être appliqués. Garde-fous : au plus
+ * MAX_OUTILS_STRICTS outils stricts et MAX_UNIONS_STRICTES champs « ou null » entre eux.
  */
+export const MAX_OUTILS_STRICTS = 6;
 export const MAX_UNIONS_STRICTES = 16;
 
 /** Les outils proposés au modèle (format de l'API Claude). */
@@ -170,7 +173,7 @@ export const OUTILS_JARVIS = [
   {
     name: "attribuer_tache",
     description: "Confie une tâche existante à une personne du foyer, ou la rend libre.",
-    strict: true,
+    strict: false,
     input_schema: {
       type: "object",
       additionalProperties: false,
@@ -184,7 +187,7 @@ export const OUTILS_JARVIS = [
   {
     name: "noter_pesee",
     description: "Note le poids d'un animal du foyer.",
-    strict: true,
+    strict: false,
     input_schema: {
       type: "object",
       additionalProperties: false,
@@ -215,7 +218,7 @@ export const OUTILS_JARVIS = [
   {
     name: "noter_journal",
     description: "Note dans le journal d'un animal ce qui s'est passé : litière changée, a vomi, n'a pas mangé, selles molles, boite, se cache ou autre remarque.",
-    strict: true,
+    strict: false,
     input_schema: {
       type: "object",
       additionalProperties: false,
@@ -231,7 +234,7 @@ export const OUTILS_JARVIS = [
   {
     name: "noter_soin",
     description: "Note un soin dans le carnet de santé d'un animal : déjà fait à une date (relu sur le carnet), ou prévu.",
-    strict: true,
+    strict: false,
     input_schema: {
       type: "object",
       additionalProperties: false,
@@ -248,7 +251,7 @@ export const OUTILS_JARVIS = [
   {
     name: "ajouter_plante",
     description: "Ajoute des plantes dans une zone du jardin (un pot, un bac, une jardinière).",
-    strict: true,
+    strict: false,
     input_schema: {
       type: "object",
       additionalProperties: false,
@@ -262,7 +265,7 @@ export const OUTILS_JARVIS = [
   {
     name: "arrosage_fait",
     description: "Note que le jardin, ou une de ses zones, vient d'être arrosé.",
-    strict: true,
+    strict: false,
     input_schema: {
       type: "object",
       additionalProperties: false,
@@ -273,7 +276,7 @@ export const OUTILS_JARVIS = [
   {
     name: "modifier_tache",
     description: "Change le nom ou la date d'une tâche existante (« décale l'aspirateur à jeudi »).",
-    strict: true,
+    strict: false,
     input_schema: {
       type: "object",
       additionalProperties: false,
@@ -288,7 +291,7 @@ export const OUTILS_JARVIS = [
   {
     name: "supprimer_tache",
     description: "Supprime une tâche qui n'a plus lieu d'être. L'app demande confirmation avant.",
-    strict: true,
+    strict: false,
     input_schema: {
       type: "object",
       additionalProperties: false,
@@ -311,7 +314,7 @@ export const OUTILS_JARVIS = [
     name: "retenir",
     description:
       "Retient durablement un fait sur le foyer : un goût, une habitude, une règle de la maison. propose: false quand on te demande de le retenir ; true quand tu l'as remarqué toi-même. Dans les deux cas c'est retenu tout de suite (la personne peut annuler).",
-    strict: true,
+    strict: false,
     input_schema: {
       type: "object",
       additionalProperties: false,
@@ -325,7 +328,7 @@ export const OUTILS_JARVIS = [
   {
     name: "oublier",
     description: "Efface un fait de ta mémoire, quand on te dit qu'il est faux ou plus à jour. L'app demande confirmation avant.",
-    strict: true,
+    strict: false,
     input_schema: {
       type: "object",
       additionalProperties: false,
@@ -358,7 +361,7 @@ export const OUTILS_JARVIS = [
   {
     name: "supprimer_evenement",
     description: "Retire un événement de l'agenda (annulé, plus d'actualité). L'app demande confirmation avant.",
-    strict: true,
+    strict: false,
     input_schema: {
       type: "object",
       additionalProperties: false,
@@ -431,7 +434,7 @@ export const OUTILS_JARVIS = [
   {
     name: "noter_taille",
     description: "Note la taille d'un vêtement pour une personne du foyer (« Sarah fait du 39 », « je fais du M en haut »). Une taille par pièce et par personne : la nouvelle remplace l'ancienne.",
-    strict: true,
+    strict: false,
     input_schema: {
       type: "object",
       additionalProperties: false,
@@ -446,7 +449,7 @@ export const OUTILS_JARVIS = [
   {
     name: "noter_envie",
     description: "Note un vêtement ou un accessoire qu'une personne du foyer aimerait acheter (« j'aimerais une veste en laine », « note des bottes pour Sarah, 120 francs »). L'autre voit la liste : utile pour un cadeau.",
-    strict: true,
+    strict: false,
     input_schema: {
       type: "object",
       additionalProperties: false,
@@ -461,7 +464,7 @@ export const OUTILS_JARVIS = [
     name: "noter_souhait",
     description:
       "Quand on te demande une chose que tu ne sais pas faire (aucun outil ne convient, ou l'app n'a pas cette fonction), note-la comme souhait d'amélioration pour Claude, qui fait évoluer l'app.",
-    strict: true,
+    strict: false,
     input_schema: {
       type: "object",
       additionalProperties: false,
@@ -492,6 +495,7 @@ Pour l'argent : réponds à partir du budget de l'état du foyer (carte courses,
 Avec une page de carnet de santé ou une facture de vétérinaire : note chaque vaccin, vermifuge, antiparasitaire ou visite avec noter_soin (fait: true à sa date, et fait: false pour la date du prochain rappel écrite), et les poids écrits avec noter_pesee à leur date.
 Quand on te dit qu'un animal a vomi, n'a pas mangé, ou que la litière est changée, note-le avec noter_journal ; si une tâche correspond (litière), marque-la aussi faite.
 Avec une recette (un lien, une photo de page de livre ou de fiche, ou une recette dictée) : range-la dans les recettes du foyer (enregistrer_recette) avec tous ses ingrédients et leurs quantités, et ses étapes réécrites courtes en français. Pour un lien, mets l'adresse dans lien, puis compare ses ingrédients au stock et à la liste de courses et n'ajoute aux courses que ce qui manque, avec les quantités de la recette. Pour une photo ou une dictée, n'ajoute aux courses que si on te le demande.
+« J'ai fait le risotto », « on a mangé la soupe », « j'ai utilisé les courgettes » : la cuisine est faite. Retire du stock (retirer_du_stock) les produits de l'état du foyer qui ont servi (les ingrédients de la recette ou du menu du Chef qui sont au stock, ou ceux qu'on nomme), sans toucher aux bases qui restent (sel, huile, riz, pâtes). S'il reste des portions, dis-le en une phrase. Si le plat n'est pas dans les recettes du foyer, écris-la avec enregistrer_recette pour la prochaine fois.
 « Qu'est-ce qu'on mange ce soir ? » : propose une ou deux recettes du foyer (état du foyer) qu'on peut faire avec le stock, celles qu'on aime d'abord, en disant ce qui manque ; si aucune ne va, une idée simple avec ce qu'il y a. Ne propose jamais une recette marquée « pas pour eux ».
 Les vêtements : « quelle pointure fait Sarah ? », « qu'est-ce qui ferait plaisir à Dany ? » se répondent depuis les vêtements de l'état du foyer (tailles et envies). « Je fais du 38 », « note une robe pour Sarah » : noter_taille, noter_envie.
 Avec une photo de plante : reconnais-la (nom courant en français, le plus précis possible). Si on te demande de l'ajouter, utilise ajouter_plante, et écris quand même une phrase : son nom, puis son besoin principal (soleil, arrosage, gel). Si tu n'es pas sûr, dis-le et donne les deux noms les plus probables.`;

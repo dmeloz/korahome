@@ -149,10 +149,14 @@ describe("organiser l'écran", () => {
     expect(libres.groupes.flatMap((g) => g.taches).map((t) => t.titre)).toEqual(["Linge", "Arrosage", "Vitres"]);
   });
 
-  it("met mes tâches d'abord et range le reste à part", () => {
+  it("met mes tâches et ce qui presse d'abord, range le reste à part", () => {
     const { miennes, reste, terminees } = organiserPourMoi(toutes, aujourdhui, "melo");
-    expect(miennes.flatMap((g) => g.taches).map((t) => t.titre)).toEqual(["Poubelles"]);
-    expect(reste.flatMap((g) => g.taches).map((t) => t.titre)).toEqual(["Linge", "Arrosage", "Vitres"]);
+    // « Linge » est libre mais due aujourd'hui : elle reste devant.
+    expect(miennes.flatMap((g) => g.taches).map((t) => t.titre)).toEqual(["Poubelles", "Linge"]);
+    expect(reste.flatMap((g) => g.taches).map((t) => t.titre)).toEqual(["Arrosage", "Vitres"]);
+    const deSarah = prendre(nouvelleTache("Litière", semaine, "2026-10-06", ctx), "sarah");
+    expect(organiserPourMoi([...toutes, deSarah], aujourdhui, "melo").miennes.flatMap((g) => g.taches).map((t) => t.titre))
+      .toEqual(["Poubelles", "Litière", "Linge"]);
     expect(terminees.map((t) => t.titre)).toEqual(["Ampoule"]);
   });
 

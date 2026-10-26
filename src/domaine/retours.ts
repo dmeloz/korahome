@@ -26,20 +26,28 @@ export interface RetourTest {
   creeLe: string;
   /** Marquée « Réglée » quand la correction a été vérifiée ; null tant qu'elle est ouverte. */
   regleLe: string | null;
+  /** Posé par Claude (sur le serveur) quand la note a été lue : elle passe alors dans « Reçues ». */
+  recuLe?: string | null;
   /** Les gestes qui l'ont précédée, gardés avec la note : elle part ainsi avec son contexte. */
   avant?: EvenementJournal[];
 }
 
-/** Comme dans Sanji : nouvelle (pas encore partie), transmise (arrivée chez Claude), réglée. */
+/** Comme dans Sanji : nouvelle (Claude ne l'a pas encore lue), transmise (« Reçues » : lue par Claude), réglée. */
 export type EtatRetour = "nouvelle" | "transmise" | "reglee";
 
 /**
- * Une note est transmise quand elle est sur le serveur du foyer : le partage est actif
- * et elle n'attend plus d'envoi sur ce téléphone.
+ * Une note reste nouvelle tant que Claude ne l'a pas lue : c'est lui qui pose `recuLe` sur le
+ * serveur en lisant les notes (jusqu'en 0.0.79, la note passait dans « Reçues » dès qu'elle
+ * était sur le serveur, ce qui faisait croire qu'elle était déjà traitée).
  */
-export function etatRetour(retour: RetourTest, enAttente: ReadonlySet<Id>, partageActif: boolean): EtatRetour {
+export function etatRetour(retour: RetourTest): EtatRetour {
   if (retour.regleLe) return "reglee";
-  return partageActif && !enAttente.has(retour.id) ? "transmise" : "nouvelle";
+  return retour.recuLe ? "transmise" : "nouvelle";
+}
+
+/** Une note est sur le serveur du foyer : le partage est actif et elle n'attend plus d'envoi ici. */
+export function estPartie(retour: RetourTest, enAttente: ReadonlySet<Id>, partageActif: boolean): boolean {
+  return partageActif && !enAttente.has(retour.id);
 }
 
 export function nouveauRetour(
