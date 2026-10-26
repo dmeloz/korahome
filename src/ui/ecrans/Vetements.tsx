@@ -12,7 +12,7 @@ import { Ligne, ListeVivante } from "../moteur/pieces";
 import { LigneAjout } from "../pieces/LigneAjout";
 import { CLES, ecrireTexte, lireTexte } from "../stockageLocal";
 
-// L'onglet Vêtements de Maison (idée de Sarah, 0.0.77) : pour chacun, ses tailles, ses envies
+// L'onglet Vêtements de Maison (idée de Sarah, 0.0.78) : pour chacun, ses tailles, ses envies
 // à acheter et ce qui attend d'être trié. On passe de l'un à l'autre d'un toucher : l'autre
 // voit les tailles et les envies, de quoi trouver un cadeau qui va.
 

@@ -4,7 +4,8 @@
 // Les captures vont dans le dossier donné en argument (par défaut un dossier temporaire).
 // Depuis 0.0.67, axe-core (le contrôleur d'accessibilité de Deque) passe sur chaque écran : une
 // faute « grave » ou « critique » (contraste, bouton sans nom, rôle mal formé) fait échouer l'essai.
-// Depuis 0.0.77, il passe aussi sur l'accueil, et toute la tournée se refait en mode clair.
+// Depuis 0.0.78, il passe aussi sur l'accueil, et toute la tournée se refait en mode clair, puis
+// avec la plus grande taille de texte de l'iPhone (23 px au lieu de 17) : rien ne doit déborder.
 import { spawn } from "node:child_process";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -51,7 +52,7 @@ try {
     const titre = await p.locator(".page-dessus h1").first().textContent({ timeout: 3000 }).catch(() => null);
     if (!titre) erreurs.push(`« ${nom} »${theme} : pas de titre`);
     await capture(nom.replace(/\W+/g, "-"));
-    const fautes = await accessibilite(nom);
+    const fautes = (await accessibilite(nom)) + (await debordement(nom));
     console.log(`${titre && !fautes ? "ok " : "?? "} ${nom}${titre ? ` → ${titre}` : ""}${fautes ? ` · ${fautes} faute${fautes > 1 ? "s" : ""} d'accessibilité` : ""}`);
   };
   /** axe sur la page du dessus : WCAG A et AA, fautes graves et critiques seulement. Rend leur nombre. */
@@ -70,6 +71,20 @@ try {
       erreurs.push(`« ${nom} »${theme} : ${v.help} (${v.id}, ${v.nodes.length}×)${cible ? ` — ${cible}` : ""}`);
     }
     return graves.length;
+  };
+  /** Ce qui dépasse de l'écran en largeur (texte trop grand, ligne trop longue). Rend 0 ou 1. */
+  const debordement = async (nom) => {
+    const hors = await p.evaluate(() => {
+      const w = innerWidth;
+      const vus = new Set();
+      for (const el of document.querySelectorAll(".page-dessus *")) {
+        const r = el.getBoundingClientRect();
+        if (r.width && (r.right > w + 1 || r.left < -1)) vus.add(`${el.tagName.toLowerCase()}${[...el.classList].map((c) => `.${c}`).join("")}`);
+      }
+      return [...vus].slice(0, 4);
+    });
+    if (hors.length) erreurs.push(`« ${nom} »${theme} : dépasse de l'écran — ${hors.join(", ")}`);
+    return hors.length ? 1 : 0;
   };
   const revenir = async () => {
     await p.locator(".page-dessus .retour").click();
@@ -129,6 +144,11 @@ try {
   // La même tournée en mode clair : le laiton y est plus sombre, son contraste se vérifie à part.
   theme = "-clair";
   await p.emulateMedia({ colorScheme: "light" });
+  await tournee();
+  // Puis en grandes lettres (Réglages › Luminosité et affichage, dernier cran hors accessibilité).
+  theme = "-grand";
+  await p.emulateMedia({ colorScheme: "dark" });
+  await p.addStyleTag({ content: "html { font-size: 23px !important; }" });
   await tournee();
 } finally {
   await navigateur.close();

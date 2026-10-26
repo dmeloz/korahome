@@ -1,4 +1,4 @@
-// Les vêtements du foyer (idée de Sarah, Kora 0.0.77) : pour chacun, ses tailles, ses envies
+// Les vêtements du foyer (idée de Sarah, Kora 0.0.78) : pour chacun, ses tailles, ses envies
 // à acheter et ce qui attend d'être trié. Tout se partage : l'autre voit les tailles et les
 // envies, de quoi trouver un cadeau qui va. Collection partagée `vetements`, un document par
 // taille, envie ou pièce à trier.

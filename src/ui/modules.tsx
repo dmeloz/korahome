@@ -237,7 +237,7 @@ function PageCuisine(p: PropsPage) {
   const aConsommer = resumeStock(p.produits, p.aujourdhui).aConsommer.length;
   const courses = listeCourses(p);
   const aPrendre = courses ? compterAPrendre(courses, p.elements) : 0;
-  // Sans onglet demandé (0.0.77, choix de Melo) : les courses s'il y a quelque chose à acheter, sinon les menus.
+  // Sans onglet demandé (0.0.78, choix de Melo) : les courses s'il y a quelque chose à acheter, sinon les menus.
   const onglet =
     p.onglet === "courses" || p.onglet === "listes"
       ? "courses"

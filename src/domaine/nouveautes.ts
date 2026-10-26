@@ -1,4 +1,4 @@
-// Ce que la fée annonce une fois après une mise à jour (0.0.77) : une phrase, un bouton
+// Ce que la fée annonce une fois après une mise à jour (0.0.78) : une phrase, un bouton
 // vers la nouveauté, puis silence. Seulement sur un téléphone qui vivait déjà avec Kora :
 // un foyer neuf a la visite guidée et la carte de mise en route.
 
@@ -12,7 +12,7 @@ export interface Nouveaute {
 }
 
 export const NOUVEAUTES: readonly Nouveaute[] = [
-  { version: "0.0.77", texte: "Nouveau : tes vêtements, dans Maison. Tes tailles, tes envies, ce qui est à trier. L'autre les voit aussi.", ou: { id: "maison", onglet: "vetements" } },
+  { version: "0.0.78", texte: "Nouveau : tes vêtements, dans Maison. Tes tailles, tes envies, ce qui est à trier. L'autre les voit aussi.", ou: { id: "maison", onglet: "vetements" } },
 ];
 
 /**

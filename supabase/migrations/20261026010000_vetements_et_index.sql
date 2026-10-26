@@ -1,4 +1,4 @@
--- Les vêtements du foyer (Kora 0.0.77, idée de Sarah) : tailles, envies et pièces à trier de
+-- Les vêtements du foyer (Kora 0.0.78, idée de Sarah) : tailles, envies et pièces à trier de
 -- chacun, dans la collection « vetements ». Au passage, ce que le contrôleur de Supabase
 -- signalait : les index manquants sur les clés étrangères, et la règle « chacun peut quitter
 -- un foyer » qui relisait auth.uid() à chaque ligne. Appliqué le 26 octobre 2026.

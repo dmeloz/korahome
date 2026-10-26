@@ -11,7 +11,7 @@ congélateur ou au placard, noter une pesée de Mitsu (même à une date passée
 Il confie aussi une tâche à quelqu'un. Il ne dépense rien, et demande toujours avant de supprimer. Depuis Kora 0.0.41, on lui parle
 aussi par Siri (« Dis Siri, Tael… ») : voir `docs/siri.md`.
 
-- **Vêtements** (Kora 0.0.77) : « Sarah fait du 39 », « note une veste en laine pour moi, 120 francs » (noter_taille,
+- **Vêtements** (Kora 0.0.78) : « Sarah fait du 39 », « note une veste en laine pour moi, 120 francs » (noter_taille,
   noter_envie) ; « quelle pointure fait Sarah ? » se répond depuis les tailles et les envies de l'état du foyer.
 - **Mémoire** (Kora 0.0.16) : « retiens que Sarah n'aime pas la coriandre » ; Jarvis relit sa
   mémoire à chaque demande (les 60 faits les plus récents, quelques centimes par mois au plus).
