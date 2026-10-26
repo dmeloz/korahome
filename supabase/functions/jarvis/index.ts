@@ -13,9 +13,9 @@
 // `npm run fonction`. Déploiement : docs/jarvis.md.
 
 import Anthropic from "npm:@anthropic-ai/sdk";
-import { avecAlerte, PanneSignalee } from "../_shared/alerte.ts";
+import { avecAlerte, PanneSignalee, signalerPanne } from "../_shared/alerte.ts";
 import { limiteDuCompte, messageErreur, preflight, repondre } from "../_shared/http.ts";
-import { estMembre, serveur, utilisateur } from "../_shared/supabase.ts";
+import { cleCronValide, estMembre, serveur, utilisateur } from "../_shared/supabase.ts";
 import {
   CONSIGNES_BUDGET,
   CONSIGNES_CONSEIL,
@@ -85,12 +85,47 @@ function lireImage(v: unknown): { media_type: "image/jpeg" | "image/png" | "imag
   return { media_type: type as "image/jpeg" | "application/pdf", data: donnees };
 }
 
+/**
+ * L'essai du matin (Kora 0.0.85) : chaque jour, le passage régulier pose une question minuscule à
+ * Claude avec les vraies consignes et les vrais outils de Jarvis. S'il refuse (comme le 26 octobre
+ * 2026, quand la grammaire des outils était devenue trop grande), chaque foyer inscrit reçoit la
+ * note « Bug serveur » avant que quelqu'un ne parle à sa fée. Coût : environ 2 centimes par mois.
+ */
+async function essaiDuMatin(cle: string) {
+  const client = new Anthropic({ apiKey: cle });
+  try {
+    const reponse = await client.messages.create({
+      model: MODELE_JARVIS,
+      max_tokens: 300,
+      system: CONSIGNES_JARVIS,
+      tools: OUTILS_JARVIS,
+      output_config: { effort: "low" },
+      messages: [{ role: "user", content: "Essai automatique du serveur, personne n'attend de réponse : réponds seulement « prêt », sans outil." }],
+    });
+    console.log(JSON.stringify({ essai: "ok", fin: reponse.stop_reason, entree: reponse.usage.input_tokens, sortie: reponse.usage.output_tokens }));
+    return { essai: "ok" };
+  } catch (e) {
+    console.error("Essai du matin", e);
+    const foyers = ((await serveur.rpc("foyers_assistant_liste")).data ?? []) as string[];
+    const jour = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Zurich" }).format(new Date());
+    let signales = 0;
+    for (const foyerId of foyers) if (await signalerPanne(foyerId, noteServeur("Jarvis", e, jour, { maintenant: () => new Date().toISOString() }))) signales++;
+    return { essai: "panne", signales };
+  }
+}
+
 Deno.serve(async (req) => {
   const options = preflight(req);
   if (options) return options;
   try {
     const cle = Deno.env.get("ANTHROPIC_API_KEY");
     if (!cle) return repondre({ erreur: "Jarvis n'est pas encore branché : sa clé manque sur le serveur." }, 503);
+
+    const cleCron = req.headers.get("x-cle-cron");
+    if (cleCron) {
+      if (!(await cleCronValide(cleCron))) return repondre({ erreur: "Clé inconnue" }, 401);
+      return repondre(await essaiDuMatin(cle));
+    }
 
     const user = await utilisateur(req);
     if (!user) return repondre({ erreur: "Connexion requise" }, 401);

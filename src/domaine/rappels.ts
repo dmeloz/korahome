@@ -1,4 +1,4 @@
-import { decrireCourt, evenementsDuMatin, type Evenement } from "./agenda";
+import { anniversairesBientot, decrireCourt, evenementsDuMatin, titreDe, type Evenement } from "./agenda";
 import { decrireEcheanceFacture } from "./budget";
 import { gestesDuJardin, type Zone } from "./jardin";
 import { collectesDuJour, phraseSortir, reglageDechets, type DocMaison } from "./maison";
@@ -228,6 +228,9 @@ export function rappelDuMatin(entree: {
     const occ = evenementsDuMatin(entree.evenements, entree.membreId, aujourdhui);
     if (occ.length) lignes.push(`Agenda : ${enumerer(occ.map((o) => decrireCourt(o, aujourdhui)))}`);
     nombre += occ.length;
+    const bientot = anniversairesBientot(entree.evenements, aujourdhui);
+    if (bientot.length) lignes.push(`Anniversaire dans une semaine : ${enumerer(bientot.map(titreDe))}`);
+    nombre += bientot.length;
   }
 
   if (preferences.taches && entree.maison) {
@@ -307,4 +310,34 @@ export function rappelDu(
   if (maintenant < prevu || maintenant >= Math.max(prevu + 60, 12 * 60)) return null;
   if (!nettoyerJours(jours).includes(jourDeLaSemaine(local.jour))) return null;
   return dernierEnvoi === local.jour ? null : local.jour;
+}
+
+// ----- Le message envoyé au téléphone -----
+
+/** L'adresse de Kora, ouverte au toucher d'une notification déclarative. */
+export const ADRESSE_KORA = "https://dmeloz.github.io/korahome/";
+
+/**
+ * Le contenu d'une notification, lisible de deux façons. Depuis iOS 18.4, l'iPhone affiche seul
+ * la partie déclarative (`web_push: 8030`, `notification`) même si le service worker ne se réveille
+ * pas, et pose la pastille de l'icône (`app_badge`). Avant, le service worker de Kora
+ * (public/notifications-sw.js) lit `titre`, `corps`, `nombre` et `url` comme avant ; après aussi,
+ * puisqu'il reçoit toujours l'évènement et remplace la notification proposée par la sienne.
+ */
+export function messagePush(m: { titre: string; corps: string; nombre?: number }, adresse: string = ADRESSE_KORA) {
+  const nombre = m.nombre ?? 0;
+  return {
+    titre: m.titre,
+    corps: m.corps,
+    nombre,
+    url: "./",
+    web_push: 8030,
+    notification: {
+      title: m.titre || "Kora",
+      body: m.corps,
+      navigate: adresse,
+      lang: "fr",
+      ...(nombre > 0 ? { app_badge: String(nombre) } : {}),
+    },
+  };
 }

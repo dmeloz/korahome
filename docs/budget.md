@@ -115,3 +115,11 @@ Plus fin qu'un pot : une catégorie est un nom à soi (« Essence », « Resto �
 - **Gestion** : Comptes et réglages › Vos catégories (liste avec pot et nombre de dépenses, toucher pour renommer, changer de pot ou retirer ; « Nouvelle catégorie »). La fiche d'une dépense permet de lui donner ou retirer une catégorie.
 - **La fée** : `lireDepense` reconnaît un nom de catégorie dans la phrase (« 45 essence », « socar 45 essence ») et donne son pot.
 - **Serveur** : `npm run fonction` puis redéployer `paiements` et `jarvis` (`classerPaiement`, `lireDepense`).
+
+## Plafond d'une catégorie (depuis 0.0.85)
+
+Une catégorie du foyer peut avoir un plafond par mois (fiche de la catégorie, « Plafond par mois »,
+facultatif ; `Etiquette.plafond`). Dès 80 % du plafond sur le mois du budget (de paie à paie),
+l'onglet Ce mois montre une ligne sous « Tes dépenses » : « Resto : 87 % du mois, 70 sur 80 CHF »,
+puis « plafond dépassé ». Règles : `etatDesPlafonds`, `plafondsAAlerter`, `phrasePlafond` dans
+`src/domaine/etiquettes.ts`.

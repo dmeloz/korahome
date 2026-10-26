@@ -3,10 +3,12 @@ import type { ProduitHabituel } from "../../domaine/catalogue";
 import { devinerArticles, noterAchat, oublierAchat, panierHabituel, suggestions } from "../../domaine/habitudes";
 import { noterCocheur } from "../../domaine/ecranAccueil";
 import { analyserSaisie, basculerCoche, basculerPourMoi, nouvelElement, organiserListe } from "../../domaine/listes";
+import { noterParcours, parcoursAppris } from "../../domaine/magasin";
 import type { Element, Foyer, Liste } from "../../domaine/types";
 import type { Depot } from "../../donnees/depot";
 import { useAnnoncer } from "../annulation";
 import { aujourdhuiLocal, contexteReel } from "../contexte";
+import { useEcranAllume } from "../eveil";
 import { Glissable } from "../Glissable";
 import { Ligne, ListeVivante } from "../moteur/pieces";
 import { feter } from "../moteur/fete";
@@ -45,6 +47,9 @@ export function DetailListe(props: {
   // Les articles choisis pour agir d'un coup ; null hors du mode « Choisir ».
   const [choisis, setChoisis] = useState<ReadonlySet<string> | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  // En magasin : l'écran reste allumé le temps des courses.
+  const [enMagasin, setEnMagasin] = useState(false);
+  useEcranAllume(enMagasin);
   // Les articles cochés il y a moins de deux secondes restent à leur place, barrés.
   const [recents, setRecents] = useState<ReadonlySet<string>>(new Set());
   const minuteries = useRef(new Map<string, ReturnType<typeof setTimeout>>());
@@ -111,7 +116,9 @@ export function DetailListe(props: {
     // Plusieurs cases cochées d'affilée : chaque achat part de la version qui vient d'être écrite.
     if (courses) {
       const avant = derniere.current;
-      const liste = apres.coche ? noterAchat(avant, apres, aujourdhui) : oublierAchat(avant, apres, aujourdhui);
+      const achat = apres.coche ? noterAchat(avant, apres, aujourdhui) : oublierAchat(avant, apres, aujourdhui);
+      // L'ordre des coches apprend aussi le chemin dans le magasin (mode magasin).
+      const liste = apres.coche ? noterParcours(achat, apres, props.elements, apres.cocheLe ?? contexteReel.maintenant()) : achat;
       derniere.current = liste;
       if (liste !== avant) await props.depot.enregistrerListe(liste);
     }
@@ -205,7 +212,7 @@ export function DetailListe(props: {
   return (
     <Page
       titre={props.liste.nom}
-      sousTitre={restant ? `${restant} à prendre` : coches.length ? "Tout est pris" : undefined}
+      sousTitre={restant ? `${restant} à prendre${courses && parcoursAppris(props.liste) ? " · dans l'ordre du magasin" : ""}` : coches.length ? "Tout est pris" : undefined}
       actions={
         <>
           {!courses && props.membreId && (
@@ -219,6 +226,19 @@ export function DetailListe(props: {
               }}
             >
               <Icone nom="cadenas" taille={20} />
+            </button>
+          )}
+          {courses && restant > 0 && (
+            <button
+              className={`bouton-icone${enMagasin ? " actif" : ""}`}
+              aria-pressed={enMagasin}
+              aria-label={enMagasin ? "En magasin : laisser l'écran s'éteindre" : "En magasin : garder l'écran allumé"}
+              onClick={() => {
+                setEnMagasin(!enMagasin);
+                setMessage(enMagasin ? null : "En magasin : l'écran reste allumé jusqu'à ce que tu quittes la liste.");
+              }}
+            >
+              <Icone nom="soleil" taille={20} />
             </button>
           )}
           {tous.length > 0 && (

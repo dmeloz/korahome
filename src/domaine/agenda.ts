@@ -10,8 +10,8 @@
 import { ErreurValidation } from "./foyer";
 import { TYPES_SOIN, type Animal } from "./mitsu";
 import { normaliser } from "./rayons";
-import { decaler, ecartJours } from "./taches";
-import type { Contexte, Foyer, Id, Jour } from "./types";
+import { decaler, ecartJours, nouvelleTache } from "./taches";
+import type { Contexte, Foyer, Id, Jour, Tache } from "./types";
 import { deuxChiffres, NOMS_JOURS, NOMS_MOIS } from "./texte";
 
 export const CATEGORIES = {
@@ -312,6 +312,18 @@ export function filtrer(occ: readonly Occurrence[], filtre: Filtre): Occurrence[
 /** Le titre affiché : « Anniversaire de Sarah · 32 ans ». */
 export function titreDe(o: Occurrence): string {
   return o.annees ? `${o.evenement.titre} · ${o.annees} ans` : o.evenement.titre;
+}
+
+/**
+ * La tâche « à préparer » d'un événement, due la veille (ou aujourd'hui si la veille est passée) :
+ * « Préparer : Vétérinaire », « Cadeau : Anniversaire de Léa ». Elle va à la personne de
+ * l'événement, libre quand il est pour nous deux.
+ */
+export function tacheDeLaVeille(o: Occurrence, aujourdhui: Jour, ctx: Contexte): Tache {
+  const veille = decaler(o.debut, { tous: -1, unite: "jour" });
+  const echeance = veille < aujourdhui ? aujourdhui : veille;
+  const quoi = o.evenement.categorie === "anniversaire" ? "Cadeau" : "Préparer";
+  return nouvelleTache(`${quoi} : ${o.evenement.titre}`, null, echeance, ctx, o.evenement.pour);
 }
 
 // ----- La vue Jour, heure par heure -----
@@ -653,6 +665,14 @@ export function analyserPhrase(texte: string, aujourdhui: Jour, membres: Foyer["
 export function evenementsDuMatin(evenements: readonly Evenement[], membreId: Id | null, aujourdhui: Jour): Occurrence[] {
   const occ = duJour(occurrences(evenements, aujourdhui, aujourdhui), aujourdhui);
   return membreId === null ? occ : filtrer(occ, membreId);
+}
+
+/** Les anniversaires qui tombent dans une semaine jour pour jour : le temps de trouver un cadeau. */
+export const JOURS_AVANT_ANNIVERSAIRE = 7;
+
+export function anniversairesBientot(evenements: readonly Evenement[], aujourdhui: Jour): Occurrence[] {
+  const jour = decaler(aujourdhui, { unite: "jour", tous: JOURS_AVANT_ANNIVERSAIRE });
+  return occurrences(evenements, jour, jour).filter((o) => o.evenement.categorie === "anniversaire" && o.debut === jour);
 }
 
 /** « Dentiste à 14:30 », « Vacances (jusqu'au 27 déc.) ». */

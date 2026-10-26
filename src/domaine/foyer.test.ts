@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { contexteTest } from "./contexteTest";
-import { comparerVersions, creerFoyer, decrireAppareils, decrireTelephones, ErreurValidation, listesInitiales, nomTelephone, noterAppareil, plateformeDe } from "./foyer";
+import { comparerVersions, creerFoyer, decrireAppareils, decrireTelephones, ErreurValidation, ligneRetard, listesInitiales, nomTelephone, noterAppareil, plateformeDe } from "./foyer";
 
 describe("creerFoyer", () => {
   it("crée un foyer avec ses membres, couleurs distinctes", () => {
@@ -78,5 +78,21 @@ describe("les téléphones reliés", () => {
     expect(lignes[0]).toMatchObject({ detail: "Ce téléphone", ancien: false });
     expect(lignes[1]).toMatchObject({ detail: "Ouvert hier", ancien: false });
     expect(lignes[2]).toMatchObject({ titre: "Ancienne installation", detail: "Pas ouvert depuis 22 jours", ancien: true });
+  });
+});
+
+describe("l'autre iPhone en retard, sur l'accueil", () => {
+  it("dit qui a une version plus ancienne, sauf un vieux téléphone oublié", () => {
+    const maintenant = "2026-10-27T10:00:00.000Z";
+    const foyer = {
+      membres: [
+        { id: "d", prenom: "Dany", couleur: "", appareil: { version: "0.0.85", vuLe: maintenant } },
+        { id: "s", prenom: "Sarah", couleur: "", appareil: { version: "0.0.81", vuLe: "2026-10-26T20:00:00.000Z" } },
+      ],
+    };
+    expect(ligneRetard(foyer, "d", "0.0.85", maintenant)).toBe("Sarah a encore Kora 0.0.81");
+    expect(ligneRetard(foyer, "s", "0.0.85", maintenant)).toBeNull();
+    const ancien = { membres: [foyer.membres[0], { ...foyer.membres[1], appareil: { version: "0.0.70", vuLe: "2026-09-01T10:00:00.000Z" } }] };
+    expect(ligneRetard(ancien, "d", "0.0.85", maintenant)).toBeNull();
   });
 });

@@ -27,7 +27,7 @@ import { decrireTrame, type TrameSoir } from "./variete";
 
 // Ce dont la fonction serveur a aussi besoin : le compteur de Jarvis et l'heure de Zurich.
 export { etatBudget, moisDe, noteServeur, phrasePanne } from "./jarvisModele";
-export { jourEtHeure } from "./rappels";
+export { jourEtHeure, messagePush } from "./rappels";
 export { recettesDe } from "./recettes";
 export { tirerSemaine } from "./variete";
 

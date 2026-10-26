@@ -93,3 +93,12 @@ resté muet seize heures sans que personne ne le sache.
    contrôle elle-même la session du téléphone).
 
 Après une modification de `src/domaine/jarvis.ts` : `npm run fonction`, puis redéployer `jarvis`.
+
+## L'essai du matin (depuis 0.0.85)
+
+Chaque matin à 5 h 17 (UTC), la tâche `essai-de-la-fee` (pg_cron, `prive.programmer_essai_fee`)
+appelle `jarvis` avec la clé du cron et `{"mode":"essai"}`. La fonction envoie à Claude une question
+minuscule avec les vraies consignes et les vrais outils (environ 0,0006 CHF). Si l'appel échoue
+(sauf plafond du compte), une note « Bug serveur » arrive dans les retours de test de chaque foyer
+de l'assistant, avant que quelqu'un ne parle à la fée. Mise en route, une fois `jarvis` déployé :
+`select prive.programmer_essai_fee('https://ffnmyfrzqvhvafnxvyxx.supabase.co');`

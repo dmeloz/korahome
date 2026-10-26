@@ -32,6 +32,14 @@ export interface Liste {
   achats?: Achat[];
   /** Une liste rien qu'à soi : elle n'apparaît que sur les téléphones de cette personne (une surprise, un cadeau pour l'autre). */
   pourMoi?: Id | null;
+  /** L'ordre des rayons dans le magasin du foyer, appris en cochant (magasin.ts). */
+  parcours?: ParcoursMagasin;
+}
+
+/** Le rang moyen de chaque rayon dans le magasin, et combien de passages l'ont appris. */
+export interface ParcoursMagasin {
+  rangs: Partial<Record<Rayon, number>>;
+  passages: number;
 }
 
 export interface Achat {

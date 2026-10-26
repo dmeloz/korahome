@@ -1,5 +1,6 @@
+import { ordreDesRayons } from "./magasin";
 import { detecterRayon } from "./rayons";
-import { RAYONS, type Contexte, type Element, type Id, type Liste, type Rayon } from "./types";
+import { type Contexte, type Element, type Id, type Liste, type Rayon } from "./types";
 import { ErreurValidation } from "./foyer";
 
 const UNITES = "(?:kg|g|l|cl|ml|x|paquets?|boites?|boîtes?|bouteilles?|pots?|sachets?|tranches?)";
@@ -78,7 +79,7 @@ export function organiserListe(
   if (liste.type !== "courses") {
     return { aPrendre: aPrendre.length ? [{ rayon: "Autre", elements: aPrendre }] : [], coches };
   }
-  const groupes = RAYONS.map((rayon) => ({
+  const groupes = ordreDesRayons(liste).map((rayon) => ({
     rayon,
     elements: aPrendre.filter((e) => e.rayon === rayon),
   })).filter((g) => g.elements.length > 0);

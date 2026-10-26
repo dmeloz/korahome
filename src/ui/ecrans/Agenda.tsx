@@ -18,6 +18,7 @@ import {
   occurrences,
   preparerEvenement,
   REPETITIONS,
+  tacheDeLaVeille,
   titreDe,
   type Categorie,
   type CompteIcloud,
@@ -111,6 +112,17 @@ export function Agenda(p: PropsPage) {
     annoncer(`« ${e.titre} » retiré de l'agenda.`, async () => {
       await depot.enregistrerAgenda(e);
       synchroniserBientot(p.agendaDistant);
+    });
+  }
+
+  // « À préparer la veille » : une tâche due la veille, que la page Tâches montrera le moment venu.
+  async function preparerVeille(o: Occurrence) {
+    setOuvert(null);
+    const t = tacheDeLaVeille(o, aujourdhui, contexteReel);
+    await depot.enregistrerTache(t);
+    vibrer();
+    annoncer(`« ${t.titre} » ajoutée aux tâches, ${decrireJour(t.echeance, aujourdhui).toLowerCase()}.`, async () => {
+      await depot.supprimerTache(t.id);
     });
   }
 
@@ -236,6 +248,11 @@ export function Agenda(p: PropsPage) {
             </p>
             {ouvert.evenement.lieu && <p>{ouvert.evenement.lieu}</p>}
             {ouvert.evenement.note && <p className="discret agenda-note">{ouvert.evenement.note}</p>}
+            {ouvert.debut >= aujourdhui && (
+              <button type="button" className="bouton-doux" onClick={() => void preparerVeille(ouvert)}>
+                {ouvert.evenement.categorie === "anniversaire" ? "Penser au cadeau la veille" : "À préparer la veille"}
+              </button>
+            )}
             {ouvert.lectureSeule || (ouvert.evenement.icloud && ouvert.evenement.creePar !== p.membreId) ? (
               <p className="discret">Vient de : {ouvert.evenement.source}. {ouvert.lectureSeule ? "Il se modifie là-bas." : "Seul son propriétaire peut le modifier depuis Kora."}</p>
             ) : (

@@ -15,7 +15,7 @@
 import webpush from "npm:web-push@3.6.7";
 import { messageErreur, preflight, repondre } from "../_shared/http.ts";
 import { echec, estMembre, serveur, utilisateur } from "../_shared/supabase.ts";
-import { adresseMeteo, enHeuresCalmes, evenementsDe, facturesDuJour, fenetreMotsCalmes, fenetreMotsProgrammes, formaterHeure, FUSEAU_DU_FOYER, jourEtHeure, lireMeteo, notificationHeure, notificationMot, PREFERENCES_DE_DEPART, rappelDu, rappelDuMatin, tachesALHeure } from "./domaine.js";
+import { adresseMeteo, enHeuresCalmes, evenementsDe, facturesDuJour, fenetreMotsCalmes, fenetreMotsProgrammes, formaterHeure, FUSEAU_DU_FOYER, jourEtHeure, lireMeteo, messagePush, notificationHeure, notificationMot, PREFERENCES_DE_DEPART, rappelDu, rappelDuMatin, tachesALHeure } from "./domaine.js";
 
 interface Abonnement {
   endpoint: string;
@@ -79,7 +79,7 @@ async function envoyer(a: Abonnement, message: { titre: string; corps: string; n
   try {
     await webpush.sendNotification(
       { endpoint: a.endpoint, keys: a.cles },
-      JSON.stringify({ ...message, url: "./" }),
+      JSON.stringify(messagePush(message)),
       { vapidDetails: { subject: "https://dmeloz.github.io/korahome/", publicKey: cles.publique, privateKey: cles.privee }, TTL: 4 * 3600, urgency: "normal" },
     );
     return "envoye";
