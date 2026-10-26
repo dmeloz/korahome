@@ -37,9 +37,9 @@ import { Montant } from "../../moteur/Chiffre";
 export type PropsCeMois = PropsPage & { plan: PlanBudget; voirCharges: () => void; voirPot: (pot: Pot) => void; voirDepenses: () => void; ouvrirPlus: () => void };
 
 /**
- * Ce mois (Kora 0.0.76, version 4 de la maquette) : ce qui demande un geste (la clôture, les
- * paiements à classer), puis « À toi » dans son anneau, et en bas tes dépenses, la prochaine
- * facture, le commun et l'autre. Sans salaire connu pour ce téléphone, la page du foyer d'avant.
+ * Ce mois (Kora 0.0.76, version 4 de la maquette) : les paiements à classer, puis « À toi » dans
+ * son anneau, et en bas la clôture en une ligne (0.0.77), tes dépenses, la prochaine facture, le
+ * commun et l'autre. Sans salaire connu pour ce téléphone, la page du foyer d'avant.
  */
 export function CeMois(p: PropsCeMois) {
   const etat = p.membreId ? etatAMoi(p.plan, p.budget, p.membreId, p.aujourdhui) : null;
@@ -166,7 +166,7 @@ function CeMoisCommun(p: PropsCeMois) {
  * La clôture du mois : le mois qui vient de finir en bref, pot par pot, puis les versements du
  * nouveau mois, notés d'un seul geste. Ce qui reste dans chaque pot passe au mois suivant.
  */
-function Cloture(p: PropsPage & { plan: PlanBudget; mot: string | null }) {
+function Cloture(p: PropsPage & { plan: PlanBudget; mot: string | null; fait?: () => void }) {
   const { plan, depot, aujourdhui } = p;
   const annoncer = useAnnoncer();
   const [epargne, setEpargne] = useState<number | null>(null);
@@ -179,6 +179,7 @@ function Cloture(p: PropsPage & { plan: PlanBudget; mot: string | null }) {
     const doc = confirmerMois(nouveau, { ...bilan.versements, epargne: epargne ?? bilan.versements.epargne }, p.membreId, contexteReel);
     await depot.enregistrerBudget(doc);
     vibrer();
+    p.fait?.();
     annoncer(precedent ? `${majuscule(nommerMois(precedent.mois))} clôturé, ${nommerMois(nouveau)} ouvert.` : `Versements de ${nommerMois(nouveau)} notés.`, () => depot.supprimerBudget(doc.id));
   }
 
@@ -234,7 +235,8 @@ function Cloture(p: PropsPage & { plan: PlanBudget; mot: string | null }) {
 
 function CeMoisAMoi(p: PropsCeMois & { etat: AMoi }) {
   const { plan, etat, aujourdhui } = p;
-  const [feuille, setFeuille] = useState<"calcul" | "factures" | "autre" | null>(null);
+  const [feuille, setFeuille] = useState<"calcul" | "factures" | "autre" | "cloture" | null>(null);
+  const cloture = moisACloturer(plan, p.budget, aujourdhui);
   const aPayer = facturesAPayer(plan, p.budget, aujourdhui, 45);
   const prochaine = aPayer[0];
   const jours = depensesParJour(p.budget, etat.membreId, aujourdhui, 12);
@@ -245,7 +247,6 @@ function CeMoisAMoi(p: PropsCeMois & { etat: AMoi }) {
 
   return (
     <>
-      <Cloture {...p} plan={plan} mot={motDuMois(plan, p.budget, aujourdhui)} />
       <PaiementsAClasser {...p} plan={plan} />
 
       <div className="budget-amoi">
@@ -267,6 +268,16 @@ function CeMoisAMoi(p: PropsCeMois & { etat: AMoi }) {
       </div>
 
       <div className="budget-bas">
+        {cloture && (
+          // La clôture en une ligne : en grand au-dessus, elle cachait l'anneau tout le début du mois.
+          <button type="button" className="budget-rangee budget-a-noter" onClick={() => setFeuille("cloture")}>
+            <span className="budget-rangee-texte">
+              {cloture.precedent ? `Clôturer ${nommerMois(cloture.precedent.mois)}` : `Versements de ${nommerMois(cloture.nouveau)}`}
+              <span className="discret">À noter d'un geste</span>
+            </span>
+            <Icone nom="suivant" taille={16} />
+          </button>
+        )}
         <button type="button" className="budget-rangee" onClick={p.voirDepenses}>
           <span className="budget-rangee-texte">
             Tes dépenses
@@ -310,6 +321,9 @@ function CeMoisAMoi(p: PropsCeMois & { etat: AMoi }) {
         </div>
       </div>
 
+      <Feuille ouverte={feuille === "cloture"} onFermer={() => setFeuille(null)} titre={cloture?.precedent ? `Clôturer ${nommerMois(cloture.precedent.mois)}` : "Les versements du mois"}>
+        <Cloture {...p} plan={plan} mot={motDuMois(plan, p.budget, aujourdhui)} fait={() => setFeuille(null)} />
+      </Feuille>
       <FeuilleCalcul {...p} ouverte={feuille === "calcul"} fermer={() => setFeuille(null)} autre={autre} />
       <FeuilleFactures {...p} ouverte={feuille === "factures"} fermer={() => setFeuille(null)} />
       <FeuilleAutre {...p} membre={autre} ouverte={feuille === "autre"} fermer={() => setFeuille(null)} />

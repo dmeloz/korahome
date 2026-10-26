@@ -220,6 +220,8 @@ button.budget-pot:active { transform: scale(0.98); }
 .budget-rangee-texte { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .budget-rangee-texte .discret { font-size: var(--t-detail); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .budget-rangee-texte .retard { color: var(--urgent); }
+.budget-a-noter { border-color: color-mix(in srgb, var(--accent) 45%, var(--trait)); }
+.budget-a-noter > svg:last-child, .budget-a-noter .icone { color: var(--accent); }
 .budget-barres { flex: none; width: 104px; height: 24px; }
 .budget-barres rect { fill: var(--trait); }
 .budget-barres rect.aujourdhui { fill: var(--accent); }
