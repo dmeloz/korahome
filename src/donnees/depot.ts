@@ -2,6 +2,7 @@ import type { Animal } from "../domaine/mitsu";
 import type { DocCouple } from "../domaine/bandeau";
 import type { DocAgenda } from "../domaine/agenda";
 import type { DocBudget } from "../domaine/budget";
+import type { DocVetement } from "../domaine/vetements";
 import type { DocChef } from "../domaine/chef";
 import type { Souvenir } from "../domaine/memoire";
 import type { RetourTest } from "../domaine/retours";
@@ -76,6 +77,11 @@ export interface Depot {
   lireBudget(): Promise<DocBudget[]>;
   enregistrerBudget(doc: DocBudget): Promise<void>;
   supprimerBudget(id: Id): Promise<void>;
+
+  /** Les vêtements : tailles, envies et pièces à trier de chacun (voir domaine/vetements.ts). */
+  lireVetements(): Promise<DocVetement[]>;
+  enregistrerVetement(doc: DocVetement): Promise<void>;
+  supprimerVetement(id: Id): Promise<void>;
 
   /** Les notes de test écrites depuis le coin « Dev ». */
   lireRetours(): Promise<RetourTest[]>;

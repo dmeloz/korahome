@@ -15,6 +15,7 @@ import type { WidgetId } from "../domaine/tableauDeBord";
 import type { ProduitHabituel } from "../domaine/catalogue";
 import { decrirePeremption, resumeStock, type Produit } from "../domaine/stock";
 import { compterDues, decaler, decrireEcheance, organiserTaches } from "../domaine/taches";
+import { compterVetements, type DocVetement } from "../domaine/vetements";
 import type { Element, Foyer, Jour, Liste, Tache } from "../domaine/types";
 import type { Depot } from "../donnees/depot";
 import type { ServeurAgenda, ServeurJarvis } from "../donnees/distant";
@@ -25,6 +26,7 @@ import { vibrer } from "./haptique";
 import type { NomIcone } from "./Icone";
 import { Espace, Page } from "./pieces";
 import { Entretien } from "./ecrans/Entretien";
+import { Vetements } from "./ecrans/Vetements";
 import { ignorer } from "./journal";
 
 // Les pages les plus lourdes ne se chargent qu'à leur première ouverture : l'app démarre plus
@@ -79,6 +81,8 @@ export interface DonneesModule {
   agenda: DocAgenda[];
   /** Le budget du foyer : son plan, les mois versés, les dépenses. */
   budget: DocBudget[];
+  /** Les vêtements : tailles, envies et pièces à trier de chacun. */
+  vetements: DocVetement[];
 }
 
 export interface PropsPage extends DonneesModule {
@@ -301,7 +305,7 @@ function PageOrganisation(p: PropsPage) {
 
 /** Maison : l'entretien, Mitsu et le jardin, chacun dans son onglet. */
 function PageMaison(p: PropsPage) {
-  const onglet = p.onglet === "jardin" || p.onglet === "mitsu" || p.onglet === "entretien" ? p.onglet : null;
+  const onglet = p.onglet === "jardin" || p.onglet === "mitsu" || p.onglet === "entretien" || p.onglet === "vetements" ? p.onglet : null;
   const { changerOnglet } = p;
   const parDefaut = ongletMaison(p);
   // L'onglet choisi à l'ouverture reste en place, même si l'urgence change en route.
@@ -312,11 +316,12 @@ function PageMaison(p: PropsPage) {
   return (
     <Espace
       titre="Maison"
-      libelle="Entretien, Mitsu ou jardin"
+      libelle="Entretien, Mitsu, jardin ou vêtements"
       onglets={[
         { id: "entretien", libelle: "Entretien", compte: widgetEntretien(p).chiffre },
         { id: "mitsu", libelle: p.animaux[0]?.nom ?? "Mitsu" },
         { id: "jardin", libelle: "Jardin" },
+        { id: "vetements", libelle: "Vêtements", compte: compterVetements(p.vetements, p.membreId, `${p.aujourdhui}T12:00:00.000Z`) },
       ] as const}
       actif={actif}
       changer={(o) => {
@@ -326,6 +331,10 @@ function PageMaison(p: PropsPage) {
     >
       {actif === "jardin" ? (
         <Jardin {...p} />
+      ) : actif === "vetements" ? (
+        <Page titre="Vêtements" sousTitre="Tailles, envies, à trier" aide={{ cle: "vetements-aide", texte: "Les tailles et les envies de chacun, partagées : de quoi trouver un cadeau qui va." }}>
+          <Vetements depot={p.depot} foyer={p.foyer} membreId={p.membreId} vetements={p.vetements} aujourdhui={p.aujourdhui} />
+        </Page>
       ) : actif === "entretien" ? (
         <Page titre="Entretien" sousTitre="Ce qui revient pour la maison">
           <Entretien depot={p.depot} membreId={p.membreId} taches={p.taches} aujourdhui={p.aujourdhui} />

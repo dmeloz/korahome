@@ -507,3 +507,27 @@ describe("Jarvis et le budget", () => {
     expect(lireActions([{ nom: "noter_depense", entree: { montant: -3, pot: "courses" } }])).toEqual([]);
   });
 });
+
+describe("Jarvis et les vêtements", () => {
+  it("note une taille et une envie pour une personne, et les décrit ensuite", () => {
+    const { d, melo } = foyerDeTest();
+    const actions = lireActions([
+      { nom: "noter_taille", entree: { pour: "Sarah", piece: "chaussures", valeur: "39" } },
+      { nom: "noter_envie", entree: { pour: "sarah", envie: "Bottes en cuir 120" } },
+      { nom: "noter_taille", entree: { pour: "Sarah", piece: "chapeau", valeur: "M" } },
+    ]);
+    expect(actions).toHaveLength(2);
+    const r = appliquerActions(actions, d, melo, AUJOURDHUI, ctx());
+    expect(r.faits).toEqual(["Taille notée pour Sarah : chaussures 39.", "Envie notée pour Sarah : bottes en cuir (120 CHF)."]);
+    expect(r.modifications.map((m) => m.collection)).toEqual(["vetements", "vetements"]);
+    const docs = r.modifications.map((m) => m.apres as never);
+    expect(decrireFoyer({ ...d, vetements: docs }, melo, AUJOURDHUI)).toContain("Vêtements de Sarah : tailles chaussures 39 ; envies Bottes en cuir (120 CHF).");
+    expect(decrireAction(actions[1])).toBe("Envie de sarah : Bottes en cuir");
+  });
+
+  it("ne note rien pour quelqu'un d'inconnu", () => {
+    const { d } = foyerDeTest();
+    const r = appliquerActions(lireActions([{ nom: "noter_envie", entree: { pour: "Paul", envie: "Pull" } }]), d, null, AUJOURDHUI, ctx());
+    expect(r.echecs).toEqual(["Je ne connais pas « Paul » dans le foyer."]);
+  });
+});

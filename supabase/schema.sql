@@ -21,6 +21,7 @@ create table if not exists public.membres_foyer (
   rejoint_le timestamptz not null default now(),
   primary key (foyer_id, user_id)
 );
+create index if not exists membres_foyer_user on public.membres_foyer (user_id);
 
 create table if not exists public.documents (
   foyer_id text not null references public.foyers (id) on delete cascade,
@@ -38,11 +39,11 @@ create table if not exists public.documents (
 -- Les notes de test se partagent depuis Kora 0.0.7, le stock (frigo, congélateur, placard)
 -- depuis Kora 0.0.9, la Base des produits habituels depuis Kora 0.0.10, le jardin depuis
 -- Kora 0.0.15, la mémoire de Jarvis et le bandeau du couple depuis Kora 0.0.16, les menus du Chef
--- de la semaine depuis Kora 0.0.17, l'agenda commun depuis Kora 0.0.18, le budget depuis Kora 0.0.27, la corbeille depuis Kora 0.0.64 : une base plus ancienne
+-- de la semaine depuis Kora 0.0.17, l'agenda commun depuis Kora 0.0.18, le budget depuis Kora 0.0.27, la corbeille depuis Kora 0.0.64, les vêtements depuis Kora 0.0.77 : une base plus ancienne
 -- reçoit la nouvelle liste.
 alter table public.documents drop constraint if exists documents_collection_check;
 alter table public.documents add constraint documents_collection_check
-  check (collection in ('foyer', 'listes', 'elements', 'taches', 'animaux', 'stock', 'catalogue', 'jardin', 'memoire', 'couple', 'menus', 'agenda', 'budget', 'retours', 'corbeille'));
+  check (collection in ('foyer', 'listes', 'elements', 'taches', 'animaux', 'stock', 'catalogue', 'jardin', 'memoire', 'couple', 'menus', 'agenda', 'budget', 'retours', 'corbeille', 'vetements'));
 
 create index if not exists documents_nouveautes on public.documents (foyer_id, maj_serveur);
 
@@ -94,7 +95,7 @@ create policy "membres voient les membres" on public.membres_foyer
 -- Un téléphone relié par le code seulement quitte le foyer en se déconnectant.
 drop policy if exists "chacun peut quitter un foyer" on public.membres_foyer;
 create policy "chacun peut quitter un foyer" on public.membres_foyer
-  for delete to authenticated using (user_id = auth.uid());
+  for delete to authenticated using (user_id = (select auth.uid()));
 
 drop policy if exists "membres lisent les documents" on public.documents;
 create policy "membres lisent les documents" on public.documents

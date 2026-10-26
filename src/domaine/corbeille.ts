@@ -9,8 +9,8 @@ import type { Element, Foyer, Id } from "./types";
 export const JOURS_CORBEILLE = 30;
 
 /** Ce qui va à la corbeille quand on l'efface. Les articles d'une liste partent avec elle. */
-export type CollectionCorbeille = "listes" | "taches" | "stock" | "jardin" | "memoire" | "couple" | "menus" | "agenda" | "budget";
-export const COLLECTIONS_CORBEILLE: readonly CollectionCorbeille[] = ["listes", "taches", "stock", "jardin", "memoire", "couple", "menus", "agenda", "budget"];
+export type CollectionCorbeille = "listes" | "taches" | "stock" | "jardin" | "memoire" | "couple" | "menus" | "agenda" | "budget" | "vetements";
+export const COLLECTIONS_CORBEILLE: readonly CollectionCorbeille[] = ["listes", "taches", "stock", "jardin", "memoire", "couple", "menus", "agenda", "budget", "vetements"];
 
 export interface EntreeCorbeille {
   /** « collection/id du document » : un document effacé deux fois n'y est qu'une fois. */
@@ -49,6 +49,8 @@ export function meriteLaCorbeille(collection: CollectionCorbeille, doc: unknown,
       return typeof d.titre === "string";
     case "budget":
       return d.genre === "depense";
+    case "vetements":
+      return d.type === "envie" || d.type === "tri";
     default:
       return true;
   }
@@ -99,6 +101,8 @@ export function espaceDe(collection: CollectionCorbeille, doc: unknown): string 
       return "Agenda";
     case "budget":
       return "Budget";
+    case "vetements":
+      return "Vêtements";
   }
 }
 
@@ -121,6 +125,8 @@ export function titreDe(entree: EntreeCorbeille): string {
       return d.type === "compte" ? `Compte à rebours « ${d.titre ?? ""} »` : `Mot « ${d.texte ?? ""} »`;
     case "menus":
       return d.type === "menu" ? "Menu de la semaine" : (d.titre ?? "Recette");
+    case "vetements":
+      return d.titre ?? "Vêtement";
     case "budget":
       return typeof d.montant === "number" ? `${d.libelle ?? "Dépense"} · ${d.montant.toFixed(2)} CHF` : (d.libelle ?? "Dépense");
   }
