@@ -509,8 +509,6 @@ html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
 .initiale.petite { width: 20px; height: 20px; font-size: var(--t-legende); margin-right: 6px; }
 
 /* La recherche. */
-.champ-recherche { display: flex; align-items: center; gap: 8px; padding: 0 12px; height: 44px; border-radius: 12px; background: var(--surface-haute); color: var(--discret); margin-bottom: 8px; }
-.champ-recherche input { flex: 1; min-width: 0; border: none; background: none; outline: none; color: var(--texte); font-size: max(16px, var(--t-corps)); }
 
 /* ===== Le filet sous chaque page : écran de secours et silhouette de chargement (Kora 0.0.64) ===== */
 .page-secours { display: grid; gap: 12px; justify-items: start; padding-top: 24px; }

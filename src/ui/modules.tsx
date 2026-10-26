@@ -230,16 +230,26 @@ const ongletMaison = (d: DonneesModule): "entretien" | "mitsu" | "jardin" =>
 function PageCuisine(p: PropsPage) {
   // « recette:<id> » : une recette trouvée par la recherche, ouverte sur l'onglet Recettes.
   const recette = p.onglet?.startsWith("recette:") ? p.onglet.slice("recette:".length) : null;
-  const onglet =
-    p.onglet === "courses" || p.onglet === "listes" ? "courses" : p.onglet === "recettes" || recette ? "recettes" : p.onglet === "frigo" ? "frigo" : "semaine";
   const aConsommer = resumeStock(p.produits, p.aujourdhui).aConsommer.length;
   const courses = listeCourses(p);
+  const aPrendre = courses ? compterAPrendre(courses, p.elements) : 0;
+  // Sans onglet demandé (0.0.77, choix de Melo) : les courses s'il y a quelque chose à acheter, sinon les menus.
+  const onglet =
+    p.onglet === "courses" || p.onglet === "listes"
+      ? "courses"
+      : p.onglet === "recettes" || recette
+        ? "recettes"
+        : p.onglet === "frigo"
+          ? "frigo"
+          : p.onglet === "semaine" || aPrendre === 0
+            ? "semaine"
+            : "courses";
   return (
     <Espace
       titre="Cuisine"
       libelle="Courses, menus, recettes ou frigo"
       onglets={[
-        { id: "courses", libelle: "Courses", compte: courses ? compterAPrendre(courses, p.elements) : 0 },
+        { id: "courses", libelle: "Courses", compte: aPrendre },
         { id: "semaine", libelle: "Menus" },
         { id: "recettes", libelle: "Recettes", compte: recettesDe(p.menus).length },
         { id: "frigo", libelle: "Frigo", compte: aConsommer },
@@ -247,7 +257,7 @@ function PageCuisine(p: PropsPage) {
       actif={onglet}
       changer={(o) => {
         vibrer();
-        p.changerOnglet(o === "semaine" ? undefined : o);
+        p.changerOnglet(o);
       }}
     >
       {onglet === "courses" ? (
