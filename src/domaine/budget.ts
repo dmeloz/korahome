@@ -82,11 +82,20 @@ export interface ProjetEpargne {
 }
 
 /** Le plan du foyer : un seul document, que les deux téléphones partagent. */
+/** Une catégorie du foyer (« Essence », « Resto », Kora 0.0.78) : un nom à soi, rangé dans un pot. Règles dans `etiquettes.ts`. */
+export interface Etiquette {
+  id: Id;
+  nom: string;
+  pot: Pot;
+}
+
 export interface PlanBudget {
   id: "plan";
   genre: "plan";
   personnes: Personne[];
   postes: Poste[];
+  /** Les catégories que le foyer s'est faites, pour classer ses paiements plus finement qu'un pot. */
+  etiquettes?: Etiquette[];
   /** La part du reste qui va au plaisir (0,3) ; le reste va à l'épargne. */
   partPlaisir: number;
   /** Le jour de paie, qui ouvre le mois ; null tant que personne ne l'a donné. */
@@ -127,6 +136,8 @@ export interface Depense {
   source: "main" | "ticket" | "jarvis" | "applepay" | "releve";
   /** La carte de Wallet qui a payé (son nom seul, sans chiffres), pour un paiement Apple Pay. */
   carte?: string;
+  /** La catégorie du foyer (`Etiquette.id`) ; la dépense garde son pot et son nom si elle disparaît. */
+  etiquette?: Id;
   /** Les lignes d'un ticket de caisse, avec leur prix : Kora y voit les prix qui montent. */
   articles?: ArticleTicket[];
   par: Id | null;
@@ -559,6 +570,7 @@ export function nouvelleDepense(
     echeance?: Jour | null;
     source?: Depense["source"];
     articles?: readonly ArticleTicket[];
+    etiquette?: Id | null;
   },
   par: Id | null,
   ctx: Contexte,
@@ -575,6 +587,7 @@ export function nouvelleDepense(
     echeance: champs.echeance ?? null,
     source: champs.source ?? "main",
     ...(champs.articles?.length ? { articles: champs.articles.filter((a) => a.nom.trim() && a.prix > 0).map((a) => ({ nom: a.nom.trim(), prix: auCentime(a.prix) })) } : {}),
+    ...(champs.etiquette ? { etiquette: champs.etiquette } : {}),
     par,
     creeLe: ctx.maintenant(),
   };
@@ -595,6 +608,8 @@ export interface SaisieDepense {
   magasin: string | null;
   /** La charge nommée dans la phrase (« Sunrise 145 ») : la dépense la paie. */
   posteId: Id | null;
+  /** La catégorie du foyer nommée dans la phrase (« 45 essence ») ; elle donne son pot et son nom. */
+  etiquette?: Id;
 }
 
 /**
@@ -616,6 +631,12 @@ export function lireDepense(texte: string, plan: PlanBudget | null): SaisieDepen
   if (/\bfactures?\b/.test(cle)) pot = "factures";
   if (/\b(?:pour moi|a moi|perso)\b/.test(cle)) pot = "perso";
   retirerMot(/(?:^|\s)(?:pour moi|[àa] moi|perso)(?=\s|$)/gi);
+  // Une catégorie du foyer nommée dans la phrase (« 45 essence ») l'emporte : son pot, son nom.
+  const etiquette = plan?.etiquettes?.find((e) => new RegExp(`(?:^|\\s)${echapper(sansAccents(e.nom))}(?=\\s|$)`).test(cle));
+  if (etiquette) {
+    pot = etiquette.pot;
+    retirerMot(new RegExp(`(?:^|\\s)(?:sur |dans |pour |en )?${echapper(etiquette.nom)}(?=\\s|$)`, "gi"));
+  }
   retirerMot(/\b(?:sur |dans |pour |au |à |a |en |le |la |les )?(?:pot |compte |carte )?(?:plaisir|[ée]pargne|r[ée]serve|courses|factures?)\b/gi);
   retirerMot(/^\s*(?:j'ai |on a )?(?:pay[ée]e?s?|d[ée]pens[ée]|achet[ée])\s+/i);
   const magasin = MAGASINS.find((x) => new RegExp(`\\b${sansAccents(x)}\\b`).test(cle)) ?? null;
@@ -623,9 +644,11 @@ export function lireDepense(texte: string, plan: PlanBudget | null): SaisieDepen
   const poste = plan && libelle ? plan.postes.find((p) => p.qui === null && sansAccents(p.libelle).includes(sansAccents(libelle.split(" ")[0]))) : undefined;
   if (poste && !pot) pot = poste.pot === "commun" || !poste.pot ? "factures" : poste.pot;
   if (!pot) pot = magasin ? "courses" : "plaisir";
-  const nom = libelle ? libelle.charAt(0).toUpperCase() + libelle.slice(1) : magasin ?? POTS[pot].nom;
-  return { montant, pot, libelle: poste?.libelle ?? nom, magasin, posteId: poste?.id ?? null };
+  const nom = libelle ? libelle.charAt(0).toUpperCase() + libelle.slice(1) : magasin ?? etiquette?.nom ?? POTS[pot].nom;
+  return { montant, pot, libelle: poste?.libelle ?? nom, magasin, posteId: poste?.id ?? null, ...(etiquette ? { etiquette: etiquette.id } : {}) };
 }
+
+const echapper = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 // ----- Le projet d'épargne -----
 

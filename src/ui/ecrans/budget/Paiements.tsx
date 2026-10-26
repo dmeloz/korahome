@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { formaterMontant, lireMontant, nomDuMois, POTS, reglerFacture, type Depense, type PaiementAClasser, type PlanBudget, type Pot } from "../../../domaine/budget";
+import { formaterMontant, lireMontant, nomDuMois, POTS, reglerFacture, type Etiquette, type PaiementAClasser, type PlanBudget, type Pot } from "../../../domaine/budget";
+import { etiquetteProposee, etiquettesDuPlan } from "../../../domaine/etiquettes";
 import { cartesDuFoyer, choixDeCarte, classerPaiement, demandeRaccourci, paiementsAClasser, POTS_DE_CARTE, retenirCarte, type ChoixCarte } from "../../../domaine/paiements";
+import { FeuilleEtiquette } from "./Feuilles";
 import { useAnnoncer } from "../../annulation";
 import { contexteReel } from "../../contexte";
 import { vibrer } from "../../haptique";
@@ -25,41 +27,42 @@ function garderLien(adresse: string | null) {
 const nomDuPot = (plan: PlanBudget, pot: Pot) => plan.comptes[pot] || POTS[pot].nom;
 const quand = (jour: string) => `${Number(jour.slice(8, 10))} ${nomDuMois(Number(jour.slice(5, 7)))}`;
 
-/** Les paiements à classer : un toucher sur le pot, et Kora retient la carte pour la suite. */
+/**
+ * Les paiements à classer (0.0.78) : une carte sobre par paiement, et une rangée qui défile avec
+ * vos catégories (la dernière choisie pour ce commerçant en tête), les pots, « Hors budget » et
+ * « Nouvelle catégorie ». Un toucher classe ce paiement seul : pour qu'une carte se range seule,
+ * on la règle dans Paiements Apple Pay.
+ */
 export function PaiementsAClasser(p: PropsPage & { plan: PlanBudget }) {
   const { plan, depot } = p;
   const annoncer = useAnnoncer();
   const [francs, setFrancs] = useState<Record<string, string>>({});
+  const [nouvelle, setNouvelle] = useState<PaiementAClasser | null>(null);
   const liste = paiementsAClasser(p.budget);
   if (!liste.length) return null;
 
-  async function classer(paiement: PaiementAClasser, choix: ChoixCarte) {
-    const memeCarte = liste.filter((x) => x.carte === paiement.carte && x.devise === "CHF");
-    const autres = paiement.devise === "CHF" ? memeCarte : [paiement];
+  const montantEnFrancs = (x: PaiementAClasser) => (x.devise === "CHF" ? x.montant : lireMontant(francs[x.id] ?? ""));
+
+  async function horsBudget(paiement: PaiementAClasser) {
+    const memeCarte = liste.filter((x) => x.carte === paiement.carte);
     const ancienPlan = plan;
-    if (paiement.devise === "CHF" || !choixDeCarte(plan, paiement.carte)) await depot.enregistrerBudget(retenirCarte(plan, paiement.carte, choix, contexteReel));
-    if (choix === "aucun") {
-      for (const x of autres) await depot.supprimerBudget(x.id);
-      vibrer();
-      annoncer(`Carte ${paiement.carte} : hors du budget.`, async () => {
-        await depot.enregistrerBudget(ancienPlan);
-        for (const x of autres) await depot.enregistrerBudget(x);
-      });
-      return;
-    }
-    const montantChf = paiement.devise === "CHF" ? paiement.montant : lireMontant(francs[paiement.id] ?? "");
+    await depot.enregistrerBudget(retenirCarte(plan, paiement.carte, "aucun", contexteReel));
+    for (const x of memeCarte) await depot.supprimerBudget(x.id);
+    vibrer();
+    annoncer(`Carte ${paiement.carte} : hors du budget.`, async () => {
+      await depot.enregistrerBudget(ancienPlan);
+      for (const x of memeCarte) await depot.enregistrerBudget(x);
+    });
+  }
+
+  async function classer(paiement: PaiementAClasser, pot: Pot, etiquette?: Etiquette) {
+    const montantChf = montantEnFrancs(paiement);
     if (montantChf === null) return;
     // Un paiement qui règle une facture attendue la marque payée (Kora 0.0.37).
-    const classes: Depense[] = [];
-    for (const x of paiement.devise === "CHF" ? autres : [paiement]) {
-      classes.push(reglerFacture(classerPaiement(x, choix, x.id === paiement.id ? montantChf : x.montant, contexteReel), plan, [...p.budget, ...classes]));
-    }
-    for (const d of classes) await depot.enregistrerBudget(d);
+    const d = reglerFacture(classerPaiement(paiement, pot, montantChf, contexteReel, etiquette), plan, p.budget);
+    await depot.enregistrerBudget(d);
     vibrer();
-    annoncer(classes.length > 1 ? `${classes.length} paiements dans ${nomDuPot(plan, choix).toLowerCase()}.` : `${formaterMontant(montantChf)} dans ${nomDuPot(plan, choix).toLowerCase()}.`, async () => {
-      await depot.enregistrerBudget(ancienPlan);
-      for (const x of paiement.devise === "CHF" ? autres : [paiement]) await depot.enregistrerBudget(x);
-    });
+    annoncer(`${formaterMontant(montantChf)} dans ${(etiquette?.nom ?? nomDuPot(plan, d.pot)).toLowerCase()}.`, () => depot.enregistrerBudget(paiement));
   }
 
   return (
@@ -69,47 +72,61 @@ export function PaiementsAClasser(p: PropsPage & { plan: PlanBudget }) {
         {liste.map((x) => {
           const connue = choixDeCarte(plan, x.carte);
           const etranger = x.devise !== "CHF";
+          const pret = montantEnFrancs(x) !== null;
+          const proposee = etiquetteProposee(plan, p.budget, x.marchand);
+          const autres = etiquettesDuPlan(plan).filter((e) => e.id !== proposee?.id);
           return (
             <li key={x.id} className="budget-paiement">
-              <div className="ligne">
-                <span className="ligne-texte">
-                  {x.marchand ?? "Paiement"}
-                  <span className="tache-details">
-                    {" "}
-                    · {x.carte} · {quand(x.jour)}
-                  </span>
-                </span>
+              <div className="budget-paiement-tete">
+                <span className="budget-paiement-nom">{x.marchand ?? "Paiement"}</span>
                 <span className="budget-montant">{etranger ? `${formaterMontant(x.montant, false)} ${x.devise}` : formaterMontant(x.montant)}</span>
               </div>
+              <span className="discret">
+                {quand(x.jour)} · {x.carte}
+              </span>
               {etranger && (
                 <label className="budget-francs">
                   <span className="discret">Débité en francs</span>
                   <input className="budget-champ" inputMode="decimal" placeholder="0.00" value={francs[x.id] ?? ""} onChange={(e) => setFrancs({ ...francs, [x.id]: e.target.value })} />
                 </label>
               )}
-              <div className="puces" role="group" aria-label={`Pot de ${x.marchand ?? "ce paiement"}`}>
+              <div className="puces budget-defile" role="group" aria-label={`Classer ${x.marchand ?? "ce paiement"}`}>
+                {proposee && (
+                  <button type="button" className="puce proposee" disabled={!pret} onClick={() => void classer(x, proposee.pot, proposee)}>
+                    {proposee.nom}
+                  </button>
+                )}
+                {autres.map((e) => (
+                  <button type="button" key={e.id} className="puce" disabled={!pret} onClick={() => void classer(x, e.pot, e)}>
+                    {e.nom}
+                  </button>
+                ))}
                 {POTS_DE_CARTE.map((pot) => (
-                  <button
-                    type="button"
-                    key={pot}
-                    className={`puce${connue === pot ? " active" : ""}`}
-                    disabled={etranger && lireMontant(francs[x.id] ?? "") === null}
-                    onClick={() => void classer(x, pot)}
-                  >
+                  <button type="button" key={pot} className={`puce${connue === pot ? " active" : ""}`} disabled={!pret} onClick={() => void classer(x, pot)}>
                     {nomDuPot(plan, pot)}
                   </button>
                 ))}
                 {!etranger && (
-                  <button type="button" className="puce" onClick={() => void classer(x, "aucun")}>
+                  <button type="button" className="puce" onClick={() => void horsBudget(x)}>
                     Hors budget
                   </button>
                 )}
+                <button type="button" className="puce nouvelle" disabled={!pret} onClick={() => setNouvelle(x)}>
+                  + Catégorie
+                </button>
               </div>
             </li>
           );
         })}
       </ul>
-      <p className="discret">Kora retient le pot de chaque carte : ses prochains paiements se rangent seuls.</p>
+      <p className="discret">Une catégorie à toi (« Essence », « Resto ») range le paiement dans son pot avec son nom. Pour qu'une carte se range seule, règle-la dans Paiements Apple Pay.</p>
+      <FeuilleEtiquette
+        plan={plan}
+        ouverture={nouvelle ? { nouvelle: true, pot: ((c) => (c && c !== "aucun" ? c : "perso"))(choixDeCarte(plan, nouvelle.carte)) } : null}
+        fermer={() => setNouvelle(null)}
+        enregistrer={(nouveau) => depot.enregistrerBudget(nouveau)}
+        creee={(e) => nouvelle && void classer(nouvelle, e.pot, e)}
+      />
     </section>
   );
 }

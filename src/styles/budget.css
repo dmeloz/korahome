@@ -38,7 +38,9 @@
   --pot-factures: #6f9aa8;
   --pot-plaisir: #c07e64;
   --pot-epargne: #7fa37a;
+  --pot-perso: color-mix(in srgb, var(--texte) 65%, var(--surface));
 }
+.pot-perso { --pot: var(--pot-perso); }
 .pot-commun { --pot: var(--pot-commun); }
 .pot-courses { --pot: var(--pot-courses); }
 .pot-factures { --pot: var(--pot-factures); }
@@ -118,10 +120,28 @@
 
 /* ----- Budget : les paiements Apple Pay (0.0.29) ----- */
 .budget-a-classer .groupe { margin: 6px 0 10px; }
-.budget-paiement { display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px; }
-.budget-paiement + .budget-paiement { border-top: 1px solid var(--trait); padding-top: 4px; }
-.budget-paiement .puces { padding: 0 2px; }
+.budget-paiement { display: flex; flex-direction: column; gap: 4px; padding: 10px 0; }
+.budget-paiement + .budget-paiement { border-top: 1px solid var(--trait); }
+.budget-paiement-tete { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.budget-paiement-nom { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.budget-paiement > .discret { font-size: var(--t-detail); }
 .budget-paiement .puce:disabled { opacity: 0.4; }
+/* La rangée de catégories défile sous le doigt (0.0.78), sans barre, le bord droit s'estompe. */
+.budget-defile {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  margin: 6px -16px 0;
+  padding: 2px 16px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  mask-image: linear-gradient(to right, transparent, #000 16px, #000 calc(100% - 28px), transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 16px, #000 calc(100% - 28px), transparent);
+}
+.budget-defile::-webkit-scrollbar { display: none; }
+.budget-defile .puce { flex: none; }
+.puce.proposee { border-color: var(--accent); color: var(--accent); }
+.puce.nouvelle { border-style: dashed; color: var(--discret); }
+.budget-faute { color: var(--urgent); }
 .budget-francs { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 2px; }
 .budget-invitation p { margin: 0 0 12px; color: var(--texte); }
 .budget-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
