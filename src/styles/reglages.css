@@ -70,10 +70,10 @@
 .theme-sombre .theme-apercu span:nth-child(3) { background: #d3a14a; }
 .theme-clair .theme-apercu span:nth-child(1) { background: #f4efe6; }
 .theme-clair .theme-apercu span:nth-child(2) { background: #fffcf6; }
-.theme-clair .theme-apercu span:nth-child(3) { background: #a5762a; }
+.theme-clair .theme-apercu span:nth-child(3) { background: #845d1c; }
 .theme-auto .theme-apercu span:nth-child(1) { background: linear-gradient(135deg, #0f1211 50%, #f4efe6 50%); }
 .theme-auto .theme-apercu span:nth-child(2) { background: linear-gradient(135deg, #181c1a 50%, #fffcf6 50%); }
-.theme-auto .theme-apercu span:nth-child(3) { background: linear-gradient(135deg, #d3a14a 50%, #a5762a 50%); }
+.theme-auto .theme-apercu span:nth-child(3) { background: linear-gradient(135deg, #d3a14a 50%, #845d1c 50%); }
 
 /* Ce téléphone › Accueil : le verre et la taille de la date. */
 .reglages-curseurs { display: grid; gap: 14px; padding: 14px 16px; margin-bottom: 20px; }

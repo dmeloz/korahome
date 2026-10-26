@@ -4,6 +4,7 @@
 // Les captures vont dans le dossier donné en argument (par défaut un dossier temporaire).
 // Depuis 0.0.67, axe-core (le contrôleur d'accessibilité de Deque) passe sur chaque écran : une
 // faute « grave » ou « critique » (contraste, bouton sans nom, rôle mal formé) fait échouer l'essai.
+// Depuis 0.0.77, il passe aussi sur l'accueil, et toute la tournée se refait en mode clair.
 import { spawn } from "node:child_process";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -43,11 +44,12 @@ try {
     await p.waitForTimeout(300);
   }
 
-  const capture = (nom) => p.screenshot({ path: join(dossier, `${nom}.png`) });
+  let theme = "";
+  const capture = (nom) => p.screenshot({ path: join(dossier, `${nom}${theme}.png`) });
   const verifier = async (nom) => {
     await p.waitForTimeout(700);
     const titre = await p.locator(".page-dessus h1").first().textContent({ timeout: 3000 }).catch(() => null);
-    if (!titre) erreurs.push(`« ${nom} » : pas de titre`);
+    if (!titre) erreurs.push(`« ${nom} »${theme} : pas de titre`);
     await capture(nom.replace(/\W+/g, "-"));
     const fautes = await accessibilite(nom);
     console.log(`${titre && !fautes ? "ok " : "?? "} ${nom}${titre ? ` → ${titre}` : ""}${fautes ? ` · ${fautes} faute${fautes > 1 ? "s" : ""} d'accessibilité` : ""}`);
@@ -65,7 +67,7 @@ try {
     const graves = resultat.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
     for (const v of graves) {
       const cible = v.nodes[0]?.target?.join(" ") ?? "";
-      erreurs.push(`« ${nom} » : ${v.help} (${v.id}, ${v.nodes.length}×)${cible ? ` — ${cible}` : ""}`);
+      erreurs.push(`« ${nom} »${theme} : ${v.help} (${v.id}, ${v.nodes.length}×)${cible ? ` — ${cible}` : ""}`);
     }
     return graves.length;
   };
@@ -88,7 +90,10 @@ try {
     for (let i = 0; i < 4 && (await p.locator(".page-dessus .retour").count()); i++) await revenir();
   };
 
+  const tournee = async () => {
   await capture("accueil");
+  const fautesAccueil = await accessibilite("Accueil");
+  console.log(`${fautesAccueil ? "?? " : "ok "} Accueil${theme}${fautesAccueil ? ` · ${fautesAccueil} faute${fautesAccueil > 1 ? "s" : ""} d'accessibilité` : ""}`);
   // Les quatre espaces (Kora 0.0.75), et chaque onglet qui reprend une ancienne page.
   const ESPACES = {
     Organisation: ["Agenda", "Administratif"],
@@ -118,6 +123,13 @@ try {
     await verifier(ligne);
     await revenir();
   }
+  await accueil();
+  };
+  await tournee();
+  // La même tournée en mode clair : le laiton y est plus sombre, son contraste se vérifie à part.
+  theme = "-clair";
+  await p.emulateMedia({ colorScheme: "light" });
+  await tournee();
 } finally {
   await navigateur.close();
   serveur.kill();

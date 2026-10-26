@@ -406,14 +406,14 @@ export function BarreJarvis(props: {
             aria-label={proposition}
           />
           {(props.lieu === "accueil" || props.lieu === "stock" || props.lieu === "budget") && !texte && !reponse && !ecoute && (
-            <TicketDeCaisse jarvis={props.jarvis} donnees={donnees} depot={depot} catalogue={donnees.catalogue} classe="barre-bouton" />
+            <TicketDeCaisse jarvis={props.jarvis} donnees={donnees} depot={depot} catalogue={donnees.catalogue} classe="barre-bouton" tabIndex={ouverte ? undefined : -1} />
           )}
           {texte.trim() && !ecoute ? (
-            <button type="submit" className="barre-action" aria-label="Envoyer">
+            <button type="submit" className="barre-action" aria-label="Envoyer" tabIndex={ouverte ? undefined : -1}>
               <Icone nom="envoyer" taille={20} />
             </button>
           ) : voix ? (
-            <button type="button" className={`barre-action${ecoute ? " ecoute" : ""}`} onClick={parler} aria-label={ecoute ? "Arrêter d'écouter" : "Dicter"}>
+            <button type="button" className={`barre-action${ecoute ? " ecoute" : ""}`} onClick={parler} aria-label={ecoute ? "Arrêter d'écouter" : "Dicter"} tabIndex={ouverte ? undefined : -1}>
               <Icone nom={ecoute ? "arreter" : "micro"} taille={20} />
             </button>
           ) : null}

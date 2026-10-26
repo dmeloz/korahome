@@ -45,7 +45,7 @@ export function CarteDemarrage(props: {
         <button className="demarrage-resume" aria-expanded={ouverte} onClick={() => setOuverte((o) => !o)}>
           <span className="demarrage-titres">
             <strong>{titreDemarrage(etapes)}</strong>
-            <span className="discret">{faites} sur {etapes.length}</span>
+            <span className="discret">{faites} {faites > 1 ? "faites" : "faite"} sur {etapes.length}</span>
           </span>
           <span className="demarrage-barre" aria-hidden><span style={{ width: `${(faites / etapes.length) * 100}%` }} /></span>
           <span className="demarrage-chevron" aria-hidden><Icone nom="bas" taille={16} /></span>
