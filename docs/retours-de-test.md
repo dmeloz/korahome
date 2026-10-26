@@ -43,6 +43,11 @@ where collection = 'retours' and donnees is not null
   and donnees->>'regleLe' is null and donnees->>'recuLe' is null;
 ```
 
+Depuis Kora 0.0.82, quand l'assistant tombe (Jarvis, Siri, le Chef : un refus de l'API Claude
+qui n'est ni l'affluence ni la limite du compte), la fonction serveur écrit elle-même une note
+**Bug** sur l'écran « Serveur · Jarvis » (ou Siri, Le Chef), une seule par fonction et par jour,
+avec le statut et le début du message de l'API. La veille de la nuit la trouve avec les autres.
+
 Quand une correction est publiée, Claude marque la note **réglée** de la même façon (`regleLe`) ;
 Melo peut aussi le faire sur l'iPhone (le rond de la note).
 

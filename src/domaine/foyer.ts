@@ -73,3 +73,64 @@ export function comparerVersions(a: string, b: string): number {
   }
   return 0;
 }
+
+// ----- Les téléphones reliés au serveur (Kora 0.0.82) -----
+// Chaque installation de Kora est un compte membre du foyer sur le serveur (dix au plus). Réglages ›
+// Partage les liste : on retire une vieille installation, ou un téléphone perdu, et on change le code.
+
+/** Un téléphone relié, tel que le serveur le décrit (fonction appareils_foyer). */
+export interface TelephoneRelie {
+  id: string;
+  /** Ce que le téléphone a dit de lui ; null pour une installation d'avant Kora 0.0.82. */
+  nom: string | null;
+  rejointLe: string;
+  actifLe: string | null;
+  moi: boolean;
+}
+
+export interface TelephoneDecrit {
+  id: string;
+  titre: string;
+  detail: string;
+  moi: boolean;
+  /** Sans activité depuis 14 jours : sans doute une ancienne installation. */
+  ancien: boolean;
+}
+
+/** Au-delà, un téléphone est montré comme une ancienne installation. */
+export const JOURS_ANCIEN = 14;
+
+/** Le nom qu'un téléphone donne de lui : « Dany · iPhone · Kora 0.0.82 ». */
+export function nomTelephone(prenom: string | null, plateforme: string, version: string): string {
+  return [prenom, plateforme, `Kora ${version}`].filter(Boolean).join(" · ");
+}
+
+/** « iPad » ou « iPhone » (ou « Navigateur ») depuis ce que dit le navigateur. */
+export function plateformeDe(agent: string, pointsTactiles = 0): string {
+  // Un iPad récent se présente comme un Mac, mais avec un écran tactile.
+  if (/iPad/.test(agent) || (/Macintosh/.test(agent) && pointsTactiles > 1)) return "iPad";
+  if (/iPhone|iPod/.test(agent)) return "iPhone";
+  if (/Android/.test(agent)) return "Android";
+  if (/Macintosh/.test(agent)) return "Mac";
+  return "Navigateur";
+}
+
+function ilYa(depuis: string, maintenant: string): string {
+  const jours = Math.floor((Date.parse(maintenant) - Date.parse(depuis)) / 86_400_000);
+  return jours <= 0 ? "aujourd'hui" : jours === 1 ? "hier" : `il y a ${jours} jours`;
+}
+
+/** Les lignes de la liste : ce téléphone d'abord, puis les actifs, puis les anciens. */
+export function decrireTelephones(telephones: readonly TelephoneRelie[], maintenant: string): TelephoneDecrit[] {
+  const lignes = telephones.map((t) => {
+    const vu = t.actifLe ?? t.rejointLe;
+    const ancien = !t.moi && Date.parse(maintenant) - Date.parse(vu) > JOURS_ANCIEN * 86_400_000;
+    const titre = t.nom ?? "Ancienne installation";
+    const detail = t.moi ? "Ce téléphone" : ancien ? `Pas ouvert depuis ${ilYa(vu, maintenant).replace("il y a ", "")}` : `Ouvert ${ilYa(vu, maintenant)}`;
+    return { id: t.id, titre, detail, moi: t.moi, ancien, vu };
+  });
+  const rang = (l: (typeof lignes)[number]) => (l.moi ? 0 : l.ancien ? 2 : 1);
+  return lignes
+    .sort((a, b) => rang(a) - rang(b) || b.vu.localeCompare(a.vu))
+    .map(({ vu: _vu, ...l }) => l);
+}

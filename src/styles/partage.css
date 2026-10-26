@@ -63,3 +63,18 @@
 .partage-compte { margin-top: 28px; text-align: center; }
 .partage-compte p { margin: 0; }
 .partage-compte .lien:disabled { opacity: 0.4; }
+
+/* Les téléphones reliés et le nouveau code (Kora 0.0.82) */
+.partage-invitation > .lien { display: block; margin: 6px auto 0; }
+.partage-confirmer { display: grid; gap: 6px; justify-items: center; margin-top: 10px; }
+.partage-confirmer p { margin: 0; text-align: center; line-height: 1.4; }
+.partage-telephones { margin: 20px 0 0; display: grid; gap: 8px; }
+.partage-telephones > .lien { justify-self: center; }
+.partage-telephones > .discret { margin: 0; text-align: center; line-height: 1.4; }
+.partage-telephones .carte.groupe { margin: 0; }
+.partage-telephones .ligne { padding: 10px 14px; gap: 12px; }
+.partage-telephones .ligne-texte { display: grid; gap: 1px; min-width: 0; }
+.partage-telephones .ligne-texte strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.partage-telephones .lien { flex: none; min-height: 44px; padding: 0 4px; }
+.partage-ancien .ligne-texte { opacity: 0.6; }
+.partage-confirmer-ligne { display: flex; gap: 12px; flex: none; }

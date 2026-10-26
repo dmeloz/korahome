@@ -18,6 +18,7 @@
 import Anthropic from "npm:@anthropic-ai/sdk";
 import webpush from "npm:web-push@3.6.7";
 import { ctx } from "../_shared/contexte.ts";
+import { avecAlerte, PanneSignalee } from "../_shared/alerte.ts";
 import { limiteDuCompte, preflight, repondre } from "../_shared/http.ts";
 import { cleCronValide, echec, estMembre, serveur, utilisateur } from "../_shared/supabase.ts";
 import {
@@ -34,8 +35,10 @@ import {
   MODELE_CHEF,
   moisDe,
   NOMBRE_REPAS,
+  noteServeur,
   notificationChef,
   nouveauMenu,
+  phrasePanne,
   recettesDe,
   recettesDuChef,
   reglageChef,
@@ -102,13 +105,13 @@ async function cuisiner(foyerId: string, lance: "auto" | "maintenant") {
   const menusPasses = d.menus.filter((m: { type?: string }) => m.type === "menu");
   const trame = tirerSemaine({ menus: menusPasses, aujourdhui, nombre: NOMBRE_REPAS, hasard: Math.random });
   const client = new Anthropic({ apiKey: cle });
-  const reponse = await client.messages.create({
+  const reponse = await avecAlerte(foyerId, "Le Chef", noteServeur, () => client.messages.create({
     model: MODELE_CHEF,
     max_tokens: 8000,
     system: CONSIGNES_CHEF,
     output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA_CHEF } },
     messages: [{ role: "user", content: messageChef({ produits: d.produits, enCourses, aujourdhui, souvenirs: d.souvenirs, recettes: recettesDe(d.menus), trame }) }],
-  });
+  }));
   const budget = etatBudget(await compter(foyerId, coutChef(reponse.usage)));
   if (reponse.stop_reason === "refusal") throw new Error("Le Chef n'a pas pu préparer les menus cette fois.");
   const texte = reponse.content.map((b) => (b.type === "text" ? b.text : "")).join("");
@@ -185,6 +188,7 @@ Deno.serve(async (req) => {
     if (e instanceof PlafondAtteint) return repondre({ erreur: e.message }, 402);
     const limite = limiteDuCompte(e, "Le Chef");
     if (limite) return repondre({ erreur: limite }, 503);
+    if (e instanceof PanneSignalee) return repondre({ erreur: phrasePanne("Le Chef") }, 502);
     if (e instanceof Anthropic.RateLimitError) return repondre({ erreur: "Le Chef est très demandé, réessaie dans un instant." }, 429);
     if (e instanceof Anthropic.AuthenticationError) return repondre({ erreur: "La clé du Chef est refusée : il faut la remplacer sur le serveur." }, 503);
     if (e instanceof Anthropic.APIError) return repondre({ erreur: "Le Chef ne répond pas pour l'instant, réessaie." }, 502);

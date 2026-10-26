@@ -14,7 +14,9 @@ export async function construireDomaine(nom = "rappels") {
     input: fileURLToPath(new URL(`../src/domaine/${source}.ts`, import.meta.url)),
     logLevel: "silent",
   });
-  const { output } = await paquet.generate({ format: "esm" });
+  // Compacté sans renommer : les fichiers passent dans un seul appel de déploiement (siri faisait
+  // 156 Ko) et les noms restent lisibles dans les journaux du serveur.
+  const { output } = await paquet.generate({ format: "esm", minify: { compress: true, mangle: false, codegen: true } });
   await paquet.close();
   return `// Généré par \`npm run fonction\` depuis src/domaine/${source}.ts : ne pas modifier à la main.\n${output[0].code}`;
 }

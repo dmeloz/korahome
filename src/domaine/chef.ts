@@ -26,7 +26,7 @@ import { savoirPourLeChef } from "./savoirCuisine";
 import { decrireTrame, type TrameSoir } from "./variete";
 
 // Ce dont la fonction serveur a aussi besoin : le compteur de Jarvis et l'heure de Zurich.
-export { etatBudget, moisDe } from "./jarvisModele";
+export { etatBudget, moisDe, noteServeur, phrasePanne } from "./jarvisModele";
 export { jourEtHeure } from "./rappels";
 export { recettesDe } from "./recettes";
 export { tirerSemaine } from "./variete";
@@ -470,18 +470,13 @@ export function validerToutLeMenu(menu: MenuSemaine, liste: Liste | null, elemen
 }
 
 /**
- * Ce qu'efface « Effacer ce menu » : le menu, les articles du Chef pas encore cochés et, si le
- * menu n'a pas été validé, ses recettes jamais cuisinées ni proposées une autre semaine.
+ * Ce qu'efface « Effacer ce menu » : le menu et les articles du Chef pas encore cochés. Ses
+ * recettes restent dans Nos recettes : jusqu'en 0.0.81, celles jamais cuisinées partaient avec
+ * le menu, et la base du foyer s'est vidée (veille du 26 octobre 2026).
  */
-export function ceQuEfface(
-  menu: MenuSemaine,
-  recettes: readonly { id: Id; source: string; fois: number; vue: number }[],
-  elements: readonly Element[],
-): { recettes: Id[]; elements: Id[] } {
-  const duMenu = new Set(menu.repas.map((r) => r.recetteId).filter((id): id is Id => !!id));
-  const aRetirer = menu.valideLe ? [] : recettes.filter((r) => duMenu.has(r.id) && r.source === "chef" && r.fois === 0 && r.vue <= 1).map((r) => r.id);
+export function ceQuEfface(menu: MenuSemaine, elements: readonly Element[]): { elements: Id[] } {
   const articles = etatDesAjouts(menu, elements).flatMap(({ element }) => (element && !element.coche ? [element.id] : []));
-  return { recettes: aRetirer, elements: articles };
+  return { elements: articles };
 }
 
 /** Le texte de la notification quand les menus sont prêts. */

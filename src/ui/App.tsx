@@ -12,7 +12,7 @@ import { FournisseurAnnulation } from "./annulation";
 import { CoinDev } from "./CoinDev";
 import { Garde, Squelette } from "./Garde";
 import { aPurger, trierCorbeille } from "../domaine/corbeille";
-import { noterAppareil } from "../domaine/foyer";
+import { nomTelephone, noterAppareil, plateformeDe } from "../domaine/foyer";
 import { ignorer } from "./journal";
 import { aujourdhuiLocal, choisirMembreCourant, lireMembreCourant } from "./contexte";
 import { Accueil } from "./ecrans/Accueil";
@@ -162,6 +162,14 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     const note = noterAppareil(foyer, membreRappels, __VERSION__, new Date().toISOString());
     if (note) depot.enregistrerFoyer(note).catch(ignorer);
   }, [pret, foyer, membreRappels, depot]);
+
+  // Et dit au serveur qui il est : Réglages › Partage liste ainsi les téléphones reliés.
+  const prenomTelephone = foyer?.membres.find((m) => m.id === membreRappels)?.prenom ?? null;
+  useEffect(() => {
+    if (!partage || !foyerPartage) return;
+    const plateforme = plateformeDe(navigator.userAgent, navigator.maxTouchPoints);
+    partage.compte.nommerTelephone(foyerPartage, nomTelephone(prenomTelephone, plateforme, __VERSION__)).catch(ignorer);
+  }, [partage, foyerPartage, prenomTelephone]);
 
   // La corbeille se vide seule de ce qui a plus de trente jours, une fois par ouverture.
   const corbeilleLue = useRef(false);

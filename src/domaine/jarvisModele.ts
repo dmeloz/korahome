@@ -4,6 +4,8 @@
 
 import type { Jour } from "./types";
 
+export { noteServeur, phrasePanne } from "./panne";
+
 // ----- Le modèle et son coût -----
 
 /** Un modèle léger et rapide : les demandes du quotidien sont courtes. */

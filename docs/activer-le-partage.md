@@ -83,3 +83,14 @@ relancer.
 Un iPhone relié par le code seulement a « Quitter le partage » en bas de Réglages >
 Partage : il quitte le foyer (ses données restent sur le téléphone) et le code
 permettra de revenir.
+
+## Les téléphones reliés et le code (Kora 0.0.82)
+
+Chaque installation de Kora est un compte membre du foyer, dix au plus. Réglages > Partage
+liste ces téléphones (« Dany · iPhone · Kora 0.0.82 », dit par le téléphone lui-même à chaque
+ouverture ; « Ancienne installation » pour ceux d'avant 0.0.82), le plus récent d'abord, et grise
+ceux qui ne se sont pas ouverts depuis 14 jours. « Retirer » libère la place tout de suite et coupe
+les rappels de ce téléphone ; avec le code, il peut revenir. « Nouveau code », sous le code,
+en tire un autre : l'ancien ne permet plus d'entrer, les téléphones déjà reliés le restent.
+Fonctions du serveur : `appareils_foyer`, `nommer_appareil`, `retirer_appareil`,
+`nouveau_code_foyer` (migration `20261027000000_appareils_relies.sql`).

@@ -74,6 +74,14 @@ inconnu pouvait créer un foyer et dépenser le crédit Claude. Un foyer absent 
 atteint ». Pour un nouveau serveur ou un nouveau foyer, dans l'éditeur SQL de Supabase :
 `insert into prive.foyers_assistant (foyer_id) values ('<id du foyer>');`.
 
+## Quand Jarvis tombe
+
+Depuis Kora 0.0.82, un appel à Claude qui échoue pour une autre raison que l'affluence (429) ou la
+limite du compte écrit une note « Bug serveur » dans les retours de test du foyer (une par fonction
+et par jour, `src/domaine/panne.ts`, écrite par `supabase/functions/_shared/alerte.ts`), et la
+personne lit « Jarvis a un souci de son côté. Claude est prévenu ». Le 26 octobre 2026, Tael était
+resté muet seize heures sans que personne ne le sache.
+
 ## Mise en route (une fois)
 
 1. Sur https://console.anthropic.com : créer une clé d'API (Settings > API keys) et une limite de
