@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useEffectEvent, useLayoutEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { preparerEvenement } from "../../domaine/agenda";
 import { basculerCoeur, nouveauCoeur, nouveauMot } from "../../domaine/bandeau";
@@ -48,14 +48,15 @@ const gestionnaires = new Map<string, Gestionnaire>();
 export function useGestionnaireBarre(cle: string, gestionnaire: Gestionnaire | null): void {
   const ref = useRef(gestionnaire);
   ref.current = gestionnaire;
+  const actif = gestionnaire !== null;
   useEffect(() => {
-    if (!ref.current) return;
+    if (!actif) return;
     const appel: Gestionnaire = (t) => (ref.current ? ref.current(t) : Promise.resolve(false));
     gestionnaires.set(cle, appel);
     return () => {
       if (gestionnaires.get(cle) === appel) gestionnaires.delete(cle);
     };
-  }, [cle, gestionnaire === null]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cle, actif]);
 }
 
 // Une page peut changer ce que la barre propose d'écrire (le Conseiller du Budget : une question).
@@ -151,14 +152,17 @@ export function BarreJarvis(props: {
   }, [ouverte]);
 
   // Une autre page : la phrase en cours s'efface, le message aussi, et la saisie se referme.
-  useEffect(() => {
+  const toutEffacer = useEffectEvent(() => {
     changer("");
     setMessage(null);
     setOuverte(false);
     setReponse(null);
-  }, [props.cle]); // eslint-disable-line react-hooks/exhaustive-deps
+  });
+  useEffect(() => toutEffacer(), [props.cle]);
 
-  // La fée se pose juste au-dessus de la saisie ouverte, clavier ou non.
+  // La fée se pose juste au-dessus de la saisie ouverte, clavier ou non ; elle se remesure quand
+  // le clavier, le message ou le vide du champ font bouger la saisie.
+  const vide = texte === "";
   useLayoutEffect(() => {
     if (!ouverte) {
       setAncre(null);
@@ -168,7 +172,7 @@ export function BarreJarvis(props: {
     mesurer();
     const id = setTimeout(mesurer, 320);
     return () => clearTimeout(id);
-  }, [ouverte, clavier, message, texte === ""]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ouverte, clavier, message, vide]);
 
   const fermer = () => {
     setOuverte(false);
@@ -185,13 +189,15 @@ export function BarreJarvis(props: {
   const moi = donnees.membreId;
   const maintenant = new Date().toISOString();
   const [vues, setVues] = useState(lireVues);
-  useEffect(() => {
-    // La toute première fois, ce qui est déjà là compte comme vu : pas d'avalanche à la mise à jour.
-    if (vues !== null) return;
+  // La toute première fois, ce qui est déjà là compte comme vu : pas d'avalanche à la mise à jour.
+  const toutMarquerVu = useEffectEvent(() => {
     const toutes = arriveesDuCouple(donnees.couple, moi, new Date().toISOString()).map((a) => a.cle);
     enregistrerVues(toutes);
     setVues(new Set(toutes));
-  }, [vues]); // eslint-disable-line react-hooks/exhaustive-deps
+  });
+  useEffect(() => {
+    if (vues === null) toutMarquerVu();
+  }, [vues]);
   const attentes = vues ? attentesDuCouple(donnees.couple, moi, maintenant, vues) : [];
   const prenomMoi = donnees.foyer.membres.find((m) => m.id === moi)?.prenom ?? null;
   const autre = autreMembre(donnees.foyer, moi);

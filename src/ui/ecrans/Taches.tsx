@@ -1,5 +1,5 @@
 import { feteFee } from "../fee";
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { Feuille } from "../Feuille";
 import { appliquerEtalement, appliquerRepartition, compteRepartition, etalementPropose, proposerRepartition, tachesDeLaSemaine } from "../../domaine/repartition";
 import {
@@ -332,9 +332,10 @@ export function Taches(props: {
 /** Le dimanche : Kora propose qui fait quoi cette semaine, à parts égales ; chacun change d'un toucher. */
 function Repartition(props: { ouverte: boolean; fermer: () => void; foyer: Foyer; taches: Tache[]; aujourdhui: string; depot: Depot }) {
   const [choix, setChoix] = useState<Map<string, string | null>>(new Map());
+  const proposer = useEffectEvent(() => setChoix(new Map(proposerRepartition(props.taches, props.foyer, props.aujourdhui))));
   useEffect(() => {
-    if (props.ouverte) setChoix(new Map(proposerRepartition(props.taches, props.foyer, props.aujourdhui)));
-  }, [props.ouverte]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (props.ouverte) proposer();
+  }, [props.ouverte]);
   const semaine = tachesDeLaSemaine(props.taches, props.aujourdhui);
   const membres = props.foyer.membres;
   const suivant = (actuel: string | null | undefined) => {

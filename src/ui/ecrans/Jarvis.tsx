@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useEffectEvent, useRef, useState, type FormEvent } from "react";
 import {
   aConfirmer,
   appliquerActions,
@@ -74,11 +74,12 @@ export function Jarvis(props: {
   arretEcoute.current = ecoute;
   useEffect(() => () => arretEcoute.current?.(), []);
   // La demande venue de la barre Jarvis : envoyée une fois, à l'arrivée sur la page.
-  useEffect(() => {
+  const envoyerDemande = useEffectEvent(() => {
     const demande = demandeEnAttente;
     demandeEnAttente = null;
     if (demande) void demander(demande, false);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  });
+  useEffect(() => envoyerDemande(), []);
 
   const ajouter = (e: Omit<Echange, "n">) => setEchanges((avant) => [...avant, { ...e, n: ++compteur }]);
 

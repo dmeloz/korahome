@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type TouchEvent } from "react";
+import { useEffect, useEffectEvent, useRef, useState, type TouchEvent } from "react";
 import { createPortal } from "react-dom";
 import { avisDuPlat, avisSurPlat, type AvisPlat } from "../../domaine/chef";
 import { aConfirmer, appliquerActions, decrireFoyer, lireActions } from "../../domaine/jarvis";
@@ -243,7 +243,8 @@ export function FicheRecette(p: PropsPage & { recette: Recette | null; fermer: (
   const [portions, setPortions] = useState(r?.portions ?? 2);
   const [cuisine, setCuisine] = useState(false);
   const [edition, setEdition] = useState(false);
-  useEffect(() => setPortions(r?.portions ?? 2), [r?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const remettrePortions = useEffectEvent(() => setPortions(r?.portions ?? 2));
+  useEffect(() => remettrePortions(), [r?.id]);
 
   const courses = p.listes.find((l) => l.type === "courses") ?? null;
   const ingredients = r ? ingredientsPour(r, portions) : [];
@@ -430,14 +431,16 @@ function EditeurRecette(props: {
   const [portions, setPortions] = useState(2);
   const [ingredients, setIngredients] = useState("");
   const [etapes, setEtapes] = useState("");
-  useEffect(() => {
-    if (!props.ouverte) return;
+  const remplir = useEffectEvent(() => {
     const r = props.recette;
     setTitre(r?.titre ?? props.titreDeDepart);
     setPortions(r?.portions ?? 2);
     setIngredients(r ? r.ingredients.map(ecrireIngredient).join("\n") : "");
     setEtapes(r ? r.etapes.join("\n") : "");
-  }, [props.ouverte]); // eslint-disable-line react-hooks/exhaustive-deps
+  });
+  useEffect(() => {
+    if (props.ouverte) remplir();
+  }, [props.ouverte]);
 
   const lus = ingredients.split("\n").map(lireLigneIngredient).filter((i): i is IngredientRecette => !!i);
   const pret = titre.trim().length > 0 && lus.length > 0;

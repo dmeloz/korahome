@@ -331,12 +331,13 @@ export function Fee(props: {
 /** La bulle : petite, sans cadre de couleur, le nom seulement pour un message de l'autre. */
 function Bulle({ parole, pos }: { parole: Parole; pos: Position }) {
   const actions = parole.actions ?? [];
+  const avecActions = actions.length > 0;
   useEffect(() => {
     const fermer = () => {
       taireFee(parole.cle);
       parole.sansSuite?.();
     };
-    const id = setTimeout(fermer, actions.length ? 10_000 : 7000);
+    const id = setTimeout(fermer, avecActions ? 10_000 : 7000);
     const ailleurs = (e: globalThis.PointerEvent) => {
       if ((e.target as Element).closest?.(".hey, .fee, .attend")) return;
       fermer();
@@ -349,7 +350,7 @@ function Bulle({ parole, pos }: { parole: Parole; pos: Position }) {
       clearTimeout(id);
       window.removeEventListener("pointerdown", ailleurs, true);
     };
-  }, [parole]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [parole, avecActions]);
 
   // Elle sort à côté d'elle, du côté où il y a de la place, alignée sur son bas (0.0.71) : posée
   // au-dessus, elle couvrait les lignes de la page. Près du haut, elle descend sous elle.
