@@ -55,6 +55,9 @@ describe("la corbeille", () => {
     const depense = mettreALaCorbeille("budget", { id: "d", genre: "depense", libelle: "Migros", montant: 42.5 } as { id: string }, { maintenant: T0, par: "m1" });
     expect(titreDe(depense)).toBe("Migros · 42.50 CHF");
     expect(titreDe(mettreALaCorbeille("couple", { id: "c", type: "compte", titre: "Vacances" } as { id: string }, { maintenant: T0, par: null }))).toBe("Compte à rebours « Vacances »");
+    const ligne = { id: "k", type: "carnet", titre: "Concierge", valeur: "M. Rossi", creeLe: "2026-10-01T00:00:00.000Z" };
+    expect(meriteLaCorbeille("maison", ligne, T0)).toBe(true);
+    expect(titreDe(mettreALaCorbeille("maison", ligne, { maintenant: T0, par: null }))).toBe("Carnet : Concierge");
     expect(titreDe(mettreALaCorbeille("memoire", { id: "s", texte: "Le code du garage est 1234" } as { id: string }, { maintenant: T0, par: null }))).toBe("Le code du garage est 1234");
   });
 

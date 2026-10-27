@@ -52,7 +52,7 @@ export function meriteLaCorbeille(collection: CollectionCorbeille, doc: unknown,
     case "vetements":
       return d.type === "envie" || d.type === "tri";
     case "maison":
-      return d.type === "appareil";
+      return d.type === "appareil" || d.type === "carnet";
     default:
       return true;
   }
@@ -132,7 +132,7 @@ export function titreDe(entree: EntreeCorbeille): string {
     case "vetements":
       return d.titre ?? "Vêtement";
     case "maison":
-      return d.nom ?? "Appareil";
+      return d.type === "carnet" ? `Carnet : ${d.titre ?? ""}` : (d.nom ?? "Appareil");
     case "budget":
       return typeof d.montant === "number" ? `${d.libelle ?? "Dépense"} · ${d.montant.toFixed(2)} CHF` : (d.libelle ?? "Dépense");
   }

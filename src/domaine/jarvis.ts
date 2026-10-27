@@ -47,6 +47,7 @@ import { decaler, decrireEcheance, decrireRecurrence, ecartJours, estTerminee, m
 import type { Contexte, Element, Foyer, Id, Jour, Liste, Recurrence, Tache } from "./types";
 import { NOMS_JOURS } from "./texte";
 import { enviesDe, lireEnvie, nouvelleEnvie, PIECES, poserTaille, tailleDe, type DocVetement, type Piece } from "./vetements";
+import { decrireCarnet, entreeCarnet, entreeDuMemeNom, type DocMaison } from "./maison";
 export {
   coutMicroChf,
   etatBudget,
@@ -85,6 +86,8 @@ export interface DonneesFoyer {
   menus?: readonly DocChef[];
   /** Les vêtements : tailles, envies et pièces à trier de chacun. */
   vetements?: readonly DocVetement[];
+  /** La maison : le carnet (concierge, gérance, compteurs), les appareils, les déchets. */
+  maison?: readonly DocMaison[];
 }
 
 /** Les tailles et les envies de chacun, une ligne par personne. */
@@ -175,6 +178,7 @@ export function decrireFoyer(d: DonneesFoyer, membreId: Id | null, aujourdhui: J
   if (d.agenda) lignes.push(...decrireAgenda(evenementsDe(d.agenda), d.foyer, aujourdhui));
   if (d.budget) lignes.push(...decrireBudget(d.budget, (id) => prenomDe(d.foyer, id) ?? "", aujourdhui));
   if (d.vetements?.length) lignes.push(...decrireVetements(d.vetements, d.foyer, `${aujourdhui}T12:00:00.000Z`));
+  if (d.maison?.length) lignes.push(...decrireCarnet(d.maison));
   return lignes.join("\n");
 }
 
@@ -215,7 +219,8 @@ export type ActionJarvis =
   | { outil: "supprimer_evenement"; titre: string; jour: Jour | null }
   | { outil: "noter_depense"; montant: number; libelle: string; magasin: string | null; pot: Pot; jour: Jour | null; charge: string | null; articles: ArticleTicket[] }
   | { outil: "noter_taille"; pour: string; piece: Piece; valeur: string }
-  | { outil: "noter_envie"; pour: string; envie: string };
+  | { outil: "noter_envie"; pour: string; envie: string }
+  | { outil: "noter_carnet"; titre: string; valeur: string };
 
 /**
  * Ce qui attend le oui de la personne avant de se faire : supprimer. Ce que Jarvis remarque seul,
@@ -361,6 +366,8 @@ export function lireActions(appels: readonly { nom: string; entree: unknown }[])
       if (estTexte(e.pour) && estTexte(e.valeur) && piece) actions.push({ outil: nom, pour: e.pour.trim(), piece, valeur: e.valeur.trim() });
     } else if (nom === "noter_envie") {
       if (estTexte(e.pour) && estTexte(e.envie)) actions.push({ outil: nom, pour: e.pour.trim(), envie: e.envie.trim() });
+    } else if (nom === "noter_carnet") {
+      if (estTexte(e.titre) && estTexte(e.valeur)) actions.push({ outil: nom, titre: e.titre.trim(), valeur: e.valeur.trim() });
     } else if (nom === "enregistrer_recette") {
       const recette = lireBrouillon(e, estTexte(e.lien) ? "lien" : "jarvis");
       if (recette) actions.push({ outil: nom, recette });
@@ -386,7 +393,8 @@ export type Modification =
   | { collection: "agenda"; avant: Evenement | null; apres: Evenement; supprime?: true }
   | { collection: "budget"; avant: Depense | null; apres: Depense }
   | { collection: "menus"; avant: Recette | null; apres: Recette }
-  | { collection: "vetements"; avant: DocVetement | null; apres: DocVetement };
+  | { collection: "vetements"; avant: DocVetement | null; apres: DocVetement }
+  | { collection: "maison"; avant: DocMaison | null; apres: DocMaison };
 
 export interface ResultatActions {
   modifications: Modification[];
@@ -764,6 +772,21 @@ export function appliquerActions(
           faits.push(`Envie notée pour ${personne.prenom} : ${envie.titre.toLowerCase()}${envie.prix !== null ? ` (${formaterMontantCourt(envie.prix)})` : ""}.`);
           break;
         }
+        case "noter_carnet": {
+          // « Le concierge, c'est M. Rossi » remplace la ligne « Concierge » au lieu d'en ajouter une.
+          const deja = modifications.find((m): m is Extract<Modification, { collection: "maison" }> => m.collection === "maison" && m.apres.type === "carnet" && entreeDuMemeNom([m.apres], action.titre) !== null);
+          const avant = deja ? null : entreeDuMemeNom(donnees.maison ?? [], action.titre);
+          try {
+            const precedente = deja?.apres.type === "carnet" ? deja.apres : (avant ?? undefined);
+            const apres = entreeCarnet(precedente?.titre ?? action.titre, action.valeur, ctx, precedente);
+            if (deja) deja.apres = apres;
+            else modifications.push({ collection: "maison", avant, apres });
+            faits.push(`Noté dans le carnet de la maison : ${apres.titre}, ${apres.valeur}.`);
+          } catch (erreur) {
+            echecs.push(erreur instanceof Error ? erreur.message : String(erreur));
+          }
+          break;
+        }
         case "noter_souhait": {
           const texte = `Souhait pour Jarvis : ${action.demande}${action.manque ? ` (il faudrait : ${action.manque})` : ""}`;
           const deja = (donnees.retours ?? []).some((r) => !r.regleLe && normaliser(r.texte) === normaliser(texte));
@@ -835,6 +858,8 @@ export function decrireAction(action: ActionJarvis): string {
       return `Taille de ${action.pour} : ${PIECES.find((p) => p.id === action.piece)!.nom.toLowerCase()} ${action.valeur}`;
     case "noter_envie":
       return `Envie de ${action.pour} : ${lireEnvie(action.envie).titre}`;
+    case "noter_carnet":
+      return `Carnet de la maison : ${action.titre}, ${action.valeur}`;
   }
 }
 
