@@ -16,8 +16,9 @@ export function FeuilleHeure(props: { tache: Tache | null; enregistrer: (t: Tach
   const heure = t ? heureDe(t) : null;
   // Comme dans Rappels, l'heure sert à prévenir : on dit si ce téléphone recevra la notification.
   const [rappels, setRappels] = useState<EtatRappels | null>(null);
+  const id = t?.id;
   useEffect(() => {
-    if (!t) return;
+    if (!id) return;
     let vivant = true;
     void etatRappels()
       .then((e) => vivant && setRappels(e))
@@ -25,7 +26,7 @@ export function FeuilleHeure(props: { tache: Tache | null; enregistrer: (t: Tach
     return () => {
       vivant = false;
     };
-  }, [t?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id]);
   const proposee = t ? heureProposee(t) : null;
   const choisir = (valeur: string | null | undefined) => {
     if (!t) return;

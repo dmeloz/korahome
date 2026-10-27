@@ -1,6 +1,6 @@
 import type { Depot } from "../../donnees/depot";
 import type { ServeurJarvis } from "../../donnees/distant";
-import { useEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
+import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { bilanAOuvrir, bilanDeLaSemaine, remarqueDuJour } from "../../domaine/apprentissage";
 import { carteDuJour, resteAFaire, titreMoment, type ChoseDuJour } from "../../domaine/aujourdhui";
@@ -126,11 +126,12 @@ export function Accueil(props: {
     const e = lireIndiceGlisse();
     return montrerIndice(e.vues, e.geste);
   });
-  useEffect(() => {
+  const compterIndice = useEffectEvent(() => {
     if (!indice) return;
     const e = lireIndiceGlisse();
     enregistrerIndiceGlisse({ ...e, vues: e.vues + 1 });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  });
+  useEffect(() => compterIndice(), []);
   // Les rappels n'arrivent plus sur ce téléphone (nouvelle installation, autorisation retirée) :
   // l'accueil le dit, sinon on attend des notifications qui ne viennent jamais.
   const [notificationsCoupees, setNotificationsCoupees] = useState(false);
@@ -194,22 +195,24 @@ export function Accueil(props: {
   // Après une mise à jour, la nouveauté passe avant tout le reste, une seule fois.
   const nouveaute = nouveauteADire(__VERSION__, lireTexte(CLES.nouveauteVue), props.donnees.elements.length + props.donnees.taches.length > 0);
   const aDire = nouveaute ? `nouveaute:${nouveaute.version}` : remarque && montrerRemarque ? `remarque:${remarque.cle}` : clin && !clinDejaDit(aujourdhui) ? `clin:${aujourdhui}` : null;
+  const essayerDeDire = useEffectEvent(() => {
+    if (!aDire) return;
+    if (aDire.startsWith("nouveaute:") && nouveaute) {
+      const dit = direSiCalme({ cle: aDire, texte: nouveaute.texte, actions: [{ texte: "Voir", faire: () => props.ouvrirOnglet(nouveaute.ou.id, nouveaute.ou.onglet) }, { texte: "Merci" }] });
+      // Stockage indisponible : elle le redira à la prochaine ouverture.
+      if (dit) ecrireTexte(CLES.nouveauteVue, nouveaute.version);
+    } else if (aDire.startsWith("remarque:") && remarque) {
+      const module = remarque.module;
+      const dit = direSiCalme({ cle: aDire, texte: remarque.texte, actions: module ? [{ texte: "Voir", faire: () => props.ouvrirModule(module) }, { texte: "Merci" }] : [{ texte: "Merci" }] });
+      if (dit) fermerRemarque(remarque.cle, aujourdhui);
+    } else if (clin && direSiCalme({ cle: aDire, texte: clin.texte })) noterClinDit(aujourdhui);
+  });
   useEffect(() => {
     if (!aDire || !props.auDessus || visite) return;
     // Elle attend un moment calme pour parler, et réessaie tant qu'elle n'a pas pu.
-    const id = setInterval(() => {
-      if (aDire.startsWith("nouveaute:") && nouveaute) {
-        const dit = direSiCalme({ cle: aDire, texte: nouveaute.texte, actions: [{ texte: "Voir", faire: () => props.ouvrirOnglet(nouveaute.ou.id, nouveaute.ou.onglet) }, { texte: "Merci" }] });
-        // Stockage indisponible : elle le redira à la prochaine ouverture.
-        if (dit) ecrireTexte(CLES.nouveauteVue, nouveaute.version);
-      } else if (aDire.startsWith("remarque:") && remarque) {
-        const module = remarque.module;
-        const dit = direSiCalme({ cle: aDire, texte: remarque.texte, actions: module ? [{ texte: "Voir", faire: () => props.ouvrirModule(module) }, { texte: "Merci" }] : [{ texte: "Merci" }] });
-        if (dit) fermerRemarque(remarque.cle, aujourdhui);
-      } else if (clin && direSiCalme({ cle: aDire, texte: clin.texte })) noterClinDit(aujourdhui);
-    }, 2500);
+    const id = setInterval(essayerDeDire, 2500);
     return () => clearInterval(id);
-  }, [aDire, props.auDessus, visite]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [aDire, props.auDessus, visite]);
   // En quittant l'accueil, ce qu'elle disait d'ici se tait.
   useEffect(() => {
     if (!props.auDessus) taireFee();
