@@ -6,7 +6,7 @@ test le vérifie). Le détail de chaque version est dans sa PR ; les règles dur
 
 | Version | Date | Ce qu'elle apporte | PR |
 | --- | --- | --- | --- |
-| 0.0.87 | 2026-10-27 | Le carnet de la maison (concierge, gérance, compteurs, « Appeler » d'un toucher), que la fée et Siri savent dire et tenir, jamais de mot de passe | [#104](https://github.com/dmeloz/korahome/pull/104) |
+| 0.0.87 | 2026-10-27 | Le carnet de la maison (concierge, gérance, compteurs, « Appeler » d'un toucher), que la fée et Siri savent dire et tenir, jamais de mot de passe | [#105](https://github.com/dmeloz/korahome/pull/105) |
 | 0.0.86 | 2026-10-27 | Une seule échelle d'arrondis et d'écarts, aucun texte sous 13 px, états vides soignés (Budget, Tâches, Courses), aides repliées entières, bas de l'accueil fondu, tests de l'app entière | [#103](https://github.com/dmeloz/korahome/pull/103) |
 | 0.0.85 | 2026-10-27 | Mode magasin des courses, plafond par catégorie, « À préparer la veille » et anniversaires une semaine avant, version en retard de l'autre iPhone, notifications d'iOS 18.4, essai du matin de la fée | [#102](https://github.com/dmeloz/korahome/pull/102) |
 | 0.0.84 | 2026-10-27 | Clé des raccourcis hors des adresses, erreurs du serveur sans détail interne, « Pas enregistré » quand un toucher échoue, un lien retenu par la fée demande un oui, Motion 14 | [#101](https://github.com/dmeloz/korahome/pull/101) |
