@@ -118,7 +118,7 @@ export function NosMots(props: {
     <Page
       titre="Nos mots"
       sousTitre={`Ce que tu écris ici attend au-dessus de la fée${autre ? ` de ${autre.prenom}` : " de l'autre"}, jusqu'à ce qu'elle le touche.`}
-      aide={{ cle: "mots", texte: "Un mot ou un cœur de l'autre t'attend en petite icône au-dessus de ta fée. Touche-la pour le lire, répondre ou renvoyer un cœur." }}
+      aide={{ cle: "mots", resume: "Les mots de l'autre attendent sur ta fée", texte: "Un mot ou un cœur de l'autre t'attend en petite icône au-dessus de ta fée. Touche-la pour le lire, répondre ou renvoyer un cœur." }}
       className="nos-mots"
     >
 

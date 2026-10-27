@@ -62,7 +62,7 @@ export function Corbeille(props: { depot: Depot; foyer: Foyer; corbeille: Entree
       titre="Corbeille"
       sousTitre={entrees.length === 0 ? `Ce que vous effacez reste ici ${JOURS_CORBEILLE} jours` : `${entrees.length} effacé${entrees.length > 1 ? "s" : ""} · gardé${entrees.length > 1 ? "s" : ""} ${JOURS_CORBEILLE} jours`}
       actions={entrees.length > 0 ? <button className="lien danger" onClick={() => void vider()}>Vider</button> : undefined}
-      aide={{ cle: "corbeille", texte: "Une tâche, une recette ou une dépense effacée par l'un de vous deux attend ici. « Remettre » la replace là où elle était ; après trente jours, elle part pour de bon." }}
+      aide={{ cle: "corbeille", resume: "Ce qui est effacé attend trente jours", texte: "Une tâche, une recette ou une dépense effacée par l'un de vous deux attend ici. « Remettre » la replace là où elle était ; après trente jours, elle part pour de bon." }}
     >
       {entrees.length === 0 ? (
         <p className="vide">Rien dans la corbeille.</p>

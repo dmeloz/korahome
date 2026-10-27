@@ -5,41 +5,41 @@
   list-style: none;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 4px;
+  gap: var(--espace-2);
   padding: 14px 8px;
   text-align: center;
 }
-.jardin-meteo li { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+.jardin-meteo li { display: flex; flex-direction: column; align-items: center; gap: var(--espace-1); min-width: 0; }
 .jardin-meteo strong { font-size: var(--t-section); font-weight: 600; font-variant-numeric: tabular-nums; }
 .jardin-meteo-jour { font-size: var(--t-legende); color: var(--discret); text-transform: capitalize; }
 .jardin-meteo-min { font-size: var(--t-detail); color: var(--discret); font-variant-numeric: tabular-nums; }
 .jardin-meteo-pluie { font-size: var(--t-legende); color: var(--discret); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .jardin-meteo li.gel .jardin-meteo-min { color: var(--urgent); font-weight: 600; }
-.jardin-zone { display: grid; gap: 10px; margin-bottom: 12px; }
+.jardin-zone { display: grid; gap: var(--espace-5); margin-bottom: 12px; }
 .jardin-zone > * { margin: 0; min-width: 0; }
 .jardin-zone .ajout { margin: 0; }
-.jardin-zone-entete { display: flex; align-items: flex-start; gap: 12px; }
-.jardin-zone-entete .ligne-texte { display: flex; flex-direction: column; gap: 2px; }
+.jardin-zone-entete { display: flex; align-items: flex-start; gap: var(--espace-5); }
+.jardin-zone-entete .ligne-texte { display: flex; flex-direction: column; gap: var(--espace-1); }
 .jardin-zone-entete .lien { padding: 0; font-size: var(--t-detail); }
-.jardin-arrosage { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: var(--t-detail); }
+.jardin-arrosage { display: flex; align-items: center; justify-content: space-between; gap: var(--espace-5); font-size: var(--t-detail); }
 .jardin-arroser {
   flex: none;
   border: 1px solid var(--accent);
   background: none;
   color: var(--accent);
-  border-radius: 999px;
+  border-radius: var(--rayon-rond);
   padding: 5px 14px;
   font-size: var(--t-detail);
   font-weight: 600;
 }
 .jardin-arroser:active { background: var(--accent); color: var(--sur-accent); }
-.jardin-conseil { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--accent-doux); font-size: var(--t-detail); }
+.jardin-conseil { margin: 0; padding: 10px 12px; border-radius: var(--rayon-petit); background: var(--accent-doux); font-size: var(--t-detail); }
 .jardin-plantes { border-top: 1px solid var(--trait); border-bottom: 1px solid var(--trait); margin: 0 -16px; }
 .jardin-plante { padding: 10px 16px; }
 .jardin-plante-nom {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--espace-1);
   width: 100%;
   padding: 0;
   border: none;
@@ -47,19 +47,19 @@
   text-align: left;
 }
 .jardin-plante-conseil { margin: 6px 0 0; font-size: var(--t-legende); }
-.jardin-formulaire { margin: 0; padding: 0; gap: 14px; }
+.jardin-formulaire { margin: 0; padding: 0; gap: var(--espace-6); }
 .jardin-aide { margin: 6px 0 0; font-size: var(--t-legende); }
-.jardin-modifier { margin: 0; padding: 4px 0 0; gap: 12px; }
+.jardin-modifier { margin: 0; padding: 4px 0 0; gap: var(--espace-5); }
 .jardin-modifier .lien.danger { align-self: flex-start; padding: 4px 0; font-size: var(--t-detail); }
-.jardin-vide { display: grid; gap: 12px; }
+.jardin-vide { display: grid; gap: var(--espace-5); }
 .jardin-vide p { margin: 0; }
-.jardin-photo { display: grid; gap: 12px; }
+.jardin-photo { display: grid; gap: var(--espace-5); }
 .jardin-photo > * { margin: 0; }
-.jardin-bouton-photo { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
-.jardin-reponse { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-top: 10px; border-top: 1px solid var(--trait); }
+.jardin-bouton-photo { display: inline-flex; align-items: center; justify-content: center; gap: var(--espace-4); }
+.jardin-reponse { display: flex; align-items: baseline; justify-content: space-between; gap: var(--espace-5); padding-top: 10px; border-top: 1px solid var(--trait); }
 .jardin-reponse p { margin: 0; }
 .jardin-reponse .lien { padding: 0; font-size: var(--t-detail); flex: none; }
-.jardin-calendrier { display: grid; gap: 10px; }
+.jardin-calendrier { display: grid; gap: var(--espace-5); }
 .jardin-calendrier > * { margin: 0; }
 .jardin-etiquette {
   font-family: var(--police-fixe);
@@ -69,5 +69,5 @@
   color: var(--accent);
   margin-right: 6px;
 }
-.jardin-idee { display: grid; gap: 8px; padding-top: 10px; border-top: 1px solid var(--trait); }
+.jardin-idee { display: grid; gap: var(--espace-4); padding-top: 10px; border-top: 1px solid var(--trait); }
 .jardin-idee p { margin: 0; }

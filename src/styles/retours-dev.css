@@ -11,10 +11,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--espace-5);
   background: var(--surface-haute);
   border: 1px solid var(--accent);
-  border-radius: 16px;
+  border-radius: var(--rayon-carte);
   padding: 10px 10px 10px 16px;
   z-index: 10;
 }
@@ -29,9 +29,9 @@
   z-index: 9;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--espace-3);
   padding: 7px 12px;
-  border-radius: 999px;
+  border-radius: var(--rayon-rond);
   border: 1px solid color-mix(in srgb, var(--accent) 60%, var(--trait));
   background: color-mix(in srgb, var(--surface-haute) 88%, transparent);
   -webkit-backdrop-filter: blur(10px);
@@ -46,7 +46,7 @@
 .pastille-dev-compte {
   min-width: 18px;
   padding: 1px 5px;
-  border-radius: 999px;
+  border-radius: var(--rayon-rond);
   background: var(--accent);
   color: var(--sur-accent);
   font-size: var(--t-legende);
@@ -54,16 +54,16 @@
   text-align: center;
 }
 
-.rapport { display: grid; gap: 8px; }
+.rapport { display: grid; gap: var(--espace-4); }
 .rapport .bouton-principal { width: 100%; }
 .rapport p { margin: 0; }
-.rapport-actions { display: flex; gap: 24px; justify-content: center; }
+.rapport-actions { display: flex; gap: var(--espace-7); justify-content: center; }
 
-.retour-test { display: flex; align-items: flex-start; gap: 12px; padding: 12px 16px; }
+.retour-test { display: flex; align-items: flex-start; gap: var(--espace-5); padding: 12px 16px; }
 .retour-test .case { background: none; padding: 0; margin-top: 1px; }
 .retour-test.reglee .case { background: var(--accent); border-color: var(--accent); }
 .retour-test.reglee .retour-test-texte > span:first-child { color: var(--coche); text-decoration: line-through; }
-.retour-test-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.retour-test-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--espace-1); white-space: pre-wrap; overflow-wrap: anywhere; }
 .genre { font-family: var(--police-fixe); font-size: var(--t-legende); letter-spacing: 0.08em; text-transform: uppercase; }
 .genre-bug { color: var(--urgent); }
 .genre-gene { color: var(--accent); }

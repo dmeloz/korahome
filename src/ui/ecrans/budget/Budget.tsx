@@ -26,7 +26,7 @@ import { contexteReel } from "../../contexte";
 import { vibrer } from "../../haptique";
 import { Icone } from "../../Icone";
 import type { PropsPage } from "../../modules";
-import { Onglets, Page, useGestionnaireBarre, useInvitationBarre } from "../../pieces";
+import { EtatVide, Onglets, Page, useGestionnaireBarre, useInvitationBarre } from "../../pieces";
 import { ouvrirVerrou, verrouOuvert } from "../../verrou";
 import { completerPaiement, paiementsAClasser } from "../../../domaine/paiements";
 import { moisACloturer } from "../../../domaine/budgetConseil";
@@ -109,12 +109,17 @@ export function Budget(p: PropsPage) {
   if (!plan) {
     return (
       <Page titre="Budget" sousTitre="Le budget du foyer">
-        <section className="carte">
-          <p>Le budget du foyer : chacun son salaire et sa part au compte commun, les courses, les factures, le plaisir et l'épargne. Kora fait les calculs et reporte ce qui reste d'un mois à l'autre.</p>
-          <button type="button" className="bouton-principal" onClick={() => sauver(depot.enregistrerBudget(nouveauPlan(foyer.membres.map((m) => m.id), aujourdhui, contexteReel)))}>
-            Commencer
-          </button>
-        </section>
+        <EtatVide
+          picto="portefeuille"
+          titre="Pas encore de budget"
+          action={
+            <button type="button" className="bouton-principal" onClick={() => sauver(depot.enregistrerBudget(nouveauPlan(foyer.membres.map((m) => m.id), aujourdhui, contexteReel)))}>
+              Commencer
+            </button>
+          }
+        >
+          Chacun son salaire et sa part au compte commun, puis les courses, les factures, le plaisir et l'épargne. Kora fait les calculs et reporte le reste d'un mois à l'autre.
+        </EtatVide>
       </Page>
     );
   }

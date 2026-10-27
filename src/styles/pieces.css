@@ -4,7 +4,7 @@
 .carte {
   background: var(--surface);
   border: 1px solid var(--trait);
-  border-radius: 16px;
+  border-radius: var(--rayon-carte);
   padding: 14px 16px;
   margin: 0 0 12px;
 }
@@ -16,7 +16,7 @@
   flex: none;
   display: grid;
   place-items: center;
-  border-radius: 10px;
+  border-radius: var(--rayon-petit);
   background: var(--surface-haute);
   border: 1px solid var(--trait);
   color: var(--accent);
@@ -28,7 +28,7 @@
 .ligne {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--espace-5);
   width: 100%;
   min-height: 52px;
   padding: 10px 16px;
@@ -68,7 +68,7 @@
 .pastille {
   background: var(--accent-doux);
   color: var(--accent);
-  border-radius: 999px;
+  border-radius: var(--rayon-rond);
   padding: 2px 10px;
   font-size: var(--t-detail);
   font-weight: 600;
@@ -87,13 +87,13 @@
 
 .entete-coches { display: flex; align-items: baseline; justify-content: space-between; }
 
-.ajout { display: flex; gap: 8px; margin-bottom: 8px; }
+.ajout { display: flex; gap: var(--espace-4); margin-bottom: 8px; }
 .ajout input, .formulaire input {
   flex: 1;
   min-width: 0;
   border: 1px solid var(--trait);
   background: var(--surface);
-  border-radius: 12px;
+  border-radius: var(--rayon-carte);
   padding: 12px 14px;
   font-size: var(--t-corps);
   outline: none;
@@ -103,7 +103,7 @@
 .ajout button {
   width: 48px;
   border: none;
-  border-radius: 12px;
+  border-radius: var(--rayon-carte);
   background: var(--accent);
   color: var(--sur-accent);
   font-size: var(--t-titre);
@@ -115,7 +115,7 @@
 .retour {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--espace-1);
   min-width: 0;
   padding: 8px 6px;
   background: none;
@@ -179,7 +179,7 @@
   width: min(240px, calc(100vw - 32px));
   display: grid;
   padding: 6px;
-  border-radius: 16px;
+  border-radius: var(--rayon-carte);
   /* Presque plein : sous la barre de verre, son propre flou ne verrait que la barre. */
   background: color-mix(in srgb, var(--surface-haute) 97%, transparent);
   box-shadow: var(--reflet), 0 0 0 0.5px var(--verre-trait), 0 18px 40px -16px rgb(0 0 0 / 0.55);
@@ -188,11 +188,11 @@
 .barre-haut-menu button {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--espace-5);
   min-height: 44px;
   padding: 0 12px;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--rayon-petit);
   background: none;
   color: var(--texte);
   text-align: left;
@@ -208,7 +208,7 @@
   flex: none;
   display: grid;
   place-items: center;
-  border-radius: 12px;
+  border-radius: var(--rayon-carte);
   border: 1px solid var(--trait);
   background: var(--surface);
   color: var(--texte);
@@ -217,7 +217,7 @@
 
 .bouton-principal {
   border: none;
-  border-radius: 12px;
+  border-radius: var(--rayon-carte);
   background: var(--accent);
   color: var(--sur-accent);
   font-weight: 600;
@@ -229,7 +229,7 @@
    à l'action de la page, une seule par écran (0.0.71). */
 .bouton-doux {
   border: none;
-  border-radius: 12px;
+  border-radius: var(--rayon-carte);
   background: var(--accent-doux);
   color: var(--accent);
   font-weight: 600;
@@ -238,11 +238,11 @@
 }
 .bouton-doux:disabled { opacity: 0.4; }
 
-.formulaire { display: flex; flex-direction: column; gap: 16px; text-align: left; margin-top: 24px; padding: 20px; }
-.formulaire label { display: flex; flex-direction: column; gap: 6px; font-size: var(--t-detail); color: var(--discret); }
+.formulaire { display: flex; flex-direction: column; gap: var(--espace-6); text-align: left; margin-top: 24px; padding: 20px; }
+.formulaire label { display: flex; flex-direction: column; gap: var(--espace-3); font-size: var(--t-detail); color: var(--discret); }
 .formulaire input { color: var(--texte); }
 
-.bientot { text-align: center; padding: 28px 20px; display: grid; gap: 10px; justify-items: center; }
+.bientot { text-align: center; padding: 28px 20px; display: grid; gap: var(--espace-5); justify-items: center; }
 .bientot p { margin: 0; }
 
 /* Les trois états : un point rouge (urgent), laiton (aujourd'hui) ou calme. */
@@ -252,11 +252,11 @@
 .point-etat.calme { background: color-mix(in srgb, var(--discret) 55%, transparent); }
 
 /* Les puces. */
-.puces { display: flex; flex-wrap: wrap; gap: 6px; }
+.puces { display: flex; flex-wrap: wrap; gap: var(--espace-3); }
 .puce {
   border: 1px solid var(--trait);
   background: var(--surface);
-  border-radius: 999px;
+  border-radius: var(--rayon-rond);
   padding: 6px 12px;
   font-size: var(--t-detail);
 }
@@ -266,7 +266,7 @@
   display: flex;
   background: var(--surface);
   border: 1px solid var(--trait);
-  border-radius: 12px;
+  border-radius: var(--rayon-carte);
   padding: 3px;
   margin: 8px 0 4px;
 }
@@ -274,7 +274,7 @@
   flex: 1;
   border: none;
   background: none;
-  border-radius: 9px;
+  border-radius: var(--rayon-petit);
   padding: 7px 4px;
   font-size: var(--t-detail);
   color: var(--discret);
@@ -297,10 +297,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--espace-5);
   background: var(--texte);
   color: var(--fond);
-  border-radius: 14px;
+  border-radius: var(--rayon-carte);
   padding: 10px 16px;
   font-size: var(--t-detail);
 }
@@ -320,30 +320,30 @@
   max-width: 560px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--espace-5);
   padding: 8px 16px calc(env(safe-area-inset-bottom) + 16px);
   background: var(--surface);
   border: 1px solid var(--trait);
   border-bottom: none;
-  border-radius: 20px 20px 0 0;
+  border-radius: var(--rayon-feuille) var(--rayon-feuille) 0 0;
   box-shadow: 0 -20px 40px -24px rgb(0 0 0 / 0.7);
 }
 /* Toutes les feuilles montent du bas et redescendent de la même façon, comme sur l'iPhone.
    Leur montée, leur descente et le doigt qui les tire : Motion (Feuille.tsx, ressort « feuille »). */
 .feuille { max-height: calc(100dvh - env(safe-area-inset-top) - 24px); }
-.feuille-prise { touch-action: none; display: grid; gap: 6px; padding-top: 2px; }
-.feuille-entete { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.feuille-prise { touch-action: none; display: grid; gap: var(--espace-3); padding-top: 2px; }
+.feuille-entete { display: flex; align-items: baseline; justify-content: space-between; gap: var(--espace-5); }
 .feuille-entete h2 { margin: 0; font-size: var(--t-corps); }
 .feuille-entete .lien { font-weight: 600; }
-.feuille-corps { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+.feuille-corps { display: flex; flex-direction: column; gap: var(--espace-5); overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
 html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
 @media (prefers-reduced-motion: no-preference) {
   /* La page derrière recule un peu, comme sous une feuille de l'iPhone. */
   .page-dessus { transition: transform var(--duree-feuille) var(--courbe), border-radius var(--duree-feuille) var(--courbe), filter var(--duree-feuille) var(--courbe); transform-origin: 50% 0; }
     .page-dessus.retour-glisse { transition: none; }
-  html.feuille-ouverte .page-dessus { transform: scale(0.94) translateY(calc(env(safe-area-inset-top) + 8px)); border-radius: 18px; filter: brightness(0.85); overflow: hidden; }
+  html.feuille-ouverte .page-dessus { transform: scale(0.94) translateY(calc(env(safe-area-inset-top) + 8px)); border-radius: var(--rayon-feuille); filter: brightness(0.85); overflow: hidden; }
 }
-.poignee { width: 36px; height: 5px; border-radius: 3px; background: var(--trait); margin: 0 auto 4px; }
+.poignee { width: 36px; height: 5px; border-radius: var(--rayon-fin); background: var(--trait); margin: 0 auto 4px; }
 .feuille-surtitre { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .champ-note {
   width: 100%;
@@ -351,7 +351,7 @@ html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
   border: 1px solid var(--trait);
   background: var(--fond);
   color: var(--texte);
-  border-radius: 12px;
+  border-radius: var(--rayon-carte);
   padding: 12px 14px;
   font: inherit;
   font-size: var(--t-corps);
@@ -359,7 +359,7 @@ html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
 }
 .champ-note:focus { border-color: var(--accent); }
 .champ-note::placeholder { color: var(--discret); }
-.feuille-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.feuille-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--espace-5); }
 .feuille-actions .bouton-principal { margin: 0; }
 .bouton-principal:disabled { opacity: 0.4; }
 
@@ -367,7 +367,7 @@ html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
   width: 44px;
   height: 26px;
   flex: none;
-  border-radius: 999px;
+  border-radius: var(--rayon-rond);
   background: var(--trait);
   position: relative;
 }
@@ -426,7 +426,7 @@ html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
 }
 .glissable-contenu.glisse { transition: none; }
 /* Les actions de la ligne pour VoiceOver et le clavier : hors écran, visibles au focus seulement. */
-.glissable-sr button { position: absolute; top: 50%; right: 8px; transform: translateY(-50%); width: 1px; height: 1px; padding: 0; margin: 0; border: 0; overflow: hidden; clip-path: inset(50%); background: var(--accent); color: var(--sur-accent); font-size: var(--t-detail); font-weight: 600; border-radius: 10px; }
+.glissable-sr button { position: absolute; top: 50%; right: 8px; transform: translateY(-50%); width: 1px; height: 1px; padding: 0; margin: 0; border: 0; overflow: hidden; clip-path: inset(50%); background: var(--accent); color: var(--sur-accent); font-size: var(--t-detail); font-weight: 600; border-radius: var(--rayon-petit); }
 .glissable-sr button:focus-visible { width: auto; height: auto; padding: 8px 12px; clip-path: none; z-index: 2; }
 
 /* Revenir en glissant depuis le bord gauche : la page suit le doigt. */
@@ -445,9 +445,9 @@ html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
 [data-dessin] { stroke-dasharray: 1 1; }
 
 .feuille-alerte { text-align: center; }
-.feuille-formulaire { display: flex; flex-direction: column; gap: 10px; }
+.feuille-formulaire { display: flex; flex-direction: column; gap: var(--espace-5); }
 .feuille-alerte h2 { margin: 4px 0 6px; font-size: var(--t-corps); }
-.feuille-alerte .feuille-actions { flex-direction: column; align-items: stretch; gap: 8px; margin-top: 16px; }
+.feuille-alerte .feuille-actions { flex-direction: column; align-items: stretch; gap: var(--espace-4); margin-top: 16px; }
 
 .feuille-corps .formulaire { margin: 0; padding: 0; }
 .feuille-corps .formulaire > .lien { align-self: flex-start; text-align: left; padding: 4px 0; }
@@ -468,18 +468,19 @@ html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
 }
 
 /* Le gabarit de page : un grand titre, sa ligne de contexte, ses actions. */
-.page-entete { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 8px 0 16px; }
+.page-entete { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--espace-5); margin: 8px 0 16px; }
 .page-titres { min-width: 0; }
 .page-entete h1 { margin: 0; }
 .page-sous-titre { margin: 4px 0 0; font-size: var(--t-detail); color: var(--discret); }
-.page-actions { display: flex; gap: 8px; flex: none; padding-bottom: 4px; }
+.page-actions { display: flex; gap: var(--espace-4); flex: none; padding-bottom: 4px; }
 /* L'aide de la première visite : une ligne discrète, le texte entier d'un toucher. */
-.aide-une-fois { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 12px; }
+.aide-une-fois { display: flex; align-items: flex-start; gap: var(--espace-5); margin: 0 0 12px; }
 .aide-ligne {
-  flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; border: none; background: none;
+  flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: var(--espace-4); padding: 6px 0; border: none; background: none;
   color: var(--discret); text-align: left; font-size: var(--t-detail); line-height: 1.4;
 }
 .aide-texte { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aide-plus { flex: none; color: var(--accent); font-size: var(--t-legende); padding-top: 1px; }
 .aide-une-fois.ouverte .aide-texte { white-space: normal; color: var(--texte); }
 .aide-picto { color: var(--accent); display: grid; padding-top: 1px; flex: none; }
 .aide-une-fois .lien { flex: none; font-size: var(--t-detail); padding: 6px 0; }
@@ -511,16 +512,16 @@ html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
 /* La recherche. */
 
 /* ===== Le filet sous chaque page : écran de secours et silhouette de chargement (Kora 0.0.64) ===== */
-.page-secours { display: grid; gap: 12px; justify-items: start; padding-top: 24px; }
+.page-secours { display: grid; gap: var(--espace-5); justify-items: start; padding-top: 24px; }
 .page-secours h1 { margin: 0; }
 .page-secours .discret { margin: 0; max-width: 46ch; }
-.secours-picto { display: inline-grid; place-items: center; width: 52px; height: 52px; border-radius: 16px; background: var(--surface-haute); color: var(--accent); }
-.secours-actions { display: flex; align-items: center; gap: 18px; margin-top: 8px; }
+.secours-picto { display: inline-grid; place-items: center; width: 52px; height: 52px; border-radius: var(--rayon-carte); background: var(--surface-haute); color: var(--accent); }
+.secours-actions { display: flex; align-items: center; gap: var(--espace-6); margin-top: 8px; }
 .secours-actions .bouton-principal { margin: 0; }
 .secours-detail { font-family: var(--police-fixe); font-size: var(--t-legende); color: var(--discret); opacity: 0.7; margin: 12px 0 0; word-break: break-word; }
 
-.squelette { display: grid; gap: 14px; padding-top: 24px; }
-.squelette-titre, .squelette-ligne { border-radius: 10px; background: var(--surface-haute); }
+.squelette { display: grid; gap: var(--espace-6); padding-top: 24px; }
+.squelette-titre, .squelette-ligne { border-radius: var(--rayon-petit); background: var(--surface-haute); }
 .squelette-titre { height: 34px; width: 55%; }
 .squelette-ligne { height: 56px; }
 .squelette-ligne.courte { width: 70%; }
@@ -530,39 +531,39 @@ html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
 }
 
 /* Réglages › Corbeille */
-.corbeille-ligne { align-items: center; gap: 12px; padding: 12px 14px; }
-.corbeille-ligne .ligne-texte { display: grid; gap: 2px; }
+.corbeille-ligne { align-items: center; gap: var(--espace-5); padding: 12px 14px; }
+.corbeille-ligne .ligne-texte { display: grid; gap: var(--espace-1); }
 .corbeille-ligne strong { font-weight: 600; overflow-wrap: anywhere; }
 
 /* ===== À deux (Kora 0.0.65) : la carte de mise en route, le fil du foyer, les iPhone du foyer ===== */
-.demarrage { display: grid; gap: 10px; padding: 4px 16px; margin-bottom: 16px; }
+.demarrage { display: grid; gap: var(--espace-5); padding: 4px 16px; margin-bottom: 16px; }
 .demarrage.ouverte { padding-bottom: 12px; }
-.demarrage-entete { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.demarrage-resume { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 10px 0; border: none; background: none; color: var(--texte); text-align: left; }
-.demarrage-titres { display: grid; gap: 1px; flex: none; }
+.demarrage-entete { display: flex; align-items: center; justify-content: space-between; gap: var(--espace-5); }
+.demarrage-resume { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--espace-5); padding: 10px 0; border: none; background: none; color: var(--texte); text-align: left; }
+.demarrage-titres { display: grid; gap: var(--espace-1); flex: none; }
 .demarrage-entete .lien { padding: 4px 0; flex: none; }
-.demarrage-barre { flex: 1; min-width: 32px; height: 4px; border-radius: 2px; background: var(--surface-haute); overflow: hidden; }
-.demarrage-barre span { display: block; height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.4s var(--courbe); }
+.demarrage-barre { flex: 1; min-width: 32px; height: 4px; border-radius: var(--rayon-fin); background: var(--surface-haute); overflow: hidden; }
+.demarrage-barre span { display: block; height: 100%; background: var(--accent); border-radius: var(--rayon-fin); transition: width 0.4s var(--courbe); }
 .demarrage-chevron { display: grid; color: var(--discret); transition: transform 0.25s var(--courbe); }
 .demarrage.ouverte .demarrage-chevron { transform: rotate(180deg); }
 .demarrage-etapes { list-style: none; margin: 0; padding: 0; display: grid; }
-.demarrage-etape { display: flex; align-items: center; gap: 12px; width: 100%; padding: 9px 0; border: none; background: none; color: var(--texte); text-align: left; }
+.demarrage-etape { display: flex; align-items: center; gap: var(--espace-5); width: 100%; padding: 9px 0; border: none; background: none; color: var(--texte); text-align: left; }
 .demarrage-etape:disabled { cursor: default; }
 .demarrage-etape.faite { color: var(--discret); }
 .demarrage-etape.faite .ligne-texte > span:first-child { text-decoration: line-through; }
-.demarrage-etape .ligne-texte { display: grid; gap: 1px; }
+.demarrage-etape .ligne-texte { display: grid; gap: var(--espace-1); }
 .rond-etape { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--trait-fort, var(--trait)); flex: none; display: grid; place-items: center; }
 .rond-etape.plein { background: var(--coche); border-color: var(--coche); color: var(--sur-accent); }
 
-.fil-ligne { align-items: flex-start; gap: 10px; padding: 10px 14px; }
+.fil-ligne { align-items: flex-start; gap: var(--espace-5); padding: 10px 14px; }
 .fil-heure { font-family: var(--police-fixe); font-size: var(--t-legende); color: var(--discret); min-width: 40px; padding-top: 3px; font-variant-numeric: tabular-nums; }
 .fil-picto { color: var(--accent); padding-top: 2px; flex: none; }
-.fil-ligne .ligne-texte { display: grid; gap: 1px; }
+.fil-ligne .ligne-texte { display: grid; gap: var(--espace-1); }
 .fil-espace { font-size: var(--t-legende); }
 
 .partage-appareils { margin: 0 0 16px; }
 .partage-appareils .ligne { padding: 10px 14px; }
-.partage-appareils .ligne-texte { display: grid; gap: 1px; }
+.partage-appareils .ligne-texte { display: grid; gap: var(--espace-1); }
 
 /* La ligne « Nouvel article » au bout d'une liste, comme dans Rappels. */
 .ligne-ajout { margin: 0; }
@@ -577,3 +578,10 @@ html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
 }
 .ligne-ajout input::placeholder { color: var(--discret); }
 .carte.groupe.ajout-seul { padding: 0; }
+
+/* ===== L'état vide (0.0.84) : une page qui n'a encore rien, la même partout ===== */
+.etat-vide { display: grid; justify-items: center; gap: var(--espace-4); text-align: center; margin: var(--espace-7) auto 0; max-width: 32ch; padding: 0 var(--espace-6); }
+.etat-vide-picto { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: var(--accent-doux); color: var(--accent); margin-bottom: var(--espace-2); }
+.etat-vide-titre { margin: 0; font-family: var(--police-titre); font-size: var(--t-section); font-weight: 600; color: var(--texte); }
+.etat-vide-texte { margin: 0; font-size: var(--t-detail); line-height: 1.45; color: var(--discret); text-wrap: pretty; }
+.etat-vide .bouton-principal { margin-top: var(--espace-4); }

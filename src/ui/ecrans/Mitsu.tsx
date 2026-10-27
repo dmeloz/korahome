@@ -319,7 +319,7 @@ function Suivi(props: Props & { animal: Animal }) {
     <Page
       titre={animal.nom}
       sousTitre={`${decrireAge(animal.naissance, aujourdhui)}${pesee[0] ? ` · ${formaterPoids(pesee[0].grammes)}` : ""}${animal.sterilise ? (animal.sexe === "male" ? " · castré" : " · stérilisée") : ""}`}
-      aide={{ cle: "mitsu", texte: `Trois onglets : la journée (repas, litière, poids), sa santé (vaccins, vermifuge, fiche) et ses provisions (commande zooplus, croquettes, litière). Dis son poids à ta fée (« 2,45 kg ») pour noter une pesée ; le reste, demande-le à ${nomFee()}.` }}
+      aide={{ cle: "mitsu", resume: "Sa journée, sa santé, ses provisions", texte: `Trois onglets : la journée (repas, litière, poids), sa santé (vaccins, vermifuge, fiche) et ses provisions (commande zooplus, croquettes, litière). Dis son poids à ta fée (« 2,45 kg ») pour noter une pesée ; le reste, demande-le à ${nomFee()}.` }}
       className="mitsu"
     >
       <Onglets

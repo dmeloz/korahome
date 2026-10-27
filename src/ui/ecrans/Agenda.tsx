@@ -166,7 +166,7 @@ export function Agenda(p: PropsPage) {
     <Page
       titre="Agenda"
       sousTitre={vue === "avenir" ? `Les ${JOURS_A_VENIR} prochains jours` : undefined}
-      aide={{ cle: "agenda", texte: "Dis-le à ta fée comme tu le dirais (un appui long sur elle pour l'écrire) : « Dentiste jeudi 14h30 », « Vacances du 20 au 27 décembre ». Sans jour, l'événement va au jour choisi. Touche le mois entre les flèches pour revenir à aujourd'hui." }}
+      aide={{ cle: "agenda", resume: "Dis un rendez-vous à ta fée", texte: "Dis-le à ta fée comme tu le dirais (un appui long sur elle pour l'écrire) : « Dentiste jeudi 14h30 », « Vacances du 20 au 27 décembre ». Sans jour, l'événement va au jour choisi. Touche le mois entre les flèches pour revenir à aujourd'hui." }}
       className="agenda"
     >
       <Onglets libelle="Vue" onglets={(Object.keys(VUES) as Vue[]).map((v) => ({ id: v, libelle: VUES[v] }))} actif={vue} changer={setVue} />

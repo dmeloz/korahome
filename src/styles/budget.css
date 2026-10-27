@@ -1,8 +1,8 @@
 /* ===== Le budget : pots, visuels, paiements Apple Pay, relevé Revolut, conseiller et tableaux ===== */
 
 /* Le Budget (0.0.27) : quatre pots en tuiles, les montants alignés en chiffres tabulaires. */
-.budget-pots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 16px 0 4px; }
-.budget-pots .carte { margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.budget-pots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--espace-5); margin: 16px 0 4px; }
+.budget-pots .carte { margin: 0; display: flex; flex-direction: column; gap: var(--espace-2); }
 .budget-pot .surtitre { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .budget-pot .discret { margin: 0; font-size: var(--t-legende); }
 .budget-solde { font-family: var(--police-titre); font-size: var(--t-section); font-weight: 700; letter-spacing: -0.01em; margin: 2px 0; font-variant-numeric: tabular-nums; }
@@ -14,7 +14,7 @@
   text-align: right;
   border: 1px solid var(--trait);
   background: var(--surface-haute);
-  border-radius: 10px;
+  border-radius: var(--rayon-petit);
   padding: 8px 10px;
   font-variant-numeric: tabular-nums;
   outline: none;
@@ -22,14 +22,14 @@
 .budget-champ:focus { border-color: var(--accent); }
 .formulaire .budget-champ { width: 100%; text-align: left; padding: 12px 14px; font-size: var(--t-corps); background: var(--surface); color: var(--texte); }
 .budget-note { margin: 4px 4px 12px; }
-.budget-rappel { display: flex; gap: 10px; align-items: flex-start; width: 100%; text-align: left; font-size: var(--t-detail); color: var(--texte); }
+.budget-rappel { display: flex; gap: var(--espace-5); align-items: flex-start; width: 100%; text-align: left; font-size: var(--t-detail); color: var(--texte); }
 .budget-rappel .point-etat { margin-top: 6px; }
 .budget-projet { margin-top: 16px; }
 .budget-projet .surtitre { margin: 0; }
 .budget-projet .budget-solde .discret { font-family: var(--police); font-weight: 400; }
 .budget-projet .bouton-principal { width: 100%; margin-top: 8px; }
 .budget-total .tache-details { font-weight: 400; }
-.budget-choix { display: flex; flex-direction: column; gap: 8px; }
+.budget-choix { display: flex; flex-direction: column; gap: var(--espace-4); }
 
 /* ----- Les visuels du Budget (0.0.28) : sobres, une couleur par pot, un chiffre par visuel ----- */
 :root {
@@ -54,7 +54,7 @@
 
 .budget-pastille { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--pot); flex: none; margin-right: 8px; vertical-align: middle; }
 
-.budget-anneau { display: flex; flex-direction: column; gap: 12px; }
+.budget-anneau { display: flex; flex-direction: column; gap: var(--espace-5); }
 .budget-anneau-dessin { position: relative; width: 168px; height: 168px; margin: 4px auto 0; }
 .budget-anneau-dessin svg { width: 100%; height: 100%; transform: rotate(-90deg); }
 .budget-anneau-fond { fill: none; stroke: var(--surface-haute); stroke-width: 14; }
@@ -63,12 +63,12 @@
 .budget-anneau-centre { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; pointer-events: none; }
 .budget-anneau-centre .budget-solde { margin: 0; }
 .budget-anneau-centre .discret { font-size: var(--t-legende); }
-.budget-legende { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 12px; }
+.budget-legende { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--espace-1) var(--espace-5); }
 .budget-legende button { display: flex; align-items: center; width: 100%; gap: 0; padding: 6px 0; background: none; border: 0; color: var(--texte); font: inherit; font-size: var(--t-detail); text-align: left; }
 .budget-legende button .ligne-texte { flex: 1; min-width: 0; }
 .budget-legende button.actif .ligne-texte { font-weight: 600; }
-.budget-detail { list-style: none; margin: 0; padding: 10px 0 0; border-top: 1px solid var(--trait); display: flex; flex-direction: column; gap: 6px; font-size: var(--t-detail); }
-.budget-detail li { display: flex; justify-content: space-between; gap: 12px; }
+.budget-detail { list-style: none; margin: 0; padding: 10px 0 0; border-top: 1px solid var(--trait); display: flex; flex-direction: column; gap: var(--espace-3); font-size: var(--t-detail); }
+.budget-detail li { display: flex; justify-content: space-between; gap: var(--espace-5); }
 .budget-detail-vide { margin: 0; }
 
 .budget-rythme { position: relative; overflow: visible; }
@@ -78,10 +78,10 @@
 
 .budget-mois-lourds .discret, .budget-mois-lourds .budget-alerte { margin: 10px 0 0; font-size: var(--t-detail); }
 .budget-alerte { color: var(--urgent); }
-.budget-barres { position: relative; display: flex; align-items: stretch; gap: 4px; height: 92px; }
-.budget-barres.larges { height: 128px; gap: 10px; }
-.budget-barre { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; padding: 0; background: none; border: 0; color: var(--discret); font: inherit; }
-.budget-barre-trait { width: 100%; max-width: 22px; border-radius: 4px 4px 2px 2px; background: color-mix(in srgb, var(--pot-factures) 55%, var(--surface-haute)); transition: background 0.2s var(--courbe); }
+.budget-barres { position: relative; display: flex; align-items: stretch; gap: var(--espace-2); height: 92px; }
+.budget-barres.larges { height: 128px; gap: var(--espace-5); }
+.budget-barre { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: var(--espace-2); padding: 0; background: none; border: 0; color: var(--discret); font: inherit; }
+.budget-barre-trait { width: 100%; max-width: 22px; border-radius: var(--rayon-fin); background: color-mix(in srgb, var(--pot-factures) 55%, var(--surface-haute)); transition: background 0.2s var(--courbe); }
 .budget-barres.larges .budget-barre-trait { background: color-mix(in srgb, var(--accent) 35%, var(--surface-haute)); }
 .budget-barre.lourde .budget-barre-trait { background: var(--pot-factures); }
 .budget-barre.actif .budget-barre-trait { background: var(--accent); }
@@ -96,14 +96,14 @@
 .budget-barres.larges .budget-barre { position: relative; z-index: 1; }
 
 .budget-trajet { margin: 0 4px 10px; }
-.budget-trajet-barre { display: flex; height: 8px; border-radius: 4px; overflow: hidden; gap: 2px; background: var(--surface-haute); }
+.budget-trajet-barre { display: flex; height: 8px; border-radius: var(--rayon-fin); overflow: hidden; gap: var(--espace-1); background: var(--surface-haute); }
 .budget-trajet-barre > span { display: block; height: 100%; background: var(--pot); }
 .budget-trajet-barre > .charges, .budget-trajet-legende i.charges { --pot: var(--pot-commun); }
 .budget-trajet-barre > .versement, .budget-trajet-legende i.versement { --pot: var(--pot-factures); }
 .budget-trajet-barre > .reste, .budget-trajet-legende i.reste { --pot: var(--accent); }
-.budget-trajet-legende { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; font-size: var(--t-legende); color: var(--discret); }
+.budget-trajet-legende { display: flex; flex-wrap: wrap; gap: var(--espace-2) var(--espace-6); margin-top: 6px; font-size: var(--t-legende); color: var(--discret); }
 .budget-trajet-legende i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; background: var(--pot); }
-.budget-magasins { display: flex; flex-direction: column; gap: 10px; }
+.budget-magasins { display: flex; flex-direction: column; gap: var(--espace-5); }
 .budget-magasins .budget-detail { border-top: 0; padding-top: 0; }
 
 .budget-courbe svg { display: block; width: 100%; height: auto; overflow: visible; }
@@ -115,14 +115,14 @@
 .budget-courbe-objectif { stroke: var(--discret); stroke-width: 1; stroke-dasharray: 2 4; opacity: 0.7; }
 
 .budget-hausse { color: var(--urgent); font-size: var(--t-legende); margin-left: 4px; }
-.budget-mot { display: flex; gap: 10px; align-items: flex-start; margin: 16px 4px 0; font-size: var(--t-detail); color: var(--discret); }
+.budget-mot { display: flex; gap: var(--espace-5); align-items: flex-start; margin: 16px 4px 0; font-size: var(--t-detail); color: var(--discret); }
 .budget-mot svg { flex: none; margin-top: 2px; color: var(--accent); }
 
 /* ----- Budget : les paiements Apple Pay (0.0.29) ----- */
 .budget-a-classer .groupe { margin: 6px 0 10px; }
-.budget-paiement { display: flex; flex-direction: column; gap: 4px; padding: 10px 0; }
+.budget-paiement { display: flex; flex-direction: column; gap: var(--espace-2); padding: 10px 0; }
 .budget-paiement + .budget-paiement { border-top: 1px solid var(--trait); }
-.budget-paiement-tete { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.budget-paiement-tete { display: flex; align-items: baseline; justify-content: space-between; gap: var(--espace-5); }
 .budget-paiement-nom { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .budget-paiement > .discret { font-size: var(--t-detail); }
 .budget-paiement .puce:disabled { opacity: 0.4; }
@@ -142,12 +142,12 @@
 .puce.proposee { border-color: var(--accent); color: var(--accent); }
 .puce.nouvelle { border-style: dashed; color: var(--discret); }
 .budget-faute { color: var(--urgent); }
-.budget-francs { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 2px; }
+.budget-francs { display: flex; align-items: center; justify-content: space-between; gap: var(--espace-5); padding: 0 2px; }
 .budget-invitation p { margin: 0 0 12px; color: var(--texte); }
-.budget-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.budget-actions { display: flex; flex-wrap: wrap; gap: var(--espace-5); align-items: center; }
 .budget-actions .bouton-secondaire { margin-top: 0; }
-.budget-adresse { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--fond); font-family: var(--police-fixe); font-size: var(--t-legende); color: var(--discret); word-break: break-all; user-select: all; -webkit-user-select: all; }
-.budget-etapes { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; font-size: var(--t-detail); line-height: 1.45; color: var(--texte); }
+.budget-adresse { margin: 0; padding: 10px 12px; border-radius: var(--rayon-petit); background: var(--fond); font-family: var(--police-fixe); font-size: var(--t-legende); color: var(--discret); word-break: break-all; user-select: all; -webkit-user-select: all; }
+.budget-etapes { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: var(--espace-4); font-size: var(--t-detail); line-height: 1.45; color: var(--texte); }
 .budget-etapes li::marker { color: var(--accent); font-weight: 600; }
 .budget-a-la-main summary { cursor: pointer; color: var(--accent); font-size: var(--t-detail); font-weight: 600; padding: 4px 0; }
 .budget-a-la-main .budget-etapes { margin-top: 8px; }
@@ -162,7 +162,7 @@
 button.budget-pot { width: 100%; text-align: left; font: inherit; color: var(--texte); cursor: pointer; }
 button.budget-pot:active { transform: scale(0.98); }
 .budget-pot .budget-solde { display: block; }
-.budget-cloture { margin-top: 16px; display: flex; flex-direction: column; gap: 6px; }
+.budget-cloture { margin-top: 16px; display: flex; flex-direction: column; gap: var(--espace-3); }
 .budget-cloture .surtitre { margin: 0; }
 .budget-cloture .groupe { margin: 0 -16px 4px; }
 .budget-cloture .budget-mot { margin: 4px 0; }
@@ -172,30 +172,30 @@ button.budget-pot:active { transform: scale(0.98); }
 .budget-montant.negatif { color: var(--urgent); }
 .budget-tout-voir { color: var(--accent); }
 .budget-tout-voir svg { flex: none; }
-.budget-mois-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 16px 0 8px; }
+.budget-mois-nav { display: flex; align-items: center; justify-content: space-between; gap: var(--espace-4); margin: 16px 0 8px; }
 .budget-mois-nav p { margin: 0; display: flex; flex-direction: column; align-items: center; }
 .budget-mois-nav .surtitre { margin: 0; }
 .budget-mois-nav .bouton-icone:disabled { opacity: 0.3; }
 .budget-filtre { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -16px 4px; padding: 0 16px; }
 .budget-filtre::-webkit-scrollbar { display: none; }
 .budget-filtre .puce { flex: none; }
-.budget-conseiller { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
-.budget-conseiller .surtitre { margin: 0; display: flex; align-items: center; gap: 6px; }
+.budget-conseiller { margin-top: 16px; display: flex; flex-direction: column; gap: var(--espace-5); }
+.budget-conseiller .surtitre { margin: 0; display: flex; align-items: center; gap: var(--espace-3); }
 .budget-conseiller .surtitre svg { color: var(--accent); }
 .budget-conseiller .discret { margin: 0; font-size: var(--t-legende); }
 .budget-conseiller .puce:disabled { opacity: 0.5; }
 .budget-conseiller-attente { margin: 0; color: var(--discret); font-size: var(--t-detail); animation: budget-respire 1.6s ease-in-out infinite; }
 @keyframes budget-respire { 50% { opacity: 0.45; } }
 @media (prefers-reduced-motion: reduce) { .budget-conseiller-attente { animation: none; } }
-.budget-reponse { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--trait); padding-top: 12px; }
+.budget-reponse { display: flex; flex-direction: column; gap: var(--espace-5); border-top: 1px solid var(--trait); padding-top: 12px; }
 .budget-reponse > p { margin: 0; }
 .budget-question { color: var(--discret); font-size: var(--t-detail); }
-.budget-conseils { margin: 0; padding: 0 0 0 1.2em; display: flex; flex-direction: column; gap: 10px; }
-.budget-conseils li { display: flex; flex-direction: column; gap: 2px; }
+.budget-conseils { margin: 0; padding: 0 0 0 1.2em; display: flex; flex-direction: column; gap: var(--espace-5); }
+.budget-conseils li { display: flex; flex-direction: column; gap: var(--espace-1); }
 .budget-conseils li::marker { color: var(--accent); font-weight: 600; }
 .budget-conseil-titre { font-weight: 600; }
 .budget-gain { font-weight: 400; color: var(--pot-epargne); }
-.budget-tableau { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.budget-tableau { margin: 0; display: flex; flex-direction: column; gap: var(--espace-3); }
 .carte.budget-tableau { padding-left: 0; padding-right: 0; }
 .carte.budget-tableau > figcaption { padding: 0 16px; margin: 0; font-size: var(--t-legende); }
 .budget-tableau-defile { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -208,16 +208,16 @@ button.budget-pot:active { transform: scale(0.98); }
 .budget-tableau-total th, .budget-tableau-total td { font-weight: 600; }
 
 /* 0.0.66 : le mois en tableur, et le verrou Face ID */
-.budget-export { display: inline-flex; align-items: center; gap: 6px; margin: 4px 0 8px; font-size: 14px; }
-.budget-verrou { display: grid; justify-items: center; gap: 12px; text-align: center; padding: 28px 20px; }
+.budget-export { display: inline-flex; align-items: center; gap: var(--espace-3); margin: 4px 0 8px; font-size: 14px; }
+.budget-verrou { display: grid; justify-items: center; gap: var(--espace-5); text-align: center; padding: 28px 20px; }
 .budget-verrou p { margin: 0; }
-.siri-raccourcis { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.siri-raccourcis li { display: flex; align-items: center; gap: 12px; }
-.siri-raccourcis .ligne-texte { flex: 1; display: grid; gap: 2px; min-width: 0; }
+.siri-raccourcis { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--espace-5); }
+.siri-raccourcis li { display: flex; align-items: center; gap: var(--espace-5); }
+.siri-raccourcis .ligne-texte { flex: 1; display: grid; gap: var(--espace-1); min-width: 0; }
 .siri-raccourcis .lien { flex: none; margin: 0; }
 
 /* ----- Ce mois, version 4 (0.0.76) : « À toi » dans son anneau, le reste en bas ----- */
-.budget-amoi { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 0 4px; text-align: center; }
+.budget-amoi { display: flex; flex-direction: column; align-items: center; gap: var(--espace-2); padding: 8px 0 4px; text-align: center; }
 .budget-anneau { position: relative; width: min(176px, 46vw); aspect-ratio: 1; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; border-radius: 50%; }
 .budget-anneau svg { width: 100%; height: 100%; display: block; }
 .budget-anneau circle { fill: none; stroke-width: 10; }
@@ -227,17 +227,17 @@ button.budget-pot:active { transform: scale(0.98); }
 .budget-anneau.en-attente .plein { stroke: var(--discret); stroke-opacity: 0.45; }
 .budget-anneau.negatif .budget-anneau-chiffre { color: var(--urgent); }
 .budget-anneau:active { transform: scale(0.985); }
-.budget-anneau-centre { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.budget-anneau-centre { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--espace-1); }
 .budget-anneau-centre .surtitre { margin: 0; color: var(--accent); }
 .budget-anneau.en-attente .surtitre { color: var(--discret); }
 .budget-anneau-chiffre { font-family: var(--police-titre); font-size: clamp(32px, 10vw, 42px); font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; line-height: 1.05; }
 .budget-anneau-centre .discret { font-size: var(--t-detail); }
 .budget-par-jour { margin: 6px 0 0; font-size: 1.06rem; font-weight: 600; }
 .budget-phrase { margin: 0; max-width: 30ch; font-size: var(--t-detail); line-height: 1.35; color: var(--discret); }
-.budget-bas { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
-.budget-rangee { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 52px; padding: 10px 16px; border: 1px solid var(--trait); border-radius: 14px; background: var(--surface); color: var(--texte); font: inherit; text-align: left; cursor: pointer; }
+.budget-bas { display: flex; flex-direction: column; gap: var(--espace-4); margin-top: 8px; }
+.budget-rangee { display: flex; align-items: center; justify-content: space-between; gap: var(--espace-5); width: 100%; min-height: 52px; padding: 10px 16px; border: 1px solid var(--trait); border-radius: var(--rayon-carte); background: var(--surface); color: var(--texte); font: inherit; text-align: left; cursor: pointer; }
 .budget-rangee > svg:last-child, .budget-rangee .icone { color: var(--discret); flex: none; }
-.budget-rangee-texte { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.budget-rangee-texte { display: flex; flex-direction: column; gap: var(--espace-1); min-width: 0; }
 .budget-rangee-texte .discret { font-size: var(--t-detail); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .budget-rangee-texte .retard { color: var(--urgent); }
 .budget-a-noter { border-color: color-mix(in srgb, var(--accent) 45%, var(--trait)); }
@@ -245,18 +245,18 @@ button.budget-pot:active { transform: scale(0.98); }
 .budget-barres { flex: none; width: 104px; height: 24px; }
 .budget-barres rect { fill: var(--trait); }
 .budget-barres rect.aujourdhui { fill: var(--accent); }
-.budget-tuiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.budget-tuiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--espace-4); }
 .budget-tuiles .budget-rangee { padding: 12px 14px; }
 .budget-calcul .ligne.fort .ligne-texte, .budget-calcul .ligne.fort .budget-montant { font-weight: 600; }
 .budget-pots-liste { list-style: none; margin: 0 0 12px; padding: 0; }
-.budget-pot-ligne { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 12px 0; border: 0; border-bottom: 1px solid var(--trait); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.budget-pot-ligne { display: flex; flex-direction: column; gap: var(--espace-3); width: 100%; padding: 12px 0; border: 0; border-bottom: 1px solid var(--trait); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .budget-pots-liste li:last-child .budget-pot-ligne { border-bottom: 0; }
-.budget-pot-haut { display: flex; justify-content: space-between; gap: 12px; }
+.budget-pot-haut { display: flex; justify-content: space-between; gap: var(--espace-5); }
 .budget-pot-ligne .discret { font-size: var(--t-detail); }
 .budget-pot-ligne.negatif .budget-montant { color: var(--urgent); }
-.budget-plus-liens { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.budget-plus-liens { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--espace-4); }
 @media (prefers-reduced-motion: reduce) { .budget-anneau .plein { transition: none; } }
 
 /* Paiements Apple Pay (0.0.80) : le retour « copié » se voit, et Raccourcis s'ouvre d'un toucher. */
-.budget-etat { margin: 8px 0 0; padding: 8px 12px; border-radius: 10px; background: color-mix(in oklab, var(--accent) 14%, transparent); color: var(--texte); font-size: var(--t-detail); }
+.budget-etat { margin: 8px 0 0; padding: 8px 12px; border-radius: var(--rayon-petit); background: color-mix(in oklab, var(--accent) 14%, transparent); color: var(--texte); font-size: var(--t-detail); }
 .budget-ouvrir-raccourcis { display: inline-block; margin-top: 8px; text-decoration: none; }

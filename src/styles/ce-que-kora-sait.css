@@ -5,7 +5,7 @@
 /* Le bouton secondaire, première version (complétée dans chef-recettes.css). */
 .bouton-secondaire {
   border: 1px solid var(--trait);
-  border-radius: 12px;
+  border-radius: var(--rayon-carte);
   background: none;
   color: var(--texte);
   font: inherit;
@@ -19,8 +19,8 @@
 }
 .comme-habitude { margin: 4px 0 16px; }
 .comme-habitude .discret { font-size: var(--t-legende); }
-.bilan-cartes { list-style: none; padding: 0; margin: 20px 0 8px; display: grid; gap: 14px; }
-.bilan-carte { display: grid; gap: 10px; margin: 0; padding: 18px; }
+.bilan-cartes { list-style: none; padding: 0; margin: 20px 0 8px; display: grid; gap: var(--espace-6); }
+.bilan-carte { display: grid; gap: var(--espace-5); margin: 0; padding: 18px; }
 @media (prefers-reduced-motion: no-preference) {
   .bilan-carte { animation: bilan-arrivee 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
   .bilan-carte.decidee { transition: opacity 0.3s ease; }
@@ -30,12 +30,12 @@
 .bilan-portee { font-family: var(--police-fixe); font-size: var(--t-legende); letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
 .bilan-portee.perso { color: var(--discret); }
 .bilan-texte { margin: 0; font-size: var(--t-corps); line-height: 1.4; text-wrap: pretty; }
-.bilan-choix { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.bilan-choix { display: grid; grid-template-columns: 1fr 1fr; gap: var(--espace-5); }
 .bilan-choix > * { margin: 0; }
-.bilan-decision { margin: 0; display: flex; align-items: center; gap: 6px; color: var(--discret); font-size: var(--t-detail); }
-.bilan-vide { display: flex; gap: 12px; align-items: center; margin-top: 20px; }
+.bilan-decision { margin: 0; display: flex; align-items: center; gap: var(--espace-3); color: var(--discret); font-size: var(--t-detail); }
+.bilan-vide { display: flex; gap: var(--espace-5); align-items: center; margin-top: 20px; }
 .bilan-vide p { margin: 0; }
 .bilan-lien, .appris-effacer { display: block; margin: 8px auto 0; font-size: var(--t-detail); }
-.appris-interrupteur { gap: 12px; padding-block: 10px; min-height: 52px; color: var(--texte); font-size: var(--t-corps); text-align: left; }
-.appris-equilibre { display: grid; gap: 8px; }
+.appris-interrupteur { gap: var(--espace-5); padding-block: 10px; min-height: 52px; color: var(--texte); font-size: var(--t-corps); text-align: left; }
+.appris-equilibre { display: grid; gap: var(--espace-4); }
 .appris-equilibre p { margin: 0; line-height: 1.4; }

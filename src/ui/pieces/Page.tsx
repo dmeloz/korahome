@@ -2,6 +2,7 @@ import { createContext, useContext, useId, useState, type ReactNode } from "reac
 import { Icone } from "../Icone";
 import { RepereOnglet } from "../moteur/pieces";
 import { CLES, ecrireTexte, lireTexte } from "../stockageLocal";
+import { resumeAide } from "../../domaine/texte";
 
 // Le gabarit unique d'une page : un grand titre (30), une ligne de contexte, des actions
 // à droite, puis le contenu. Équivalent natif : une vue de NavigationStack avec
@@ -34,7 +35,7 @@ export function Page(props: {
   /** Un ou deux boutons à droite du titre. */
   actions?: ReactNode;
   /** L'aide de la première visite, montrée une seule fois sur ce téléphone. */
-  aide?: { cle: string; texte: string };
+  aide?: { cle: string; texte: string; resume?: string };
   className?: string;
   children: ReactNode;
 }) {
@@ -52,7 +53,7 @@ export function Page(props: {
         {props.actions && <div className="page-actions">{props.actions}</div>}
       </header>
       {espace && <SousEspace.Provider value={false}>{espace.onglets}</SousEspace.Provider>}
-      {props.aide && <AideUneFois cle={props.aide.cle} texte={props.aide.texte} />}
+      {props.aide && <AideUneFois cle={props.aide.cle} texte={props.aide.texte} resume={props.aide.resume} />}
       {props.children}
     </main>
     </SousEspace.Provider>
@@ -67,15 +68,18 @@ const dejaVue = (cle: string): boolean => lireTexte(CLES.prefixeAide + cle, "1")
  * L'aide de la première visite : une seule ligne discrète, qui s'ouvre d'un toucher (0.0.71 :
  * le pavé ouvert repoussait la page). « Compris » la range pour de bon.
  */
-export function AideUneFois({ cle, texte }: { cle: string; texte: string }) {
+export function AideUneFois({ cle, texte, resume: court }: { cle: string; texte: string; resume?: string }) {
   const [vue, setVue] = useState(() => dejaVue(cle));
   const [ouverte, setOuverte] = useState(false);
   if (vue) return null;
+  // Repliée, l'aide dit sa première idée en entier plutôt qu'une phrase coupée par « … » (0.0.84).
+  const resume = court ?? resumeAide(texte);
   return (
     <div className={`aide-une-fois${ouverte ? " ouverte" : ""}`} role="note">
       <button className="aide-ligne" aria-expanded={ouverte} onClick={() => setOuverte((o) => !o)}>
         <span className="aide-picto" aria-hidden><Icone nom="info" taille={16} /></span>
-        <span className="aide-texte">{texte}</span>
+        <span className="aide-texte">{ouverte ? texte : resume}</span>
+        {!ouverte && resume !== texte && <span className="aide-plus">Plus</span>}
       </button>
       {ouverte && (
         <button

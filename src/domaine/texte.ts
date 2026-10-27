@@ -14,3 +14,14 @@ export const deuxChiffres = (n: number): string => String(n).padStart(2, "0");
 
 /** L'heure d'une date, « 08:05 ». */
 export const heureMinute = (d: Date): string => `${deuxChiffres(d.getHours())}:${deuxChiffres(d.getMinutes())}`;
+
+/**
+ * La ligne d'une aide repliée (0.0.84) : sa première idée, coupée avant le premier deux-points,
+ * la première parenthèse ou la fin de la première phrase, pour ne jamais s'arrêter au milieu d'un
+ * exemple. Le texte entier si rien ne le coupe.
+ */
+export function resumeAide(texte: string): string {
+  const coupes = [texte.indexOf(" : "), texte.indexOf(" ("), texte.indexOf(". ")].filter((i) => i > 0);
+  if (coupes.length === 0) return texte;
+  return texte.slice(0, Math.min(...coupes)).replace(/[,;]$/, "");
+}

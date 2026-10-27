@@ -19,16 +19,16 @@
   pointer-events: none;
 }
 .barre-zone > * { pointer-events: auto; max-width: 688px; margin-left: auto; margin-right: auto; }
-.barre-rang { display: flex; align-items: center; gap: 8px; }
+.barre-rang { display: flex; align-items: center; gap: var(--espace-4); }
 .barre-jarvis {
   flex: 1;
   min-width: 0;
   height: 56px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--espace-2);
   padding: 0 8px 0 6px;
-  border-radius: 28px;
+  border-radius: var(--rayon-feuille);
   background: var(--verre);
   -webkit-backdrop-filter: blur(18px) saturate(160%);
   backdrop-filter: blur(18px) saturate(160%);
@@ -65,7 +65,7 @@
 .barre-message, .barre-complement:not(:empty) {
   margin: 0 0 8px;
   padding: 10px 14px;
-  border-radius: 16px;
+  border-radius: var(--rayon-carte);
   background: var(--surface-haute);
   border: 1px solid var(--trait);
   box-shadow: var(--ombre);
@@ -140,20 +140,20 @@ html[data-fee="bleue"], .fee-bleue { --fee-teinte: #1e96d4; --fee-lueur: #8fe3ff
 /* La bulle : petite, discrète, des boutons en simple texte. */
 .hey {
   position: fixed; z-index: 12; max-width: min(220px, calc(100vw - 96px)); padding: 7px 11px 8px;
-  border-radius: 14px 14px 14px 4px; transform-origin: bottom left;
+  border-radius: var(--rayon-carte) var(--rayon-carte) var(--rayon-carte) var(--rayon-fin); transform-origin: bottom left;
   background: color-mix(in srgb, var(--surface-haute) 95%, transparent);
   -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / .08), 0 0 0 .5px color-mix(in srgb, var(--texte) 12%, transparent), 0 10px 26px -16px rgb(0 0 0 / .6);
   font-size: 14px; line-height: 1.32; color: var(--texte);
 }
-.hey.gauche { border-radius: 14px 14px 4px 14px; transform-origin: bottom right; }
-.hey.dessous { border-radius: 4px 14px 14px 14px; transform-origin: top left; }
-.hey.dessous.gauche { border-radius: 14px 4px 14px 14px; transform-origin: top right; }
+.hey.gauche { border-radius: var(--rayon-carte) var(--rayon-carte) var(--rayon-fin) var(--rayon-carte); transform-origin: bottom right; }
+.hey.dessous { border-radius: var(--rayon-fin) var(--rayon-carte) var(--rayon-carte) var(--rayon-carte); transform-origin: top left; }
+.hey.dessous.gauche { border-radius: var(--rayon-carte) var(--rayon-fin) var(--rayon-carte) var(--rayon-carte); transform-origin: top right; }
 .hey { --fee-texte: color-mix(in srgb, var(--fee-teinte) 62%, var(--texte)); }
-.hey .de { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; color: var(--fee-texte); margin-bottom: 2px; opacity: .9; }
+.hey .de { display: flex; align-items: center; gap: var(--espace-3); font-size: var(--t-legende); font-weight: 500; color: var(--fee-texte); margin-bottom: 2px; opacity: .9; }
 .hey .de::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--fee-teinte); }
 .hey-texte { display: block; overflow-wrap: anywhere; }
-.hey .actions-hey { display: flex; gap: 14px; margin-top: 5px; flex-wrap: wrap; }
+.hey .actions-hey { display: flex; gap: var(--espace-6); margin-top: 5px; flex-wrap: wrap; }
 .hey button { border: 0; padding: 3px 0; background: none; color: var(--fee-texte); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
 .hey button + button { color: var(--discret); font-weight: 500; }
 
@@ -238,7 +238,7 @@ html.nuit-kora .page-dessus .accueil { filter: brightness(.72) saturate(.85); tr
 .recherche-fee { display: flex; flex-direction: column; }
 .recherche-fee .surtitre { margin: 0 0 4px; }
 .trouvaille {
-  display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 2px; border: none; background: none;
+  display: flex; align-items: center; gap: var(--espace-5); min-height: 44px; padding: 4px 2px; border: none; background: none;
   color: var(--texte); text-align: left; font-size: var(--t-corps);
 }
 .trouvaille > :first-child { flex: none; color: var(--accent); }

@@ -13,7 +13,7 @@
   margin: 0 auto 8px;
   display: grid;
   place-items: center;
-  border-radius: 20px;
+  border-radius: var(--rayon-feuille);
   border: 1px solid var(--accent);
   color: var(--accent);
   font-family: var(--police-titre);
