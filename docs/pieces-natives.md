@@ -23,6 +23,8 @@ Kora range l'interface en quelques pièces qui se répètent sur toutes les page
 | `AideUneFois` | `src/ui/pieces/Page.tsx` | `TipKit` (`Tip` affiché une fois) |
 | `Visite` (visite guidée de l'accueil) | `src/ui/pieces/Visite.tsx`, parcours dans `src/domaine/visite.ts` | Une suite de `TipKit` (`popoverTip`) avec `Tips.showAllTipsForTesting()` pour la relancer |
 | `Onglets` | `src/ui/pieces/Page.tsx` | `Picker` en style `.segmented` |
+| `EtatVide` (une page qui n'a encore rien : picto, titre, phrase, action) | `src/ui/pieces/EtatVide.tsx` | `ContentUnavailableView` avec un bouton en `actions` |
+| Jetons `--rayon-*`, `--espace-*` | `src/styles/base.css` | Constantes d'un `enum Rayon` / `enum Espace` passées à `.clipShape(.rect(cornerRadius:))` et `spacing:` |
 | `PointEtat` (urgent, aujourd'hui, calme) | `src/ui/pieces/Page.tsx` | `Circle().fill(...)` avec trois couleurs d'état |
 | `GrandeDate`, `Signes` | `src/ui/pieces/HautAccueil.tsx` | `Text` en `.largeTitle` et une `HStack` de boutons ronds |
 | `Fee` (la fée, ses gestes, sa bulle) | `src/ui/pieces/Fee.tsx`, état dans `src/ui/fee.ts` | Une vue en `.overlay` avec `DragGesture`, `onTapGesture(count: 2)` et `onLongPressGesture`, la bulle en `.popover` compact ; les étincelles en `TimelineView` |
