@@ -53,9 +53,9 @@ export function prechargerPages(): void {
   for (const charger of Object.values(PAGES_DIFFEREES)) void charger().catch(ignorer);
 }
 
-// Le squelette standard de l'app : un tableau de bord fait de widgets, et chaque
-// widget ouvre sa page, qui a son bouton de retour. Un module se branche en
-// ajoutant une seule entrée ici : son widget (ce qu'il montre sur l'accueil)
+// Le squelette standard de l'app : chaque module a son aperçu (repris par l'accueil) et
+// sa page, qui a sa barre du haut et son retour. Un module se branche en
+// ajoutant une seule entrée ici : son aperçu (`widget`)
 // et sa page. Voir docs/squelette-tableau-de-bord.md.
 
 export interface DonneesModule {
