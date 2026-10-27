@@ -342,6 +342,10 @@ function Suivi(props: Props & { animal: Animal }) {
             {aFaire.map((c) => (
               <li key={c.texte} className="ligne">
                 <span className={`ligne-texte${c.urgent ? " urgent-texte" : ""}`}>{c.texte}</span>
+                {c.soinId && (
+                  // Le soin rappelé ici (souvent depuis l'accueil) se coche sans passer par Santé.
+                  <button className="lien" onClick={() => modifier(() => marquerSoinFait(animal, c.soinId!, aujourdhui, contexteReel), "Noté comme fait.")}>Fait</button>
+                )}
               </li>
             ))}
           </ul>

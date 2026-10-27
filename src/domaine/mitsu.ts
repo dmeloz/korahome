@@ -905,6 +905,8 @@ export interface ChoseAFaire {
   texte: string;
   /** Urgent : le widget remonte en haut du tableau de bord. */
   urgent: boolean;
+  /** Un soin du carnet : il se coche « Fait » là où il est rappelé. */
+  soinId?: Id;
 }
 
 /** Quand rappeler un soin : une semaine avant. */
@@ -948,7 +950,7 @@ export function choseAFaire(animal: Animal, aujourdhui: Jour): ChoseAFaire[] {
     const ecart = ecartJours(aujourdhui, s.date);
     if (ecart > RAPPEL_SOIN_JOURS) continue;
     const quand = ecart < 0 ? "en retard" : ecart === 0 ? "aujourd'hui" : ecart === 1 ? "demain" : `dans ${ecart} jours`;
-    urgentes.push({ texte: `${s.libelle} ${quand}`, urgent: true });
+    urgentes.push({ texte: `${s.libelle} ${quand}`, urgent: true, soinId: s.id });
   }
 
   for (const texte of alertesJournal(animal, aujourdhui)) urgentes.unshift({ texte, urgent: true });

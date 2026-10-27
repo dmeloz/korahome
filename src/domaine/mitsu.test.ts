@@ -174,7 +174,7 @@ describe("ce qui est à faire", () => {
     a = ajouterSoin(a, nouveauSoin("visite", "2026-12-01", "", ctx));
     expect(choseAFaire(a, "2026-10-15")).toEqual([
       { texte: "Commander Kitten : 4 j de stock", urgent: true },
-      { texte: "Rappel vaccin dans 5 jours", urgent: true },
+      { texte: "Rappel vaccin dans 5 jours", urgent: true, soinId: a.soins.find((x) => x.libelle === "Rappel vaccin")!.id },
     ]);
     expect(choseAFaire(a, "2027-04-01")).toContainEqual({ texte: "La peser", urgent: false });
   });

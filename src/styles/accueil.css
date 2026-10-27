@@ -105,7 +105,11 @@
 .chiffre-libelle { font-size: var(--t-legende); color: var(--discret); }
 .chiffre-valeur { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .chiffre-tuile.urgent .chiffre-valeur { color: var(--urgent); }
-.chiffre-pied { max-width: 100%; font-size: var(--t-legende); color: var(--discret); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Deux lignes au plus : en grandes lettres, « liste vide » passe à la ligne au lieu de finir en « liste … ». */
+.chiffre-pied {
+  max-width: 100%; font-size: var(--t-legende); color: var(--discret); overflow: hidden; overflow-wrap: break-word;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
+}
 
 /* « Ce soir » : une chose à la fois, en grand ; elles passent toutes seules. */
 .accueil-un-ecran > .ce-soir { margin: 14px 0 0; }

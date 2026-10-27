@@ -1,7 +1,7 @@
 {
   "name": "korahome",
   "private": true,
-  "version": "0.0.87",
+  "version": "0.0.88",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -21,7 +21,7 @@
     "animejs": "4.5.0",
     "barcode-detector": "^3.2.2",
     "canvas-confetti": "^1.9.4",
-    "motion": "14.1.0",
+    "motion": "14.6.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },
@@ -36,7 +36,7 @@
     "fake-indexeddb": "^6.2.5",
     "happy-dom": "^21.0.4",
     "oxlint": "^1.89.0",
-    "rolldown": "1.2.12",
+    "rolldown": "1.2.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.3",
     "vite-plugin-pwa": "^2.0.0",
