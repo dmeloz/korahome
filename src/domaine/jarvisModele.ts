@@ -449,6 +449,20 @@ export const OUTILS_JARVIS = [
     },
   },
   {
+    name: "noter_carnet",
+    description: "Note ou met à jour une ligne du carnet de la maison : ce qu'on cherche toujours (le concierge, la gérance, le numéro du compteur, le modèle de la chaudière, où est la vanne d'eau). Une ligne par nom : la nouvelle remplace l'ancienne. Jamais de mot de passe ni de code.",
+    strict: false,
+    input_schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["titre", "valeur"],
+      properties: {
+        titre: texte("Le nom court de la ligne : « Concierge », « Gérance », « Compteur d'eau », « Vanne d'eau »."),
+        valeur: texte("Ce qu'on retient, tel qu'on le dit : « M. Rossi, 079 123 45 67 », « sous l'évier de la cuisine »."),
+      },
+    },
+  },
+  {
     name: "noter_envie",
     description: "Note un vêtement ou un accessoire qu'une personne du foyer aimerait acheter (« j'aimerais une veste en laine », « note des bottes pour Sarah, 120 francs »). L'autre voit la liste : utile pour un cadeau.",
     strict: false,
@@ -500,6 +514,7 @@ Avec une recette (un lien, une photo de page de livre ou de fiche, ou une recett
 « J'ai fait le risotto », « on a mangé la soupe », « j'ai utilisé les courgettes » : la cuisine est faite. Retire du stock (retirer_du_stock) les produits de l'état du foyer qui ont servi (les ingrédients de la recette ou du menu du Chef qui sont au stock, ou ceux qu'on nomme), sans toucher aux bases qui restent (sel, huile, riz, pâtes). S'il reste des portions, dis-le en une phrase. Si le plat n'est pas dans les recettes du foyer, écris-la avec enregistrer_recette pour la prochaine fois.
 « Qu'est-ce qu'on mange ce soir ? » : propose une ou deux recettes du foyer (état du foyer) qu'on peut faire avec le stock, celles qu'on aime d'abord, en disant ce qui manque ; si aucune ne va, une idée simple avec ce qu'il y a. Ne propose jamais une recette marquée « pas pour eux ».
 Les vêtements : « quelle pointure fait Sarah ? », « qu'est-ce qui ferait plaisir à Dany ? » se répondent depuis les vêtements de l'état du foyer (tailles et envies). « Je fais du 38 », « note une robe pour Sarah » : noter_taille, noter_envie.
+Le carnet de la maison : « qui est le concierge ? », « où est la vanne d'eau ? » se répondent depuis le carnet de l'état du foyer, en une phrase. « Le concierge, c'est M. Rossi, 079… », « note le numéro du compteur » : noter_carnet. Un mot de passe ou un code ne se note jamais : réponds qu'ils restent dans le trousseau de l'iPhone.
 Avec une photo de plante : reconnais-la (nom courant en français, le plus précis possible). Si on te demande de l'ajouter, utilise ajouter_plante, et écris quand même une phrase : son nom, puis son besoin principal (soleil, arrosage, gel). Si tu n'es pas sûr, dis-le et donne les deux noms les plus probables.`;
 
 /** Le conseil du dimanche : Jarvis prépare la semaine, le foyer valide ensemble. */

@@ -38,7 +38,7 @@ export {
 export { annulation, aConfirmer, appliquerActions, decrireFoyer, lireActions, questionPour };
 
 /** Les collections que Jarvis lit et modifie. */
-export const COLLECTIONS_SIRI = ["foyer", "listes", "elements", "taches", "animaux", "stock", "catalogue", "jardin", "memoire", "retours", "agenda", "budget", "menus", "vetements"] as const;
+export const COLLECTIONS_SIRI = ["foyer", "listes", "elements", "taches", "animaux", "stock", "catalogue", "jardin", "memoire", "retours", "agenda", "budget", "menus", "vetements", "maison"] as const;
 
 /** Une question en attente, ou le dernier tour (pour « annule » et la suite de la conversation), au plus tant de minutes. */
 export const MINUTES_RETENUES = 10;
@@ -87,6 +87,7 @@ export function donneesDepuisDocuments(lignes: readonly { collection: string; do
     budget: de("budget"),
     menus: de("menus"),
     vetements: de("vetements"),
+    maison: de("maison"),
     version,
   };
 }

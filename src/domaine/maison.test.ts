@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { contexteTest } from "./contexteTest";
-import { aSortirCeSoir, appareilsDe, collecteCeJour, collectesDuJour, decrireAchat, etatGarantie, finDeGarantie, modifierAppareil, nouvelAppareil, phraseSortir, prochaineCollecte, prochainesCollectes, reglerCollecte, type Collecte } from "./maison";
+import { ErreurValidation } from "./foyer";
+import { lireLigneCarnet, numeroDe, aSortirCeSoir, appareilsDe, carnetDe, collecteCeJour, collectesDuJour, decrireAchat, decrireCarnet, entreeCarnet, entreeDuMemeNom, etatGarantie, finDeGarantie, modifierAppareil, nouvelAppareil, PHRASE_SECRET, phraseSortir, prochaineCollecte, prochainesCollectes, reglerCollecte, ressembleASecret, type Collecte, type DocMaison } from "./maison";
 
 // Le 26 octobre 2026 est un lundi.
 const LUNDI = "2026-10-26";
@@ -61,5 +62,52 @@ describe("nos appareils", () => {
     expect(nouvelAppareil("   ", ctx)).toBeNull();
     const docs = [nouvelAppareil("Frigo", ctx)!, nouvelAppareil("Aspirateur", ctx)!, reglerCollecte(null, "verre", { jour: 1, rythme: "semaine" }, ctx)];
     expect(appareilsDe(docs).map((a) => a.nom)).toEqual(["Aspirateur", "Frigo"]);
+  });
+});
+
+describe("le carnet de la maison", () => {
+  it("note une ligne propre, et la remplace en gardant son identité", () => {
+    const ctx = contexteTest();
+    const e = entreeCarnet("  Concierge ", " M. Rossi,  079 123 45 67 ", ctx);
+    expect(e).toMatchObject({ type: "carnet", titre: "Concierge", valeur: "M. Rossi, 079 123 45 67" });
+    const apres = entreeCarnet("Concierge", "Mme Bianchi, 079 000 00 00", ctx, e);
+    expect(apres.id).toBe(e.id);
+    expect(apres.creeLe).toBe(e.creeLe);
+    expect(apres.valeur).toBe("Mme Bianchi, 079 000 00 00");
+  });
+
+  it("refuse les mots de passe et les codes, et les lignes vides", () => {
+    const ctx = contexteTest();
+    expect(() => entreeCarnet("Wifi", "mot de passe : soleil42", ctx)).toThrow(PHRASE_SECRET);
+    expect(() => entreeCarnet("Code PIN de la carte", "1234", ctx)).toThrow(ErreurValidation);
+    expect(() => entreeCarnet("", "M. Rossi", ctx)).toThrow(ErreurValidation);
+    expect(() => entreeCarnet("Concierge", " ", ctx)).toThrow(ErreurValidation);
+    expect(ressembleASecret("Vanne d'eau : sous l'évier")).toBe(false);
+    expect(ressembleASecret("Gérance : Régie du Lac, 021 555 00 00")).toBe(false);
+  });
+
+  it("se range par nom, retrouve une ligne du même nom et se décrit pour la fée", () => {
+    const ctx = contexteTest();
+    const docs: DocMaison[] = [entreeCarnet("Vanne d'eau", "Sous l'évier de la cuisine", ctx), entreeCarnet("Concierge", "M. Rossi", ctx), nouvelAppareil("Lave-linge", ctx)!];
+    expect(carnetDe(docs).map((e) => e.titre)).toEqual(["Concierge", "Vanne d'eau"]);
+    expect(entreeDuMemeNom(docs, "le concierge")?.valeur).toBe("M. Rossi");
+    expect(entreeDuMemeNom(docs, "gérance")).toBeNull();
+    expect(decrireCarnet(docs)).toEqual(["Carnet de la maison :", "- Concierge : M. Rossi", "- Vanne d'eau : Sous l'évier de la cuisine"]);
+    expect(decrireCarnet([])).toEqual([]);
+  });
+});
+
+describe("une ligne du carnet écrite d'un trait", () => {
+  it("sépare le nom du reste aux deux-points", () => {
+    expect(lireLigneCarnet("Concierge : M. Rossi, 079 123 45 67")).toEqual({ titre: "Concierge", valeur: "M. Rossi, 079 123 45 67" });
+    expect(lireLigneCarnet("Gérance")).toEqual({ titre: "Gérance", valeur: "" });
+  });
+
+  it("trouve un numéro suisse pour l'appeler", () => {
+    expect(numeroDe("M. Rossi, 079 123 45 67")).toBe("+41791234567");
+    expect(numeroDe("Régie du Lac +41 21 555 00 00")).toBe("+41215550000");
+    expect(numeroDe("0041 21 555 00 00")).toBe("+41215550000");
+    expect(numeroDe("Compteur n° 12345678")).toBeNull();
+    expect(numeroDe("Sous l'évier")).toBeNull();
   });
 });

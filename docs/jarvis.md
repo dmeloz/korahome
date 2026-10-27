@@ -102,3 +102,10 @@ minuscule avec les vraies consignes et les vrais outils (environ 0,0006 CHF). Si
 (sauf plafond du compte), une note « Bug serveur » arrive dans les retours de test de chaque foyer
 de l'assistant, avant que quelqu'un ne parle à la fée. Mise en route, une fois `jarvis` déployé :
 `select prive.programmer_essai_fee('https://ffnmyfrzqvhvafnxvyxx.supabase.co');`
+
+## Le carnet de la maison (depuis 0.0.87)
+
+La fée reçoit les lignes du carnet (« Carnet de la maison : - Concierge : M. Rossi, 079… ») et répond
+« qui est le concierge ? » en une phrase. « Le concierge, c'est Mme Bianchi » passe par l'outil
+`noter_carnet`, qui remplace la ligne du même nom (`entreeDuMemeNom`). Un mot de passe ou un code est
+refusé avec la phrase `PHRASE_SECRET`. Siri lit et écrit la même collection `maison`.

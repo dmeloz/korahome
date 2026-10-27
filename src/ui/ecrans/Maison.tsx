@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { appareilsDe, decrireAchat, etatGarantie, ID_DECHETS, modifierAppareil, nomDechet, nouvelAppareil, prochainesCollectes, reglageDechets, reglerCollecte, RYTHMES, TYPES_DECHETS, type Appareil, type Collecte, type DocMaison, type Rythme, type TypeDechet } from "../../domaine/maison";
+import { appareilsDe, carnetDe, decrireAchat, entreeCarnet, lireLigneCarnet, numeroDe, type EntreeCarnet, etatGarantie, ID_DECHETS, modifierAppareil, nomDechet, nouvelAppareil, prochainesCollectes, reglageDechets, reglerCollecte, RYTHMES, TYPES_DECHETS, type Appareil, type Collecte, type DocMaison, type Rythme, type TypeDechet } from "../../domaine/maison";
+import { expliquerErreur } from "../../domaine/erreurs";
 import { NOMS_JOURS } from "../../domaine/texte";
 import type { Jour } from "../../domaine/types";
 import type { Depot } from "../../donnees/depot";
@@ -13,6 +14,8 @@ import { LigneAjout } from "../pieces/LigneAjout";
 // La maison, sous l'onglet Entretien (0.0.79) : les jours des déchets, réglés une fois pour le
 // foyer (ils changent de rue en rue : à Renens, par secteur), et nos appareils avec leur garantie.
 // Kora dit « Sortir le papier » la veille au soir sur l'accueil et dans le rappel du matin.
+// Depuis 0.0.87, le carnet de la maison : ce qu'on cherche toujours (concierge, gérance, compteurs),
+// que la fée et Siri savent aussi dire.
 
 /** Le calendrier officiel de la commune, pour lire ses jours avant de les régler. */
 const CALENDRIER_RENENS = "https://www.localcities.ch/fr/calendrier-collecte-dechets/renens-vd/7101";
@@ -191,6 +194,109 @@ export function Appareils(props: { depot: Depot; maison: DocMaison[]; aujourdhui
               Retirer
             </button>
           </div>
+        )}
+      </Feuille>
+    </section>
+  );
+}
+
+/** La ligne ouverte dans la feuille : une nouvelle (avant null) ou une à changer. */
+interface Brouillon {
+  avant: EntreeCarnet | null;
+  titre: string;
+  valeur: string;
+}
+
+export function Carnet(props: { depot: Depot; maison: DocMaison[] }) {
+  const { depot } = props;
+  const annoncer = useAnnoncer();
+  const carnet = carnetDe(props.maison);
+  const [brouillon, setBrouillon] = useState<Brouillon | null>(null);
+  const [erreur, setErreur] = useState<string | null>(null);
+
+  const ouvrir = (b: Brouillon) => {
+    setErreur(null);
+    setBrouillon(b);
+  };
+  // « Concierge : M. Rossi » s'enregistre d'un trait ; un nom seul ouvre la feuille pour la suite.
+  async function ajouter(texte: string) {
+    const { titre, valeur } = lireLigneCarnet(texte);
+    if (!valeur) return ouvrir({ avant: null, titre, valeur: "" });
+    try {
+      await depot.enregistrerMaison(entreeCarnet(titre, valeur, contexteReel));
+    } catch (e) {
+      ouvrir({ avant: null, titre, valeur });
+      setErreur(expliquerErreur(e, "La ligne"));
+    }
+  }
+  async function enregistrer(b: Brouillon) {
+    try {
+      await depot.enregistrerMaison(entreeCarnet(b.titre, b.valeur, contexteReel, b.avant ?? undefined));
+      setBrouillon(null);
+    } catch (e) {
+      setErreur(expliquerErreur(e, "La ligne"));
+    }
+  }
+  async function retirer(x: EntreeCarnet) {
+    await depot.supprimerMaison(x.id);
+    annoncer(`« ${x.titre} » retiré du carnet.`, () => depot.enregistrerMaison(x));
+  }
+  const numero = brouillon?.avant ? numeroDe(brouillon.avant.valeur) : null;
+
+  return (
+    <section className="maison-carnet">
+      <p className="surtitre">Carnet de la maison</p>
+      <ListeVivante className="carte groupe">
+        {carnet.map((x) => (
+          <Ligne key={x.id}>
+            <Glissable onSupprimer={() => void retirer(x)} libelle="Retirer">
+              <button className="ligne tache maison-appareil" onClick={() => ouvrir({ avant: x, titre: x.titre, valeur: x.valeur })} aria-haspopup="dialog">
+                <span className="tache-texte">
+                  <span className="ligne-texte">{x.titre}</span>
+                  <span className="tache-details">{x.valeur}</span>
+                </span>
+              </button>
+            </Glissable>
+          </Ligne>
+        ))}
+        <Ligne key="ajout">
+          <LigneAjout placeholder={carnet.length ? "Gérance : Régie du Lac, 021…" : "Concierge : M. Rossi, 079…"} ajouter={ajouter} />
+        </Ligne>
+      </ListeVivante>
+      {carnet.length === 0 && <p className="discret maison-vide">Ce qu'on cherche toujours : le concierge, la gérance, le compteur, où est la vanne d'eau. Ta fée saura le redire. Les mots de passe restent dans le trousseau de l'iPhone.</p>}
+
+      <Feuille ouverte={!!brouillon} onFermer={() => setBrouillon(null)} titre={brouillon?.avant ? brouillon.avant.titre : "Dans le carnet"}>
+        {brouillon && (
+          <form
+            className="formulaire maison-fiche"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void enregistrer(brouillon);
+            }}
+          >
+            {numero && (
+              <a className="bouton-doux" href={`tel:${numero}`}>
+                Appeler
+              </a>
+            )}
+            <label>
+              Nom
+              <input type="text" value={brouillon.titre} maxLength={60} placeholder="Concierge, compteur d'eau…" onChange={(e) => setBrouillon({ ...brouillon, titre: e.target.value })} />
+            </label>
+            <label>
+              Ce qu'on retient
+              <textarea value={brouillon.valeur} rows={3} maxLength={300} placeholder="M. Rossi, 079 123 45 67" autoFocus={!brouillon.valeur} onChange={(e) => setBrouillon({ ...brouillon, valeur: e.target.value })} />
+            </label>
+            {erreur && <p className="erreur" role="alert">{erreur}</p>}
+            <button type="submit" className="bouton-principal">
+              Enregistrer
+            </button>
+            {brouillon.avant && (
+              <button type="button" className="lien danger" onClick={() => { const x = brouillon.avant!; setBrouillon(null); void retirer(x); }}>
+                Retirer
+              </button>
+            )}
+          </form>
         )}
       </Feuille>
     </section>

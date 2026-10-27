@@ -16,6 +16,7 @@ import {
   type ActionJarvis,
   type DonneesFoyer,
 } from "./jarvis";
+import { entreeCarnet, PHRASE_SECRET } from "./maison";
 import { decrireRecette, extraireRecette, lienAutorise, lienDans, lirePage, MAX_OUTILS_STRICTS,
   MAX_UNIONS_STRICTES, messageDemande, moisDe, texteDePage } from "./jarvisModele";
 import { nouvelElement, nouvelleListe } from "./listes";
@@ -530,6 +531,29 @@ describe("Jarvis et les vêtements", () => {
     const docs = r.modifications.map((m) => m.apres as never);
     expect(decrireFoyer({ ...d, vetements: docs }, melo, AUJOURDHUI)).toContain("Vêtements de Sarah : tailles chaussures 39 ; envies Bottes en cuir (120 CHF).");
     expect(decrireAction(actions[1])).toBe("Envie de sarah : Bottes en cuir");
+  });
+
+  it("tient le carnet de la maison : une ligne par nom, jamais de mot de passe", () => {
+    const { d, melo } = foyerDeTest();
+    const concierge = entreeCarnet("Concierge", "M. Rossi", ctx());
+    const r = appliquerActions(
+      lireActions([
+        { nom: "noter_carnet", entree: { titre: "le concierge", valeur: "Mme Bianchi, 079 000 00 00" } },
+        { nom: "noter_carnet", entree: { titre: "Vanne d'eau", valeur: "sous l'évier" } },
+        { nom: "noter_carnet", entree: { titre: "Wifi", valeur: "mot de passe soleil42" } },
+        { nom: "noter_carnet", entree: { titre: "Gérance" } },
+      ]),
+      { ...d, maison: [concierge] },
+      melo,
+      AUJOURDHUI,
+      ctx(),
+    );
+    expect(r.faits).toEqual(["Noté dans le carnet de la maison : Concierge, Mme Bianchi, 079 000 00 00.", "Noté dans le carnet de la maison : Vanne d'eau, sous l'évier."]);
+    expect(r.echecs).toEqual([PHRASE_SECRET]);
+    expect(r.modifications[0]).toMatchObject({ collection: "maison", avant: concierge, apres: { id: concierge.id, titre: "Concierge" } });
+    expect(r.modifications[1]).toMatchObject({ collection: "maison", avant: null });
+    const docs = r.modifications.map((m) => m.apres as never);
+    expect(decrireFoyer({ ...d, maison: docs }, melo, AUJOURDHUI)).toContain("Carnet de la maison :\n- Concierge : Mme Bianchi, 079 000 00 00\n- Vanne d'eau : sous l'évier");
   });
 
   it("ne note rien pour quelqu'un d'inconnu", () => {

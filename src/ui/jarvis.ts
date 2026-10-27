@@ -8,6 +8,7 @@ import type { Animal } from "../domaine/mitsu";
 import type { RetourTest } from "../domaine/retours";
 import type { Produit } from "../domaine/stock";
 import type { Element, Tache } from "../domaine/types";
+import type { DocMaison } from "../domaine/maison";
 import type { DocVetement } from "../domaine/vetements";
 import type { Depot } from "../donnees/depot";
 
@@ -36,6 +37,8 @@ type Ecritures = Pick<
   | "supprimerMenu"
   | "enregistrerVetement"
   | "supprimerVetement"
+  | "enregistrerMaison"
+  | "supprimerMaison"
 >;
 
 export async function enregistrerModifications(depot: Ecritures, modifications: readonly Modification[]): Promise<void> {
@@ -54,6 +57,7 @@ export async function enregistrerModifications(depot: Ecritures, modifications: 
     else if (m.collection === "jardin") await depot.enregistrerZone(m.apres);
     else if (m.collection === "menus") await depot.enregistrerMenu(m.apres);
     else if (m.collection === "vetements") await depot.enregistrerVetement(m.apres);
+    else if (m.collection === "maison") await depot.enregistrerMaison(m.apres);
     else await depot.enregistrerAnimal(m.apres);
   }
 }
@@ -70,6 +74,7 @@ export async function annulerModifications(depot: Ecritures, modifications: read
     else if (collection === "agenda") await (remettre ? depot.enregistrerAgenda(remettre as Evenement) : depot.supprimerAgenda(id));
     else if (collection === "menus") await (remettre ? depot.enregistrerMenu(remettre as Recette) : depot.supprimerMenu(id));
     else if (collection === "vetements") await (remettre ? depot.enregistrerVetement(remettre as DocVetement) : depot.supprimerVetement(id));
+    else if (collection === "maison") await (remettre ? depot.enregistrerMaison(remettre as DocMaison) : depot.supprimerMaison(id));
     else if (collection === "jardin") {
       // Jarvis ne crée pas de zone : il y a toujours une version d'avant.
       if (remettre) await depot.enregistrerZone(remettre as Zone);

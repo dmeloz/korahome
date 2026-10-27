@@ -16,3 +16,7 @@
 .maison-interrupteur input { width: 20px; height: 20px; accent-color: var(--accent); margin: 0; }
 .maison-appareil { width: 100%; text-align: left; background: none; border: none; color: inherit; }
 .maison-fiche textarea { color: var(--texte); background: var(--surface-haute); border: 1px solid var(--trait); border-radius: var(--rayon-petit); padding: 8px 10px; font: inherit; font-size: max(16px, var(--t-corps)); resize: vertical; }
+/* Le carnet de la maison (0.0.87) : sous les appareils ; « Appeler » quand la ligne porte un numéro. */
+.maison-carnet { margin-top: var(--espace-6); }
+.maison-carnet .tache-details { white-space: normal; overflow-wrap: anywhere; }
+.maison-fiche a.bouton-doux { text-align: center; text-decoration: none; }
