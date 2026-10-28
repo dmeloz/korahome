@@ -463,6 +463,20 @@ export const OUTILS_JARVIS = [
     },
   },
   {
+    name: "noter_rangement",
+    description: "Range des objets dans un lieu de la maison (cave, placard du haut, boîte bleue, valise) : « la perceuse est à la cave », « j'ai mis les skis et la luge au galetas ». Le lieu existant s'enrichit. Pour « où est la perceuse ? », réponds depuis les rangements de l'état du foyer, sans outil.",
+    strict: false,
+    input_schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["lieu", "objets"],
+      properties: {
+        lieu: texte("Le lieu, court : « Cave », « Placard du haut », « Boîte bleue », « Valise rouge »."),
+        objets: { type: "array", items: { type: "string" }, description: "Les objets rangés là, un par entrée : « perceuse », « skis », « papiers de la voiture »." },
+      },
+    },
+  },
+  {
     name: "noter_envie",
     description: "Note un vêtement ou un accessoire qu'une personne du foyer aimerait acheter (« j'aimerais une veste en laine », « note des bottes pour Sarah, 120 francs »). L'autre voit la liste : utile pour un cadeau.",
     strict: false,
@@ -515,6 +529,7 @@ Avec une recette (un lien, une photo de page de livre ou de fiche, ou une recett
 « Qu'est-ce qu'on mange ce soir ? » : propose une ou deux recettes du foyer (état du foyer) qu'on peut faire avec le stock, celles qu'on aime d'abord, en disant ce qui manque ; si aucune ne va, une idée simple avec ce qu'il y a. Ne propose jamais une recette marquée « pas pour eux ».
 Les vêtements : « quelle pointure fait Sarah ? », « qu'est-ce qui ferait plaisir à Dany ? » se répondent depuis les vêtements de l'état du foyer (tailles et envies). « Je fais du 38 », « note une robe pour Sarah » : noter_taille, noter_envie.
 Le carnet de la maison : « qui est le concierge ? », « où est la vanne d'eau ? » se répondent depuis le carnet de l'état du foyer, en une phrase. « Le concierge, c'est M. Rossi, 079… », « note le numéro du compteur » : noter_carnet. Un mot de passe ou un code ne se note jamais : réponds qu'ils restent dans le trousseau de l'iPhone.
+Les rangements : « où est la perceuse ? », « qu'est-ce qu'il y a dans la boîte bleue ? » se répondent depuis les rangements de l'état du foyer, en une phrase ; si rien n'est rangé sous ce nom, dis-le. « La perceuse est à la cave », « j'ai mis les skis au galetas » : noter_rangement.
 Avec une photo de plante : reconnais-la (nom courant en français, le plus précis possible). Si on te demande de l'ajouter, utilise ajouter_plante, et écris quand même une phrase : son nom, puis son besoin principal (soleil, arrosage, gel). Si tu n'es pas sûr, dis-le et donne les deux noms les plus probables.`;
 
 /** Le conseil du dimanche : Jarvis prépare la semaine, le foyer valide ensemble. */

@@ -5,6 +5,7 @@ import type { Zone } from "./jardin";
 import type { Souvenir } from "./memoire";
 import type { Animal } from "./mitsu";
 import type { Recette } from "./recettes";
+import { rangementsDe, type DocMaison } from "./maison";
 import { decrirePeremption, LIEUX, type Produit } from "./stock";
 import type { WidgetId } from "./tableauDeBord";
 import { decrireEcheance, estTerminee } from "./taches";
@@ -39,6 +40,8 @@ export interface DonneesRecherche {
   recettes?: readonly Recette[];
   depenses?: readonly Depense[];
   mots?: readonly Mot[];
+  /** La maison, pour les rangements (« où est la perceuse ? »). */
+  maison?: readonly DocMaison[];
   aujourdhui: Jour;
 }
 
@@ -184,6 +187,15 @@ export function rechercher(d: DonneesRecherche, recherche: string): Trouvaille[]
         section: "Nos mots",
         ou: { type: "mots" } as const,
       })),
+  );
+
+  // Les rangements : l'objet cherché, avec son lieu ; ou le lieu, avec ce qu'il contient.
+  sections.push(
+    rangementsDe(d.maison ?? []).flatMap((r) => {
+      const objets = r.objets.filter((o) => correspond(o, recherche)).map((o) => ({ cle: `rangement-${r.id}-${o}`, titre: o, detail: r.lieu, section: "Où est quoi", ou: { type: "module", id: "maison", onglet: "entretien" } as const }));
+      if (objets.length || !correspond(r.lieu, recherche)) return objets;
+      return [{ cle: `rangement-${r.id}`, titre: r.lieu, detail: r.objets.length ? r.objets.slice(0, 6).join(", ") : "Vide", section: "Où est quoi", ou: { type: "module", id: "maison", onglet: "entretien" } as const }];
+    }),
   );
 
   return sections.flatMap((s) => s.slice(0, PAR_SECTION));

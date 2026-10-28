@@ -47,7 +47,7 @@ import { decaler, decrireEcheance, decrireRecurrence, ecartJours, estTerminee, m
 import type { Contexte, Element, Foyer, Id, Jour, Liste, Recurrence, Tache } from "./types";
 import { NOMS_JOURS } from "./texte";
 import { enviesDe, lireEnvie, nouvelleEnvie, PIECES, poserTaille, tailleDe, type DocVetement, type Piece } from "./vetements";
-import { decrireCarnet, entreeCarnet, entreeDuMemeNom, type DocMaison } from "./maison";
+import { decrireCarnet, decrireRangements, entreeCarnet, entreeDuMemeNom, rangementDuMemeLieu, rangerObjets, type DocMaison } from "./maison";
 export {
   coutMicroChf,
   etatBudget,
@@ -86,7 +86,7 @@ export interface DonneesFoyer {
   menus?: readonly DocChef[];
   /** Les vêtements : tailles, envies et pièces à trier de chacun. */
   vetements?: readonly DocVetement[];
-  /** La maison : le carnet (concierge, gérance, compteurs), les appareils, les déchets. */
+  /** La maison : le carnet (concierge, gérance, compteurs), les appareils, les déchets, les rangements. */
   maison?: readonly DocMaison[];
 }
 
@@ -178,7 +178,7 @@ export function decrireFoyer(d: DonneesFoyer, membreId: Id | null, aujourdhui: J
   if (d.agenda) lignes.push(...decrireAgenda(evenementsDe(d.agenda), d.foyer, aujourdhui));
   if (d.budget) lignes.push(...decrireBudget(d.budget, (id) => prenomDe(d.foyer, id) ?? "", aujourdhui));
   if (d.vetements?.length) lignes.push(...decrireVetements(d.vetements, d.foyer, `${aujourdhui}T12:00:00.000Z`));
-  if (d.maison?.length) lignes.push(...decrireCarnet(d.maison));
+  if (d.maison?.length) lignes.push(...decrireCarnet(d.maison), ...decrireRangements(d.maison));
   return lignes.join("\n");
 }
 
@@ -220,7 +220,8 @@ export type ActionJarvis =
   | { outil: "noter_depense"; montant: number; libelle: string; magasin: string | null; pot: Pot; jour: Jour | null; charge: string | null; articles: ArticleTicket[] }
   | { outil: "noter_taille"; pour: string; piece: Piece; valeur: string }
   | { outil: "noter_envie"; pour: string; envie: string }
-  | { outil: "noter_carnet"; titre: string; valeur: string };
+  | { outil: "noter_carnet"; titre: string; valeur: string }
+  | { outil: "noter_rangement"; lieu: string; objets: string[] };
 
 /**
  * Ce qui attend le oui de la personne avant de se faire : supprimer. Ce que Jarvis remarque seul,
@@ -368,6 +369,9 @@ export function lireActions(appels: readonly { nom: string; entree: unknown }[])
       if (estTexte(e.pour) && estTexte(e.envie)) actions.push({ outil: nom, pour: e.pour.trim(), envie: e.envie.trim() });
     } else if (nom === "noter_carnet") {
       if (estTexte(e.titre) && estTexte(e.valeur)) actions.push({ outil: nom, titre: e.titre.trim(), valeur: e.valeur.trim() });
+    } else if (nom === "noter_rangement") {
+      const objets = Array.isArray(e.objets) ? e.objets.filter((o): o is string => estTexte(o)).map((o) => o.trim()).slice(0, 40) : [];
+      if (estTexte(e.lieu) && objets.length) actions.push({ outil: nom, lieu: e.lieu.trim(), objets });
     } else if (nom === "enregistrer_recette") {
       const recette = lireBrouillon(e, estTexte(e.lien) ? "lien" : "jarvis");
       if (recette) actions.push({ outil: nom, recette });
@@ -787,6 +791,21 @@ export function appliquerActions(
           }
           break;
         }
+        case "noter_rangement": {
+          // « Range la perceuse à la cave » enrichit le rangement « Cave » au lieu d'en créer un deuxième.
+          const deja = modifications.find((m): m is Extract<Modification, { collection: "maison" }> => m.collection === "maison" && m.apres.type === "rangement" && rangementDuMemeLieu([m.apres], action.lieu) !== null);
+          const docs = deja ? [deja.apres] : (donnees.maison ?? []);
+          const avant = deja ? null : rangementDuMemeLieu(docs, action.lieu);
+          try {
+            const apres = rangerObjets(docs, action.lieu, action.objets, ctx);
+            if (deja) deja.apres = apres;
+            else modifications.push({ collection: "maison", avant, apres });
+            faits.push(`Rangé dans ${apres.lieu} : ${action.objets.join(", ")}.`);
+          } catch (erreur) {
+            echecs.push(erreur instanceof Error ? erreur.message : String(erreur));
+          }
+          break;
+        }
         case "noter_souhait": {
           const texte = `Souhait pour Jarvis : ${action.demande}${action.manque ? ` (il faudrait : ${action.manque})` : ""}`;
           const deja = (donnees.retours ?? []).some((r) => !r.regleLe && normaliser(r.texte) === normaliser(texte));
@@ -860,6 +879,8 @@ export function decrireAction(action: ActionJarvis): string {
       return `Envie de ${action.pour} : ${lireEnvie(action.envie).titre}`;
     case "noter_carnet":
       return `Carnet de la maison : ${action.titre}, ${action.valeur}`;
+    case "noter_rangement":
+      return `Rangé dans ${action.lieu} : ${action.objets.join(", ")}`;
   }
 }
 
