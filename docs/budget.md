@@ -123,3 +123,19 @@ facultatif ; `Etiquette.plafond`). Dès 80 % du plafond sur le mois du budget (d
 l'onglet Ce mois montre une ligne sous « Tes dépenses » : « Resto : 87 % du mois, 70 sur 80 CHF »,
 puis « plafond dépassé ». Règles : `etatDesPlafonds`, `plafondsAAlerter`, `phrasePlafond` dans
 `src/domaine/etiquettes.ts`.
+
+## Abonnements et contrats (depuis 0.0.91)
+
+Un abonnement ou une assurance est déjà une charge du Budget (`Poste`, catégorie `abonnement` ou
+`assurance`). Depuis 0.0.91, la charge porte en plus son contrat (`Poste.contrat`, type `Contrat` :
+`fin`, `preavisMois`, `tacite`, `note`), tenu dans Organisation › Administratif, carte « Abonnements
+et contrats » (`src/ui/ecrans/Abonnements.tsx`) : une ligne par contrat avec son prix par mois et son
+état (« Résilier avant le 30.11.2026 · 33 jours », « Renouvelé jusqu'au 31.12.2027 », « Pas de date »),
+sa feuille pour la date de fin, le préavis (aucun, 1, 2, 3 ou 6 mois), le renouvellement tacite et une
+note ; « Sunrise 59 » ou « Assurance ménage 320 par an » écrit sous la carte crée la charge dans le
+pot factures. Règles dans `src/domaine/abonnements.ts` : une fin tacite passée avance d'un an
+(`finEnCours`), la limite est la fin moins le préavis (`dateLimite`), `aResilierBientot` dans les
+45 jours, `resiliationsDuJour(docs, aujourdhui)` pour l'accueil (chose « Résilier Sunrise avant le
+30 novembre », destination `administratif`, en laiton la dernière semaine) et le rappel du matin
+(ligne « Contrats : … », avec les factures, préférence Budget). Le montant et qui paie restent dans
+le Budget, onglet Charges. La fonction `rappels` est à redéployer après `npm run fonction`.

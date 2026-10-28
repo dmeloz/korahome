@@ -66,3 +66,9 @@
 .reste-entete .discret { flex: 1; font-size: 13px; }
 .reste-chevron { align-self: center; display: grid; color: var(--discret); transition: transform 0.25s var(--courbe); }
 .reste-entete[aria-expanded="true"] .reste-chevron { transform: rotate(180deg); }
+
+/* Abonnements et contrats (Administratif, 0.0.91) : la carte en tête, une ligne par contrat, la limite qui presse en rouge. */
+.contrats { display: grid; gap: var(--espace-3); margin-bottom: var(--espace-6); }
+.contrats .rayon, .contrats .contrats-resume, .contrats .vide { margin: 0; }
+.contrats .contrat { padding: 6px 16px; }
+.contrats .contrat .tache-texte { padding: 6px 0; }

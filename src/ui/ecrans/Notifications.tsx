@@ -32,7 +32,7 @@ import { Page } from "../pieces";
 const CHOIX: { cle: "agenda" | "budget" | "taches" | "mitsu" | "stock" | "jardin" | "mots"; titre: string; detail: string }[] = [
   { cle: "agenda", titre: "Agenda", detail: "Les rendez-vous, anniversaires et sorties du jour, les tiens et ceux de nous deux." },
   { cle: "taches", titre: "Mes tâches", detail: "Celles que tu as prises et les tâches libres, du jour et en retard." },
-  { cle: "budget", titre: "Factures", detail: "Les factures du Budget à payer dans les trois jours, et celles en retard." },
+  { cle: "budget", titre: "Factures et contrats", detail: "Les factures du Budget à payer dans les trois jours, celles en retard, et les contrats à résilier avant leur limite." },
   { cle: "mitsu", titre: "Mitsu", detail: "Commande à passer, provisions qui s'épuisent, soins à venir." },
   { cle: "stock", titre: "Frigo et placards", detail: "Ce qui arrive à sa date dans les trois jours." },
   { cle: "jardin", titre: "Jardin", detail: "Le gel annoncé pour la nuit et les zones à arroser." },
@@ -51,6 +51,8 @@ export function Notifications(props: {
   evenements: Evenement[];
   /** Les factures du Budget à payer bientôt. */
   factures: { libelle: string; echeance: string }[];
+  /** Les contrats à résilier bientôt. */
+  resiliations: { texte: string; dansJours: number }[];
   animaux: Animal[];
   produits: Produit[];
   zones: Zone[];
@@ -148,7 +150,7 @@ export function Notifications(props: {
   );
 
   // Ce que dirait le rappel si on était au matin, présenté comme une notification de l'iPhone.
-  const rappel = rappelDuMatin({ foyer: props.foyer, membreId, evenements: props.evenements, factures: props.factures, taches: props.taches, animaux: props.animaux, produits: props.produits, zones: props.zones, meteo: props.meteo, aujourdhui: props.aujourdhui, preferences });
+  const rappel = rappelDuMatin({ foyer: props.foyer, membreId, evenements: props.evenements, factures: props.factures, resiliations: props.resiliations, taches: props.taches, animaux: props.animaux, produits: props.produits, zones: props.zones, meteo: props.meteo, aujourdhui: props.aujourdhui, preferences });
   const apercu = (
     <>
       <h2 className="rayon">Aperçu</h2>

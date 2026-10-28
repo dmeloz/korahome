@@ -300,7 +300,7 @@ function PageOrganisation(p: PropsPage) {
       {onglet === "agenda" ? (
         <Agenda {...p} />
       ) : (
-        <Taches depot={p.depot} foyer={p.foyer} membreId={p.membreId} taches={p.taches} administratif={onglet === "administratif"} />
+        <Taches depot={p.depot} foyer={p.foyer} membreId={p.membreId} taches={p.taches} administratif={onglet === "administratif"} budget={p.budget} />
       )}
     </Espace>
   );
