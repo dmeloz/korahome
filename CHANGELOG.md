@@ -6,6 +6,7 @@ test le vérifie). Le détail de chaque version est dans sa PR ; les règles dur
 
 | Version | Date | Ce qu'elle apporte | PR |
 | --- | --- | --- | --- |
+| 0.0.95 | 2026-10-28 | Hub Kora sur iPad : dès 760 points de large, l'accueil devient six cartes (ce soir, au menu, courses, demain, mot de l'autre, balcon) sur la grille large commune | [#114](https://github.com/dmeloz/korahome/pull/114) |
 | 0.0.94 | 2026-10-28 | Réserve de secours dans Cuisine › Frigo : la liste de la Confédération pour une semaine à deux, comparée au stock, le manquant aux courses ; le Chef n'y puise pas | [#113](https://github.com/dmeloz/korahome/pull/113) |
 | 0.0.93 | 2026-10-28 | Rangements « Où est quoi » dans Maison › Entretien : un lieu et ce qu'il contient, trouvé par la recherche et par la fée (« où est la perceuse ? ») | [#112](https://github.com/dmeloz/korahome/pull/112) |
 | 0.0.92 | 2026-10-28 | iPhone Duo, premier lot : rien ne passe sous la colonne de l'heure de l'écran plié, saisie de la fée protégée après un pli, verrou du Budget qui parle aussi de Touch ID | [#110](https://github.com/dmeloz/korahome/pull/110) |

@@ -1,0 +1,63 @@
+/* ===== Le format large (0.0.95) : l'iPad, un iPad couché, une fenêtre large =====
+   Un seul fichier pour tout ce qui change quand la page est large, partagé entre le hub Kora sur
+   iPad (fil « Améliorer Kora pendant la nuit ») et l'iPhone Duo déplié (fil « Adapter Kora à
+   l'iPhone pliable »). La règle commune : une grille de 12 colonnes, `grille-large`, en
+   var(--espace-*) ; les marges suivent --bord-gauche et --bord-droit (colonne de l'heure du Duo
+   plié, côtés de l'iPad couché). On mesure le bloc de la page (requête de conteneur), pas
+   l'écran : deux apps côte à côte sur l'iPad retombent seules en mode téléphone.
+   Seuils : le hub « bento » commence à 760 (l'iPad) ; entre 640 et 760 (le Duo déplié debout,
+   669), rien ne change tant que Melo n'a pas vu la disposition du Duo. */
+
+.grille-large { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--espace-5); }
+
+/* ----- Le hub sur iPad : six cartes graphite, le laiton pour ce qui compte ----- */
+.hub { flex: 1 1 auto; min-height: 0; grid-auto-rows: minmax(150px, auto); align-content: start; overflow-y: auto; scrollbar-width: none; padding-bottom: var(--espace-6); }
+.hub::-webkit-scrollbar { display: none; }
+.hub-carte {
+  display: flex; flex-direction: column; gap: var(--espace-4); min-width: 0;
+  padding: var(--espace-6) var(--espace-7);
+  border-radius: var(--rayon-carte); background: var(--surface); border: 1px solid var(--trait);
+  color: var(--texte); text-align: left; font: inherit;
+}
+button.hub-carte:active { background: var(--surface-haute); }
+.hub-ce-soir { grid-column: span 5; grid-row: span 2; }
+.hub-menu { grid-column: span 4; }
+.hub-courses { grid-column: span 3; grid-row: span 2; }
+.hub-demain { grid-column: span 4; }
+.hub-mot { grid-column: span 5; }
+.hub-mot.seul { grid-column: span 9; }
+.hub-balcon { grid-column: span 4; }
+.hub-mot.avec-mot { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 7%, var(--surface)) 0%, var(--surface) 100%); border-color: color-mix(in srgb, var(--accent) 28%, var(--trait)); }
+
+.hub-entete { display: flex; justify-content: space-between; align-items: baseline; gap: var(--espace-4); }
+.hub-entete h2 { margin: 0; font-family: var(--police-fixe); font-size: var(--t-legende); letter-spacing: 0.14em; text-transform: uppercase; font-weight: 500; color: var(--discret); }
+.hub-entete h2.laiton { color: var(--accent); }
+.hub-chiffre { font-family: var(--police-titre); font-size: 28px; font-weight: 300; line-height: 1; color: var(--accent); font-variant-numeric: tabular-nums; }
+.hub-chiffre.grand { font-size: 40px; color: var(--texte); }
+.hub-grand { margin: 0; font-family: var(--police-titre); font-size: 26px; font-weight: 500; line-height: 1.15; }
+.hub-grand.leger { font-weight: 300; font-size: 24px; line-height: 1.25; }
+.hub-vide, .hub-pied { margin: 0; color: var(--discret); font-size: var(--t-detail); line-height: 1.45; }
+.hub-pied { margin-top: auto; }
+.hub-lignes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--espace-3); }
+.hub-ligne { display: flex; align-items: center; gap: var(--espace-4); padding: var(--espace-4) var(--espace-4); border-radius: var(--rayon-petit); background: var(--surface-haute); }
+.hub-lignes.serrees .hub-ligne { padding: var(--espace-2) 0; background: none; }
+.hub-ligne .case { background: none; padding: 0; border-color: var(--discret); }
+.hub-ligne.urgent .case { border-color: var(--accent); }
+.hub-ligne .case.chef { border-color: var(--accent); }
+.hub-ligne .case.vide { border-style: dashed; opacity: 0.5; }
+.hub-ligne-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--espace-1); background: none; border: none; padding: 0; text-align: left; color: inherit; font: inherit; }
+.hub-ligne-texte .ligne-texte { font-weight: 500; }
+.hub-qui { font-size: var(--t-legende); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--discret); }
+.hub-ligne.urgent .hub-qui { color: var(--accent); }
+.hub-heure { width: 52px; flex: none; font-variant-numeric: tabular-nums; color: var(--discret); }
+.hub-heure.presse { color: var(--accent); font-weight: 500; }
+.hub-lien { margin-top: auto; align-self: flex-start; }
+.hub-actions { display: flex; gap: var(--espace-4); margin-top: auto; }
+.hub-meteo { display: flex; align-items: baseline; gap: var(--espace-5); }
+.hub-geste { margin: 0; font-size: var(--t-detail); }
+.hub-geste.urgent { color: var(--urgent); }
+
+/* Sur le hub, la page s'élargit (720 points sinon) et la date grandit en tête. */
+.contenu:has(> .accueil-hub) { max-width: 1280px; padding-left: calc(40px + var(--bord-gauche)); padding-right: calc(40px + var(--bord-droit)); }
+.accueil-hub .haut-accueil { margin-bottom: var(--espace-6); }
+.accueil-hub .haut-accueil .date-chiffre { --taille-date: 48px; }
