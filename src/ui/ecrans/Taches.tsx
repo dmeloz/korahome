@@ -284,12 +284,15 @@ export function Taches(props: {
         <p className="vide">{vueMoi ? "Rien pour toi en ce moment." : "Aucune tâche à faire."}</p>
       )}
 
-      {groupes.map((g) => (
-        <section key={g.cle}>
-          <h2 className={`rayon${g.cle === "retard" ? " retard" : ""}`}>{g.titre}</h2>
-          <ListeVivante className="carte groupe">{g.taches.map(ligne)}</ListeVivante>
-        </section>
-      ))}
+      {/* Les groupes, sur deux colonnes quand l'écran est assez large (le Duo déplié, large.css). */}
+      <div className="deux-colonnes">
+        {groupes.map((g) => (
+          <section key={g.cle}>
+            <h2 className={`rayon${g.cle === "retard" ? " retard" : ""}`}>{g.titre}</h2>
+            <ListeVivante className="carte groupe">{g.taches.map(ligne)}</ListeVivante>
+          </section>
+        ))}
+      </div>
       <div className="carte groupe ajout-seul">
         <LigneAjout placeholder={administratif ? "Nouvelle démarche" : "Nouvelle tâche"} ajouter={ajouterEcrite} />
       </div>

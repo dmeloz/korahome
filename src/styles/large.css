@@ -61,3 +61,25 @@ button.hub-carte:active { background: var(--surface-haute); }
 .contenu:has(> .accueil-hub) { max-width: 1280px; padding-left: calc(40px + var(--bord-gauche)); padding-right: calc(40px + var(--bord-droit)); }
 .accueil-hub .haut-accueil { margin-bottom: var(--espace-6); }
 .accueil-hub .haut-accueil .date-chiffre { --taille-date: 48px; }
+
+/* ----- L'iPhone Duo déplié (lot 3, maquette) : deux colonnes égales, de 640 à 760 points -----
+   L'écran du dedans fait 669 points de large, presque carré : une seule colonne y étire chaque
+   ligne. On le partage en deux colonnes de téléphone (6 + 6 sur la grille large). Mesuré sur
+   l'écran de l'app, qui est aussi la fenêtre de l'app quand deux apps se partagent l'écran. */
+@media (min-width: 640px) and (max-width: 759.98px) {
+  /* L'accueil : les chiffres et « Ce soir » gardent toute la largeur, les deux piles d'« En ce
+     moment » se posent côte à côte, chacune à la largeur d'un téléphone. */
+  :root .accueil-un-ecran:not(.accueil-hub) > .en-ce-moment {
+    display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--espace-6); row-gap: var(--espace-4); align-content: start; align-items: start;
+  }
+  :root .accueil-un-ecran:not(.accueil-hub) > .en-ce-moment > * { grid-column: span 6; }
+  :root .accueil-un-ecran:not(.accueil-hub) > .en-ce-moment > :is(.accueil-titre, .vide-tableau) { grid-column: 1 / -1; }
+  /* Côte à côte, les piles ont la place de montrer toutes leurs lignes. */
+  html.accueil-serre .accueil-un-ecran:not(.accueil-hub) .pile-ligne + .pile-ligne { display: flex; }
+
+  /* Les courses et les tâches : les rayons (en retard, aujourd'hui, cette semaine) se suivent sur
+     deux colonnes, comme une liste écrite sur une feuille pliée ; un rayon ne se coupe jamais. */
+  .deux-colonnes { columns: 2; column-gap: var(--espace-6); }
+  .deux-colonnes > section { break-inside: avoid; }
+  .deux-colonnes > section:first-child > .rayon { margin-top: 0; }
+}

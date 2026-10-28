@@ -303,12 +303,15 @@ export function DetailListe(props: {
         </section>
       )}
 
-      {aPrendre.map((g) => (
-        <section key={g.rayon}>
-          {props.liste.type === "courses" && <h2 className="rayon">{g.rayon}</h2>}
-          <ListeVivante className="carte groupe">{g.elements.map(ligne)}</ListeVivante>
-        </section>
-      ))}
+      {/* Les rayons, sur deux colonnes quand l'écran est assez large (le Duo déplié, large.css). */}
+      <div className="deux-colonnes">
+        {aPrendre.map((g) => (
+          <section key={g.rayon}>
+            {props.liste.type === "courses" && <h2 className="rayon">{g.rayon}</h2>}
+            <ListeVivante className="carte groupe">{g.elements.map(ligne)}</ListeVivante>
+          </section>
+        ))}
+      </div>
       {courses && tous.length === 0 && !saisie && (
         <EtatVide picto="panier" titre="Rien à acheter">
           Écris sous la liste, ou dis-le à ta fée. Ce que le Chef prévoit arrive ici aussi.
