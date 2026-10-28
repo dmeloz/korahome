@@ -3,6 +3,8 @@ import type { ServeurJarvis } from "../../donnees/distant";
 import type { DonneesModule } from "../modules";
 import { TicketDeCaisse } from "../TicketDeCaisse";
 import { Feuille } from "../Feuille";
+import { Reserve } from "./Reserve";
+import { marquerReserve } from "../../domaine/reserve";
 import {
   apprendre,
   decrireDuree,
@@ -98,6 +100,7 @@ export function Stock(props: {
   const [fiche, setFiche] = useState<FicheProduit | null>(null);
   const [scanner, setScanner] = useState(false);
   const [recherche, setRecherche] = useState(false);
+  const [reserve, setReserve] = useState(false);
   const [ouvert, setOuvert] = useState<string | null>(null);
   const produitOuvert = props.produits.find((p) => p.id === ouvert);
   const [message, setMessage] = useState<string | null>(null);
@@ -441,6 +444,11 @@ export function Stock(props: {
           ))}
 
           {props.produits.length > 0 && <p className="discret indice">− et + changent la quantité. Glisse vers la gauche pour retirer.</p>}
+
+          <button type="button" className="bouton-doux reserve-bouton" onClick={() => setReserve(true)}>
+            Notre réserve de secours
+          </button>
+          <Reserve ouverte={reserve} fermer={() => setReserve(false)} depot={depot} produits={props.produits} courses={courses ?? null} elements={props.elements} membreId={props.membreId} aujourdhui={aujourdhui} />
         </>
       )}
 
@@ -489,6 +497,10 @@ export function Stock(props: {
               À consommer avant le
               <input type="date" value={produitOuvert.peremption ?? ""} onChange={(e) => sauver(depot.enregistrerProduit(avecQuantite({ ...produitOuvert, peremption: e.target.value || null })))} />
             </label>
+            <button type="button" className="ligne chef-interrupteur" onClick={() => sauver(depot.enregistrerProduit(marquerReserve(produitOuvert, !produitOuvert.reserve)))} aria-pressed={!!produitOuvert.reserve}>
+              <span className="ligne-texte">Dans la réserve de secours</span>
+              <span className={`interrupteur${produitOuvert.reserve ? " actif" : ""}`} aria-hidden />
+            </button>
             {courses && (
               <button type="button" className="bouton-principal" onClick={() => { const pr = produitOuvert; setOuvert(null); void aRacheter(pr); }}>
                 Fini, à racheter
