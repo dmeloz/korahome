@@ -7,6 +7,7 @@ import { vibrer } from "../haptique";
 import { m, Presence } from "../moteur/pieces";
 import { ressortMotion } from "../moteur/ressorts";
 import { APPUI_LONG_MS } from "../gestes";
+import { bordsSurs } from "../bords";
 
 // La fée, en bas de chaque page où l'on ajoute quelque chose : une boule de lumière à quatre
 // ailes de libellule, comme les fées de Zelda. Toucher : elle écoute. Garder le doigt : on lui
@@ -40,14 +41,17 @@ function lieuPres(selecteur: string, nuit: boolean): Position | null {
   const r = cible.getBoundingClientRect();
   if (r.bottom < 0 || r.top > window.innerHeight) return null;
   if (nuit) return { x: r.left + r.width / 2 - TAILLE / 2, y: Math.max(4, r.top - TAILLE + 22) };
-  return { x: Math.min(window.innerWidth - TAILLE, r.right - TAILLE + 10), y: Math.max(HAUT_MIN - 30, r.top - TAILLE / 2 + 4) };
+  return { x: Math.min(window.innerWidth - bordsSurs().droite - TAILLE, r.right - TAILLE + 10), y: Math.max(HAUT_MIN - 30, r.top - TAILLE / 2 + 4) };
 }
 
 function lieu(place: PlaceFee, ancre: number | null): Position {
-  const w = window.innerWidth;
+  // Entre les bords que l'iPhone garde pour lui : la colonne de l'heure du Duo plié, à droite.
+  const bords = bordsSurs();
+  const g = bords.gauche;
+  const d = window.innerWidth - bords.droite;
   const h = window.innerHeight;
   const cachee = place.rangee && ancre === null;
-  const x = place.cote === "gauche" ? (cachee ? -TAILLE / 2 : MARGE) : cachee ? w - TAILLE / 2 : w - TAILLE - MARGE;
+  const x = place.cote === "gauche" ? (cachee ? g - TAILLE / 2 : g + MARGE) : cachee ? d - TAILLE / 2 : d - TAILLE - MARGE;
   const y = ancre !== null ? ancre - TAILLE + 4 : Math.min(h - BAS_MIN - TAILLE, Math.max(HAUT_MIN, h - place.bas - TAILLE));
   return { x, y };
 }
@@ -246,7 +250,8 @@ export function Fee(props: {
       vx = (xb - xa) / Math.max(1, tb - ta);
     }
     const cote = x + TAILLE / 2 + vx * 180 < w / 2 ? "gauche" : "droite";
-    const rangee = x < -TAILLE * 0.35 || x > w - TAILLE * 0.65;
+    const bords = bordsSurs();
+    const rangee = x < bords.gauche - TAILLE * 0.35 || x > w - bords.droite - TAILLE * 0.65;
     vibrer();
     changerEtatFee({ cible: null, alerte: null });
     changerPlace({ cote, rangee, bas: Math.max(BAS_MIN, window.innerHeight - y - TAILLE) });

@@ -260,14 +260,14 @@ export function FeuilleReglages(props: {
   const [motVerrou, setMotVerrou] = useState<string | null>(null);
   async function basculerVerrou() {
     if (verrou) {
-      if (!(await ouvrirVerrou())) return setMotVerrou("Face ID n'a pas reconnu : le verrou reste.");
+      if (!(await ouvrirVerrou())) return setMotVerrou("L'iPhone ne t'a pas reconnu : le verrou reste.");
       retirerVerrou();
       setVerrou(false);
       setMotVerrou("Verrou retiré.");
     } else {
       const ok = await poserVerrou(props.prenom);
       setVerrou(ok);
-      setMotVerrou(ok ? "Le Budget demande Face ID sur ce téléphone." : "Pas de clé posée : Face ID a été refusé ou n'est pas disponible ici.");
+      setMotVerrou(ok ? "Le Budget demande Face ID ou Touch ID sur ce téléphone." : "Pas de clé posée : le déverrouillage a été refusé ou n'est pas disponible ici.");
     }
   }
   return (
@@ -344,7 +344,7 @@ export function FeuilleReglages(props: {
           <>
             <p className="surtitre">Sur ce téléphone</p>
             <button type="button" className="bouton-secondaire" onClick={() => void basculerVerrou()}>
-              {verrou ? "Retirer le verrou Face ID" : "Protéger le Budget avec Face ID"}
+              {verrou ? "Retirer le verrou du Budget" : "Protéger le Budget par Face ID ou Touch ID"}
             </button>
             <p className="discret">{motVerrou ?? "Un rideau devant la page du Budget, pour que personne qui prend ton iPhone ne tombe dessus. C'est un rideau, pas un coffre : la fée, la recherche et l'accueil peuvent encore dire un montant. Les chiffres restent synchronisés comme avant."}</p>
           </>

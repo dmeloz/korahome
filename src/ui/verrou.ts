@@ -1,6 +1,6 @@
 import { CLES, ecrireTexte, effacer, lireTexte } from "./stockageLocal";
 
-// Le verrou du Budget : Face ID (ou Touch ID, ou le code) par WebAuthn, la clé reste dans
+// Le verrou du Budget : Face ID, Touch ID sur l'iPhone Duo (0.0.92), ou le code, par WebAuthn, la clé reste dans
 // l'iPhone et son identifiant sur ce téléphone. Rien ne part sur le serveur : c'est un rideau
 // devant la page, pas un chiffrement. Une fois ouvert, il reste ouvert dix minutes.
 
