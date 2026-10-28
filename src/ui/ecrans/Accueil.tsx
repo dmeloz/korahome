@@ -6,6 +6,7 @@ import { bilanAOuvrir, bilanDeLaSemaine, remarqueDuJour } from "../../domaine/ap
 import { carteDuJour, resteAFaire, titreMoment, type ChoseDuJour } from "../../domaine/aujourdhui";
 import { reglageDechets } from "../../domaine/maison";
 import { etatDesPots, facturesDuJour, planDe } from "../../domaine/budget";
+import { resiliationsDuJour } from "../../domaine/abonnements";
 import { evenementsDe, ligneWidget, resumeAgenda } from "../../domaine/agenda";
 import {
   basculerRetiree,
@@ -229,6 +230,7 @@ export function Accueil(props: {
     aujourdhui: jourCarte,
     evenements,
     factures: facturesDuJour(props.donnees.budget, aujourdhui, 1),
+    resiliations: resiliationsDuJour(props.donnees.budget, aujourdhui),
     sauvegardeDue: sauvegardeDue(derniereSauvegarde, aujourdhui) && maintenant.getDay() === 0,
     repartitionDue: repartitionDue(foyer, props.donnees.taches, aujourdhui, lireDerniereRepartition()),
     dechets: reglageDechets(props.donnees.maison),
@@ -254,6 +256,7 @@ export function Accueil(props: {
   const toucherChose = (c: ChoseDuJour) => {
     if (c.destination === "sauvegarde") props.ouvrirSauvegarde();
     else if (c.destination === "repartition") props.ouvrirRepartition();
+    else if (c.destination === "administratif") props.ouvrirOnglet("taches", "administratif");
     else ouvrirEspace(c.destination);
   };
   // La vie de la fée : sommeil, alertes, l'heure des tâches, le réveil, le jour J.

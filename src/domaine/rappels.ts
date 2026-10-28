@@ -24,6 +24,8 @@ export { fenetreMotsProgrammes, notificationMot } from "./bandeau";
 export { evenementsDe } from "./agenda";
 /** Et les factures du Budget à payer bientôt. */
 export { facturesDuJour } from "./budget";
+/** Et les contrats à résilier avant qu'ils ne se renouvellent. */
+export { resiliationsDuJour } from "./abonnements";
 
 /** Ce que chaque personne choisit de recevoir, sur son téléphone. */
 export interface PreferencesRappels {
@@ -208,6 +210,8 @@ export function rappelDuMatin(entree: {
   evenements?: readonly Evenement[];
   /** Les factures du Budget à payer bientôt (facturesDuJour). */
   factures?: readonly { libelle: string; echeance: Jour }[];
+  /** Les contrats à résilier bientôt (resiliationsDuJour), avec les factures. */
+  resiliations?: readonly { texte: string; dansJours: number }[];
   /** Le stock du foyer ; absent, rien n'est dit du frigo. */
   produits?: readonly Produit[];
   /** Le jardin et sa météo ; une météo de plus de 12 heures n'est pas prise en compte. */
@@ -252,6 +256,10 @@ export function rappelDuMatin(entree: {
   if (preferences.budget && entree.factures?.length) {
     lignes.push(`Factures : ${enumerer(entree.factures.map((f) => `${f.libelle} ${decrireEcheanceFacture(f.echeance, aujourdhui)}`))}`);
     nombre += entree.factures.length;
+  }
+  if (preferences.budget && entree.resiliations?.length) {
+    lignes.push(`Contrats : ${enumerer(entree.resiliations.map((r) => `${r.texte} (${r.dansJours === 0 ? "dernier jour" : `${r.dansJours} jours`})`))}`);
+    nombre += entree.resiliations.length;
   }
 
   if (preferences.mitsu) {

@@ -7,6 +7,7 @@ import { tachesDuMatin } from "./rappels";
 import { etatProduit, resumeStock, type Produit } from "./stock";
 import { aSortirCeSoir, phraseSortir, type ReglageDechets } from "./maison";
 import { ecartJours, enMinutes, heureDe } from "./taches";
+import { JOURS_LIMITE_PRESSEE, type ResiliationDuJour } from "./abonnements";
 import type { Id, Jour, Tache } from "./types";
 
 // La carte « Aujourd'hui » : les trois choses qui comptent, dans l'ordre. Une seule
@@ -23,7 +24,7 @@ export type EtatChose =
   | "calme";
 
 /** Où mène le toucher : un module de l'accueil, ou une action de Kora. */
-export type DestinationChose = "taches" | "agenda" | "mitsu" | "stock" | "jardin" | "chef" | "budget" | "sauvegarde" | "repartition" | "maison";
+export type DestinationChose = "taches" | "agenda" | "mitsu" | "stock" | "jardin" | "chef" | "budget" | "sauvegarde" | "repartition" | "maison" | "administratif";
 
 export interface ChoseDuJour {
   /** Stable d'un affichage à l'autre (pour React, et pour ne pas répéter un rappel). */
@@ -67,6 +68,8 @@ export interface EntreeDuJour {
   menus: readonly DocChef[];
   /** Les factures du Budget, quand il existera. */
   factures?: readonly FactureDuJour[];
+  /** Les contrats à résilier bientôt (resiliationsDuJour) : la limite dans 45 jours, pressée dans 7. */
+  resiliations?: readonly ResiliationDuJour[];
   /** La sauvegarde de la semaine est à faire. */
   sauvegardeDue?: boolean;
   /** Dimanche : on se répartit la semaine. */
@@ -99,6 +102,17 @@ export function chosesDuJour(e: EntreeDuJour): ChoseDuJour[] {
       quand: ecart < 0 ? "en retard" : ecart === 0 ? "à payer aujourd'hui" : "à payer demain",
       etat: ecart <= 0 ? "urgent" : "calme",
       destination: "budget",
+    });
+  }
+
+  // Un contrat qui se renouvelle tout seul : Kora le dit avant la limite, en calme, puis en laiton la dernière semaine.
+  for (const r of e.resiliations ?? []) {
+    choses.push({
+      cle: `resiliation-${r.id}`,
+      texte: r.texte,
+      quand: r.dansJours === 0 ? "dernier jour" : r.dansJours === 1 ? "jusqu'à demain" : `${r.dansJours} jours`,
+      etat: r.dansJours <= JOURS_LIMITE_PRESSEE ? "jour" : "calme",
+      destination: "administratif",
     });
   }
 
