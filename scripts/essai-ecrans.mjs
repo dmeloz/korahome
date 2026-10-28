@@ -154,6 +154,15 @@ try {
   await p.emulateMedia({ colorScheme: "dark" });
   await p.addStyleTag({ content: "html { font-size: 23px !important; }" });
   await tournee();
+  // L'iPhone Duo (pliable, sorti le 23 octobre 2026) : l'écran du dehors, court et étroit, qui
+  // vaut aussi pour deux apps côte à côte sur l'écran du dedans (385 × 609 dans Safari 27.1),
+  // puis l'écran du dedans, presque carré (669 × 902 dans Safari, un peu plus sans sa barre).
+  await p.addStyleTag({ content: "html { font-size: 17px !important; }" });
+  for (const [nom, largeur, hauteur] of [["plie", 382, 610], ["deplie", 669, 940]]) {
+    theme = `-${nom}`;
+    await p.setViewportSize({ width: largeur, height: hauteur });
+    await tournee();
+  }
 } finally {
   await navigateur.close();
   serveur.kill();
