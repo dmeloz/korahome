@@ -94,6 +94,7 @@
 .en-direct-compte { flex: none; font-size: var(--t-legende); color: var(--discret); font-variant-numeric: tabular-nums; }
 
 /* Les quatre chiffres du jour, sur une ligne. */
+.chiffres-cadre { container: chiffres / inline-size; }
 .chiffres-accueil { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--espace-4); }
 .chiffre-tuile {
   display: flex; flex-direction: column; align-items: flex-start; gap: var(--espace-2); min-width: 0; min-height: 72px; padding: 10px 10px 9px;
@@ -109,6 +110,15 @@
 .chiffre-pied {
   max-width: 100%; font-size: var(--t-legende); color: var(--discret); overflow: hidden; overflow-wrap: break-word;
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
+}
+
+/* En grandes lettres (moins de 20 caractères de large par rangée), deux rangées de deux : le chiffre et
+   son pied sur la même ligne, au lieu de quatre colonnes où le texte se tasse (Apple, Layout :
+   empiler ce qui ne tient plus côte à côte). La rangée garde à peu près sa hauteur. */
+@container chiffres (max-width: 20em) {
+  .chiffres-accueil { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .chiffre-tuile { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: baseline; column-gap: var(--espace-4); row-gap: 0; min-height: 0; padding-block: var(--espace-3); }
+  .chiffre-libelle { grid-column: 1 / -1; }
 }
 
 /* « Ce soir » : une chose à la fois, en grand ; elles passent toutes seules. */
@@ -144,7 +154,8 @@
 /* Les points de la ronde, à la verticale ; celui du moment s'allonge en laiton. */
 .ce-soir-points, .pile-tirets { display: flex; flex-direction: column; justify-content: center; flex: none; }
 .ce-soir-points button, .pile-tirets button { display: grid; place-items: center; width: 28px; padding: 0; border: none; background: none; }
-.ce-soir-points button { height: 16px; }
+/* 24 px par point : le minimum d'une cible au toucher (WCAG 2.2, 2.5.8), le dessin des points ne change pas. */
+.ce-soir-points button { height: 24px; }
 .pile-tirets button { height: 26px; }
 .ce-soir-points span, .pile-tirets span { display: block; width: 5px; height: 5px; border-radius: var(--rayon-fin); background: var(--trait); }
 .pile-tirets span { width: 6px; height: 6px; }

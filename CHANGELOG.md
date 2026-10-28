@@ -6,6 +6,7 @@ test le vérifie). Le détail de chaque version est dans sa PR ; les règles dur
 
 | Version | Date | Ce qu'elle apporte | PR |
 | --- | --- | --- | --- |
+| 0.0.89 | 2026-10-28 | Accueil : en grandes lettres, les quatre chiffres en deux rangées de deux ; « Plus que 5 étapes » quand une étape est faite ; les points de « Ce soir » plus faciles à toucher | [#109](https://github.com/dmeloz/korahome/pull/109) |
 | 0.0.88 | 2026-10-27 | Veille du 27 octobre : un soin de Mitsu rappelé dans « À faire » se coche « Fait » sur place, les chiffres de l'accueil ne se coupent plus en grandes lettres, Motion 14.6 | [#107](https://github.com/dmeloz/korahome/pull/107) |
 | 0.0.87 | 2026-10-27 | Le carnet de la maison (concierge, gérance, compteurs, « Appeler » d'un toucher), que la fée et Siri savent dire et tenir, jamais de mot de passe | [#105](https://github.com/dmeloz/korahome/pull/105) |
 | 0.0.86 | 2026-10-27 | Une seule échelle d'arrondis et d'écarts, aucun texte sous 13 px, états vides soignés (Budget, Tâches, Courses), aides repliées entières, bas de l'accueil fondu, tests de l'app entière | [#103](https://github.com/dmeloz/korahome/pull/103) |
