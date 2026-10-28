@@ -85,3 +85,16 @@ Deux ajouts pour que les menus soient plus justes et ne se répètent pas.
 - La trame est gardée dans le menu (`trame`) pour que les semaines suivantes s'en souviennent ; pour les menus plus anciens, Kora reconnaît bases, protéines et légumes aux mots des titres.
 
 Après une modification : `npm run fonction`, puis redéployer `chef`.
+
+## La réserve de secours (0.0.94)
+
+La Confédération (OFAE, « Un bon plan, des provisions ») conseille une semaine de provisions par
+ménage. `src/domaine/reserve.ts` tient cette liste ramenée à deux personnes (`ARTICLES_RESERVE`,
+trois groupes : à boire, à manger, pour tenir), la compare au stock (`etatReserve` : un article
+est là quand un produit du stock commence par un de ses mots, à faire tourner quand ce produit
+est à consommer) et prépare les courses du manquant (`coursesPourLaReserve`, éléments
+`source: "reserve"`, étiquette « Réserve » dans la liste, sans doubler ce qui y est déjà). Feuille
+« Notre réserve de secours » depuis Cuisine › Frigo (`src/ui/ecrans/Reserve.tsx`). Un produit se
+marque « Dans la réserve de secours » depuis sa fiche (`Produit.reserve`) : `messageChef` ne le
+liste pas et dit au Chef de ne pas y puiser. Geste d'entretien proposé : « Vérifier la réserve de
+secours » tous les 3 mois. La fonction `chef` est à redéployer après `npm run fonction`.

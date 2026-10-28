@@ -7,6 +7,7 @@ import { correspond, grouperTrouvailles, rechercher, type DonneesRecherche } fro
 import { nouveauProduit } from "./stock";
 import { nouvelleTache } from "./taches";
 import { nouvelleRecette } from "./recettes";
+import { nouveauRangement } from "./maison";
 import type { Depense } from "./budget";
 
 const ctx = contexteTest();
@@ -28,6 +29,7 @@ function donnees(): DonneesRecherche {
     recettes: [nouvelleRecette({ titre: "Risotto aux champignons", portions: 2, ingredients: [{ nom: "Riz", quantite: "200 g" }, { nom: "Lait", quantite: "1 dl" }], etapes: [], source: "main", lien: null }, ctx)],
     depenses: [{ id: "d1", genre: "depense", jour: "2026-10-17", montant: 84.3, pot: "courses", libelle: "Migros", magasin: "Migros Renens", posteId: null, echeance: null, source: "main", par: "melo", creeLe: "" } as Depense],
     mots: [{ type: "mot", id: "m1", de: "sarah", texte: "Bonne journée mon amour", creeLe: "2026-10-18T07:00:00.000Z", visibleDes: "2026-10-18T07:00:00.000Z", programme: false, coeurs: [] }],
+    maison: [nouveauRangement("Cave", ["perceuse sans fil", "skis"], ctx)],
     aujourdhui: auj,
   };
 }
@@ -60,6 +62,11 @@ describe("la recherche partout", () => {
     expect(rechercher(donnees(), "renens")[0]).toMatchObject({ titre: "Dentiste", detail: "Jeudi 22 oct., 14:30 · Renens" });
     expect(rechercher(donnees(), "vaccin")[0]).toMatchObject({ section: "Mitsu", detail: "Mitsu, fait le 10.06.26" });
     expect(rechercher(donnees(), "veterinaire")[0]).toMatchObject({ section: "Ce que Kora sait", ou: { type: "memoire" } });
+  });
+
+  it("trouve un objet rangé, ou le lieu lui-même", () => {
+    expect(rechercher(donnees(), "perceuse")[0]).toMatchObject({ section: "Où est quoi", titre: "perceuse sans fil", detail: "Cave", ou: { type: "module", id: "maison", onglet: "entretien" } });
+    expect(rechercher(donnees(), "cave")[0]).toMatchObject({ section: "Où est quoi", titre: "Cave", detail: "perceuse sans fil, skis" });
   });
 
   it("attend deux lettres, et range par section", () => {

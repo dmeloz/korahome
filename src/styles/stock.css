@@ -193,3 +193,12 @@
 .ticket-courses { margin: 0 0 16px; flex-shrink: 0; }
 .ticket-total { margin: 16px 0; flex-shrink: 0; }
 .ticket-total .formulaire { margin-top: 8px; }
+
+/* La réserve de secours (0.0.94) : le bouton sous le stock, la feuille par groupe, une ligne par article. */
+.reserve-bouton { margin-top: var(--espace-6); align-self: flex-start; }
+.reserve-feuille { display: grid; gap: var(--espace-5); }
+.reserve-feuille .rayon { margin: var(--espace-3) 0 0; }
+.reserve-article { display: flex; align-items: center; gap: var(--espace-4); min-height: 44px; padding: 6px 0; }
+.reserve-article .case { flex: none; }
+.reserve-article.manque .ligne-texte { color: var(--discret); }
+.reserve-source { font-size: var(--t-legende); color: var(--discret); }

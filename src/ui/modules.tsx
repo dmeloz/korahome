@@ -28,7 +28,7 @@ import type { NomIcone } from "./Icone";
 import { Espace, Page } from "./pieces";
 import { Entretien } from "./ecrans/Entretien";
 import { Vetements } from "./ecrans/Vetements";
-import { Appareils, Carnet, Dechets } from "./ecrans/Maison";
+import { Appareils, Carnet, Dechets, Rangements } from "./ecrans/Maison";
 import { ignorer } from "./journal";
 
 // Les pages les plus lourdes ne se chargent qu'à leur première ouverture : l'app démarre plus
@@ -344,6 +344,7 @@ function PageMaison(p: PropsPage) {
           <Dechets depot={p.depot} maison={p.maison} aujourdhui={p.aujourdhui} />
           <Appareils depot={p.depot} maison={p.maison} aujourdhui={p.aujourdhui} />
           <Carnet depot={p.depot} maison={p.maison} />
+          <Rangements depot={p.depot} maison={p.maison} />
         </Page>
       ) : (
         <Mitsu depot={p.depot} foyer={p.foyer} membreId={p.membreId} animaux={p.animaux} listes={p.listes} elements={p.elements} />

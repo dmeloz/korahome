@@ -16,7 +16,7 @@ import {
   type ActionJarvis,
   type DonneesFoyer,
 } from "./jarvis";
-import { entreeCarnet, PHRASE_SECRET } from "./maison";
+import { entreeCarnet, PHRASE_SECRET, nouveauRangement } from "./maison";
 import { decrireRecette, extraireRecette, lienAutorise, lienDans, lirePage, MAX_OUTILS_STRICTS,
   MAX_UNIONS_STRICTES, messageDemande, moisDe, texteDePage } from "./jarvisModele";
 import { nouvelElement, nouvelleListe } from "./listes";
@@ -554,6 +554,27 @@ describe("Jarvis et les vêtements", () => {
     expect(r.modifications[1]).toMatchObject({ collection: "maison", avant: null });
     const docs = r.modifications.map((m) => m.apres as never);
     expect(decrireFoyer({ ...d, maison: docs }, melo, AUJOURDHUI)).toContain("Carnet de la maison :\n- Concierge : Mme Bianchi, 079 000 00 00\n- Vanne d'eau : sous l'évier");
+  });
+
+  it("range des objets dans un lieu, et enrichit le lieu qui existe", () => {
+    const { d, melo } = foyerDeTest();
+    const cave = nouveauRangement("Cave", ["skis"], ctx());
+    const r = appliquerActions(
+      lireActions([
+        { nom: "noter_rangement", entree: { lieu: "la cave", objets: ["perceuse", "Skis"] } },
+        { nom: "noter_rangement", entree: { lieu: "Boîte bleue", objets: ["papiers de la voiture"] } },
+        { nom: "noter_rangement", entree: { lieu: "Galetas", objets: [] } },
+      ]),
+      { ...d, maison: [cave] },
+      melo,
+      AUJOURDHUI,
+      ctx(),
+    );
+    expect(r.faits).toEqual(["Rangé dans Cave : perceuse, Skis.", "Rangé dans Boîte bleue : papiers de la voiture."]);
+    expect(r.modifications[0]).toMatchObject({ collection: "maison", avant: cave, apres: { id: cave.id, objets: ["skis", "perceuse"] } });
+    expect(r.modifications[1]).toMatchObject({ collection: "maison", avant: null, apres: { lieu: "Boîte bleue" } });
+    const docs = r.modifications.map((m) => m.apres as never);
+    expect(decrireFoyer({ ...d, maison: docs }, melo, AUJOURDHUI)).toContain("Rangements (où est quoi) :\n- Boîte bleue : papiers de la voiture\n- Cave : skis, perceuse");
   });
 
   it("ne note rien pour quelqu'un d'inconnu", () => {

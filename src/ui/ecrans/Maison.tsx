@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { appareilsDe, carnetDe, decrireAchat, entreeCarnet, lireLigneCarnet, numeroDe, type EntreeCarnet, etatGarantie, ID_DECHETS, modifierAppareil, nomDechet, nouvelAppareil, prochainesCollectes, reglageDechets, reglerCollecte, RYTHMES, TYPES_DECHETS, type Appareil, type Collecte, type DocMaison, type Rythme, type TypeDechet } from "../../domaine/maison";
+import { appareilsDe, carnetDe, decrireAchat, entreeCarnet, lireLigneCarnet, lireRangement, nouveauRangement, numeroDe, rangementsDe, separerObjets, type EntreeCarnet, type Rangement, etatGarantie, ID_DECHETS, modifierAppareil, nomDechet, nouvelAppareil, prochainesCollectes, reglageDechets, reglerCollecte, RYTHMES, TYPES_DECHETS, type Appareil, type Collecte, type DocMaison, type Rythme, type TypeDechet } from "../../domaine/maison";
 import { expliquerErreur } from "../../domaine/erreurs";
 import { NOMS_JOURS } from "../../domaine/texte";
 import type { Jour } from "../../domaine/types";
@@ -304,3 +304,102 @@ export function Carnet(props: { depot: Depot; maison: DocMaison[] }) {
 }
 
 export { ID_DECHETS };
+
+// ----- Les rangements : « Où est le… » (0.0.93, proposition 8 de la nuit du 26 octobre) -----
+// Un lieu par ligne et ce qu'il contient ; « Cave : perceuse, skis, valise rouge » s'écrit d'un
+// trait. La fée et la recherche de l'accueil fouillent ces lignes (« où est la perceuse ? »).
+
+interface BrouillonRangement {
+  avant: Rangement | null;
+  lieu: string;
+  objets: string;
+}
+
+export function Rangements(props: { depot: Depot; maison: DocMaison[] }) {
+  const { depot } = props;
+  const annoncer = useAnnoncer();
+  const rangements = rangementsDe(props.maison);
+  const [brouillon, setBrouillon] = useState<BrouillonRangement | null>(null);
+  const [erreur, setErreur] = useState<string | null>(null);
+
+  const ouvrir = (b: BrouillonRangement) => {
+    setErreur(null);
+    setBrouillon(b);
+  };
+  async function ajouter(texte: string) {
+    const { lieu, objets } = lireRangement(texte);
+    if (!objets.length) return ouvrir({ avant: null, lieu, objets: "" });
+    try {
+      await depot.enregistrerMaison(nouveauRangement(lieu, objets, contexteReel));
+    } catch (e) {
+      ouvrir({ avant: null, lieu, objets: objets.join(", ") });
+      setErreur(expliquerErreur(e, "Le rangement"));
+    }
+  }
+  async function enregistrer(b: BrouillonRangement) {
+    try {
+      await depot.enregistrerMaison(nouveauRangement(b.lieu, separerObjets(b.objets), contexteReel, b.avant ?? undefined));
+      setBrouillon(null);
+    } catch (e) {
+      setErreur(expliquerErreur(e, "Le rangement"));
+    }
+  }
+  async function retirer(x: Rangement) {
+    await depot.supprimerMaison(x.id);
+    annoncer(`« ${x.lieu} » retiré des rangements.`, () => depot.enregistrerMaison(x));
+  }
+
+  return (
+    <section className="maison-carnet maison-rangements">
+      <p className="surtitre">Où est quoi</p>
+      <ListeVivante className="carte groupe">
+        {rangements.map((x) => (
+          <Ligne key={x.id}>
+            <Glissable onSupprimer={() => void retirer(x)} libelle="Retirer">
+              <button className="ligne tache maison-appareil" onClick={() => ouvrir({ avant: x, lieu: x.lieu, objets: x.objets.join(", ") })} aria-haspopup="dialog">
+                <span className="tache-texte">
+                  <span className="ligne-texte">{x.lieu}</span>
+                  <span className="tache-details">{x.objets.length ? x.objets.join(", ") : "Vide"}</span>
+                </span>
+              </button>
+            </Glissable>
+          </Ligne>
+        ))}
+        <Ligne key="ajout">
+          <LigneAjout placeholder={rangements.length ? "Placard du haut : piles, ampoules" : "Cave : perceuse, skis, valise rouge"} ajouter={ajouter} />
+        </Ligne>
+      </ListeVivante>
+      {rangements.length === 0 && <p className="discret maison-vide">La cave, le galetas, la boîte bleue : écris le lieu, puis ce qu'il y a dedans. Demande ensuite à ta fée « où est la perceuse ? ».</p>}
+
+      <Feuille ouverte={!!brouillon} onFermer={() => setBrouillon(null)} titre={brouillon?.avant ? brouillon.avant.lieu : "Un rangement"}>
+        {brouillon && (
+          <form
+            className="formulaire maison-fiche"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void enregistrer(brouillon);
+            }}
+          >
+            <label>
+              Lieu
+              <input type="text" value={brouillon.lieu} maxLength={40} placeholder="Cave, placard du haut, boîte bleue…" onChange={(e) => setBrouillon({ ...brouillon, lieu: e.target.value })} />
+            </label>
+            <label>
+              Ce qu'il y a dedans, séparé par des virgules
+              <textarea value={brouillon.objets} rows={4} maxLength={2000} placeholder="perceuse, skis, valise rouge" autoFocus={!brouillon.objets} onChange={(e) => setBrouillon({ ...brouillon, objets: e.target.value })} />
+            </label>
+            {erreur && <p className="erreur" role="alert">{erreur}</p>}
+            <button type="submit" className="bouton-principal">
+              Enregistrer
+            </button>
+            {brouillon.avant && (
+              <button type="button" className="lien danger" onClick={() => { const x = brouillon.avant!; setBrouillon(null); void retirer(x); }}>
+                Retirer
+              </button>
+            )}
+          </form>
+        )}
+      </Feuille>
+    </section>
+  );
+}
