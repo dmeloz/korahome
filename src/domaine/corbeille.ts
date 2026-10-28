@@ -52,7 +52,7 @@ export function meriteLaCorbeille(collection: CollectionCorbeille, doc: unknown,
     case "vetements":
       return d.type === "envie" || d.type === "tri";
     case "maison":
-      return d.type === "appareil" || d.type === "carnet";
+      return d.type === "appareil" || d.type === "carnet" || d.type === "rangement";
     default:
       return true;
   }
@@ -113,7 +113,7 @@ export function espaceDe(collection: CollectionCorbeille, doc: unknown): string 
 /** Le titre du document, comme il s'affichait. */
 export function titreDe(entree: EntreeCorbeille): string {
   // Le document est lu tel qu'il a été rangé : ses champs sont vérifiés un à un.
-  const d = (entree.donnees ?? {}) as { nom?: string; titre?: string; texte?: string; type?: string; libelle?: string; montant?: unknown };
+  const d = (entree.donnees ?? {}) as { nom?: string; titre?: string; texte?: string; type?: string; libelle?: string; lieu?: string; montant?: unknown };
   switch (entree.collection) {
     case "listes":
       return `Liste « ${d.nom ?? "sans nom"} »${entree.elements?.length ? ` (${entree.elements.length} article${entree.elements.length > 1 ? "s" : ""})` : ""}`;
@@ -132,7 +132,7 @@ export function titreDe(entree: EntreeCorbeille): string {
     case "vetements":
       return d.titre ?? "Vêtement";
     case "maison":
-      return d.type === "carnet" ? `Carnet : ${d.titre ?? ""}` : (d.nom ?? "Appareil");
+      return d.type === "carnet" ? `Carnet : ${d.titre ?? ""}` : d.type === "rangement" ? `Rangement : ${d.lieu ?? ""}` : (d.nom ?? "Appareil");
     case "budget":
       return typeof d.montant === "number" ? `${d.libelle ?? "Dépense"} · ${d.montant.toFixed(2)} CHF` : (d.libelle ?? "Dépense");
   }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { contexteTest } from "./contexteTest";
 import { ErreurValidation } from "./foyer";
-import { lireLigneCarnet, numeroDe, aSortirCeSoir, appareilsDe, carnetDe, collecteCeJour, collectesDuJour, decrireAchat, decrireCarnet, entreeCarnet, entreeDuMemeNom, etatGarantie, finDeGarantie, modifierAppareil, nouvelAppareil, PHRASE_SECRET, phraseSortir, prochaineCollecte, prochainesCollectes, reglerCollecte, ressembleASecret, type Collecte, type DocMaison } from "./maison";
+import { decrireRangements, lireRangement, nouveauRangement, ouEst, phraseOuEst, rangementDuMemeLieu, rangementsDe, rangerObjets, separerObjets, lireLigneCarnet, numeroDe, aSortirCeSoir, appareilsDe, carnetDe, collecteCeJour, collectesDuJour, decrireAchat, decrireCarnet, entreeCarnet, entreeDuMemeNom, etatGarantie, finDeGarantie, modifierAppareil, nouvelAppareil, PHRASE_SECRET, phraseSortir, prochaineCollecte, prochainesCollectes, reglerCollecte, ressembleASecret, type Collecte, type DocMaison } from "./maison";
 
 // Le 26 octobre 2026 est un lundi.
 const LUNDI = "2026-10-26";
@@ -109,5 +109,44 @@ describe("une ligne du carnet écrite d'un trait", () => {
     expect(numeroDe("0041 21 555 00 00")).toBe("+41215550000");
     expect(numeroDe("Compteur n° 12345678")).toBeNull();
     expect(numeroDe("Sous l'évier")).toBeNull();
+  });
+});
+
+describe("les rangements : où est quoi", () => {
+  it("un lieu et ses objets, propres, sans doublon", () => {
+    const ctx = contexteTest();
+    const r = nouveauRangement("  la cave ", [" Perceuse ", "skis", "la perceuse", "", "Valise rouge"], ctx);
+    expect(r).toMatchObject({ type: "rangement", lieu: "la cave", objets: ["Perceuse", "skis", "Valise rouge"] });
+    expect(() => nouveauRangement("", ["skis"], ctx)).toThrow(ErreurValidation);
+    expect(() => nouveauRangement("Coffre", ["code PIN 1234"], ctx)).toThrow(PHRASE_SECRET);
+    const apres = nouveauRangement("Cave", ["skis"], ctx, r);
+    expect(apres.id).toBe(r.id);
+    expect(apres.creeLe).toBe(r.creeLe);
+  });
+
+  it("« Cave : perceuse, skis et valise rouge » se lit d'un trait", () => {
+    expect(lireRangement("Cave : perceuse, skis et valise rouge")).toEqual({ lieu: "Cave", objets: ["perceuse", "skis", "valise rouge"] });
+    expect(lireRangement("Galetas")).toEqual({ lieu: "Galetas", objets: [] });
+    expect(separerObjets("piles; ampoules\nbougies")).toEqual(["piles", "ampoules", "bougies"]);
+  });
+
+  it("retrouve le lieu, y range sans doublon, et dit où est l'objet", () => {
+    const ctx = contexteTest();
+    const cave = nouveauRangement("Cave", ["perceuse sans fil", "skis"], ctx);
+    const docs: DocMaison[] = [nouveauRangement("Placard du haut", ["piles", "ampoules"], ctx), cave, entreeCarnet("Concierge", "M. Rossi", ctx)];
+    expect(rangementsDe(docs).map((r) => r.lieu)).toEqual(["Cave", "Placard du haut"]);
+    expect(rangementDuMemeLieu(docs, "la cave")?.id).toBe(cave.id);
+    expect(rangementDuMemeLieu(docs, "garage")).toBeNull();
+    const enrichi = rangerObjets(docs, "la cave", ["Skis", "luge"], ctx);
+    expect(enrichi.id).toBe(cave.id);
+    expect(enrichi.objets).toEqual(["perceuse sans fil", "skis", "luge"]);
+    expect(rangerObjets(docs, "Garage", ["vélo"], ctx)).toMatchObject({ lieu: "Garage", objets: ["vélo"] });
+    expect(ouEst(docs, "la perceuse")).toEqual([{ lieu: "Cave", objet: "perceuse sans fil" }]);
+    expect(ouEst(docs, "pile")).toEqual([{ lieu: "Placard du haut", objet: "piles" }]);
+    expect(ouEst(docs, "vélo")).toEqual([]);
+    expect(phraseOuEst(docs, "perceuse")).toBe("Perceuse sans fil : cave.");
+    expect(phraseOuEst(docs, "vélo")).toBe("Rien de rangé sous « vélo ».");
+    expect(decrireRangements(docs)).toEqual(["Rangements (où est quoi) :", "- Cave : perceuse sans fil, skis", "- Placard du haut : piles, ampoules"]);
+    expect(decrireRangements([])).toEqual([]);
   });
 });

@@ -109,3 +109,12 @@ La fée reçoit les lignes du carnet (« Carnet de la maison : - Concierge : M. 
 « qui est le concierge ? » en une phrase. « Le concierge, c'est Mme Bianchi » passe par l'outil
 `noter_carnet`, qui remplace la ligne du même nom (`entreeDuMemeNom`). Un mot de passe ou un code est
 refusé avec la phrase `PHRASE_SECRET`. Siri lit et écrit la même collection `maison`.
+
+## Les rangements : « où est la perceuse ? » (depuis 0.0.93)
+
+La fée reçoit les rangements du foyer (« Rangements (où est quoi) : - Cave : perceuse, skis ») et
+répond en une phrase ; « la perceuse est à la cave », « j'ai mis les skis au galetas » passent par
+`noter_rangement` (lieu, objets), qui enrichit le lieu du même nom (`rangerObjets`,
+`rangementDuMemeLieu` dans `src/domaine/maison.ts`) au lieu d'en créer un deuxième. Carte « Où est
+quoi » sous le carnet de Maison › Entretien ; la recherche de l'accueil fouille aussi les objets et
+les lieux (section « Où est quoi » dans `recherche.ts`). Siri lit la même collection `maison`.

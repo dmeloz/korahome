@@ -71,7 +71,17 @@ export interface EntreeCarnet {
   modifieLe: string;
 }
 
-export type DocMaison = ReglageDechets | Appareil | EntreeCarnet;
+/** Un rangement (Kora 0.0.93) : un lieu de la maison et ce qu'il y a dedans. « Cave : perceuse, skis, valise rouge ». */
+export interface Rangement {
+  id: Id;
+  type: "rangement";
+  lieu: string;
+  objets: string[];
+  creeLe: string;
+  modifieLe: string;
+}
+
+export type DocMaison = ReglageDechets | Appareil | EntreeCarnet | Rangement;
 
 export const ID_DECHETS = "dechets";
 export const reglageDechets = (docs: readonly DocMaison[]): ReglageDechets | null => docs.find((d): d is ReglageDechets => d.type === "dechets") ?? null;
@@ -269,4 +279,95 @@ export function numeroDe(valeur: string): string | null {
   if (!m) return null;
   const chiffres = m[0].replace(/[^\d+]/g, "").replace(/^00/, "+");
   return chiffres.startsWith("+") ? chiffres.replace(/^\+410/, "+41") : `+41${chiffres.slice(1)}`;
+}
+
+// ----- Les rangements : « Où est le… » -----
+// Les lieux du foyer (cave, placard du haut, boîte bleue, valise) et ce qu'il y a dedans. On
+// demande « Tael, où est la perceuse ? » ; la recherche de la fée fouille aussi les rangements.
+
+export const LONGUEUR_LIEU = 40;
+export const LONGUEUR_OBJET = 60;
+export const OBJETS_PAR_RANGEMENT = 80;
+/** Au-delà, la fée reçoit les premiers rangements seulement. */
+export const RANGEMENTS_FEE = 40;
+
+const cleObjet = (t: string) => normaliser(t).replace(/^(le|la|les|l'|un|une|des|mon|ma|mes|notre|nos) /, "");
+
+/** Les objets propres : sans vide, sans doublon, chacun borné. */
+export function nettoyerObjets(objets: readonly string[]): string[] {
+  const vus = new Set<string>();
+  const propres: string[] = [];
+  for (const o of objets) {
+    const t = propre(o, LONGUEUR_OBJET);
+    const cle = cleObjet(t);
+    if (!cle || vus.has(cle)) continue;
+    vus.add(cle);
+    propres.push(t);
+  }
+  return propres.slice(0, OBJETS_PAR_RANGEMENT);
+}
+
+/** Un rangement, ou sa nouvelle version quand `avant` est donné. Un lieu vide est refusé ; un mot de passe aussi. */
+export function nouveauRangement(lieu: string, objets: readonly string[], ctx: Contexte, avant?: Rangement): Rangement {
+  const l = propre(lieu, LONGUEUR_LIEU);
+  if (!l) throw new ErreurValidation("Donne un lieu : « Cave », « Placard du haut », « Boîte bleue ».");
+  if (ressembleASecret(`${l} ${objets.join(" ")}`)) throw new ErreurValidation(PHRASE_SECRET);
+  const maintenant = ctx.maintenant();
+  return { id: avant?.id ?? ctx.nouvelId(), type: "rangement", lieu: l, objets: nettoyerObjets(objets), creeLe: avant?.creeLe ?? maintenant, modifieLe: maintenant };
+}
+
+export const rangementsDe = (docs: readonly DocMaison[]): Rangement[] =>
+  docs.filter((d): d is Rangement => d.type === "rangement").sort((a, b) => a.lieu.localeCompare(b.lieu, "fr"));
+
+/** Le rangement de ce lieu, quel que soit l'article ou la casse (« la cave » = « Cave »). */
+export function rangementDuMemeLieu(docs: readonly DocMaison[], lieu: string): Rangement | null {
+  const cle = cleObjet(lieu);
+  return rangementsDe(docs).find((r) => cleObjet(r.lieu) === cle) ?? null;
+}
+
+/** « Cave : perceuse, skis, valise rouge » écrit d'un trait : le lieu avant les deux-points, les objets après, séparés par des virgules. */
+export function lireRangement(texte: string): { lieu: string; objets: string[] } {
+  const i = texte.indexOf(":");
+  if (i < 0) return { lieu: texte.trim(), objets: [] };
+  return { lieu: texte.slice(0, i).trim(), objets: separerObjets(texte.slice(i + 1)) };
+}
+
+/** Des objets séparés par des virgules, des points-virgules ou des retours à la ligne. */
+export const separerObjets = (texte: string): string[] => nettoyerObjets(texte.split(/[,;\n]+| et /));
+
+/** Range des objets dans un lieu : le rangement existant s'enrichit (sans doublon), sinon un nouveau. */
+export function rangerObjets(docs: readonly DocMaison[], lieu: string, objets: readonly string[], ctx: Contexte): Rangement {
+  const avant = rangementDuMemeLieu(docs, lieu);
+  return nouveauRangement(avant?.lieu ?? lieu, [...(avant?.objets ?? []), ...objets], ctx, avant ?? undefined);
+}
+
+/** Où est cet objet : chaque mot demandé commence un mot de l'objet (« perceuse » trouve « perceuse sans fil »). */
+export function ouEst(docs: readonly DocMaison[], objet: string): { lieu: string; objet: string }[] {
+  const mots = cleObjet(objet).split(" ").filter(Boolean);
+  if (!mots.length) return [];
+  const trouves: { lieu: string; objet: string }[] = [];
+  for (const r of rangementsDe(docs)) {
+    for (const o of r.objets) {
+      const cible = ` ${cleObjet(o)}`;
+      if (mots.every((m) => cible.includes(` ${m}`))) trouves.push({ lieu: r.lieu, objet: o });
+    }
+  }
+  return trouves;
+}
+
+/** « La perceuse est dans la cave », « Rien de rangé sous ce nom ». */
+export function phraseOuEst(docs: readonly DocMaison[], objet: string): string {
+  const trouves = ouEst(docs, objet);
+  if (!trouves.length) return `Rien de rangé sous « ${objet.trim()} ».`;
+  if (trouves.length === 1) return `${majusculeInitiale(trouves[0].objet)} : ${trouves[0].lieu.toLowerCase()}.`;
+  return trouves.map((t) => `${majusculeInitiale(t.objet)} : ${t.lieu.toLowerCase()}`).join(" · ");
+}
+
+const majusculeInitiale = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+
+/** Les rangements pour l'état du foyer lu par la fée : une ligne par lieu. */
+export function decrireRangements(docs: readonly DocMaison[]): string[] {
+  const rangements = rangementsDe(docs).filter((r) => r.objets.length);
+  if (!rangements.length) return [];
+  return ["Rangements (où est quoi) :", ...rangements.slice(0, RANGEMENTS_FEE).map((r) => `- ${r.lieu} : ${r.objets.join(", ")}`)];
 }

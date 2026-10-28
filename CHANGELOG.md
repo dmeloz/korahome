@@ -6,6 +6,7 @@ test le vérifie). Le détail de chaque version est dans sa PR ; les règles dur
 
 | Version | Date | Ce qu'elle apporte | PR |
 | --- | --- | --- | --- |
+| 0.0.93 | 2026-10-28 | Rangements « Où est quoi » dans Maison › Entretien : un lieu et ce qu'il contient, trouvé par la recherche et par la fée (« où est la perceuse ? ») | [#112](https://github.com/dmeloz/korahome/pull/112) |
 | 0.0.91 | 2026-10-28 | Abonnements et contrats dans Organisation › Administratif : fin, préavis, « Résilier Sunrise avant le 30 novembre » sur l'accueil et dans le rappel du matin | [#111](https://github.com/dmeloz/korahome/pull/111) |
 | 0.0.89 | 2026-10-28 | Accueil : en grandes lettres, les quatre chiffres en deux rangées de deux ; « Plus que 5 étapes » quand une étape est faite ; les points de « Ce soir » plus faciles à toucher | [#109](https://github.com/dmeloz/korahome/pull/109) |
 | 0.0.88 | 2026-10-27 | Veille du 27 octobre : un soin de Mitsu rappelé dans « À faire » se coche « Fait » sur place, les chiffres de l'accueil ne se coupent plus en grandes lettres, Motion 14.6 | [#107](https://github.com/dmeloz/korahome/pull/107) |
