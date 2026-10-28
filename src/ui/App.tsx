@@ -4,6 +4,7 @@ import { flushSync } from "react-dom";
 import { meteoFraiche } from "../domaine/meteo";
 import { rappelDuMatin } from "../domaine/rappels";
 import { facturesDuJour } from "../domaine/budget";
+import { resiliationsDuJour } from "../domaine/abonnements";
 import { budgetVisible } from "../domaine/aMoi";
 import type { WidgetId } from "../domaine/tableauDeBord";
 import type { Foyer } from "../domaine/types";
@@ -152,7 +153,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   const aujourdhui = aujourdhuiLocal();
   useEffect(() => {
     if (!pret) return;
-    const rappel = rappelDuMatin({ foyer, membreId: membreRappels, factures: facturesDuJour(budget, aujourdhui), taches, animaux, produits, zones, meteo, aujourdhui, preferences: lirePreferences() });
+    const rappel = rappelDuMatin({ foyer, membreId: membreRappels, factures: facturesDuJour(budget, aujourdhui), resiliations: resiliationsDuJour(budget, aujourdhui), taches, animaux, produits, zones, meteo, aujourdhui, preferences: lirePreferences() });
     afficherPastilleIcone(rappel?.nombre ?? 0);
   }, [pret, foyer, membreRappels, budget, taches, animaux, produits, zones, meteo, aujourdhui]);
 
@@ -443,6 +444,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         taches={taches}
         evenements={evenementsDe(agenda)}
         factures={facturesDuJour(budget, donnees.aujourdhui)}
+        resiliations={resiliationsDuJour(budget, donnees.aujourdhui)}
         animaux={animaux}
         produits={produits}
         zones={zones}

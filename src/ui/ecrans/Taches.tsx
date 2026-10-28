@@ -29,6 +29,8 @@ import { useAnnoncer } from "../annulation";
 import { Icone } from "../Icone";
 import { CLES, ecrireTexte, lireTexte } from "../stockageLocal";
 import { sauver } from "../sauver";
+import { Abonnements } from "./Abonnements";
+import type { DocBudget } from "../../domaine/budget";
 
 // Les tâches de la maison. On en ajoute en l'écrivant sur la ligne du bas,
 // comme dans Rappels, ou d'une phrase à la fée (« linge chaque mercredi », « impôts le 30 à 9h ») ; on glisse une tâche vers la droite pour la marquer faite, vers la gauche
@@ -62,6 +64,8 @@ export function Taches(props: {
   taches: Tache[];
   /** L'onglet Administratif d'Organisation : les papiers et les démarches. */
   administratif?: boolean;
+  /** Le Budget du foyer, pour les abonnements et contrats de l'onglet Administratif. */
+  budget?: DocBudget[];
 }) {
   const aujourdhui = aujourdhuiLocal();
   const [resteOuvert, setResteOuvert] = useState(false);
@@ -250,6 +254,8 @@ export function Taches(props: {
       </Feuille>
 
 
+
+      {administratif && <Abonnements depot={props.depot} foyer={props.foyer} membreId={moi} budget={props.budget ?? []} />}
 
       {administratif && groupes.length === 0 && terminees.length === 0 && (
         <p className="vide">Aucune démarche en cours. Dis-en une à ta fée : « déclaration d'impôts », « renouveler l'assurance chaque année ».</p>

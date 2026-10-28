@@ -52,7 +52,7 @@
   --espace-6: 16px;
   --espace-7: 24px;
 
-  /* Les bords de côté que l'iPhone garde pour lui (0.0.90) : la colonne de l'heure et de l'île
+  /* Les bords de côté que l'iPhone garde pour lui (0.0.92) : la colonne de l'heure et de l'île
      dynamique sur l'iPhone Duo plié, 0 sur les autres iPhone debout. Tout ce qui touche un côté
      de l'écran s'en écarte (ui/bords.ts les mesure pour la fée). */
   --bord-gauche: env(safe-area-inset-left, 0px);

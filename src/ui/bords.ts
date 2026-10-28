@@ -1,5 +1,5 @@
 /**
- * Les bords de côté de l'écran que l'iPhone garde pour lui (Kora 0.0.90). Sur l'iPhone Duo plié,
+ * Les bords de côté de l'écran que l'iPhone garde pour lui (Kora 0.0.92). Sur l'iPhone Duo plié,
  * une colonne de 84 points à droite porte l'heure et l'île dynamique ; ailleurs ils valent 0.
  * Les styles les lisent dans `--bord-gauche` et `--bord-droit` (base.css) ; le code, par cette
  * mesure, faite sur un témoin invisible pour suivre exactement ce que voient les styles.

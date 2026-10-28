@@ -64,6 +64,20 @@ export interface Poste {
   mois: number | null;
   /** Prélevée seule chaque mois (ordre permanent, LSV) : Kora la retire du pot sans qu'on la coche. */
   prelevement: boolean;
+  /** Le contrat derrière la charge (fin, préavis), tenu dans Administratif (voir domaine/abonnements.ts). */
+  contrat?: Contrat;
+}
+
+/** Un contrat qui se renouvelle : jusqu'à quand il court et combien de mois avant il faut résilier. */
+export interface Contrat {
+  /** Le dernier jour de la période en cours ; null tant qu'on ne le sait pas. */
+  fin: Jour | null;
+  /** Le préavis en mois (0 : résiliable n'importe quand). */
+  preavisMois: number;
+  /** Se renouvelle de lui-même (tacite reconduction) : la fin avance d'un an quand elle est passée. */
+  tacite: boolean;
+  /** Numéro de client, où est le contrat, ce qu'on veut retenir. */
+  note: string | null;
 }
 
 export interface Personne {
@@ -232,6 +246,7 @@ export function nouveauPoste(champs: Partial<Omit<Poste, "id">> & { libelle: str
     jour: champs.jour ?? null,
     mois: champs.mois ?? null,
     prelevement: champs.prelevement ?? false,
+    ...(champs.contrat ? { contrat: champs.contrat } : {}),
   };
 }
 

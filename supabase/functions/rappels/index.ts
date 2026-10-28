@@ -15,7 +15,7 @@
 import webpush from "npm:web-push@3.6.7";
 import { messageErreur, preflight, repondre } from "../_shared/http.ts";
 import { echec, estMembre, serveur, utilisateur } from "../_shared/supabase.ts";
-import { adresseMeteo, enHeuresCalmes, evenementsDe, facturesDuJour, fenetreMotsCalmes, fenetreMotsProgrammes, formaterHeure, FUSEAU_DU_FOYER, jourEtHeure, lireMeteo, messagePush, notificationHeure, notificationMot, PREFERENCES_DE_DEPART, rappelDu, rappelDuMatin, tachesALHeure } from "./domaine.js";
+import { adresseMeteo, enHeuresCalmes, evenementsDe, facturesDuJour, fenetreMotsCalmes, fenetreMotsProgrammes, formaterHeure, FUSEAU_DU_FOYER, jourEtHeure, lireMeteo, messagePush, notificationHeure, notificationMot, PREFERENCES_DE_DEPART, rappelDu, rappelDuMatin, resiliationsDuJour, tachesALHeure } from "./domaine.js";
 
 interface Abonnement {
   endpoint: string;
@@ -67,6 +67,7 @@ function rappelPour(a: Abonnement, donnees: Awaited<ReturnType<typeof donneesDuF
   return rappelDuMatin({
     ...donnees,
     factures: facturesDuJour(donnees.budget, aujourdhui),
+    resiliations: resiliationsDuJour(donnees.budget, aujourdhui),
     meteo,
     membreId: a.membre_id,
     aujourdhui,
