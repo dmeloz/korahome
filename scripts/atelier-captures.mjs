@@ -342,8 +342,19 @@ async function parcourir(p, capter, apresRemplissage) {
   const attendre = (ms = 650) => p.waitForTimeout(ms);
   const revenir = async () => { await p.locator(".page-dessus .retour").first().click().catch(() => {}); await attendre(500); };
   const fermerFeuille = async () => { await p.keyboard.press("Escape"); await attendre(300); const b = p.locator(".feuille-entete button").first(); if (await b.count()) await b.click().catch(() => {}); await attendre(400); };
-  const tousLesEspaces = async () => { await p.mouse.move(200, 300); await p.mouse.wheel(0, -400); await attendre(700); };
-  const espace = async (nom) => { await tousLesEspaces(); await p.locator(".tous-espaces").getByText(nom, { exact: true }).first().click(); await attendre(); };
+  // Depuis 0.0.73, plus de « Tous les espaces » : on entre par la tuile Tâches de l'accueil (la carte
+  // « Demain » sur le hub de l'iPad), puis chaque espace par le sélecteur de la barre du haut.
+  const espace = async (nom) => {
+    if (!(await p.locator(".page-dessus .barre-haut-espaces").count())) {
+      const hub = await p.locator(".page-dessus .hub").count();
+      await p.locator(hub ? ".page-dessus .hub-demain" : '.page-dessus .chiffres-accueil [data-widget="taches"]').click();
+      await attendre(700);
+    }
+    await p.locator(".page-dessus .barre-haut-espaces").click();
+    await p.locator(".barre-haut-menu").getByText(nom, { exact: true }).first().click();
+    await attendre(700);
+  };
+  const accueil = async () => { for (let i = 0; i < 4 && (await p.locator(".page-dessus .retour").count()); i++) await revenir(); };
   const onglet = async (nom) => { await p.locator(".page-dessus").getByRole("tab", { name: nom }).first().click(); await attendre(); };
 
   await capter("bienvenue", "Bienvenue", "Premier lancement");
@@ -366,16 +377,6 @@ async function parcourir(p, capter, apresRemplissage) {
   await attendre(1500);
   await apresRemplissage?.(p);
   await capter("accueil", "Accueil", "Accueil");
-  await p.mouse.wheel(0, 2000);
-  await attendre(700);
-  await capter("accueil-bas", "Accueil, en bas", "Accueil");
-  await p.mouse.wheel(0, -4000);
-  await attendre(500);
-  await tousLesEspaces();
-  await capter("tous-les-espaces", "Tous les espaces", "Accueil");
-  await p.mouse.click(10, 10).catch(() => {});
-  await p.keyboard.press("Escape");
-  await attendre(500);
   const fee = p.getByLabel(/touche pour parler/).first();
   if (await fee.count()) {
     await fee.click();
@@ -385,55 +386,48 @@ async function parcourir(p, capter, apresRemplissage) {
     await attendre(500);
   }
 
-  await espace("Tâches");
-  await capter("taches", "Tâches", "Tâches");
+  // Les quatre espaces (Kora 0.0.75) et leurs onglets.
+  await espace("Organisation");
+  await onglet("Tâches");
+  await capter("organisation", "Organisation › Tâches", "Organisation");
   // Le clic de Playwright passe par Glissable, qui le prend pour un début de geste : clic direct.
-  await p.locator(".tache-texte").first().evaluate((b) => b.click()).catch(() => {});
+  await p.locator(".page-dessus .tache-texte").first().evaluate((b) => b.click()).catch(() => {});
   await attendre(700);
-  await capter("taches-feuille", "Tâches, détail d'une tâche", "Tâches");
+  if (await p.locator(".feuille").count()) await capter("organisation-feuille", "Organisation, détail d'une tâche", "Organisation");
   await fermerFeuille();
-  await onglet("Entretien"); await capter("taches-entretien", "Tâches › Entretien", "Tâches");
-  await onglet("Administratif"); await capter("taches-administratif", "Tâches › Administratif", "Tâches");
-  await revenir();
+  await onglet("Agenda"); await capter("organisation-agenda", "Organisation › Agenda", "Organisation");
+  await onglet("Administratif"); await capter("organisation-administratif", "Organisation › Administratif", "Organisation");
 
-  await espace("Courses");
-  await capter("courses", "Courses", "Courses");
+  await espace("Cuisine");
+  await onglet("Courses"); await capter("cuisine", "Cuisine › Courses", "Cuisine");
   if (await fee.count()) {
     await fee.click();
     await attendre(500);
     await p.locator("input:visible, textarea:visible").last().fill("2 kg de pommes et du pain").catch(() => {});
     await attendre(500);
-    await capter("courses-saisie", "Courses, phrase dite à Tael", "Courses");
+    await capter("cuisine-saisie", "Courses, phrase dite à Tael", "Cuisine");
     await p.keyboard.press("Escape");
     await attendre(500);
   }
-  await onglet("Autres listes"); await capter("courses-autres", "Courses › Autres listes", "Courses");
-  await revenir();
-
-  await espace("Cuisine");
-  await capter("cuisine", "Cuisine › Cette semaine", "Cuisine");
-  await onglet("Nos recettes"); await capter("cuisine-recettes", "Cuisine › Nos recettes", "Cuisine");
+  await onglet("Autres listes"); await capter("cuisine-autres", "Cuisine › Autres listes", "Cuisine");
+  await onglet("Menus"); await capter("cuisine-menus", "Cuisine › Menus", "Cuisine");
+  await onglet("Recettes"); await capter("cuisine-recettes", "Cuisine › Recettes", "Cuisine");
   await onglet("Frigo"); await capter("cuisine-frigo", "Cuisine › Frigo", "Cuisine");
-  await revenir();
 
   await espace("Maison");
-  await capter("maison", "Maison", "Maison");
+  await onglet("Entretien"); await capter("maison", "Maison › Entretien", "Maison");
   await onglet("Mitsu"); await capter("maison-mitsu", "Maison › Mitsu", "Maison");
   await onglet("Jardin"); await capter("maison-jardin", "Maison › Jardin", "Maison");
-  await revenir();
+  await onglet("Vêtements"); await capter("maison-vetements", "Maison › Vêtements", "Maison");
 
-  await espace("Agenda");
-  await capter("agenda", "Agenda", "Agenda");
-  await revenir();
   await espace("Budget");
   await capter("budget", "Budget", "Budget");
-  await revenir();
+  await accueil();
 
-  await tousLesEspaces();
   await p.getByLabel(/^Réglages/).first().click();
   await attendre();
   await capter("reglages", "Réglages", "Réglages");
-  const PAGES = [["Apparence", "apparence"], ["Partage", "partage"], ["Sauvegarde", "sauvegarde"], ["Notifications", "notifications"], ["Calendrier de l'iPhone", "calendrier"], ["Siri", "siri"], ["Ce que", "ce-que-tael-sait"], ["Retours de test", "retours"]];
+  const PAGES = [["Apparence", "apparence"], ["Partage", "partage"], ["Sauvegarde", "sauvegarde"], ["Corbeille", "corbeille"], ["Notifications", "notifications"], ["Calendrier de l'iPhone", "calendrier"], ["Siri", "siri"], ["Ce que", "ce-que-tael-sait"], ["Retours de test", "retours"]];
   for (const [ligne, cle] of PAGES) {
     await p.locator(".page-dessus").getByText(ligne).first().click().catch(() => {});
     await attendre();
@@ -441,7 +435,7 @@ async function parcourir(p, capter, apresRemplissage) {
     await capter(`reglages-${cle}`, `Réglages › ${titre?.trim() || ligne}`, "Réglages");
     await revenir();
   }
-  await revenir();
+  await accueil();
 
   // La nuit de la fée : le même accueil à 23 h 40.
   await p.evaluate(() => sessionStorage.setItem("atelier:heure", "2026-10-20T23:40:00+02:00"));
