@@ -25,6 +25,7 @@ export const ENTRETIENS_PROPOSES: readonly EntretienPropose[] = [
   { titre: "Nettoyer les grilles d'aération", recurrence: mois(6) },
   { titre: "Tester le détecteur de fumée", recurrence: mois(6) },
   { titre: "Purger les radiateurs", recurrence: mois(12) },
+  { titre: "Vérifier la réserve de secours", recurrence: mois(3) },
 ];
 
 export const estEntretien = (t: Tache) => t.categorie === "entretien";

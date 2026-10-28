@@ -196,6 +196,7 @@ export function DetailListe(props: {
             {el.texte}
             {el.quantite && <span className="quantite"> · {el.quantite}</span>}
             {el.source === "chef" && <span className="etiquette-chef" title="Proposé par le Chef de la semaine">Chef</span>}
+            {el.source === "reserve" && <span className="etiquette-chef" title="Pour la réserve de secours">Réserve</span>}
           </span>
           {autre && (
             <span className="initiale" style={{ background: auteur.couleur }} title={`Ajouté par ${auteur.prenom}`}>

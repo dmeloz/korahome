@@ -60,8 +60,8 @@ export interface Element {
   rayon: Rayon;
   coche: boolean;
   ajoutePar: Id | null;
-  /** « chef » : ajouté par le Chef de la semaine pour ses menus. */
-  source?: "chef";
+  /** « chef » : ajouté par le Chef de la semaine pour ses menus ; « reserve » : pour la réserve de secours (0.0.94). */
+  source?: "chef" | "reserve";
   creeLe: string;
   cocheLe: string | null;
   /** Qui l'a coché (depuis Kora 0.0.72) : la pastille « en direct » de l'accueil. */

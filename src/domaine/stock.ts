@@ -41,6 +41,8 @@ export interface Produit {
   image?: string | null;
   ajoutePar: Id | null;
   creeLe: string;
+  /** Fait partie de la réserve de secours (depuis 0.0.94) : le Chef n'y puise pas. */
+  reserve?: boolean;
 }
 
 /** Un produit dont la date tombe dans 3 jours ou moins est à consommer bientôt. */

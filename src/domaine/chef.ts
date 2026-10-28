@@ -211,16 +211,19 @@ Réponds en français, avec le tutoiement.`;
 
 /** Le message du dimanche : le stock, ce qui presse, la liste de courses actuelle. */
 export function messageChef(d: { produits: readonly Produit[]; enCourses: readonly Element[]; aujourdhui: Jour; souvenirs?: readonly Souvenir[]; recettes?: readonly Recette[]; trame?: readonly TrameSoir[] }): string {
-  const aFinir = produitsAFinir(d.produits, d.aujourdhui);
+  // La réserve de secours du foyer reste à sa place : le Chef cuisine avec le reste.
+  const produits = d.produits.filter((p) => !p.reserve);
+  const aFinir = produitsAFinir(produits, d.aujourdhui);
   const urgents = new Set(aFinir.map((p) => p.id));
   const decrire = (p: Produit) => [p.nom, p.quantite, p.peremption && decrirePeremption(p, d.aujourdhui)].filter(Boolean).join(" · ");
   const lignes = [`Nous sommes le ${Number(d.aujourdhui.slice(8, 10))} ${NOMS_MOIS[Number(d.aujourdhui.slice(5, 7)) - 1]} ${d.aujourdhui.slice(0, 4)}.`, ""];
   lignes.push("À finir vite :", ...(aFinir.length ? aFinir.map((p) => `- ${decrire(p)}`) : ["- rien de pressé"]), "");
   for (const lieu of ORDRE_LIEUX) {
-    const ici = d.produits.filter((p) => p.lieu === lieu && !urgents.has(p.id));
+    const ici = produits.filter((p) => p.lieu === lieu && !urgents.has(p.id));
     if (ici.length) lignes.push(`${LIEUX[lieu]} :`, ...ici.map((p) => `- ${decrire(p)}`), "");
   }
-  if (!d.produits.length) lignes.push("Le stock est vide : propose des repas simples avec des ingrédients courants.", "");
+  if (!produits.length) lignes.push("Le stock est vide : propose des repas simples avec des ingrédients courants.", "");
+  if (produits.length < d.produits.length) lignes.push("La réserve de secours du foyer n'est pas listée : n'y puise pas.", "");
   lignes.push("Déjà sur la liste de courses :", ...(d.enCourses.length ? d.enCourses.map((e) => `- ${e.texte}${e.quantite ? ` · ${e.quantite}` : ""}`) : ["- rien"]));
   const memoire = souvenirsRetenus(d.souvenirs ?? []).sort((a, b) => a.creeLe.localeCompare(b.creeLe)).slice(-SOUVENIRS_DU_CHEF);
   if (memoire.length) lignes.push("", "Ce que le foyer aime, n'aime pas ou a l'habitude de faire :", ...memoire.map((s) => `- ${s.texte}`));
