@@ -52,6 +52,12 @@
   --espace-6: 16px;
   --espace-7: 24px;
 
+  /* Les bords de côté que l'iPhone garde pour lui (0.0.90) : la colonne de l'heure et de l'île
+     dynamique sur l'iPhone Duo plié, 0 sur les autres iPhone debout. Tout ce qui touche un côté
+     de l'écran s'en écarte (ui/bords.ts les mesure pour la fée). */
+  --bord-gauche: env(safe-area-inset-left, 0px);
+  --bord-droit: env(safe-area-inset-right, 0px);
+
   /* Le mouvement : la courbe des feuilles de l'iPhone. */
   --courbe: cubic-bezier(0.32, 0.72, 0, 1);
   --duree-feuille: 0.5s;
@@ -121,7 +127,7 @@
 }
 /* iPad et grand écran : le contenu s'élargit. */
 @media (min-width: 760px) {
-  .contenu { max-width: 980px; padding-left: 32px; padding-right: 32px; }
+  .contenu { max-width: 980px; padding-left: calc(32px + var(--bord-gauche)); padding-right: calc(32px + var(--bord-droit)); }
 }
 
 * { box-sizing: border-box; }
@@ -148,7 +154,7 @@ button:disabled { cursor: default; }
 .contenu {
   /* La marge des côtés, reprise par la barre du haut qui va d'un bord à l'autre. */
   --marge-cote: 16px;
-  padding: calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 72px);
+  padding: calc(env(safe-area-inset-top) + 12px) calc(16px + var(--bord-droit)) calc(env(safe-area-inset-bottom) + 72px) calc(16px + var(--bord-gauche));
   max-width: 720px;
   margin: 0 auto;
 }

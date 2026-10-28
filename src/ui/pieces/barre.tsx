@@ -20,6 +20,7 @@ import type { DonneesModule } from "../modules";
 import { TicketDeCaisse } from "../TicketDeCaisse";
 import { Fee } from "./Fee";
 import { sauver } from "../sauver";
+import { hauteurClavier } from "../bords";
 
 // La fée et sa saisie : en bas de chaque page, la seule façon d'ajouter quoi que ce soit.
 // On touche la fée et on parle, ou on garde le doigt et on écrit ; Kora range seule la
@@ -441,8 +442,7 @@ function useClavier(): number {
     const vv = window.visualViewport;
     if (!vv) return;
     const suivre = () => {
-      const h = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      setHauteur(h > 80 ? h : 0);
+      setHauteur(hauteurClavier(window.innerHeight, vv));
     };
     vv.addEventListener("resize", suivre);
     vv.addEventListener("scroll", suivre);

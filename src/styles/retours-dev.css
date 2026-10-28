@@ -3,8 +3,8 @@
 /* Bandeau « Nouvelle version prête », au-dessus du bas de l'écran. */
 .bandeau-version {
   position: fixed;
-  left: 16px;
-  right: 16px;
+  left: calc(16px + var(--bord-gauche));
+  right: calc(16px + var(--bord-droit));
   bottom: calc(env(safe-area-inset-bottom) + var(--hauteur-barre, 16px));
   max-width: 560px;
   margin: 0 auto;
@@ -24,7 +24,7 @@
 /* Coin « Dev » : retours de test, discret mais toujours à portée de pouce. */
 .pastille-dev {
   position: fixed;
-  right: 14px;
+  right: calc(14px + var(--bord-droit));
   bottom: calc(env(safe-area-inset-bottom) + 14px);
   z-index: 9;
   display: inline-flex;

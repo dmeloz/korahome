@@ -129,9 +129,9 @@ export function Budget(p: PropsPage) {
       <Page titre="Budget" sousTitre="Verrouillé sur ce téléphone" className="budget">
         <section className="carte budget-verrou">
           <Icone nom="cadenas" taille={28} />
-          <p>Le Budget s'ouvre avec Face ID. Il reste ouvert dix minutes.</p>
+          <p>Le Budget s'ouvre avec Face ID ou Touch ID. Il reste ouvert dix minutes.</p>
           <button type="button" className="bouton-principal" onClick={() => void ouvrirVerrou().then((ok) => ok && setFerme(false))}>
-            Ouvrir avec Face ID
+            Déverrouiller
           </button>
         </section>
       </Page>

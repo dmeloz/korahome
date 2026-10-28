@@ -28,6 +28,8 @@ const serveur = spawn("npx", ["vite", "preview", "--port", String(port), "--stri
 await new Promise((ok) => setTimeout(ok, 2500));
 
 const erreurs = [];
+/** La colonne de l'heure que l'iPhone Duo plié garde à droite (points), 0 ailleurs. */
+let colonneDroite = 0;
 const navigateur = await chromium.launch({ executablePath: NAVIGATEUR });
 try {
   const ctx = await navigateur.newContext({ ...devices["iPhone 14 Pro"], colorScheme: "dark" });
@@ -78,15 +80,22 @@ try {
   };
   /** Ce qui dépasse de l'écran en largeur (texte trop grand, ligne trop longue). Rend 0 ou 1. */
   const debordement = async (nom) => {
-    const hors = await p.evaluate(() => {
+    const hors = await p.evaluate((colonne) => {
       const w = innerWidth;
       const vus = new Set();
       for (const el of document.querySelectorAll(".page-dessus *")) {
         const r = el.getBoundingClientRect();
         if (r.width && (r.right > w + 1 || r.left < -1)) vus.add(`${el.tagName.toLowerCase()}${[...el.classList].map((c) => `.${c}`).join("")}`);
       }
+      // L'iPhone Duo plié : rien qu'on touche sous la colonne de l'heure, à droite.
+      if (colonne) {
+        for (const el of document.querySelectorAll("button, a, input, textarea, select, [role=button], .fee, .pastille-dev")) {
+          const r = el.getBoundingClientRect();
+          if (r.width && r.height && r.right > w - colonne + 1 && getComputedStyle(el).visibility !== "hidden") vus.add(`${el.tagName.toLowerCase()}${[...el.classList].map((c) => `.${c}`).join("")} sous la colonne`);
+        }
+      }
       return [...vus].slice(0, 4);
-    });
+    }, colonneDroite);
     if (hors.length) erreurs.push(`« ${nom} »${theme} : dépasse de l'écran — ${hors.join(", ")}`);
     return hors.length ? 1 : 0;
   };
@@ -154,12 +163,15 @@ try {
   await p.emulateMedia({ colorScheme: "dark" });
   await p.addStyleTag({ content: "html { font-size: 23px !important; }" });
   await tournee();
-  // L'iPhone Duo (pliable, sorti le 23 octobre 2026) : l'écran du dehors, court et étroit, qui
-  // vaut aussi pour deux apps côte à côte sur l'écran du dedans (385 × 609 dans Safari 27.1),
-  // puis l'écran du dedans, presque carré (669 × 902 dans Safari, un peu plus sans sa barre).
+  // L'iPhone Duo (pliable, sorti le 23 octobre 2026), en app de l'écran d'accueil : l'écran du
+  // dehors (466 × 678 points, dont une colonne de 84 à droite pour l'heure et l'île dynamique,
+  // simulée par --bord-droit), puis l'écran du dedans, presque carré (669 × 951).
   await p.addStyleTag({ content: "html { font-size: 17px !important; }" });
-  for (const [nom, largeur, hauteur] of [["plie", 382, 610], ["deplie", 669, 940]]) {
+  const colonne = await p.addStyleTag({ content: ":root { --bord-droit: 84px !important; }" });
+  for (const [nom, largeur, hauteur, bord] of [["plie", 466, 678, 84], ["deplie", 669, 951, 0]]) {
     theme = `-${nom}`;
+    colonneDroite = bord;
+    if (!bord) await colonne.evaluate((el) => el.remove());
     await p.setViewportSize({ width: largeur, height: hauteur });
     await tournee();
   }
