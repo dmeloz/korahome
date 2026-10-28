@@ -5,6 +5,9 @@ import { createPortal } from "react-dom";
 import { bilanAOuvrir, bilanDeLaSemaine, remarqueDuJour } from "../../domaine/apprentissage";
 import { carteDuJour, resteAFaire, titreMoment, type ChoseDuJour } from "../../domaine/aujourdhui";
 import { reglageDechets } from "../../domaine/maison";
+import { composerHub } from "../../domaine/hub";
+import { useLarge } from "../large";
+import { HubIpad } from "../pieces/HubIpad";
 import { etatDesPots, facturesDuJour, planDe } from "../../domaine/budget";
 import { resiliationsDuJour } from "../../domaine/abonnements";
 import { evenementsDe, ligneWidget, resumeAgenda } from "../../domaine/agenda";
@@ -290,6 +293,26 @@ export function Accueil(props: {
     if (t.responsable === null) return "libre";
     return foyer.membres.find((m) => m.id === t.responsable)?.prenom ?? null;
   };
+  // Le hub sur iPad (0.0.95) : dès 760 points de large, six cartes à la place des chiffres, de « Ce soir » et des piles.
+  const large = useLarge(haut);
+  const hub = large
+    ? composerHub({
+        foyer,
+        membreId,
+        aujourdhui: jourCarte,
+        maintenant: maintenant.toISOString(),
+        choses: carte.choses,
+        menus: props.donnees.menus,
+        listes: props.donnees.listes,
+        elements: props.donnees.elements,
+        evenements,
+        animaux: props.donnees.animaux,
+        dechets: reglageDechets(props.donnees.maison),
+        couple: props.donnees.couple,
+        zones: props.donnees.zones,
+        meteo: props.donnees.meteo,
+      })
+    : null;
   const ouvrirSigne = (v: ValeurSigne) => {
     if (v.destination === "mots") props.ouvrirMots();
     else props.ouvrirModule(v.destination);
@@ -359,7 +382,7 @@ export function Accueil(props: {
   const titreCeSoir = montrer === "demain" ? "Demain" : moment === "dimanche" ? "Aujourd'hui" : titreMoment(heure);
 
   return (
-    <main className="tableau accueil accueil-un-ecran">
+    <main className={`tableau accueil accueil-un-ecran${hub ? " accueil-hub" : ""}`}>
       <header className="haut-accueil" ref={haut}>
         <GrandeDate date={maintenant} />
         <Signes valeurs={valeursSignes} choisis={signes} changer={setSignes} toucher={ouvrirSigne} />
@@ -394,9 +417,22 @@ export function Accueil(props: {
         ouvrir={(ou) => (ou === "taches" ? props.ouvrirModule("taches") : props.ouvrirReglage(ou))}
       />
 
-      <ChiffresDuJour tuiles={tuiles} ouvrir={ouvrirEspace} apercu={setApercu} />
+      {hub && (
+        <HubIpad
+          hub={hub}
+          depot={props.depot}
+          membreId={membreId}
+          qui={quiFait}
+          cocher={(c) => void cocherChose(c)}
+          toucher={toucherChose}
+          ouvrir={ouvrirEspace}
+          ouvrirMots={props.ouvrirMots}
+        />
+      )}
 
-      <CeSoir
+      {!hub && <ChiffresDuJour tuiles={tuiles} ouvrir={ouvrirEspace} apercu={setApercu} />}
+
+      {!hub && <CeSoir
         choses={carte.choses}
         titre={titreCeSoir}
         vide={carte.faites ? "Tout est fait. Belle journée." : "Rien de prévu, rien ne presse."}
@@ -410,9 +446,9 @@ export function Accueil(props: {
           setIndice(false);
           enregistrerIndiceGlisse({ ...lireIndiceGlisse(), geste: true });
         }}
-      />
+      />}
 
-      <section className="en-ce-moment" aria-label="En ce moment">
+      {!hub && <section className="en-ce-moment" aria-label="En ce moment">
         <header className="accueil-titre">
           <h2>En ce moment</h2>
           <span className="discret">{RAISON_DU_MOMENT[moment]}</span>
@@ -424,7 +460,7 @@ export function Accueil(props: {
             Les piles sont vides. Touche ici pour remettre des cartes.
           </button>
         )}
-      </section>
+      </section>}
 
       {/* Le partage et la sauvegarde vivent dans Réglages : ici seulement quand il y a un souci. */}
       <footer className="pied-accueil">

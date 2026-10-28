@@ -168,7 +168,8 @@ try {
   // simulée par --bord-droit), puis l'écran du dedans, presque carré (669 × 951).
   await p.addStyleTag({ content: "html { font-size: 17px !important; }" });
   const colonne = await p.addStyleTag({ content: ":root { --bord-droit: 84px !important; }" });
-  for (const [nom, largeur, hauteur, bord] of [["plie", 466, 678, 84], ["deplie", 669, 951, 0]]) {
+  // Puis l'iPad couché (0.0.95) : le hub de l'accueil, six cartes sur la grille large.
+  for (const [nom, largeur, hauteur, bord] of [["plie", 466, 678, 84], ["deplie", 669, 951, 0], ["ipad", 1180, 820, 0]]) {
     theme = `-${nom}`;
     colonneDroite = bord;
     if (!bord) await colonne.evaluate((el) => el.remove());
