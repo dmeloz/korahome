@@ -93,11 +93,14 @@ export interface TuileChiffre {
 
 export function ChiffresDuJour(props: { tuiles: TuileChiffre[]; ouvrir: (id: TuileChiffre["id"]) => void; apercu: (id: TuileChiffre["id"]) => void }) {
   return (
-    <nav className="chiffres-accueil" aria-label="Les chiffres du jour">
-      {props.tuiles.map((t) => (
-        <Tuile key={t.id} tuile={t} ouvrir={() => props.ouvrir(t.id)} apercu={() => props.apercu(t.id)} />
-      ))}
-    </nav>
+    // Le cadre mesure la place : en grandes lettres, les tuiles passent sur deux rangées (accueil.css).
+    <div className="chiffres-cadre">
+      <nav className="chiffres-accueil" aria-label="Les chiffres du jour">
+        {props.tuiles.map((t) => (
+          <Tuile key={t.id} tuile={t} ouvrir={() => props.ouvrir(t.id)} apercu={() => props.apercu(t.id)} />
+        ))}
+      </nav>
+    </div>
   );
 }
 

@@ -50,9 +50,11 @@ export function carteDemarrageVisible(etapes: readonly EtapeDemarrage[], rangee:
   return !rangee && nombreFaites(etapes) < etapes.length;
 }
 
-/** « Prête en 2 étapes » … « Kora est prête ». */
+/** « Prête en 6 étapes », puis « Plus que 5 étapes » … « Kora est prête ». */
 export function titreDemarrage(etapes: readonly EtapeDemarrage[]): string {
   const restantes = etapes.length - nombreFaites(etapes);
   if (restantes === 0) return "Kora est prête";
-  return restantes === 1 ? "Prête dans une étape" : `Prête en ${restantes} étapes`;
+  // À côté de « 1 faite sur 6 », le titre dit ce qui reste, sans paraître compter autrement.
+  if (restantes === etapes.length) return `Prête en ${restantes} étapes`;
+  return restantes === 1 ? "Plus qu'une étape" : `Plus que ${restantes} étapes`;
 }

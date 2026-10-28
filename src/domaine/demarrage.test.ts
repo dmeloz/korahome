@@ -24,9 +24,14 @@ describe("l'arrivée guidée", () => {
     });
     expect(etapes.filter((e) => e.faite).map((e) => e.id)).toEqual(["installer", "personne", "partage", "notifications", "tache"]);
     expect(etapes[1].detail).toBe("C'est Sarah.");
-    expect(titreDemarrage(etapes)).toBe("Prête dans une étape");
+    expect(titreDemarrage(etapes)).toBe("Plus qu'une étape");
     expect(carteDemarrageVisible(etapes, false)).toBe(true);
     expect(carteDemarrageVisible(etapes, true)).toBe(false);
+  });
+
+  it("dit ce qui reste dès qu'une étape est faite", () => {
+    const etapes = etapesDemarrage({ ...base, installee: true });
+    expect(titreDemarrage(etapes)).toBe("Plus que 5 étapes");
   });
 
   it("disparaît quand tout est fait", () => {
