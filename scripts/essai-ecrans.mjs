@@ -107,7 +107,9 @@ try {
   // puis chaque espace par le sélecteur de la barre du haut.
   const allerEspace = async (espace) => {
     if (!(await p.locator(".page-dessus .barre-haut-espaces").count())) {
-      await p.locator('.page-dessus .chiffres-accueil [data-widget="taches"]').click();
+      // Sur le hub de l'iPad (0.0.95), pas de tuiles : la carte « Demain » ouvre l'Agenda.
+      const hub = await p.locator(".page-dessus .hub").count();
+      await p.locator(hub ? ".page-dessus .hub-demain" : '.page-dessus .chiffres-accueil [data-widget="taches"]').click();
       await p.waitForTimeout(700);
     }
     await p.locator(".page-dessus .barre-haut-espaces").click();
@@ -138,12 +140,14 @@ try {
     }
   }
   await accueil();
-  // Le fil du foyer (0.0.65), depuis sa carte dans les piles de l'accueil.
-  await p.locator('.page-dessus .pile-tirets [aria-label="Chez nous"]').first().click();
-  await p.waitForTimeout(400);
-  await p.locator('.page-dessus .pile-carte[aria-label$="Chez nous"] .pile-entete .lien').click();
-  await verifier("Chez nous");
-  await revenir();
+  // Le fil du foyer (0.0.65), depuis sa carte dans les piles de l'accueil (pas sur le hub).
+  if (!(await p.locator(".page-dessus .hub").count())) {
+    await p.locator('.page-dessus .pile-tirets [aria-label="Chez nous"]').first().click();
+    await p.waitForTimeout(400);
+    await p.locator('.page-dessus .pile-carte[aria-label$="Chez nous"] .pile-entete .lien').click();
+    await verifier("Chez nous");
+    await revenir();
+  }
   await p.getByLabel(/^Réglages/).first().click();
   await verifier("Réglages");
   for (const ligne of ["Apparence", "Partage", "Sauvegarde", "Corbeille", "Notifications", "Calendrier de l'iPhone", "Siri", "Ce que", "Retours de test"]) {
