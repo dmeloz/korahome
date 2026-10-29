@@ -1,21 +1,14 @@
 # KoraHome en ligne
 
-L'app est publiée sur Netlify à l'adresse **https://kora-cassa.netlify.app**
-(projet `kora-cassa`, équipe « D. » de Melo, depuis le 20 octobre 2026 ; l’ancien projet `korahome-cassa` n’a plus de crédits). Chaque fusion dans `main` reconstruit et
-publie l'app toute seule (voir « Qui publie » ; réglages dans `netlify.toml`).
-Sur les iPhone, une pastille rouge sur les Réglages signale la nouvelle version.
+L'app est publiée sur **GitHub Pages** : **https://dmeloz.github.io/korahome/**. Chaque fusion dans
+`main` la reconstruit et la publie (action `Pages`). Sur les iPhone, une pastille sur les Réglages
+signale la nouvelle version. Netlify (kora-cassa.netlify.app, crédits épuisés le 20 octobre 2026,
+figé à la 0.0.63) a été retiré du dépôt en 0.0.96.
 
 - Pas de profil de certificat : l'adresse a un vrai certificat https.
 - L'app marche partout, Mac éteint, hors du wifi de la maison.
-- L'adresse et la clé publique de Supabase sont des variables d'environnement du projet
-  Netlify (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`), jamais dans le dépôt. Elles
-  sont lues à la construction : après les avoir changées, il faut republier.
 
-## Depuis le 20 octobre 2026 : GitHub Pages
-
-Le compte Netlify `kora-cassa` a épuisé ses crédits gratuits le 20 octobre au soir (« Account credit
-usage exceeded ») : les versions 0.0.64 à 0.0.66 n'ont pas pu partir. L'app est désormais publiée
-sur **GitHub Pages**, gratuit et sans compteur : **https://dmeloz.github.io/korahome/**.
+## Comment
 
 - Le dépôt est public (l'offre gratuite de GitHub ne sert Pages que pour un dépôt public). Il ne
   contient aucune donnée du foyer ni aucune clé secrète : les données vivent dans Supabase.
@@ -28,23 +21,6 @@ sur **GitHub Pages**, gratuit et sans compteur : **https://dmeloz.github.io/kora
   données reviennent du serveur ; ce qui n'était que sur l'ancien téléphone (réglages, mémoire
   personnelle) repart de zéro. Siri et Apple Pay ne changent pas (ils parlent à Supabase).
 - Pour republier sans changement : GitHub › Actions › Pages › Run workflow.
-
-## Qui publie
-L'offre gratuite de Netlify n'accepte qu'un contributeur sur un dépôt privé : quand un
-commit porte un coauteur (`Co-authored-by: Claude …`), Netlify refuse de construire
-(« unrecognized Git contributor »). La publication passe donc par GitHub : l'action
-`Publier` (`.github/workflows/publier.yml`) construit et publie l'app à chaque arrivée
-dans `main`, avec un jeton Netlify. Elle reprend les variables du projet Netlify.
-
-Mise en place, une seule fois :
-1. Netlify : avatar > User settings > Applications > Personal access tokens > New access
-   token (nom « GitHub KoraHome », sans expiration), copier le jeton.
-2. GitHub : dépôt korahome > Settings > Secrets and variables > Actions > New repository
-   secret, nom `NETLIFY_AUTH_TOKEN`, coller le jeton.
-3. Netlify : projet kora-cassa > Project configuration > Build & deploy > Continuous
-   deployment > Build settings > Stop builds, pour ne plus voir les constructions refusées.
-
-Pour republier sans changement : GitHub > Actions > Publier > Run workflow.
 
 ## Passer d'une adresse à l'autre
 Chaque adresse garde ses propres données sur l'iPhone. Installer l'app depuis l'adresse

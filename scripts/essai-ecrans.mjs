@@ -33,6 +33,8 @@ let colonneDroite = 0;
 const navigateur = await chromium.launch({ executablePath: NAVIGATEUR });
 try {
   const ctx = await navigateur.newContext({ ...devices["iPhone 14 Pro"], colorScheme: "dark" });
+  // Depuis 0.0.96 la pastille Dev et les retours de test sont cachés par défaut : l'essai les allume.
+  await ctx.addInitScript(() => localStorage.setItem("korahome.coinDev", "visible"));
   const p = await ctx.newPage();
   await p.clock.install({ time: new Date("2026-10-20T09:15:00+02:00") });
   p.on("pageerror", (e) => erreurs.push(`Erreur JavaScript : ${e.message}`));

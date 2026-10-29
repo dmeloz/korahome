@@ -25,6 +25,10 @@ interface Proposition {
 
 // La proposition reste le temps que l'app est ouverte : on peut aller voir le frigo et revenir.
 let derniere: Proposition | null = null;
+/** La proposition reste en mémoire d'une ouverture de la page à l'autre. */
+function retenir(p: Proposition | null) {
+  derniere = p;
+}
 
 /** Le conseil du dimanche : Jarvis prépare la semaine, le foyer coche ce qu'il garde et valide ensemble. */
 export function Conseil(props: { donnees: DonneesModule; depot: Depot; serveur: ServeurJarvis; foyerPartage: string }) {
@@ -36,7 +40,7 @@ export function Conseil(props: { donnees: DonneesModule; depot: Depot; serveur: 
   const [validee, setValidee] = useState<{ modifications: Modification[]; echecs: string[]; annulee: boolean } | null>(null);
 
   const garder = (p: Proposition | null) => {
-    derniere = p;
+    retenir(p);
     setProposition(p);
   };
 

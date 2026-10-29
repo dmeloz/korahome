@@ -26,12 +26,19 @@ export default defineConfig({
       registerType: "prompt",
       // Au tout premier lancement, l'app est prise en charge tout de suite.
       // Les rappels du matin : réception et toucher d'une notification (public/notifications-sw.js).
-      // Le lecteur de codes-barres (WebAssembly) est gardé avec l'app pour marcher hors ligne.
+      // Le lecteur de codes-barres (WebAssembly, près d'un mégaoctet) n'est plus pris à
+      // l'installation (0.0.96) : il se charge au premier scan, puis reste en cache hors ligne.
       workbox: {
         clientsClaim: true,
         importScripts: ["notifications-sw.js"],
-        globPatterns: ["**/*.{js,css,html,svg,png,wasm}"],
-        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+        globPatterns: ["**/*.{js,css,html,svg,png}"],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.endsWith(".wasm"),
+            handler: "CacheFirst",
+            options: { cacheName: "kora-wasm", expiration: { maxEntries: 2 } },
+          },
+        ],
       },
       includeAssets: ["favicon.svg", "apple-touch-icon.png"],
       manifest: {

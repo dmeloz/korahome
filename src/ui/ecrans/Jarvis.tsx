@@ -73,13 +73,6 @@ export function Jarvis(props: {
   const arretEcoute = useRef<(() => void) | null>(null);
   arretEcoute.current = ecoute;
   useEffect(() => () => arretEcoute.current?.(), []);
-  // La demande venue de la barre Jarvis : envoyée une fois, à l'arrivée sur la page.
-  const envoyerDemande = useEffectEvent(() => {
-    const demande = demandeEnAttente;
-    demandeEnAttente = null;
-    if (demande) void demander(demande, false);
-  });
-  useEffect(() => envoyerDemande(), []);
 
   const ajouter = (e: Omit<Echange, "n">) => setEchanges((avant) => [...avant, { ...e, n: ++compteur }]);
 
@@ -122,6 +115,14 @@ export function Jarvis(props: {
       setEnCours(false);
     }
   }
+
+  // La demande venue de la barre Jarvis : envoyée une fois, à l'arrivée sur la page.
+  const envoyerDemande = useEffectEvent(() => {
+    const demande = demandeEnAttente;
+    demandeEnAttente = null;
+    if (demande) void demander(demande, false);
+  });
+  useEffect(() => envoyerDemande(), []);
 
   async function repondre(echange: Echange, oui: boolean) {
     if (!echange.confirmation || echange.confirmation.reponse) return;

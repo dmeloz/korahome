@@ -53,12 +53,16 @@ export async function copierRapport(texte: string): Promise<boolean> {
   }
 }
 
-/** La pastille « Dev » est visible sauf si on l'a masquée sur ce téléphone. */
+/**
+ * La pastille « Dev » et les retours de test ne se montrent que sur le téléphone qui les a
+ * allumés (cinq touchers sur la ligne de la version, dans Réglages). Depuis 0.0.96 : avant,
+ * ils étaient là par défaut, sur l'iPhone de Sarah aussi.
+ */
 export function lirePastilleVisible(): boolean {
-  return lireTexte(CLES.pastilleDev) !== "masquee";
+  return lireTexte(CLES.pastilleDev) === "visible";
 }
 
 export function enregistrerPastilleVisible(visible: boolean): void {
-  if (visible) effacer(CLES.pastilleDev);
-  else ecrireTexte(CLES.pastilleDev, "masquee");
+  if (visible) ecrireTexte(CLES.pastilleDev, "visible");
+  else effacer(CLES.pastilleDev);
 }
