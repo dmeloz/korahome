@@ -82,3 +82,12 @@ toujours l'évènement : sa notification remplace celle proposée et il garde le
 
 Le rappel du matin annonce aussi les anniversaires de l'agenda une semaine avant
 (`anniversairesBientot` dans `src/domaine/agenda.ts`).
+
+## Entretien du serveur (depuis 0.0.96)
+Le passage des rappels ne tourne qu'entre 3 h et 22 h 59 UTC (les rappels vont de 5 h à 22 h 59 à
+Zurich). Deux autres passages réguliers, programmés par `select prive.programmer_entretien();` :
+la sauvegarde hebdomadaire de tous les documents du foyer (`prive.sauvegardes`, dimanche 3 h UTC,
+huit semaines gardées ; pour revenir en arrière, relire `contenu` et le remettre dans `documents`)
+et le ménage quotidien (`prive.faire_le_menage` : documents supprimés depuis plus de 90 jours,
+journal du passage régulier de plus de 7 jours). L'heure d'une modification reçue plus de
+5 minutes dans le futur est remplacée par celle du serveur (`documents_plus_recent`).

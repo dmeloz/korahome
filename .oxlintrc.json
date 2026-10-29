@@ -24,8 +24,8 @@
     "react/refs": "off",
     "react/set-state-in-effect": "off",
     "react/purity": "off",
-    "react/immutability": "off",
-    "react/globals": "off"
+    "react/immutability": "error",
+    "react/globals": "error"
   },
   "ignorePatterns": [
     "dist",

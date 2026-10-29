@@ -134,12 +134,23 @@ async function donneesDuFoyer(foyerId: string) {
   return { agenda: de("agenda"), foyer: de("foyer")[0] ?? null, animaux: de("animaux") };
 }
 
+/**
+ * Écrit les documents « agenda » qui changent vraiment. Un document identique n'est pas réécrit
+ * (0.0.96) : avant, chaque passage de minuit redatait tout l'agenda et les téléphones le
+ * retéléchargeaient en entier.
+ */
 async function ecrireDocuments(foyerId: string, documents: { id: string; donnees: unknown }[]) {
   if (!documents.length) return;
+  const existants = (await echec(
+    serveur.from("documents").select("id, donnees").eq("foyer_id", foyerId).eq("collection", "agenda").in("id", documents.map((d) => d.id)),
+  )) as { id: string; donnees: unknown }[];
+  const avant = new Map(existants.map((e) => [e.id, JSON.stringify(e.donnees)]));
+  const changes = documents.filter((d) => avant.get(d.id) !== JSON.stringify(d.donnees));
+  if (!changes.length) return;
   const maj = new Date().toISOString();
   await echec(
     serveur.from("documents").upsert(
-      documents.map((d) => ({ foyer_id: foyerId, collection: "agenda", id: d.id, donnees: d.donnees, maj_client: maj })),
+      changes.map((d) => ({ foyer_id: foyerId, collection: "agenda", id: d.id, donnees: d.donnees, maj_client: maj })),
       { onConflict: "foyer_id,collection,id" },
     ),
   );

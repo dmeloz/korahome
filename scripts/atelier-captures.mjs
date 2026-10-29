@@ -509,6 +509,8 @@ try {
         timezoneId: "Europe/Zurich",
       });
       await ctx.addInitScript(DETERMINISTE, manifeste.heureFictive);
+      // Depuis 0.0.96 la pastille Dev et les retours de test sont cachés par défaut : l'atelier les allume.
+      await ctx.addInitScript(() => localStorage.setItem("korahome.coinDev", "visible"));
       const p = await ctx.newPage();
       p.on("pageerror", (e) => manifeste.erreurs.push(`${groupe} : ${e.message}`));
       await p.goto(`http://localhost:${port}/`);

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Feuille } from "../Feuille";
 import type { Foyer } from "../../domaine/types";
 import { decrireJours, formaterHeure } from "../../domaine/rappels";
@@ -65,8 +65,18 @@ export function Reglages(props: {
   const [verification, setVerification] = useState<string | null>(null);
   const moi = props.foyer.membres.find((m) => m.id === props.membreId);
   const rappels = lirePreferences();
+  // Cinq touchers sur la version en deux secondes : la section Développement apparaît.
+  const touchers = useRef<number[]>([]);
 
   const version = async () => {
+    const maintenant = Date.now();
+    touchers.current = [...touchers.current.filter((t) => maintenant - t < 2000), maintenant];
+    if (touchers.current.length >= 5 && !props.pastilleVisible) {
+      touchers.current = [];
+      props.changerPastille(true);
+      setVerification("Mode développement activé");
+      return;
+    }
     if (props.nouvelleVersion) return props.appliquerMiseAJour();
     setVerification("Vérification…");
     setVerification(MESSAGES_VERIFICATION[await props.verifierMiseAJour()]);
@@ -119,6 +129,7 @@ export function Reglages(props: {
         <Ligne picto="info" titre="Visite guidée" valeur="Revoir" onClick={props.revoirVisite} />
       </ul>
 
+      {props.pastilleVisible && (<>
       <h2 className="rayon">Développement</h2>
       <ul className="carte groupe">
         <Ligne
@@ -140,6 +151,7 @@ export function Reglages(props: {
           </button>
         </li>
       </ul>
+      </>)}
     </Page>
   );
 }

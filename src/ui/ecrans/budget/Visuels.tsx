@@ -29,16 +29,17 @@ export function AnneauDuCommun(props: { parts: PartDuCommun[]; entree: number; n
   const dessin = useDessin<HTMLElement>();
   const rayon = 52;
   const tour = 2 * Math.PI * rayon;
-  let depart = 0;
   const actif = props.parts.find((x) => x.pot === choisi) ?? null;
   return (
     <section ref={dessin} className="carte budget-anneau">
       <div className="budget-anneau-dessin">
         <svg viewBox="0 0 140 140" role="img" aria-label="Répartition du compte commun" data-apparait="">
           <circle cx="70" cy="70" r={rayon} className="budget-anneau-fond" />
-          {props.parts.map((x) => {
+          {props.parts.map((x, i) => {
             const longueur = Math.max(0, x.part * tour - 3);
-            const trait = (
+            // Chaque part commence là où la précédente finit.
+            const depart = props.parts.slice(0, i).reduce((somme, p) => somme + p.part * tour, 0);
+            return (
               <circle
                 key={x.pot}
                 cx="70"
@@ -50,8 +51,6 @@ export function AnneauDuCommun(props: { parts: PartDuCommun[]; entree: number; n
                 onClick={() => setChoisi(choisi === x.pot ? null : x.pot)}
               />
             );
-            depart += x.part * tour;
-            return trait;
           })}
         </svg>
         <div className="budget-anneau-centre" aria-live="polite">

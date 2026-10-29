@@ -111,6 +111,10 @@ const ESPACES_BARRE: EspaceBarre[] = (["chef", "maison", "taches", "budget"] as 
 // L'écran affiché, lu par le journal des retours de test à chaque geste.
 let ecranCourant = "Accueil";
 export const ecranAffiche = () => ecranCourant;
+/** Le journal Dev lit l'écran affiché par ici (installerJournal dans main.tsx). */
+function noterEcranAffiche(nom: string) {
+  ecranCourant = nom;
+}
 
 export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJour: MiseAJour; partage: ServicesPartage | null }) {
   const { pret, foyer, listes, elements, taches, retours, animaux, produits, catalogue, zones, souvenirs, couple, menus, agenda, budget, corbeille, vetements, maison } = useDonnees(depot);
@@ -212,8 +216,8 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   };
   const glissement = useGlissementRetour(pile.length > 1, revenir);
   const nomEcran = !pret ? "Chargement" : !foyer ? "Bienvenue" : nommer(page);
-  ecranCourant = nomEcran;
   useEffect(() => {
+    noterEcranAffiche(nomEcran);
     if (pret) noter("ecran", nomEcran, nomEcran);
   }, [pret, nomEcran]);
 
