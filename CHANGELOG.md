@@ -6,6 +6,7 @@ test le vérifie). Le détail de chaque version est dans sa PR ; les règles dur
 
 | Version | Date | Ce qu'elle apporte | PR |
 | --- | --- | --- | --- |
+| 0.0.97 | 2026-10-30 | Veille du 30 octobre : le conseiller du Budget répond de nouveau (le serveur forçait son outil, refusé par Claude depuis les modèles 5.5) ; un test interdit désormais l'outil forcé dans toutes les fonctions | [#118](https://github.com/dmeloz/korahome/pull/118) |
 | 0.0.96 | 2026-10-29 | Suites invisibles de l'audit : pastille Dev et retours de test cachés sauf sur le téléphone qui les allume (cinq touchers sur la version), scanner chargé au premier scan, Netlify retiré, règles React du lint rallumées (globals, immutability), serveur : horloge des conflits bornée, agenda réécrit seulement s'il change, purges, sauvegarde hebdomadaire | [#117](https://github.com/dmeloz/korahome/pull/117) |
 | 0.0.95 | 2026-10-28 | Hub Kora sur iPad : dès 760 points de large, l'accueil devient six cartes (ce soir, au menu, courses, demain, mot de l'autre, balcon) sur la grille large commune | [#114](https://github.com/dmeloz/korahome/pull/114) |
 | 0.0.94 | 2026-10-28 | Réserve de secours dans Cuisine › Frigo : la liste de la Confédération pour une semaine à deux, comparée au stock, le manquant aux courses ; le Chef n'y puise pas | [#113](https://github.com/dmeloz/korahome/pull/113) |
