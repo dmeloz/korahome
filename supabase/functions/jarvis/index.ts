@@ -167,8 +167,9 @@ Deno.serve(async (req) => {
       // La réflexion de Claude compte dans max_tokens : un ticket de vingt lignes demande de la place.
       max_tokens: reflechi ? 4000 : image ? 8000 : 2000,
       system: budgetFoyer ? CONSIGNES_BUDGET : conseil ? CONSIGNES_CONSEIL : CONSIGNES_JARVIS,
+      // Jamais de tool_choice forcé : les modèles 5.5 le refusent (400). Les consignes du conseiller
+      // demandent repondre_budget, et lireConseiller reprend le texte libre s'il manque.
       tools: budgetFoyer ? [OUTIL_BUDGET] : OUTILS_JARVIS,
-      ...(budgetFoyer ? { tool_choice: { type: "tool", name: OUTIL_BUDGET.name } } : {}),
       output_config: { effort: reflechi ? "medium" : "low" },
       messages: [
         {
