@@ -177,6 +177,16 @@ export function estTerminee(tache: Tache): boolean {
   return !tache.recurrence && tache.faiteLe !== null;
 }
 
+/**
+ * « À demain » (Kora 0.0.99) : une ou plusieurs tâches repoussées au lendemain, d'un geste. Une
+ * tâche déjà prévue plus tard ne revient pas plus tôt, une tâche terminée ne bouge pas. Renvoie
+ * seulement celles qui changent.
+ */
+export function aDemain(taches: readonly Tache[], aujourdhui: Jour): Tache[] {
+  const demain = decaler(aujourdhui, { unite: "jour", tous: 1 });
+  return taches.filter((t) => !estTerminee(t) && t.echeance < demain).map((t) => ({ ...t, echeance: demain }));
+}
+
 /** Chacun choisit ses tâches : prendre une tâche libre, ou la rendre libre. */
 export function prendre(tache: Tache, membre: Id): Tache {
   return { ...tache, responsable: membre };

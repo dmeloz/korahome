@@ -42,16 +42,23 @@
 .equilibre-noms > span { display: inline-flex; align-items: center; gap: var(--espace-3); }
 .equilibre-point { width: 8px; height: 8px; border-radius: 50%; }
 
-/* Le mode « Choisir » d'une liste : un rond par article, la barre d'actions au-dessus de la fée. */
-.element.choix .case-choix { border-color: var(--accent); }
-.element.choisi .case-choix { background: var(--accent); }
-.element.choix.coche .ligne-texte { text-decoration: none; }
+/* Le mode « Choisir » d'une liste et des tâches : un rond par ligne, la barre d'actions au-dessus de la fée. */
+.ligne.choix .case-choix { border-color: var(--accent); }
+.ligne.choisi .case-choix { background: var(--accent); }
+.ligne.choix.coche .ligne-texte { text-decoration: none; }
+.tache.choix { width: 100%; text-align: left; font: inherit; color: inherit; }
 .barre-choix {
+  position: fixed;
+  z-index: 11;
+  left: calc(var(--bord-gauche) + var(--espace-5));
+  right: calc(var(--bord-droit) + var(--espace-5));
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--espace-5));
+  max-width: 664px;
+  margin: 0 auto;
   display: flex;
   justify-content: space-between;
   gap: var(--espace-5);
   padding: 12px 18px;
-  margin: 0 12px 8px;
   border-radius: var(--rayon-feuille);
   background: var(--surface-haute);
   border: 1px solid var(--trait);

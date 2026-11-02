@@ -4,6 +4,7 @@ import { Feuille } from "../Feuille";
 import { appliquerEtalement, appliquerRepartition, compteRepartition, etalementPropose, proposerRepartition, tachesDeLaSemaine } from "../../domaine/repartition";
 import {
   TACHES_DE_LA_SEMAINE,
+  aDemain,
   decrireEcheance,
   decrireRecurrence,
   estTerminee,
@@ -23,7 +24,7 @@ import { Ligne, ListeVivante, Message } from "../moteur/pieces";
 import { vibrer } from "../haptique";
 import { equilibreDesTaches, equilibreVisible } from "../../domaine/apprentissage";
 import { noterUsage } from "../usage";
-import { EtatVide, LigneAjout, Page } from "../pieces";
+import { BarreChoix, EtatVide, LigneAjout, Page } from "../pieces";
 import { analyserTache } from "../../domaine/barre";
 import { useAnnoncer } from "../annulation";
 import { Icone } from "../Icone";
@@ -77,6 +78,8 @@ export function Taches(props: {
     return demandee;
   });
   const annoncer = useAnnoncer();
+  // Les tâches choisies pour agir d'un coup (0.0.99, le même geste que les Courses) ; null hors du mode « Choisir ».
+  const [choisis, setChoisis] = useState<ReadonlySet<string> | null>(null);
   const [annulable, setAnnulable] = useState<{ texte: string; avant: Tache } | null>(null);
 
   useEffect(() => {
@@ -125,6 +128,48 @@ export function Taches(props: {
     setAnnulable({ texte: `« ${t.titre} » supprimée.`, avant: t });
   }
 
+  // Le mode « Choisir » : ce qui est à faire et à l'écran (le reste seulement s'il est ouvert).
+  const aChoisir = [...groupes, ...(resteOuvert ? reste : [])].flatMap((g) => g.taches).filter((x) => !estTerminee(x));
+  const lot = aChoisir.filter((x) => choisis?.has(x.id));
+  const choisir = (id: string) =>
+    setChoisis((avant) => {
+      const s = new Set(avant);
+      if (s.has(id)) s.delete(id);
+      else s.add(id);
+      return s;
+    });
+  const pluriel = (n: number, mot: string) => (n === 1 ? `Une ${mot}` : `${n} ${mot}s`);
+
+  /** « À demain » : les tâches choisies passent au lendemain, d'un geste. */
+  async function reporterChoisies() {
+    const apres = aDemain(lot, aujourdhui);
+    const avant = lot.filter((x) => apres.some((a) => a.id === x.id));
+    setChoisis(null);
+    if (!apres.length) return;
+    vibrer();
+    await props.depot.enregistrerTaches(apres);
+    annoncer(`${pluriel(apres.length, "tâche")} pour demain.`, () => props.depot.enregistrerTaches(avant));
+  }
+
+  async function faireChoisies() {
+    const avant = lot;
+    setChoisis(null);
+    if (!avant.length) return;
+    vibrer();
+    await props.depot.enregistrerTaches(avant.map((x) => marquerFaite(x, moi, aujourdhui, contexteReel)));
+    feteFee();
+    annoncer(`${pluriel(avant.length, "tâche")} ${avant.length === 1 ? "faite" : "faites"}.`, () => props.depot.enregistrerTaches(avant));
+  }
+
+  async function retirerChoisies() {
+    const avant = lot;
+    setChoisis(null);
+    if (!avant.length) return;
+    vibrer();
+    for (const x of avant) await props.depot.supprimerTache(x.id);
+    annoncer(`${pluriel(avant.length, "tâche")} ${avant.length === 1 ? "retirée" : "retirées"}.`, () => props.depot.enregistrerTaches(avant));
+  }
+
   // Les six tâches arrivent déjà étalées sur la semaine, pas toutes le même jour.
   const ajouterSemaine = () => {
     const nouvelles = tachesDeDepart(aujourdhui, contexteReel);
@@ -144,6 +189,21 @@ export function Taches(props: {
       terminee ? `faite${membre(t.faitePar) ? ` par ${membre(t.faitePar)!.prenom}` : ""}` : decrireEcheance(t.echeance, aujourdhui),
       resp ? `${resp.id === moi ? "toi" : resp.prenom}` : plusieurs ? "libre" : null,
     ].filter(Boolean);
+
+    if (choisis && !terminee) {
+      const pris = choisis.has(t.id);
+      return (
+        <Ligne key={t.id}>
+          <button className={`ligne tache choix${pris ? " choisi" : ""}`} aria-pressed={pris} onClick={() => choisir(t.id)}>
+            <span className="case case-choix" aria-hidden>{pris ? "✓" : ""}</span>
+            <span className="tache-texte">
+              <span className="ligne-texte">{t.titre}</span>
+              <span className={`tache-details${enRetard ? " retard" : ""}`}>{details.join(" · ")}</span>
+            </span>
+          </button>
+        </Ligne>
+      );
+    }
 
     return (
       <Ligne key={t.id} className={t.id === phare ? "phare-ligne" : undefined}>
@@ -210,8 +270,17 @@ export function Taches(props: {
     <Page
       titre="Tâches"
       sousTitre={administratif ? "Les papiers, les factures et les démarches" : vide ? undefined : dues ? `${dues} à faire aujourd'hui` : "Rien ne presse aujourd'hui"}
-      actions={plusieurs && !vide && !administratif ? <button className="lien" onClick={() => setRepartir(true)}>Répartir</button> : undefined}
-      aide={{ cle: "taches", resume: "Écris une tâche, ou dis-la à ta fée", texte: "Écris une tâche sous la liste, ou dis-la à ta fée avec son rythme : « linge chaque mercredi ». Glisse une tâche vers la droite quand elle est faite, vers la gauche pour la supprimer. Un appui long ouvre sa fiche." }}
+      actions={
+        <>
+          {plusieurs && !vide && !administratif && !choisis && <button className="lien" onClick={() => setRepartir(true)}>Répartir</button>}
+          {(choisis || aChoisir.length > 1) && (
+            <button className="lien" onClick={() => setChoisis(choisis ? null : new Set())}>
+              {choisis ? "OK" : "Choisir"}
+            </button>
+          )}
+        </>
+      }
+      aide={{ cle: "taches", resume: "Écris une tâche, ou dis-la à ta fée", texte: "Écris une tâche sous la liste, ou dis-la à ta fée avec son rythme : « linge chaque mercredi ». Glisse une tâche vers la droite quand elle est faite, vers la gauche pour la supprimer. Un appui long ouvre sa fiche. « Choisir » en haut pour en mettre plusieurs à demain, faites ou retirées d'un coup." }}
     >
       <Repartition ouverte={repartir} fermer={() => setRepartir(false)} foyer={props.foyer} taches={props.taches} aujourdhui={aujourdhui} depot={props.depot} />
 
@@ -290,9 +359,22 @@ export function Taches(props: {
           <ListeVivante className="carte groupe">{g.taches.map(ligne)}</ListeVivante>
         </section>
       ))}
-      <div className="carte groupe ajout-seul">
-        <LigneAjout placeholder={administratif ? "Nouvelle démarche" : "Nouvelle tâche"} ajouter={ajouterEcrite} />
-      </div>
+      {choisis ? (
+        <BarreChoix libelle="Tâches choisies">
+          <button className="lien" onClick={() => setChoisis(lot.length === aChoisir.length ? new Set() : new Set(aChoisir.map((x) => x.id)))}>
+            {lot.length === aChoisir.length ? "Aucune" : "Toutes"}
+          </button>
+          <button className="lien" disabled={!lot.length} onClick={() => void reporterChoisies()}>
+            {lot.length ? `À demain (${lot.length})` : "À demain"}
+          </button>
+          <button className="lien" disabled={!lot.length} onClick={() => void faireChoisies()}>Faites</button>
+          <button className="lien danger" disabled={!lot.length} onClick={() => void retirerChoisies()}>Retirer</button>
+        </BarreChoix>
+      ) : (
+        <div className="carte groupe ajout-seul">
+          <LigneAjout placeholder={administratif ? "Nouvelle démarche" : "Nouvelle tâche"} ajouter={ajouterEcrite} />
+        </div>
+      )}
 
       {nombreReste > 0 && (
         <section className="reste-taches">

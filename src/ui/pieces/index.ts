@@ -6,4 +6,5 @@ export { Feuille } from "../Feuille";
 export { Glissable } from "../Glissable";
 export { Visite } from "./Visite";
 export { LigneAjout } from "./LigneAjout";
+export { BarreChoix } from "./BarreChoix";
 export { EtatVide } from "./EtatVide";

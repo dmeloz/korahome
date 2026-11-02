@@ -3,6 +3,7 @@ import { contexteTest } from "./contexteTest";
 import { ErreurValidation } from "./foyer";
 import type { FoisFaite } from "./types";
 import {
+  aDemain,
   compterDues,
   decaler,
   decrireEcheance,
@@ -118,6 +119,23 @@ describe("chacun choisit ses tâches", () => {
     const t = nouvelleTache("Ménage", semaine, "2026-10-07", contexteTest());
     expect(prendre(t, "melo").responsable).toBe("melo");
     expect(liberer(prendre(t, "melo")).responsable).toBeNull();
+  });
+});
+
+describe("à demain, d'un geste", () => {
+  it("repousse au lendemain ce qui est en retard ou dû aujourd'hui, et garde le rythme", () => {
+    const ctx = contexteTest();
+    const retard = nouvelleTache("Impôts", null, "2026-10-05", ctx);
+    const duJour = nouvelleTache("Linge", semaine, "2026-10-07", ctx);
+    const plusTard = nouvelleTache("Vitres", null, "2026-10-20", ctx);
+    const faite = marquerFaite(nouvelleTache("Pharmacie", null, "2026-10-07", ctx), "melo", "2026-10-07", ctx);
+    const apres = aDemain([retard, duJour, plusTard, faite], "2026-10-07");
+    expect(apres.map((t) => [t.titre, t.echeance])).toEqual([
+      ["Impôts", "2026-10-08"],
+      ["Linge", "2026-10-08"],
+    ]);
+    expect(apres[1].recurrence).toEqual(semaine);
+    expect(aDemain([], "2026-10-07")).toEqual([]);
   });
 });
 

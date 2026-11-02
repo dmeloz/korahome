@@ -15,7 +15,7 @@ import { feter } from "../moteur/fete";
 import { vibrer } from "../haptique";
 import { Icone } from "../Icone";
 import { ajouterArticles } from "../ajouts";
-import { AuDessusDeLaBarre, EtatVide, LigneAjout, Page, useSaisieBarre } from "../pieces";
+import { AuDessusDeLaBarre, BarreChoix, EtatVide, LigneAjout, Page, useSaisieBarre } from "../pieces";
 import { sauver } from "../sauver";
 
 // Une liste (les courses ou une autre). On ajoute en l'écrivant sur la ligne du bas, comme dans
@@ -320,21 +320,19 @@ export function DetailListe(props: {
         </div>
       )}
       {choisis && (
-        <AuDessusDeLaBarre>
-          <div className="barre-choix" role="toolbar" aria-label="Articles choisis">
-            <button className="lien" onClick={() => setChoisis(choisis.size === tous.length ? new Set() : new Set(tous.map((e) => e.id)))}>
-              {choisis.size === tous.length ? "Aucun" : "Tous"}
-            </button>
-            <button className="lien" disabled={!choisis.size} onClick={() => void cocherChoisis()}>
-              {choisis.size ? `Cocher (${choisis.size})` : "Cocher"}
-            </button>
-            {choisis.size ? (
-              <button className="lien danger" onClick={() => void retirerChoisis()}>Retirer ({choisis.size})</button>
-            ) : (
-              <button className="lien danger" onClick={() => void retirerChoisis(true)}>Vider la liste</button>
-            )}
-          </div>
-        </AuDessusDeLaBarre>
+        <BarreChoix libelle="Articles choisis">
+          <button className="lien" onClick={() => setChoisis(choisis.size === tous.length ? new Set() : new Set(tous.map((e) => e.id)))}>
+            {choisis.size === tous.length ? "Aucun" : "Tous"}
+          </button>
+          <button className="lien" disabled={!choisis.size} onClick={() => void cocherChoisis()}>
+            {choisis.size ? `Cocher (${choisis.size})` : "Cocher"}
+          </button>
+          {choisis.size ? (
+            <button className="lien danger" onClick={() => void retirerChoisis()}>Retirer ({choisis.size})</button>
+          ) : (
+            <button className="lien danger" onClick={() => void retirerChoisis(true)}>Vider la liste</button>
+          )}
+        </BarreChoix>
       )}
 
       {coches.length > 0 && (
