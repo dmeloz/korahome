@@ -6,6 +6,7 @@ test le vérifie). Le détail de chaque version est dans sa PR ; les règles dur
 
 | Version | Date | Ce qu'elle apporte | PR |
 | --- | --- | --- | --- |
+| 0.0.100 | 2026-11-02 | Nouvelle interface, en essai par téléphone (Réglages › Apparence) : la capsule vivante remplace la fée flottante en bas (ce qui compte maintenant avec son fil laiton, glisser pour Aujourd'hui, Courses et Nous, toucher pour ouvrir, pousser vers le haut pour « Tout Kora », l'orbe de la fée pour parler) ; Aujourd'hui devient un fil de moments en une colonne et la nouvelle page Nous réunit le dernier mot, ce qui te reste ce mois en une phrase et la semaine à deux | à venir |
 | 0.0.99 | 2026-11-02 | « Choisir » dans les Tâches : en mettre plusieurs à demain, faites ou retirées d'un geste, comme dans les Courses ; la barre du mode « Choisir » reste visible même saisie de la fée fermée (elle était invisible dans les Courses) | [#120](https://github.com/dmeloz/korahome/pull/120) |
 | 0.0.98 | 2026-11-02 | « Ce soir on a mangé » dans Cuisine › Menus : une ligne par soir, écrite ou dite à la fée, même sans le Chef ; une recette du même nom compte comme cuisinée, et le Chef lit ces soirs pour varier | [#119](https://github.com/dmeloz/korahome/pull/119) |
 | 0.0.97 | 2026-10-30 | Veille du 30 octobre : le conseiller du Budget répond de nouveau (le serveur forçait son outil, refusé par Claude depuis les modèles 5.5) ; un test interdit désormais l'outil forcé dans toutes les fonctions | [#118](https://github.com/dmeloz/korahome/pull/118) |

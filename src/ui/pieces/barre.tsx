@@ -1,3 +1,4 @@
+import { brancherFeeCapsule } from "../capsule";
 import { createContext, useContext, useEffect, useEffectEvent, useLayoutEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { preparerEvenement } from "../../domaine/agenda";
@@ -124,6 +125,8 @@ export function BarreJarvis(props: {
   demanderAJarvis: (demande: string) => void;
   /** « Ouvre le budget » : la page, sans passer par l'assistant. */
   ouvrirPage: (ou: OuOuvrir) => void;
+  /** La nouvelle interface (0.0.100) : la fée vit dans la capsule du bas, plus de fée flottante. */
+  dansCapsule?: boolean;
 }) {
   const { texte, changer } = useSaisieBarre();
   const invitationPage = useInvitationDePage();
@@ -365,12 +368,27 @@ export function BarreJarvis(props: {
     } else ecrire();
   };
 
+  // Dans la capsule, son orbe fait ce que fait la fée flottante : toucher pour parler, appui long pour écrire.
+  const gestesFee = useRef({ toucher: toucherFee, appuiLong: () => {} });
+  gestesFee.current = {
+    toucher: toucherFee,
+    appuiLong: () => {
+      setMessage(null);
+      setOuverte(true);
+      requestAnimationFrame(() => champ.current?.focus());
+    },
+  };
+  useEffect(() => {
+    if (!props.dansCapsule) return;
+    return brancherFeeCapsule({ toucher: () => gestesFee.current.toucher(), appuiLong: () => gestesFee.current.appuiLong() });
+  }, [props.dansCapsule]);
+
   const lu = invitationPage ?? invitation(props.lieu);
   const proposition = ecoute ? `${nomFee()} t'écoute…` : reponse ? `Répondre à ${reponse}…` : lu.replace(/Jarvis/g, nomFee());
 
   return (
     <>
-    <Fee
+    {!props.dansCapsule && <Fee
       ancre={ancre}
       ecoute={!!ecoute}
       toucher={toucherFee}
@@ -386,7 +404,7 @@ export function BarreJarvis(props: {
         if (ecoute) ecoute();
         fermer();
       }}
-    />
+    />}
     <div className={`barre-zone${ouverte ? " ouverte" : ""}`} style={clavier ? { bottom: clavier } : undefined} aria-hidden={!ouverte}>
       <div ref={(el) => void (el && el.firstChild !== emplacement() && el.appendChild(emplacement()))} />
       {message && <p className="barre-message" role="status">{message}</p>}

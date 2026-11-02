@@ -113,6 +113,8 @@ export function Accueil(props: {
   rappelsNonLus: number;
   /** Aucune page n'est ouverte par-dessus : les gestes de l'accueil sont à lui. */
   auDessus: boolean;
+  /** La nouvelle interface (0.0.100) : l'accueil devient « Aujourd'hui », un fil de moments qui défile. */
+  fil?: boolean;
 }) {
   const [retirees, setRetirees] = useState<CarteId[]>(lireRetirees);
   // Une carte retirée depuis le bilan : l'accueil, resté ouvert dessous, relit ses piles.
@@ -168,7 +170,7 @@ export function Accueil(props: {
   }, [visiteDemandee, props.auDessus]);
   const autre = foyer.membres.find((m) => m.id !== membreId)?.prenom ?? null;
   // Tout tient sur un écran : la page ne défile plus, les zones (« Ce soir », les piles) se glissent.
-  useAccueilFixe(props.auDessus, haut);
+  useAccueilFixe(props.auDessus && !props.fil, haut);
 
   const changerRetirees = (r: CarteId[]) => {
     setRetirees(r);
@@ -295,7 +297,8 @@ export function Accueil(props: {
   };
   // Le hub sur iPad (0.0.95) : dès 760 points de large, six cartes à la place des chiffres, de « Ce soir » et des piles.
   const large = useLarge(haut);
-  const hub = large
+  // Dans la nouvelle interface, l'iPhone montre les mêmes moments en une colonne, façon Journal.
+  const hub = large || props.fil
     ? composerHub({
         foyer,
         membreId,
@@ -382,7 +385,7 @@ export function Accueil(props: {
   const titreCeSoir = montrer === "demain" ? "Demain" : moment === "dimanche" ? "Aujourd'hui" : titreMoment(heure);
 
   return (
-    <main className={`tableau accueil accueil-un-ecran${hub ? " accueil-hub" : ""}`}>
+    <main className={`tableau accueil${props.fil && !large ? " accueil-fil" : " accueil-un-ecran"}${large ? " accueil-hub" : ""}`}>
       <header className="haut-accueil" ref={haut}>
         <GrandeDate date={maintenant} />
         <Signes valeurs={valeursSignes} choisis={signes} changer={setSignes} toucher={ouvrirSigne} />
