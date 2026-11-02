@@ -1,3 +1,4 @@
+import { choisirInterfaceCapsule, useInterfaceCapsule } from "../capsule";
 import { useRef, useState, type ReactNode } from "react";
 import { Feuille } from "../Feuille";
 import type { Foyer } from "../../domaine/types";
@@ -261,7 +262,27 @@ export function Apparence() {
         ))}
       </div>
       <ReglagesAccueil theme={theme} />
+      <EssaiCapsule />
     </Page>
+  );
+}
+
+/** L'essai de la nouvelle interface (0.0.100) : la capsule vivante, sur ce téléphone seulement. */
+function EssaiCapsule() {
+  const actif = useInterfaceCapsule();
+  return (
+    <>
+      <h2 className="rayon">Nouvelle interface</h2>
+      <div className="carte groupe">
+        <button type="button" className="ligne chef-interrupteur" onClick={() => choisirInterfaceCapsule(!actif)} aria-pressed={actif}>
+          <span className="ligne-texte">
+            Essayer la capsule vivante
+            <span className="tache-details">Une seule capsule en bas : glisse pour Aujourd'hui, Courses et Nous, touche pour ouvrir, pousse vers le haut pour tout le reste.</span>
+          </span>
+          <span className={`interrupteur${actif ? " actif" : ""}`} aria-hidden />
+        </button>
+      </div>
+    </>
   );
 }
 

@@ -47,6 +47,11 @@ import { avecTransition } from "./transitions";
 import { useDonnees } from "./useDonnees";
 import { demanderVisite } from "./visite";
 import { definirFee, nomFee } from "./fee";
+import { appuiLongFeeCapsule, etatsDeLaCapsule, toucherFeeCapsule, useInterfaceCapsule } from "./capsule";
+import type { VueCapsule } from "../domaine/capsule";
+import { Capsule } from "./pieces/Capsule";
+import { Feuille } from "./pieces";
+import { Nous } from "./ecrans/Nous";
 
 // Les pages qu'on ouvre rarement se chargent à leur première ouverture.
 const PAGES_DIFFEREES = {
@@ -97,7 +102,8 @@ type Page =
   | { nom: "fil" }
   | { nom: "calendrier" }
   | { nom: "siri" }
-  | { nom: "fee" };
+  | { nom: "fee" }
+  | { nom: "nous" };
 
 /** Une page de la pile, avec l'endroit où elle était défilée quand on en est parti. */
 type Entree = Page & { defilement?: number };
@@ -126,6 +132,9 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   const [membreId, setMembreId] = useState<string | null>(lireMembreCourant);
   const nouvelleVersion = useSyncExternalStore(miseAJour.abonner, miseAJour.prete);
   const [pastille, setPastille] = useState(lirePastilleVisible);
+  // La nouvelle interface, essayée sur ce téléphone (Réglages › Apparence).
+  const capsule = useInterfaceCapsule();
+  const [toutKora, setToutKora] = useState(false);
 
   const synchro = partage?.synchro;
   const etatPartage = useEtatPartage(depot, synchro ?? null);
@@ -241,6 +250,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     if (p.nom === "calendrier") return "Calendrier de l'iPhone";
     if (p.nom === "siri") return "Siri";
     if (p.nom === "fee") return `Réglages de ${nomFee()}`;
+    if (p.nom === "nous") return "Nous";
     if (p.nom === "module") return p.id === "chef" && p.onglet === "listes" ? "Listes" : (MODULES[p.id]?.libelle ?? "Retour");
     return listes.find((l) => l.id === p.id)?.nom ?? "Liste";
   }
@@ -369,6 +379,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         partage={etatPartage}
         rappelsNonLus={rappelsNonLus}
         auDessus={pile.length === 1}
+        fil={capsule}
       />
     ),
     module: (page) => MODULES[page.id]?.page?.({
@@ -481,6 +492,15 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     corbeille: () => <Corbeille depot={depot} foyer={leFoyer} corbeille={corbeille} />,
     calendrier: () => <CalendrierIphone foyer={leFoyer} membreId={membre} comptes={comptesIcloudDe(agenda)} distant={agendaPartage} ouvrirPartage={() => ouvrir({ nom: "partage" })} />,
     fee: () => <LaFee />,
+    nous: () => (
+      <Nous
+        donnees={donnees}
+        depot={depot}
+        ouvrirMots={() => ouvrir({ nom: "mots" })}
+        ouvrirFil={() => ouvrir({ nom: "fil" })}
+        ouvrirBudget={() => ouvrir({ nom: "module", id: "budget" })}
+      />
+    ),
     siri: () => <Siri foyer={leFoyer} membreId={membre} distant={jarvisPartage} ouvrirPartage={() => ouvrir({ nom: "partage" })} />,
     retours: () => <RetoursTest depot={depot} foyer={leFoyer} retours={retours} partageActif={partageActif} />,
   };
@@ -504,8 +524,36 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         ? "stock"
         : null;
   const lieuBarre: LieuBarre | null =
-    page.nom === "accueil" ? "accueil" : page.nom === "module" ? (ongletBarre ?? page.id) : page.nom === "liste" || page.nom === "memoire" || page.nom === "mots" ? page.nom : null;
+    page.nom === "accueil" ? "accueil" : page.nom === "module" ? (ongletBarre ?? page.id) : page.nom === "liste" || page.nom === "memoire" || page.nom === "mots" ? page.nom : page.nom === "nous" ? "mots" : null;
   const cleBarre = page.nom === "module" ? `module:${page.id}${ongletBarre ? `:${ongletBarre}` : ""}` : page.nom === "liste" ? `liste:${page.id}` : page.nom;
+  // La capsule vivante : sur l'accueil (Aujourd'hui), les Courses et Nous, quand ce téléphone l'essaie.
+  const vueDe = (p: Page, i: number): VueCapsule | null =>
+    p.nom === "accueil" ? "aujourdhui" : i === 1 && p.nom === "module" && p.id === "chef" && p.onglet === "courses" ? "courses" : i === 1 && p.nom === "nous" ? "nous" : null;
+  const vueCapsule = capsule ? vueDe(page, pile.length - 1) : null;
+  const capsuleEtats = vueCapsule ? etatsDeLaCapsule(donnees, new Date()) : null;
+  const allerVue = (vue: VueCapsule) => {
+    const ordre: VueCapsule[] = ["aujourdhui", "courses", "nous"];
+    const sens = vueCapsule && ordre.indexOf(vue) < ordre.indexOf(vueCapsule) ? "arriere" : "avant";
+    widgetOuvert.current = null;
+    avecTransition(sens, () => {
+      setPile((avant) => (vue === "aujourdhui" ? [avant[0]] : [avant[0], vue === "courses" ? { nom: "module", id: "chef", onglet: "courses" } : { nom: "nous" }]));
+      window.scrollTo(0, 0);
+    });
+  };
+  const ouvrirVue = () => {
+    if (vueCapsule === "aujourdhui") {
+      const ou = capsuleEtats?.premiere?.destination;
+      if (ou === "administratif") ouvrir({ nom: "module", id: "taches", onglet: "administratif" });
+      else ouvrir({ nom: "module", id: ou && ou in MODULES ? (ou as WidgetId) : "taches" });
+    } else if (vueCapsule === "nous") ouvrir({ nom: "mots" });
+    else window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  const allerDepuisTout = (p: Page) => {
+    setToutKora(false);
+    if (p.nom === "module") allerEspace(p.id);
+    else ouvrir(p);
+  };
+
   const coinDev = pastille && !nouvelleVersion && page.nom !== "retours" && (
     <CoinDev depot={depot} ecran={nomEcran} membreId={membre} ouvertes={ouvertes} voirRetours={() => ouvrir({ nom: "retours" })} />
   );
@@ -518,7 +566,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     {pile.map((p, i) => {
       const dessus = i === pile.length - 1;
       const avant = i > 0 ? pile[i - 1] : null;
-      const retour = avant && (
+      const retour = avant && !(capsule && vueDe(p, i)) && (
         <BarreHaut
           retour={libelle(avant)}
           revenir={revenirAnime}
@@ -568,8 +616,59 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
           ouvrir({ nom: "jarvis" });
         }}
         ouvrirPage={(ou) => ouvrir(ou === "mots" ? { nom: "mots" } : ou === "reglages" ? { nom: "reglages" } : { nom: "module", id: ou })}
+        dansCapsule={!!vueCapsule}
       />
     ) : null}
+    {vueCapsule && capsuleEtats && !toutKora && (
+      <Capsule
+        vue={vueCapsule}
+        etat={capsuleEtats.etats[vueCapsule]}
+        aller={allerVue}
+        ouvrir={ouvrirVue}
+        ouvrirTout={() => setToutKora(true)}
+        toucherFee={toucherFeeCapsule}
+        appuiLongFee={appuiLongFeeCapsule}
+      />
+    )}
+    {capsule && (
+      <Feuille ouverte={toutKora} onFermer={() => setToutKora(false)} titre="Tout Kora" className="tout-kora">
+        <button
+          type="button"
+          className="tout-kora-recherche"
+          onClick={() => {
+            setToutKora(false);
+            appuiLongFeeCapsule();
+          }}
+        >
+          <span className="tout-kora-orbe" aria-hidden />
+          Cherche ou demande à {nomFee()}
+        </button>
+        <div className="tout-kora-grille">
+          {ESPACES_BARRE.map((e) => (
+            <button key={e.id} type="button" onClick={() => allerDepuisTout({ nom: "module", id: e.id })}>
+              <Icone nom={e.picto} taille={20} />
+              <b>{e.libelle}</b>
+            </button>
+          ))}
+          <button type="button" onClick={() => allerDepuisTout({ nom: "mots" })}>
+            <Icone nom="coeur" taille={20} />
+            <b>Nos mots</b>
+          </button>
+          <button type="button" onClick={() => allerDepuisTout({ nom: "fil" })}>
+            <Icone nom="activite" taille={20} />
+            <b>Chez nous</b>
+          </button>
+          <button type="button" onClick={() => allerDepuisTout({ nom: "memoire" })}>
+            <Icone nom="appris" taille={20} />
+            <b>Ce que {nomFee()} sait</b>
+          </button>
+          <button type="button" onClick={() => allerDepuisTout({ nom: "reglages" })}>
+            <Icone nom="reglages" taille={20} />
+            <b>Réglages</b>
+          </button>
+        </div>
+      </Feuille>
+    )}
     {coinDev}
     </FournisseurSaisie>
     </FournisseurAnnulation>

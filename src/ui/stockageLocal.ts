@@ -101,6 +101,10 @@ export const CLES = {
   applePayVu: "korahome.applePayVu",
   /** L'identifiant de la clé Face ID qui verrouille le Budget sur ce téléphone (base64). */
   verrouBudget: "korahome.verrouBudget",
+  /** « 1 » quand ce téléphone essaie la nouvelle interface : la capsule vivante en bas (0.0.100). */
+  interfaceCapsule: "korahome.interfaceCapsule",
+  /** Combien de fois « Glisse pour changer » a été montré sous la capsule. */
+  astuceCapsule: "korahome.astuceCapsule",
 } as const;
 
 /** Le texte gardé, null s'il n'y en a pas ; `siIndisponible` (null par défaut) si le stockage ne répond pas. */

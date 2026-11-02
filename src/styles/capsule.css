@@ -1,0 +1,112 @@
+/* ===== La nouvelle interface (0.0.100) : la capsule vivante, Aujourd'hui en fil, Nous, Tout Kora =====
+   Un essai par téléphone (Réglages › Apparence). La capsule remplace la fée flottante sur les trois
+   vues : un seul objet en verre, l'orbe de la fée à gauche, ce qui compte au milieu avec son fil
+   laiton, trois tirets à droite. Elle prend la teinte de la fée de l'autre (.fee-bleue,
+   .fee-violette de fee.css) quand l'autre coche en direct ou qu'un mot de l'autre attend. */
+
+.capsule-zone {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  display: flex; justify-content: center; pointer-events: none;
+  padding: 0 calc(var(--espace-6) + var(--bord-droit, 0px)) calc(env(safe-area-inset-bottom) + var(--espace-5)) calc(var(--espace-6) + var(--bord-gauche, 0px));
+  transition: opacity 0.25s ease, transform 0.25s var(--courbe);
+}
+.capsule-zone::before { content: ""; position: absolute; inset: calc(-1 * var(--espace-7)) 0 0; background: linear-gradient(180deg, transparent, var(--fond) 72%); pointer-events: none; }
+html.saisie-ouverte .capsule-zone { opacity: 0; pointer-events: none; transform: translateY(var(--espace-6)); }
+html.saisie-ouverte .capsule-zone .capsule { pointer-events: none; }
+
+.capsule {
+  position: relative; pointer-events: auto; width: 100%; max-width: 560px; height: 64px;
+  display: flex; align-items: center; gap: var(--espace-5);
+  padding: 0 var(--espace-4) 0 var(--espace-3);
+  border-radius: var(--rayon-rond);
+  background: color-mix(in srgb, var(--surface-haute) 88%, transparent); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5);
+  border: 1px solid var(--verre-trait, var(--trait));
+  box-shadow: inset 0 1px 0 var(--verre-reflet, rgb(255 255 255 / 0.12)), var(--ombre);
+  touch-action: none; user-select: none; -webkit-user-select: none;
+  transition: border-color 0.4s ease;
+}
+.capsule::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: radial-gradient(70% 120% at 0% 50%, color-mix(in srgb, var(--fee-lueur) 40%, transparent), transparent 62%);
+  opacity: 0.6; transition: opacity 0.4s ease;
+}
+.capsule.ton-autre { border-color: color-mix(in srgb, var(--fee-milieu) 55%, transparent); }
+.capsule.ton-autre::before { opacity: 1; }
+
+.capsule-orbe {
+  position: relative; z-index: 1; flex: none; width: 46px; height: 46px; padding: 0; border: 0; border-radius: 50%; cursor: pointer;
+  background: radial-gradient(circle at 34% 30%, var(--fee-clair) 0 8%, var(--fee-lueur) 24%, var(--fee-milieu) 52%, var(--fee-profond) 100%);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--fee-lueur) 55%, transparent), inset 0 -2px 6px rgb(0 0 0 / 0.35);
+  -webkit-touch-callout: none; transition: transform 0.2s var(--courbe);
+}
+.capsule-orbe:active { transform: scale(0.94); }
+
+.capsule-texte {
+  position: relative; z-index: 1; flex: 1; min-width: 0; height: 48px; padding: 0; border: 0;
+  background: none; color: inherit; font: inherit; text-align: left; overflow: hidden; cursor: pointer;
+}
+.capsule-piste { display: flex; flex-direction: column; justify-content: center; gap: var(--espace-1); height: 100%; animation: capsule-entre 0.4s var(--courbe) both; transition: transform 0.3s var(--courbe); }
+.capsule-piste small, .capsule-piste b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.capsule-piste small { font-size: var(--t-legende); color: var(--discret); }
+.capsule-piste b { font-size: var(--t-corps); font-weight: 600; }
+@keyframes capsule-entre { from { opacity: 0; transform: translateY(var(--espace-3)); } }
+
+.capsule-tirets { position: relative; z-index: 1; flex: none; display: flex; }
+.capsule-tirets button { width: 26px; height: 44px; display: grid; place-items: center; padding: 0; border: 0; background: none; cursor: pointer; }
+.capsule-tirets i { display: block; width: 6px; height: 6px; border-radius: var(--rayon-rond); background: var(--discret); opacity: 0.6; transition: height 0.35s var(--courbe), background 0.35s ease; }
+.capsule-tirets [aria-selected="true"] i { height: 18px; background: var(--accent); opacity: 1; }
+
+.capsule-fil { position: absolute; z-index: 1; left: 64px; right: 92px; bottom: var(--espace-3); height: 2px; border-radius: var(--rayon-rond); background: var(--trait); overflow: hidden; }
+.capsule-fil i { position: absolute; inset: 0 auto 0 0; width: var(--fil, 0%); background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 25%, transparent), var(--accent)); transition: width 0.6s var(--courbe); }
+.capsule.ton-autre .capsule-fil i { background: linear-gradient(90deg, transparent, var(--fee-milieu)); }
+
+.capsule-astuce {
+  position: absolute; left: 50%; bottom: calc(100% + var(--espace-4)); transform: translateX(-50%);
+  padding: var(--espace-3) var(--espace-5); border-radius: var(--rayon-rond);
+  background: var(--surface-haute); border: 1px solid var(--trait);
+  font-size: var(--t-legende); color: var(--discret); white-space: nowrap; pointer-events: none;
+  animation: capsule-entre 0.5s var(--courbe) both;
+}
+
+/* ----- Aujourd'hui : les moments du hub, en une colonne façon Journal ----- */
+.accueil-fil .haut-accueil { margin: var(--espace-3) 0 var(--espace-6); }
+.accueil-fil > * + * { margin-top: var(--espace-5); }
+.accueil-fil .hub.grille-large { display: flex; flex-direction: column; gap: var(--espace-5); overflow: visible; padding-bottom: 0; }
+.accueil-fil .hub-pied { display: none; }
+.accueil-fil .hub-entete h2 { font-family: var(--police); font-size: var(--t-detail); letter-spacing: normal; text-transform: none; font-weight: 600; }
+.accueil-fil .hub-carte { padding: var(--espace-6) var(--espace-6); gap: var(--espace-4); }
+.accueil-fil .hub-menu { background: radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--accent) 22%, var(--surface)) 0%, var(--surface) 62%); }
+.accueil-fil .hub-mot .hub-grand.leger, .nous-citation, .nous-phrase { font-family: "New York", "Iowan Old Style", Georgia, serif; }
+.accueil-fil .hub-mot .hub-grand.leger { font-size: 24px; font-weight: 400; }
+.accueil-fil .hub-actions { flex-wrap: wrap; }
+
+/* ----- Nous ----- */
+.nous-mot { padding: var(--espace-7); background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 8%, var(--surface)) 0%, var(--surface) 62%); }
+.nous-quand { display: block; margin: 0; color: var(--discret); font-size: var(--t-detail); }
+.nous-citation { margin: var(--espace-4) 0 0; font-size: 26px; line-height: 1.2; }
+.nous-citation.leger { color: var(--discret); font-size: 22px; }
+.nous-actions { display: flex; flex-wrap: wrap; gap: var(--espace-4); margin-top: var(--espace-6); }
+.nous-mois { display: flex; flex-direction: column; gap: var(--espace-3); width: 100%; padding: var(--espace-7); color: var(--texte); font: inherit; text-align: left; cursor: pointer; }
+.nous-phrase { font-size: 26px; line-height: 1.2; }
+.nous-phrase b { color: var(--accent); font-weight: 500; }
+.nous-tout { margin-top: var(--espace-5); }
+
+/* ----- Tout Kora ----- */
+.tout-kora-recherche {
+  display: flex; align-items: center; gap: var(--espace-5); width: 100%; min-height: 48px; margin-bottom: var(--espace-6);
+  padding: 0 var(--espace-6); border-radius: var(--rayon-rond); border: 1px solid var(--trait);
+  background: var(--surface-haute); color: var(--discret); font: inherit; text-align: left; cursor: pointer;
+}
+.tout-kora-orbe { flex: none; width: 22px; height: 22px; border-radius: 50%; background: radial-gradient(circle at 34% 30%, var(--fee-clair) 0 8%, var(--fee-lueur) 24%, var(--fee-milieu) 52%, var(--fee-profond) 100%); }
+.tout-kora-grille { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--espace-4); }
+.tout-kora-grille button {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--espace-3); min-height: 72px; padding: var(--espace-6);
+  border-radius: var(--rayon-carte); border: 1px solid var(--trait); background: var(--surface); color: var(--texte); font: inherit; text-align: left; cursor: pointer;
+}
+.tout-kora-grille button svg { color: var(--accent); }
+.tout-kora-grille b { font-weight: 600; }
+
+@media (prefers-reduced-motion: reduce) {
+  .capsule-piste, .capsule-astuce { animation: none; }
+  .capsule-fil i, .capsule-tirets i, .capsule-zone { transition: none; }
+}
