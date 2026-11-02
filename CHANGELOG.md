@@ -6,6 +6,7 @@ test le vérifie). Le détail de chaque version est dans sa PR ; les règles dur
 
 | Version | Date | Ce qu'elle apporte | PR |
 | --- | --- | --- | --- |
+| 0.0.99 | 2026-11-02 | « Choisir » dans les Tâches : en mettre plusieurs à demain, faites ou retirées d'un geste, comme dans les Courses ; la barre du mode « Choisir » reste visible même saisie de la fée fermée (elle était invisible dans les Courses) | [#120](https://github.com/dmeloz/korahome/pull/120) |
 | 0.0.98 | 2026-11-02 | « Ce soir on a mangé » dans Cuisine › Menus : une ligne par soir, écrite ou dite à la fée, même sans le Chef ; une recette du même nom compte comme cuisinée, et le Chef lit ces soirs pour varier | [#119](https://github.com/dmeloz/korahome/pull/119) |
 | 0.0.97 | 2026-10-30 | Veille du 30 octobre : le conseiller du Budget répond de nouveau (le serveur forçait son outil, refusé par Claude depuis les modèles 5.5) ; un test interdit désormais l'outil forcé dans toutes les fonctions | [#118](https://github.com/dmeloz/korahome/pull/118) |
 | 0.0.96 | 2026-10-29 | Suites invisibles de l'audit : pastille Dev et retours de test cachés sauf sur le téléphone qui les allume (cinq touchers sur la version), scanner chargé au premier scan, Netlify retiré, règles React du lint rallumées (globals, immutability), serveur : horloge des conflits bornée, agenda réécrit seulement s'il change, purges, sauvegarde hebdomadaire | [#117](https://github.com/dmeloz/korahome/pull/117) |

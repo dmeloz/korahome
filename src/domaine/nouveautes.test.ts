@@ -10,7 +10,7 @@ describe("la nouveauté annoncée par la fée", () => {
 
   it("se tait sur un foyer neuf, et pour une version sans nouveauté", () => {
     expect(nouveauteADire("0.0.79", null, false)).toBeNull();
-    expect(nouveauteADire("0.0.99", null, true)).toBeNull();
+    expect(nouveauteADire("0.0.97", null, true)).toBeNull();
   });
 
   it("chaque nouveauté tient en une bulle", () => {
