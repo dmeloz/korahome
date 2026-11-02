@@ -28,16 +28,32 @@ const POIDS_SELON_SEMAINES = [0.1, 0.3, 0.6, 0.85];
 
 export type Hasard = () => number;
 
-/** Ce que les menus passés ont servi : pour chaque base, protéine ou légume, la semaine la plus récente (1 = la semaine passée). */
-export function dejaServi(menus: readonly MenuSemaine[], aujourdhui: Jour): Map<string, number> {
+/**
+ * Ce que les menus passés et les soirs notés (« Ce soir on a mangé », depuis 0.0.98) ont servi :
+ * pour chaque base, protéine ou légume, la semaine la plus récente (1 = la semaine passée).
+ */
+export function dejaServi(menus: readonly MenuSemaine[], aujourdhui: Jour, repas: readonly { jour: Jour; titre: string }[] = []): Map<string, number> {
   const vu = new Map<string, number>();
   const noter = (cle: string, semaines: number) => {
     if (!vu.has(cle) || vu.get(cle)! > semaines) vu.set(cle, semaines);
   };
+  // Le menu du jour n'est pas encore « passé » ; un soir noté aujourd'hui l'est déjà.
+  const semainesDepuis = (jour: Jour, aujourdhuiCompte = false) => {
+    const ecart = ecartJours(jour, aujourdhui);
+    if (ecart < 0 || (ecart === 0 && !aujourdhuiCompte) || ecart > SEMAINES_DE_MEMOIRE * 7) return null;
+    return Math.min(SEMAINES_DE_MEMOIRE, Math.max(1, Math.ceil(ecart / 7)));
+  };
+  // Un texte sans trame (un ancien menu, un soir noté) : on reconnaît ce qu'il servait à ses mots.
+  const noterMots = (mots: string, semaines: number) => {
+    const texte = ` ${normaliser(mots)} `;
+    const contient = (mot: string) => new RegExp(`[^a-z]${mot.replace(/[-]/g, "[- ]")}[sx]?[^a-z]`).test(texte);
+    for (const b of BASES) if (b.mots.some(contient)) noter(`base:${b.id}`, semaines);
+    for (const p of PROTEINES) if (p.mots.some(contient)) noter(`proteine:${p.id}`, semaines);
+    for (const l of legumesDuMois(Number(aujourdhui.slice(5, 7)))) if (contient(normaliser(l))) noter(`legume:${normaliser(l)}`, semaines);
+  };
   for (const m of menus) {
-    const ecart = ecartJours(m.semaine, aujourdhui);
-    if (ecart <= 0 || ecart > SEMAINES_DE_MEMOIRE * 7) continue;
-    const semaines = Math.min(SEMAINES_DE_MEMOIRE, Math.ceil(ecart / 7));
+    const semaines = semainesDepuis(m.semaine);
+    if (semaines === null) continue;
     const trame = lireTrame(m.trame);
     if (trame) {
       for (const t of trame) {
@@ -47,12 +63,11 @@ export function dejaServi(menus: readonly MenuSemaine[], aujourdhui: Jour): Map<
       }
       continue;
     }
-    // Un menu d'avant le tirage : on reconnaît ce qu'il servait à ses mots.
-    const texte = ` ${normaliser(m.repas.map((r) => [r.titre, r.description, ...r.avecLeStock].join(" ")).join(" "))} `;
-    const contient = (mot: string) => new RegExp(`[^a-z]${mot.replace(/[-]/g, "[- ]")}[sx]?[^a-z]`).test(texte);
-    for (const b of BASES) if (b.mots.some(contient)) noter(`base:${b.id}`, semaines);
-    for (const p of PROTEINES) if (p.mots.some(contient)) noter(`proteine:${p.id}`, semaines);
-    for (const l of legumesDuMois(Number(aujourdhui.slice(5, 7)))) if (contient(normaliser(l))) noter(`legume:${normaliser(l)}`, semaines);
+    noterMots(m.repas.map((r) => [r.titre, r.description, ...r.avecLeStock].join(" ")).join(" "), semaines);
+  }
+  for (const r of repas) {
+    const semaines = semainesDepuis(r.jour, true);
+    if (semaines !== null) noterMots(r.titre, semaines);
   }
   return vu;
 }
@@ -76,9 +91,9 @@ function tirer<T>(choix: readonly T[], poidsDe: (c: T) => number, hasard: Hasard
 }
 
 /** La trame des soirs de la semaine. */
-export function tirerSemaine(d: { menus: readonly MenuSemaine[]; aujourdhui: Jour; nombre: number; hasard: Hasard }): TrameSoir[] {
+export function tirerSemaine(d: { menus: readonly MenuSemaine[]; repas?: readonly { jour: Jour; titre: string }[]; aujourdhui: Jour; nombre: number; hasard: Hasard }): TrameSoir[] {
   const mois: Mois = Number(d.aujourdhui.slice(5, 7));
-  const vu = dejaServi(d.menus, d.aujourdhui);
+  const vu = dejaServi(d.menus, d.aujourdhui, d.repas);
   const legumes = legumesDuMois(mois);
   const bases = new Set<string>();
   const proteines: string[] = [];

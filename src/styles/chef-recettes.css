@@ -137,3 +137,12 @@
 .chef-valider-soir { display: inline-flex; align-items: center; gap: var(--espace-2); }
 .chef-valider-soir.valide { color: var(--discret); }
 .chef-propose .ligne { min-height: 44px; }
+
+/* « Ce soir on a mangé » (0.0.98) : en tête de Menus, une ligne par soir. */
+.journal-repas { margin-bottom: var(--espace-6); }
+.journal-passe { cursor: default; }
+.journal-passe .ligne-texte { color: var(--discret); }
+.journal-changer { margin-left: auto; font-size: var(--t-detail); flex: none; }
+.journal-garder { margin-top: var(--espace-3); font-size: var(--t-detail); }
+.journal-propositions { margin-top: var(--espace-4); }
+.journal-aide { margin: var(--espace-4) 0 0; line-height: 1.4; }

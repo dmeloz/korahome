@@ -108,6 +108,33 @@ describe("le tirage de la semaine", () => {
     expect(vu.has("base:polenta")).toBe(false);
   });
 
+  it("compte aussi les soirs notés à la main, celui du jour compris", () => {
+    const vu = dejaServi([], AUJOURDHUI, [
+      { jour: AUJOURDHUI, titre: "Raclette" },
+      { jour: "2026-10-04", titre: "Saumon et riz" },
+      { jour: "2026-10-25", titre: "Rien de connu" },
+      { jour: "2026-10-20", titre: "Pâtes du lendemain" },
+    ]);
+    expect(vu.get("base:pommes-de-terre")).toBe(1);
+    expect(vu.get("proteine:fromage")).toBe(1);
+    expect(vu.get("base:riz")).toBe(2);
+    expect(vu.get("proteine:poisson")).toBe(2);
+    expect(vu.has("base:pates")).toBe(false);
+  });
+
+  it("fait reculer dans le tirage ce qu'on vient de manger", () => {
+    const repas = [{ jour: AUJOURDHUI, titre: "Raclette" }, { jour: "2026-10-17", titre: "Risotto" }];
+    for (let graine = 1; graine <= 5; graine++) {
+      const trame = tirerSemaine({ menus: [], repas, aujourdhui: AUJOURDHUI, nombre: 3, hasard: hasardFixe(graine) });
+      expect(trame.map((t) => t.base)).not.toContain("risotto");
+    }
+  });
+
+  it("lit au Chef ce qu'on a mangé", () => {
+    const message = messageChef({ produits: [], enCourses: [], aujourdhui: AUJOURDHUI, mange: "Mangé ces derniers soirs (ne pas les reproposer) : raclette (hier)." });
+    expect(message).toContain("raclette (hier)");
+  });
+
   it("donne la trame au Chef et la garde dans le menu", () => {
     const ctx = contexteTest();
     const trame: TrameSoir[] = [{ base: "lentilles", proteine: "legumineuses", legumes: ["courge", "poireau"] }];

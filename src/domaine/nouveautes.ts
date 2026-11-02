@@ -12,6 +12,7 @@ export interface Nouveaute {
 }
 
 export const NOUVEAUTES: readonly Nouveaute[] = [
+  { version: "0.0.98", texte: "Nouveau : dans Cuisine › Menus, note ce que vous avez mangé ce soir, ou dis-le-moi. Le Chef s'en sert pour varier.", ou: { id: "chef", onglet: "semaine" } },
   { version: "0.0.95", texte: "Nouveau : sur l'iPad, l'accueil devient un hub pour la cuisine, six cartes à consulter à deux. Ouvre Kora sur l'iPad pour le voir.", ou: { id: "taches" } },
   { version: "0.0.94", texte: "Nouveau : notre réserve de secours, sous le stock de Cuisine › Frigo. Une semaine de provisions pour deux ; ce qui manque part aux courses.", ou: { id: "chef", onglet: "frigo" } },
   { version: "0.0.93", texte: "Nouveau : « Où est quoi » dans Maison › Entretien. Note la cave, le placard et ce qu'il y a dedans, puis demande-moi où est la perceuse.", ou: { id: "maison", onglet: "entretien" } },
