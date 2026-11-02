@@ -25,6 +25,7 @@ import {
   articlesARemplacer,
   CONSIGNES_CHEF,
   coutChef,
+  decrireRepasRecents,
   estLHeureDuChef,
   etatBudget,
   idMenu,
@@ -43,6 +44,7 @@ import {
   recettesDe,
   recettesDuChef,
   reglageChef,
+  repasDe,
   SCHEMA_CHEF,
   tirerSemaine,
 } from "./domaine.js";
@@ -104,14 +106,14 @@ async function cuisiner(foyerId: string, lance: "auto" | "maintenant") {
 
   // Kora tire la trame des soirs ; le Chef compose dessus (voir src/domaine/variete.ts).
   const menusPasses = d.menus.filter((m: { type?: string }) => m.type === "menu");
-  const trame = tirerSemaine({ menus: menusPasses, aujourdhui, nombre: NOMBRE_REPAS, hasard: Math.random });
+  const trame = tirerSemaine({ menus: menusPasses, repas: repasDe(d.menus), aujourdhui, nombre: NOMBRE_REPAS, hasard: Math.random });
   const client = new Anthropic({ apiKey: cle });
   const reponse = await avecAlerte(foyerId, "Le Chef", noteServeur, () => client.messages.create({
     model: MODELE_CHEF,
     max_tokens: 8000,
     system: CONSIGNES_CHEF,
     output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA_CHEF } },
-    messages: [{ role: "user", content: messageChef({ produits: d.produits, enCourses, aujourdhui, souvenirs: d.souvenirs, recettes: recettesDe(d.menus), trame }) }],
+    messages: [{ role: "user", content: messageChef({ produits: d.produits, enCourses, aujourdhui, souvenirs: d.souvenirs, recettes: recettesDe(d.menus), trame, mange: decrireRepasRecents(d.menus, aujourdhui) }) }],
   }));
   const budget = etatBudget(await compter(foyerId, coutChef(reponse.usage)));
   if (reponse.stop_reason === "refusal") throw new ErreurPublique("Le Chef n'a pas pu préparer les menus cette fois.");

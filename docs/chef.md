@@ -86,6 +86,17 @@ Deux ajouts pour que les menus soient plus justes et ne se répètent pas.
 
 Après une modification : `npm run fonction`, puis redéployer `chef`.
 
+## Ce soir on a mangé (0.0.98)
+
+En tête de l'onglet Menus, une ligne par soir : ce que vous avez mangé, même sans menu ni Chef.
+On l'écrit dans la carte, on touche une recette proposée, ou on le dit à la fée sur cette page
+(« ce soir on a mangé des pâtes au pesto », « hier soir raclette »). Écrire à nouveau le même soir
+remplace la ligne ; glisser la retire. Un document `repas` par soir (`repas-AAAA-MM-JJ`) dans la
+collection `menus`. Si le plat porte exactement le nom d'une recette du foyer, elle est comptée
+comme cuisinée (une fois par soir). Le Chef reçoit les soirs des deux dernières semaines (« ne pas
+les reproposer ») et le tirage de la trame les compte comme ses anciens menus, le soir même compris.
+Règles dans `src/domaine/repas.ts`.
+
 ## La réserve de secours (0.0.94)
 
 La Confédération (OFAE, « Un bon plan, des provisions ») conseille une semaine de provisions par

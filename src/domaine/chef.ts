@@ -24,12 +24,14 @@ import { RAYONS, type Contexte, type Element, type Id, type Jour, type Liste, ty
 import { NOMS_MOIS } from "./texte";
 import { savoirPourLeChef } from "./savoirCuisine";
 import { decrireTrame, type TrameSoir } from "./variete";
+import type { RepasMange } from "./repas";
 
 // Ce dont la fonction serveur a aussi besoin : le compteur de Jarvis et l'heure de Zurich.
 export { etatBudget, moisDe, noteServeur, phrasePanne } from "./jarvisModele";
 export { jourEtHeure, messagePush } from "./rappels";
 export { recettesDe } from "./recettes";
 export { tirerSemaine } from "./variete";
+export { decrireRepasRecents, repasDe } from "./repas";
 
 /** Le Chef prend le modèle du conseil : une fois par semaine, il peut réfléchir un peu. */
 export const MODELE_CHEF = MODELE_CONSEIL;
@@ -107,8 +109,8 @@ export interface ReglageChef {
   modifieLe: string;
 }
 
-/** La collection « menus » : les menus, le réglage et les recettes du foyer. */
-export type DocChef = MenuSemaine | ReglageChef | Recette;
+/** La collection « menus » : les menus, le réglage, les recettes du foyer et les soirs notés (0.0.98). */
+export type DocChef = MenuSemaine | ReglageChef | Recette | RepasMange;
 
 export const idMenu = (jour: Jour): Id => `menu-${jour}`;
 
@@ -210,7 +212,7 @@ Le champ « mot » est une phrase chaleureuse et courte en français, sans emoji
 Réponds en français, avec le tutoiement.`;
 
 /** Le message du dimanche : le stock, ce qui presse, la liste de courses actuelle. */
-export function messageChef(d: { produits: readonly Produit[]; enCourses: readonly Element[]; aujourdhui: Jour; souvenirs?: readonly Souvenir[]; recettes?: readonly Recette[]; trame?: readonly TrameSoir[] }): string {
+export function messageChef(d: { produits: readonly Produit[]; enCourses: readonly Element[]; aujourdhui: Jour; souvenirs?: readonly Souvenir[]; recettes?: readonly Recette[]; trame?: readonly TrameSoir[]; mange?: string | null }): string {
   // La réserve de secours du foyer reste à sa place : le Chef cuisine avec le reste.
   const produits = d.produits.filter((p) => !p.reserve);
   const aFinir = produitsAFinir(produits, d.aujourdhui);
@@ -230,6 +232,8 @@ export function messageChef(d: { produits: readonly Produit[]; enCourses: readon
   const avis = (r: Recette) => avisDuPlat(d.souvenirs ?? [], r.titre)?.avis ?? null;
   const reprendre = recettesPourLeChef(d.recettes ?? [], (r) => avis(r) === "aime", (r) => avis(r) === "non");
   if (reprendre.length) lignes.push("", "Recettes du foyer qu'il aime refaire :", ...reprendre.map((t) => `- ${t}`));
+  // Les soirs notés par le foyer (« Ce soir on a mangé ») : ne pas les reproposer.
+  if (d.mange) lignes.push("", d.mange);
   if (d.trame?.length) lignes.push("", "La trame tirée par Kora pour cette semaine :", ...decrireTrame(d.trame));
   lignes.push("", savoirPourLeChef(Number(d.aujourdhui.slice(5, 7))));
   return lignes.join("\n");

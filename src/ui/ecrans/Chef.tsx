@@ -16,6 +16,7 @@ import { Page } from "../pieces";
 import { recettesDe, soirsPrevus } from "../../domaine/recettes";
 import { ficheDeLaSemaine, platsDeLaSemaine } from "../../domaine/ficheSemaine";
 import { FicheSemaine } from "./FicheSemaine";
+import { JournalRepas } from "./JournalRepas";
 import { FicheRecette, nomDuSoir, OngletRecettes } from "./Recettes";
 import { nomFee } from "../fee";
 import { Ligne, ListeVivante } from "../moteur/pieces";
@@ -203,6 +204,8 @@ export function Chef(p: PropsPage & { recette?: string | null }) {
             <button type="button" className="bouton-principal" onClick={() => menu && void effacer(menu)}>Effacer</button>
           </div>
         </Feuille>
+
+        <JournalRepas depot={p.depot} menus={p.menus} recettes={recettes} aujourdhui={p.aujourdhui} membreId={p.membreId} />
 
         {!p.jarvis ? (
           <div className="carte">
