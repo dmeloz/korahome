@@ -280,7 +280,11 @@ export function Taches(props: {
           )}
         </>
       }
-      aide={{ cle: "taches", resume: "Écris une tâche, ou dis-la à ta fée", texte: "Écris une tâche sous la liste, ou dis-la à ta fée avec son rythme : « linge chaque mercredi ». Glisse une tâche vers la droite quand elle est faite, vers la gauche pour la supprimer. Un appui long ouvre sa fiche. « Choisir » en haut pour en mettre plusieurs à demain, faites ou retirées d'un coup." }}
+      aide={
+        administratif
+          ? { cle: "administratif", resume: "Écris une démarche, ou dis-la à ta fée", texte: "Écris une démarche sous la liste, ou dis-la à ta fée avec son rythme : « renouveler l'assurance chaque année ». Un contrat s'écrit avec son prix (« Sunrise 59 ») : note sa fin et son préavis, Kora prévient avant qu'il se renouvelle. Glisse une démarche vers la droite quand elle est faite." }
+          : { cle: "taches", resume: "Écris une tâche, ou dis-la à ta fée", texte: "Écris une tâche sous la liste, ou dis-la à ta fée avec son rythme : « linge chaque mercredi ». Glisse une tâche vers la droite quand elle est faite, vers la gauche pour la supprimer. Un appui long ouvre sa fiche. « Choisir » en haut pour en mettre plusieurs à demain, faites ou retirées d'un coup." }
+      }
     >
       <Repartition ouverte={repartir} fermer={() => setRepartir(false)} foyer={props.foyer} taches={props.taches} aujourdhui={aujourdhui} depot={props.depot} />
 
