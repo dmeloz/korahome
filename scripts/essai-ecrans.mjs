@@ -182,6 +182,35 @@ try {
     await p.setViewportSize({ width: largeur, height: hauteur });
     await tournee();
   }
+  // La nouvelle interface en essai (0.0.100), allumée comme dans Réglages › Apparence : la capsule
+  // et ses trois vues, sur l'iPhone, en sombre puis en clair.
+  colonneDroite = 0;
+  await p.setViewportSize({ width: 393, height: 852 });
+  await p.evaluate(() => localStorage.setItem("korahome.interfaceCapsule", "1"));
+  await p.reload();
+  await p.waitForTimeout(1200);
+  await p.addScriptTag({ path: AXE });
+  for (const [suffixe, schema] of [["-capsule", "dark"], ["-capsule-clair", "light"]]) {
+    theme = suffixe;
+    await p.emulateMedia({ colorScheme: schema });
+    for (const vue of ["Aujourd'hui", "Courses", "Nous"]) {
+      const onglet = p.locator(`.capsule-tirets [role=tab][aria-label="${vue}"]`);
+      if (!(await onglet.count())) {
+        erreurs.push(`Capsule${theme} : pas de vue « ${vue} »`);
+        continue;
+      }
+      await onglet.click();
+      await p.waitForTimeout(700);
+      await capture(`capsule-${vue.replace(/\W+/g, "-")}`);
+      const fautes = (await accessibilite(`Capsule › ${vue}`)) + (await debordement(`Capsule › ${vue}`));
+      console.log(`${fautes ? "?? " : "ok "} Capsule › ${vue}${theme}${fautes ? ` · ${fautes} faute${fautes > 1 ? "s" : ""}` : ""}`);
+      // Le bas de la vue : la dernière carte doit se lire au-dessus de la capsule.
+      await p.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
+      await p.waitForTimeout(400);
+      await capture(`capsule-${vue.replace(/\W+/g, "-")}-bas`);
+      await p.evaluate(() => scrollTo(0, 0));
+    }
+  }
 } finally {
   await navigateur.close();
   serveur.kill();
