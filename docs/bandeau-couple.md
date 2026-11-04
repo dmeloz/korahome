@@ -4,7 +4,7 @@ L'ancien bandeau défilant de l'accueil a laissé la place à trois choses plus 
 
 - **Les mots de l'autre** attendent en petite icône au-dessus de la fée. Toucher l'icône le lit,
   y répond ou renvoie un cœur.
-- **L'humeur du jour** de chacun est un des « signes » au bout de la date (`src/domaine/signes.ts`).
+- **L'humeur du jour** de chacun se dit à la fée et se lit dans Nos mots (les « signes » de l'ancien accueil sont partis en Kora 0.1).
   Tant que personne ne l'a donnée, le signe est un sourire ; le toucher ouvre « Nos mots ».
 - **Le clin d'œil du jour** : une phrase par jour pour le foyer, demandée par le premier téléphone
   ouvert après 6 h (modèle léger, `DEMANDE_CLIN`), partagée avec l'autre, que la fée dit à l'accueil.

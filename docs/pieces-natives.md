@@ -8,7 +8,6 @@ Kora range l'interface en quelques pièces qui se répètent sur toutes les page
 - **La fée** (Tael, violette, pour Dany ; Navi, bleue, pour Sarah) flotte en bas, à droite ou à gauche. Un toucher : elle écoute. Un appui long : on lui écrit. Deux touchers : elle se cache. Glissée contre le bord : elle se range. C'est la seule façon d'ajouter quelque chose : elle range seule ce qui est simple (courses, tâche, rendez-vous, pesée de Mitsu, liste) et confie le reste à l'assistant. Une phrase comme « ouvre le budget » ouvre la page.
 - **Sa bulle** : petite et discrète, boutons en simple texte. Le prénom n'apparaît que pour un message de l'autre. Les mots et cœurs de l'autre attendent en petite icône au-dessus d'elle jusqu'au toucher ; les rappels et alertes sont dits tout de suite.
 - **Sa vie** (`src/domaine/vieFee.ts`, moteur `src/ui/vieFee.ts`) : elle dort la nuit sur la date (nuit apprise de 14 jours d'usage, 23 h à 7 h au départ), s'étire au réveil et résume la journée, scintille au coin du widget d'une chose urgente (3 par jour), dit « C'est l'heure » à l'heure d'une tâche, fait une boucle de joie à chaque tâche cochée, pâlit quand une urgence attend, porte le givre ou la pluie, fête un jour J, dit ce que l'autre a ajouté aux courses, se fâche si on la secoue, ronronne si on la caresse, et apprend à se taire à une heure où on la renvoie souvent. Son coupé par défaut.
-- **La visite guidée** : au premier lancement sur chaque téléphone, des bulles montrent les signes, la carte du jour, un widget et la fée. « Passer » à tout moment ; Réglages › Visite guidée la relance et remontre les aides des pages.
 - **Une page** : grand titre, une ligne de contexte, une aide montrée une seule fois, puis le contenu. Depuis 0.0.45, les listes n'ont plus de cadre (de fins traits les séparent) et la chose du moment, la première ligne du groupe qui presse, est en grand. Les Réglages gardent leurs groupes, comme ceux de l'iPhone.
 - **Les gestes**, partout les mêmes : glisser vers la droite = fait (coché, pris) ; vers la gauche = supprimer, avec « Annuler » ; appui long = menu rapide ; glisser depuis le bord gauche = revenir.
 - **Les réglages par téléphone** : thème (Auto, Sombre, Clair doux), verre des widgets et taille de la date (Ce téléphone) ; son de la fée, nuit apprise et discrétion (Réglages › Tael ou Navi). Les textes suivent la taille de texte de l'iPhone.
@@ -21,16 +20,16 @@ Kora range l'interface en quelques pièces qui se répètent sur toutes les page
 | `Page` (titre, sous-titre, actions) | `src/ui/pieces/Page.tsx` | Vue dans un `NavigationStack`, `.navigationTitle` en grand, `.toolbar` |
 | Listes sans cadre, `phare-ligne` | `src/ui/ecrans/Taches.tsx`, `DetailListe.tsx` | `List` en style `.plain`, la première ligne avec une police `.title3` |
 | `AideUneFois` | `src/ui/pieces/Page.tsx` | `TipKit` (`Tip` affiché une fois) |
-| `Visite` (visite guidée de l'accueil) | `src/ui/pieces/Visite.tsx`, parcours dans `src/domaine/visite.ts` | Une suite de `TipKit` (`popoverTip`) avec `Tips.showAllTipsForTesting()` pour la relancer |
 | `Onglets` | `src/ui/pieces/Page.tsx` | `Picker` en style `.segmented` |
 | `EtatVide` (une page qui n'a encore rien : picto, titre, phrase, action) | `src/ui/pieces/EtatVide.tsx` | `ContentUnavailableView` avec un bouton en `actions` |
 | Jetons `--rayon-*`, `--espace-*` | `src/styles/base.css` | Constantes d'un `enum Rayon` / `enum Espace` passées à `.clipShape(.rect(cornerRadius:))` et `spacing:` |
 | `PointEtat` (urgent, aujourd'hui, calme) | `src/ui/pieces/Page.tsx` | `Circle().fill(...)` avec trois couleurs d'état |
-| `GrandeDate`, `Signes` | `src/ui/pieces/HautAccueil.tsx` | `Text` en `.largeTitle` et une `HStack` de boutons ronds |
 | `Fee` (la fée, ses gestes, sa bulle) | `src/ui/pieces/Fee.tsx`, état dans `src/ui/fee.ts` | Une vue en `.overlay` avec `DragGesture`, `onTapGesture(count: 2)` et `onLongPressGesture`, la bulle en `.popover` compact ; les étincelles en `TimelineView` |
 | Vie de la fée | `src/ui/vieFee.ts`, règles `src/domaine/vieFee.ts` | Un `@Observable` piloté par un `Timer` sur l'accueil ; l'heure d'une tâche en `UNCalendarNotificationTrigger` local |
 | `BarreHaut` (la barre du haut de chaque page : retour, titre qui y monte en défilant, sélecteur des six espaces) | `src/ui/pieces/BarreHaut.tsx` | barre d'une `NavigationStack` en `.large`, avec un `Menu` dans `.toolbar(.topBarTrailing)` |
-| `ChiffresDuJour`, `CeSoir`, `Pile`, `PastilleDirect` (l'accueil tout sur un écran) | `src/ui/pieces/EcranAccueil.tsx` | `Grid` de quatre colonnes avec `.contextMenu(preview:)`, `TabView` en `.page` pour « Ce soir » et chaque pile, `TimelineView(.periodic)` pour la ronde |
+| `EnteteEspace`, `Grille`, `Tuile`, `LigneCoche`, `Jours`, `Semaine`, `Jauge` (les cartes des six espaces, Kora 0.1) | `src/ui/pieces/Cartes.tsx` | `LazyVGrid` à deux colonnes, chaque carte une vue avec `.background(.regularMaterial)`, `Toggle` en ligne, `Gauge` |
+| `Navigation` (la pile de Kora sur iPhone, le rail sur iPad) | `src/ui/pieces/Navigation.tsx` | Un `Menu` flottant sur iPhone, une `NavigationSplitView` en colonne sur iPad |
+| `Orbe`, `CarteTael`, `BulleTael`, `EcouteTael`, `FeuilleTael` (Tael vient à toi) | `src/ui/pieces/Tael.tsx` | Un bouton `.buttonStyle(.plain)` avec `.onLongPressGesture`, une `.sheet` pour ses niveaux et son journal |
 | `BarreJarvis` (la saisie de la fée) | `src/ui/pieces/barre.tsx` | `.safeAreaInset(edge: .bottom)` avec un `TextField` et un `AppIntent`, ouvert par l'appui long |
 | `AuDessusDeLaBarre` | `src/ui/pieces/barre.tsx` | Contenu du même `safeAreaInset`, au-dessus du champ |
 | `Glissable` | `src/ui/Glissable.tsx` | `.swipeActions(edge: .leading / .trailing)` et `.contextMenu` |
@@ -45,7 +44,7 @@ Kora range l'interface en quelques pièces qui se répètent sur toutes les page
 | `Feuille` | `src/ui/Feuille.tsx` (Motion : glisser et ressort « feuille ») | `.sheet` avec `presentationDetents` |
 | Recherche par la fée (accueil, depuis 0.0.73) | `src/ui/pieces/RechercheFee.tsx` | suggestions d'un `.searchable` au-dessus du champ |
 | Réglages › La fée | `src/ui/ecrans/LaFee.tsx` | Un `Form` avec `Toggle` (son) et un bouton de remise à zéro |
-| Thème, verre | `src/ui/theme.ts`, `src/ui/accueilLocal.ts` | `.preferredColorScheme`, `.glassEffect` et un `Asset Catalog` de couleurs |
+| Thème | `src/ui/theme.ts` | `.preferredColorScheme` et un `Asset Catalog` de couleurs |
 
 ## Les données qui servent ailleurs
 

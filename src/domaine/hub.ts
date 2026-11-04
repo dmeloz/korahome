@@ -16,8 +16,6 @@ import type { Animal } from "./mitsu";
 import { decaler } from "./taches";
 import type { Element, Foyer, Id, Jour, Liste } from "./types";
 
-/** Le hub commence à cette largeur de conteneur (l'iPad ; le Duo déplié, à 669, reste en téléphone). */
-export const LARGEUR_HUB = 760;
 export const COURSES_SUR_LE_HUB = 6;
 
 export interface LigneDemain {

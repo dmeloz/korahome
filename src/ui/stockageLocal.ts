@@ -11,14 +11,12 @@ export const CLES = {
   // ----- L'appareil -----
   /** Qui utilise ce téléphone (id du membre). */
   membreCourant: "korahome.membreCourant",
-  /** Le thème choisi : « sombre » ou « clair » (absent = Auto). */
+  /** L'apparence choisie : « sombre » (par défaut) ou « auto » (suit l'iPhone ; « clair » des anciennes versions vaut « auto »). */
   theme: "korahome.theme",
   /** « masquee » quand la pastille « Dev » est cachée sur ce téléphone. */
   pastilleDev: "korahome.coinDev",
   /** Le journal discret des retours de test (JSON, 14 jours). */
   journal: "korahome.journal",
-  /** « 1 » une fois la visite guidée de l'accueil vue ou passée. */
-  visiteVue: "korahome.visite.vue",
   /** « 1 » quand la carte « Prête en 5 étapes » de l'accueil a été rangée (« Plus tard »). */
   demarrageRange: "korahome.demarrage.range",
   /** Préfixe des petites aides de page déjà rangées (« korahome.aide.<page> » = « 1 »). */
@@ -26,25 +24,7 @@ export const CLES = {
   /** La version dont la fée a déjà annoncé la nouveauté sur ce téléphone (0.0.79). */
   nouveauteVue: "korahome.nouveaute.vue",
 
-  // ----- L'accueil -----
-  /** L'ordre des widgets de l'accueil (JSON). */
-  tableauDeBord: "korahome.tableauDeBord",
-  /** La taille de chaque widget (JSON) ; « .2 » depuis 0.0.23, les anciennes tailles sont oubliées. */
-  taillesWidgets: "korahome.taillesWidgets.2",
-  /** La place et la taille de la grande date (JSON). */
-  date: "korahome.date",
-  /** Les petits signes choisis sous la date (JSON). */
-  signes: "korahome.signes",
-  /** L'intensité du verre des widgets, de 0 à 100 (JSON). */
-  verre: "korahome.verre",
-  /** Les cartes retirées des piles « En ce moment » de l'accueil (JSON, depuis 0.0.72). */
-  cartesRetirees: "korahome.accueil.retirees",
-  /** Combien de fois « Glisse quand c'est fait » s'est montré, et si le geste a été fait (JSON). */
-  indiceGlisse: "korahome.accueil.indiceGlisse",
-
   // ----- La fée -----
-  /** Où elle se tient : côté, hauteur, rangée (JSON). */
-  placeFee: "korahome.fee",
   /** « 1 » quand son tintement est allumé. */
   feeSon: "korahome.feeSon",
   /** « micro » ou « clavier » : comment on parle à la fée d'un toucher (absent : selon l'appareil). */
@@ -101,10 +81,10 @@ export const CLES = {
   applePayVu: "korahome.applePayVu",
   /** L'identifiant de la clé Face ID qui verrouille le Budget sur ce téléphone (base64). */
   verrouBudget: "korahome.verrouBudget",
-  /** « 1 » quand ce téléphone essaie la nouvelle interface : la capsule vivante en bas (0.0.100). */
-  interfaceCapsule: "korahome.interfaceCapsule",
-  /** Combien de fois « Glisse pour changer » a été montré sous la capsule. */
-  astuceCapsule: "korahome.astuceCapsule",
+  /** Ce que Tael fait seule sur ce téléphone : « observe », « propose » ou « agit » (Kora 0.1). */
+  niveauTael: "korahome.tael.niveau",
+  /** Le journal de ce que Tael a fait, une semaine, avec de quoi le défaire (JSON, Kora 0.1). */
+  journalTael: "korahome.tael.journal",
 } as const;
 
 /** Le texte gardé, null s'il n'y en a pas ; `siIndisponible` (null par défaut) si le stockage ne répond pas. */

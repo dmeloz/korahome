@@ -1,5 +1,5 @@
-import { brancherFeeCapsule } from "../capsule";
-import { createContext, useContext, useEffect, useEffectEvent, useLayoutEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
+import { brancherFee, publierOrbe } from "../tael";
+import { createContext, useContext, useEffect, useEffectEvent, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { preparerEvenement } from "../../domaine/agenda";
 import { basculerCoeur, nouveauCoeur, nouveauMot } from "../../domaine/bandeau";
@@ -19,7 +19,7 @@ import { Icone } from "../Icone";
 import { ecouter, voixDisponible } from "../jarvis";
 import type { DonneesModule } from "../modules";
 import { TicketDeCaisse } from "../TicketDeCaisse";
-import { Fee } from "./Fee";
+import { EcouteTael } from "./Tael";
 import { sauver } from "../sauver";
 import { hauteurClavier } from "../bords";
 
@@ -112,6 +112,9 @@ export function FournisseurSaisie({ children }: { children: ReactNode }) {
   return <ContexteSaisie.Provider value={{ texte, changer: setTexte }}>{children}</ContexteSaisie.Provider>;
 }
 
+/** La même liste vide à chaque rendu : l'orbe ne se redessine pas pour rien. */
+const SANS_ATTENTE: readonly Attente[] = [];
+
 export function BarreJarvis(props: {
   /** La page du dessus : « module:stock », « liste:… », « accueil ». */
   cle: string;
@@ -125,8 +128,6 @@ export function BarreJarvis(props: {
   demanderAJarvis: (demande: string) => void;
   /** « Ouvre le budget » : la page, sans passer par l'assistant. */
   ouvrirPage: (ou: OuOuvrir) => void;
-  /** La nouvelle interface (0.0.100) : la fée vit dans la capsule du bas, plus de fée flottante. */
-  dansCapsule?: boolean;
 }) {
   const { texte, changer } = useSaisieBarre();
   const invitationPage = useInvitationDePage();
@@ -135,7 +136,6 @@ export function BarreJarvis(props: {
   const [ouverte, setOuverte] = useState(false);
   /** On répond à un mot de l'autre : la phrase part en mot, pas en courses. */
   const [reponse, setReponse] = useState<string | null>(null);
-  const [ancre, setAncre] = useState<number | null>(null);
   const champ = useRef<HTMLInputElement>(null);
   const rang = useRef<HTMLDivElement>(null);
   const annoncer = useAnnoncer();
@@ -163,20 +163,6 @@ export function BarreJarvis(props: {
     setReponse(null);
   });
   useEffect(() => toutEffacer(), [props.cle]);
-
-  // La fée se pose juste au-dessus de la saisie ouverte, clavier ou non ; elle se remesure quand
-  // le clavier, le message ou le vide du champ font bouger la saisie.
-  const vide = texte === "";
-  useLayoutEffect(() => {
-    if (!ouverte) {
-      setAncre(null);
-      return;
-    }
-    const mesurer = () => setAncre(rang.current ? rang.current.getBoundingClientRect().top : null);
-    mesurer();
-    const id = setTimeout(mesurer, 320);
-    return () => clearTimeout(id);
-  }, [ouverte, clavier, message, vide]);
 
   const fermer = () => {
     setOuverte(false);
@@ -368,7 +354,7 @@ export function BarreJarvis(props: {
     } else ecrire();
   };
 
-  // Dans la capsule, son orbe fait ce que fait la fée flottante : toucher pour parler, appui long pour écrire.
+  // L'orbe de Tael (à côté du salut, sur sa carte, dans la barre du haut) réveille la saisie : toucher pour parler, appui long pour écrire.
   const gestesFee = useRef({ toucher: toucherFee, appuiLong: () => {} });
   gestesFee.current = {
     toucher: toucherFee,
@@ -378,35 +364,23 @@ export function BarreJarvis(props: {
       requestAnimationFrame(() => champ.current?.focus());
     },
   };
+  useEffect(() => brancherFee({ toucher: () => gestesFee.current.toucher(), appuiLong: () => gestesFee.current.appuiLong() }), []);
+  // Ce que l'orbe montre : l'écoute, et ce que l'autre a envoyé (un mot, un cœur).
+  const attentesMontrees = ouverte ? SANS_ATTENTE : attentes;
+  const ouvrirAttenteRef = useRef(ouvrirAttente);
+  ouvrirAttenteRef.current = ouvrirAttente;
   useEffect(() => {
-    if (!props.dansCapsule) return;
-    return brancherFeeCapsule({ toucher: () => gestesFee.current.toucher(), appuiLong: () => gestesFee.current.appuiLong() });
-  }, [props.dansCapsule]);
+    publierOrbe({ ecoute: !!ecoute, attentes: attentesMontrees, prenomAutre, ouvrirAttente: (a) => ouvrirAttenteRef.current(a) });
+  }, [ecoute, attentesMontrees, prenomAutre]);
 
   const lu = invitationPage ?? invitation(props.lieu);
   const proposition = ecoute ? `${nomFee()} t'écoute…` : reponse ? `Répondre à ${reponse}…` : lu.replace(/Jarvis/g, nomFee());
 
   return (
     <>
-    {!props.dansCapsule && <Fee
-      ancre={ancre}
-      ecoute={!!ecoute}
-      toucher={toucherFee}
-      appuiLong={() => {
-        setMessage(null);
-        setOuverte(true);
-      }}
-      lacherApresAppui={() => champ.current?.focus()}
-      attentes={ouverte ? [] : attentes}
-      ouvrirAttente={ouvrirAttente}
-      teinteAutre={teinteAutre}
-      cacher={() => {
-        if (ecoute) ecoute();
-        fermer();
-      }}
-    />}
     <div className={`barre-zone${ouverte ? " ouverte" : ""}`} style={clavier ? { bottom: clavier } : undefined} aria-hidden={!ouverte}>
       <div ref={(el) => void (el && el.firstChild !== emplacement() && el.appendChild(emplacement()))} />
+      {ecoute && <EcouteTael exemples={lu.replace(/Jarvis/g, nomFee())} />}
       {message && <p className="barre-message" role="status">{message}</p>}
       <div className="barre-rang" ref={rang}>
         <form className="barre-jarvis" onSubmit={(e) => void envoyer(e)} role="search">

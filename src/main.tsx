@@ -8,7 +8,6 @@ import { App, ecranAffiche } from "./ui/App";
 import { Moteur } from "./ui/moteur/Moteur";
 import { installerJournal } from "./ui/journal";
 import { creerMiseAJour, surveillerMisesAJour } from "./ui/miseAJour";
-import { appliquerVerre } from "./ui/accueilLocal";
 import { lireMembreCourant } from "./ui/contexte";
 import { appliquerTheme, lireTheme } from "./ui/theme";
 import "./styles/index.css";
@@ -19,9 +18,8 @@ const miseAJour = creerMiseAJour(
   () => window.location.reload(),
 );
 
-// Le thème et le verre de ce téléphone, avant le premier affichage.
+// Le thème de ce téléphone, avant le premier affichage.
 appliquerTheme(lireTheme());
-appliquerVerre();
 
 installerJournal(ecranAffiche);
 // Les ressorts d'Anime.js arrivent juste après le premier écran, sans l'alourdir.

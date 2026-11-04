@@ -4,7 +4,7 @@
    n'en reprend une d'un autre (même élément, même propriété, même spécificité). */
 @import "./base.css";
 @import "./pieces.css";
-@import "./accueil.css";
+@import "./espaces.css";
 @import "./taches-listes.css";
 @import "./retours-dev.css";
 @import "./mitsu.css";
@@ -22,8 +22,5 @@
 @import "./chef-recettes.css";
 @import "./vetements.css";
 @import "./maison.css";
-@import "./visite.css";
 @import "./fee.css";
-@import "./large.css";
-@import "./capsule.css";
 @import "./surcharges.css";

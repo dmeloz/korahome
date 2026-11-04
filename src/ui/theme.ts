@@ -1,37 +1,36 @@
-import { CLES, ecrireTexte, effacer, lireTexte } from "./stockageLocal";
+import { CLES, ecrireTexte, lireTexte } from "./stockageLocal";
 
-// Le thème de ce téléphone : Auto (comme l'iPhone), Sombre laiton ou Clair doux.
-// Propre à chaque téléphone, jamais partagé : Melo peut rester en sombre et Sarah en clair.
+// L'apparence de ce téléphone (Kora 0.1, choix de Melo du 4 novembre 2026) : Sombre, graphite et
+// laiton, par défaut ; ou « Suit l'iPhone », clair le jour si l'iPhone l'est. Propre à chaque
+// téléphone, jamais partagé.
 
-export type Theme = "auto" | "sombre" | "clair";
+export type Theme = "sombre" | "auto";
 
 export const THEMES: readonly { id: Theme; libelle: string; detail: string }[] = [
-  { id: "auto", libelle: "Auto", detail: "Comme l'iPhone, sombre le soir s'il l'est" },
-  { id: "sombre", libelle: "Sombre", detail: "Graphite et laiton" },
-  { id: "clair", libelle: "Clair doux", detail: "Papier chaud et laiton" },
+  { id: "sombre", libelle: "Sombre", detail: "Graphite et laiton, toujours" },
+  { id: "auto", libelle: "Suit l'iPhone", detail: "Clair le jour si l'iPhone l'est" },
 ];
 
+/** Le réglage gardé ; « clair » des anciennes versions compte comme « Suit l'iPhone ». */
 export function lireTheme(): Theme {
   const t = lireTexte(CLES.theme);
-  return t === "sombre" || t === "clair" ? t : "auto";
+  return t === "auto" || t === "clair" ? "auto" : "sombre";
 }
 
 /** La couleur de la barre d'état de l'iPhone suit le fond du thème. */
-const FOND = { sombre: "#0F1211", clair: "#F4EFE6" } as const;
+const FOND = { sombre: "#0F1012", clair: "#F3F1EC" } as const;
 
 export function appliquerTheme(theme: Theme): void {
   const html = document.documentElement;
-  if (theme === "auto") delete html.dataset.theme;
-  else html.dataset.theme = theme;
+  html.dataset.theme = theme;
   for (const meta of document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')) {
     const clair = meta.media.includes("light");
-    meta.content = theme === "auto" ? (clair ? FOND.clair : FOND.sombre) : FOND[theme];
+    meta.content = theme === "auto" && clair ? FOND.clair : FOND.sombre;
   }
 }
 
 export function choisirTheme(theme: Theme): void {
   // Stockage indisponible : le thème vaut pour cette visite.
-  if (theme === "auto") effacer(CLES.theme);
-  else ecrireTexte(CLES.theme, theme);
+  ecrireTexte(CLES.theme, theme);
   appliquerTheme(theme);
 }

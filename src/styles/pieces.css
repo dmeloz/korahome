@@ -160,47 +160,9 @@
   transition: opacity 0.2s ease, transform 0.25s var(--courbe);
 }
 .barre-haut.avec-titre .barre-haut-titre { opacity: 1; transform: none; }
-.barre-haut-espaces {
-  justify-self: end;
-  width: 44px;
-  height: 44px;
-  display: grid;
-  place-items: center;
-  border: none;
-  border-radius: 50%;
-  background: none;
-  color: var(--accent);
-}
-.barre-haut-espaces[aria-expanded="true"] { background: var(--accent-doux); }
-.barre-haut-menu {
-  position: absolute;
-  top: calc(100% - 2px);
-  right: calc(var(--marge-cote) - 6px + var(--bord-droit));
-  width: min(240px, calc(100vw - 32px - var(--bord-gauche) - var(--bord-droit)));
-  display: grid;
-  padding: 6px;
-  border-radius: var(--rayon-carte);
-  /* Presque plein : sous la barre de verre, son propre flou ne verrait que la barre. */
-  background: color-mix(in srgb, var(--surface-haute) 97%, transparent);
-  box-shadow: var(--reflet), 0 0 0 0.5px var(--verre-trait), 0 18px 40px -16px rgb(0 0 0 / 0.55);
-  transform-origin: top right;
-}
-.barre-haut-menu button {
-  display: flex;
-  align-items: center;
-  gap: var(--espace-5);
-  min-height: 44px;
-  padding: 0 12px;
-  border: none;
-  border-radius: var(--rayon-petit);
-  background: none;
-  color: var(--texte);
-  text-align: left;
-}
-.barre-haut-menu button > span { flex: 1; }
-.barre-haut-menu button > svg:first-child { color: var(--discret); }
-.barre-haut-menu button.actuel { background: var(--surface-haute); font-weight: 600; }
-.barre-haut-menu button.actuel > svg { color: var(--accent); }
+/* Tael à droite de la barre, un peu plus petite qu'à côté du salut. */
+.barre-haut .orbe { justify-self: end; }
+.barre-haut .orbe svg { width: 44px; height: 44px; }
 
 .bouton-icone {
   width: 40px;

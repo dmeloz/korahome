@@ -268,7 +268,7 @@ export function Taches(props: {
   }
   return (
     <Page
-      titre="Tâches"
+      titre={administratif ? "Administratif" : "Tâches"}
       sousTitre={administratif ? "Les papiers, les factures et les démarches" : vide ? undefined : dues ? `${dues} à faire aujourd'hui` : "Rien ne presse aujourd'hui"}
       actions={
         <>

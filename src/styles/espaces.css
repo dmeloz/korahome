@@ -1,0 +1,274 @@
+/* ===== Kora 0.1 : les six espaces en cartes, la navigation (pile, rail) et Tael qui vient à toi =====
+   Maquette validée par Melo le 4 novembre 2026 (conception/refonte-2026-11/kora-maquette-complete-v3.html). */
+
+/* ---------- L'en-tête d'un espace : le salut, Tael à côté ---------- */
+.espace { padding-top: calc(env(safe-area-inset-top) + 10px); }
+.espace-entete { display: flex; align-items: center; justify-content: space-between; gap: var(--espace-5); animation: calme 0.3s ease-out both; }
+.espace-entete h1 { margin: 0; font-size: 30px; }
+.sous-salut { color: var(--discret); font-size: var(--t-detail); margin: 2px 0 16px; animation: calme 0.3s ease-out both; }
+.espace .page-entete { display: none; }
+
+/* ---------- Le système de cartes : trois tailles, une forte, une de contraste ---------- */
+/* Les cartes se posent serrées : une petite carte comble le trou laissé par une carte absente. */
+.grille { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: dense; gap: var(--espace-5); }
+.tuile {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  background: var(--surface);
+  border: 1px solid var(--trait);
+  border-radius: var(--rayon-carte);
+  padding: 16px;
+  color: var(--texte);
+  text-align: left;
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: var(--entree, vivant 0.55s cubic-bezier(0.2, 0.9, 0.25, 1.08)) both;
+  animation-delay: calc(var(--i, 0) * var(--pas, 70ms));
+}
+button.tuile:active { transform: translateY(-3px); }
+.tuile.large { grid-column: 1 / -1; }
+.etiq { display: flex; align-items: center; gap: var(--espace-4); font-size: var(--t-detail); color: var(--discret); font-weight: 500; margin: 0; }
+.etiq svg { width: 18px; height: 18px; flex: none; }
+.etiq .a-droite { margin-left: auto; }
+/* Le seul grand chiffre de l'écran. */
+.grand-chiffre { font-family: var(--police-titre); font-size: 40px; font-weight: 700; letter-spacing: -0.03em; margin: 10px 0 6px; line-height: 1; font-variant-numeric: tabular-nums; }
+.grand-chiffre small { font-size: 0.5em; color: var(--discret); font-weight: 600; letter-spacing: 0; margin-left: 4px; }
+.pastille-k { display: inline-flex; align-items: center; gap: var(--espace-3); font-size: var(--t-legende); color: var(--discret); margin-top: 8px; }
+.pastille-k b { padding: 2px 8px; border-radius: var(--rayon-rond); font-size: var(--t-legende); font-weight: 600; background: var(--accent-doux); color: var(--accent); }
+.pastille-k b.navi { background: color-mix(in srgb, var(--navi) 16%, transparent); color: var(--navi); }
+.pastille-k b.direct { animation: pulse 2s ease-out infinite; }
+@keyframes pulse { 15% { transform: scale(1.1); } 30% { transform: none; } }
+.titre-c { font-size: 18px; font-weight: 600; margin: 8px 0 0; line-height: 1.3; text-wrap: pretty; }
+.phrase { font-size: 18px; font-weight: 600; line-height: 1.3; margin: 8px 0 0; text-wrap: pretty; }
+.phrase b { color: var(--accent); font-weight: 700; }
+.doux { color: var(--discret); font-size: var(--t-detail); margin: 4px 0 0; line-height: 1.4; }
+.actions-c { display: flex; flex-wrap: wrap; gap: var(--espace-4); margin-top: 14px; }
+/* Les actions d'une carte : des pilules, trois au plus. */
+.pilule { min-height: 42px; padding: 0 16px; border: none; border-radius: var(--rayon-rond); font-size: 15px; font-weight: 600; background: var(--surface-haute); color: var(--texte); display: inline-flex; align-items: center; gap: var(--espace-3); }
+.pilule.fee { background: var(--fee-clair); color: var(--fee-profond); }
+.pilule:disabled { opacity: 0.4; }
+/* La carte forte : la seule en laiton plein, ce qui est à toi maintenant. */
+.tuile.forte { background: linear-gradient(150deg, var(--accent-clair), var(--accent)); color: var(--sur-accent); border-color: transparent; }
+/* En clair, le laiton clair ne porte pas un texte lisible : la carte forte prend un laiton plus profond. */
+@media (prefers-color-scheme: light) { :root[data-theme="auto"] .tuile.forte { background: linear-gradient(150deg, #96691f, var(--accent)); } }
+.tuile.forte .etiq, .tuile.forte .doux { color: color-mix(in srgb, var(--sur-accent) 75%, transparent); }
+.tuile.forte .pilule { background: rgb(0 0 0 / 0.14); color: var(--sur-accent); }
+.tuile.forte .phrase b { color: inherit; }
+/* La carte de contraste : ivoire, ce qui vient demain ou vaut la peine d'être lu. */
+.tuile.contraste { background: var(--ivoire); color: var(--sur-ivoire); border-color: transparent; }
+.tuile.contraste .etiq, .tuile.contraste .doux { color: color-mix(in srgb, var(--sur-ivoire) 65%, transparent); }
+.tuile.contraste .pilule { background: color-mix(in srgb, var(--sur-ivoire) 10%, transparent); color: inherit; }
+.tuile.contraste .phrase b { color: inherit; }
+/* La carte héros : « Ce soir », son bandeau de lumière, l'heure en grand. */
+.tuile.heros { padding: 0; overflow: hidden; }
+.heros-haut { height: 110px; background: radial-gradient(90% 120% at 90% 10%, color-mix(in srgb, var(--accent) 55%, var(--surface)) 0%, var(--surface) 70%); }
+.heros-corps { padding: 14px 16px 16px; display: flex; justify-content: space-between; align-items: flex-end; gap: var(--espace-5); }
+.heros-corps > div:first-child { min-width: 0; flex: 1; }
+.heros-heure { font-family: var(--police-titre); font-size: 30px; font-weight: 700; letter-spacing: -0.03em; flex: none; font-variant-numeric: tabular-nums; }
+.tuile.heros .titre-c { font-size: 21px; }
+/* Le mot de l'autre. */
+.tuile.mot q { display: block; font-family: var(--police-mot); font-size: 21px; line-height: 1.3; margin-top: 10px; quotes: "« " " »"; }
+
+/* Les listes dans une carte : des lignes à cocher, des lignes qui mènent ailleurs. */
+.lignes { margin-top: 10px; display: flex; flex-direction: column; }
+.li { display: flex; align-items: center; gap: var(--espace-5); min-height: 46px; padding: 4px 0; border: 0; border-top: 1px solid var(--trait); background: none; font-size: var(--t-corps); width: 100%; color: inherit; text-align: left; }
+.li:first-child { border-top: 0; }
+.li .case { border-color: var(--sourd); transition: background 0.2s, border-color 0.2s; }
+.li .case svg { width: 14px; height: 14px; opacity: 0; }
+.li[aria-checked="true"] .case { background: var(--accent); border-color: var(--accent); color: var(--sur-accent); }
+.li[aria-checked="true"] .case svg { opacity: 1; }
+.li[aria-checked="true"] .li-texte { color: var(--sourd); text-decoration: line-through; }
+.li .li-texte { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.li small { color: var(--sourd); font-size: var(--t-legende); flex: none; }
+.li small.navi { color: var(--navi); }
+.li time { color: var(--sourd); font-size: var(--t-legende); font-variant-numeric: tabular-nums; flex: none; }
+.li.urgent time, .li.urgent small { color: var(--urgent); }
+.ligne-b { display: flex; justify-content: space-between; align-items: center; gap: var(--espace-5); min-height: 52px; padding: 2px 0; border: 0; border-top: 1px solid var(--trait); background: none; width: 100%; font-size: var(--t-corps); color: inherit; text-align: left; }
+.ligne-b:first-child { border-top: 0; }
+.ligne-b small { display: block; color: var(--discret); font-size: var(--t-detail); }
+.ligne-b .val { color: var(--discret); font-size: 15px; flex: none; display: flex; align-items: center; gap: var(--espace-3); }
+.ligne-b .val::after { content: "›"; color: var(--sourd); font-size: 20px; line-height: 1; }
+/* Une jauge nue, sans cadre. */
+.jauge { height: 6px; border-radius: 3px; background: var(--surface-haute); margin-top: 10px; overflow: hidden; }
+.jauge i { display: block; height: 100%; border-radius: 3px; background: var(--accent); width: var(--p, 50%); transition: width 0.9s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.tuile.forte .jauge { background: rgb(0 0 0 / 0.14); }
+.tuile.forte .jauge i { background: var(--sur-accent); }
+/* Les sept soirs de la semaine du Chef. */
+.semaine { display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--espace-3); margin-top: 12px; }
+.semaine div { text-align: center; font-size: 12px; color: var(--discret); }
+.semaine div b { display: block; margin: 0 auto 6px; width: 100%; max-width: 34px; height: 40px; border-radius: var(--rayon-petit); background: var(--surface-haute); }
+.semaine div.plein b { background: color-mix(in srgb, var(--accent) 55%, var(--surface-haute)); }
+.semaine div.auj { color: var(--accent); font-weight: 700; }
+/* La semaine de l'agenda, et le mois entier. */
+.jours { display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--espace-2); margin: 10px 0 6px; text-align: center; }
+.jours small { display: block; font-size: 11px; color: var(--discret); margin-bottom: 4px; }
+.jours b { display: grid; place-items: center; width: 34px; height: 34px; margin: 0 auto; border-radius: 50%; font-size: 15px; font-weight: 600; position: relative; }
+.jours .auj b { background: var(--accent); color: var(--sur-accent); }
+.jours .pt b::after, .mois b.pt::after { content: ""; position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
+.jours .auj.pt b::after { background: var(--sur-accent); }
+.mois { display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--espace-2); text-align: center; margin-top: 8px; }
+.mois small { font-size: 11px; color: var(--sourd); padding-bottom: 6px; }
+.mois b { display: grid; place-items: center; height: 40px; border-radius: var(--rayon-petit); font-size: 15px; font-weight: 500; color: var(--texte); position: relative; }
+.mois b.auj { background: var(--accent); color: var(--sur-accent); }
+.mois b.auj.pt::after { background: var(--sur-accent); }
+.mois b.passe { color: var(--sourd); }
+/* Les catégories d'un paiement à classer, une rangée qui défile. */
+.categories { display: flex; gap: var(--espace-4); margin-top: 10px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.categories::-webkit-scrollbar { display: none; }
+.categories button { flex: none; min-height: 34px; padding: 0 12px; border: none; border-radius: var(--rayon-rond); background: var(--surface-haute); color: var(--texte); font-size: var(--t-detail); font-weight: 600; }
+.tuile.forte .categories button { background: rgb(0 0 0 / 0.14); color: inherit; }
+.tuile.forte .categories button:first-child { background: rgb(0 0 0 / 0.28); }
+/* Une courbe nue. */
+.courbe { display: block; width: 100%; height: 64px; margin-top: 8px; }
+.courbe path { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; }
+.courbe .fond { stroke: var(--trait); stroke-width: 1; }
+.meteo-c { display: flex; gap: 14px; align-items: center; margin-top: 8px; }
+.meteo-c .deg { font-family: var(--police-titre); font-size: 34px; font-weight: 700; letter-spacing: -0.03em; }
+.meteo-c .doux { margin: 0; }
+.version-espace { grid-column: 1 / -1; margin: 30px 0 0; text-align: center; color: var(--sourd); font-size: var(--t-legende); }
+/* Le pied d'un espace : les états qui demandent un geste (partage, notifications, sauvegarde), en pilules sourdes. */
+.pied-espace { display: flex; flex-wrap: wrap; gap: var(--espace-4); margin-top: var(--espace-7); }
+.etat-pied { display: inline-flex; align-items: center; gap: var(--espace-3); min-height: 36px; padding: 0 14px; border: 1px solid var(--trait); border-radius: var(--rayon-rond); background: var(--surface); color: var(--discret); font-size: var(--t-detail); font-weight: 500; }
+.etat-pied.urgent { color: var(--urgent); border-color: color-mix(in srgb, var(--urgent) 40%, transparent); }
+.etat-pied.en-cours svg { animation: tourne 1s linear infinite; }
+@keyframes tourne { to { transform: rotate(360deg); } }
+.etat-pied:disabled { opacity: .7; }
+/* Un badge discret dans l'étiquette d'une carte (« en direct », « iCloud relié », « 2 en retard »). */
+.etiq .pastille-k, .etiq .navi { font-size: 11px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--discret); }
+.etiq .pastille-k.urgent { color: var(--urgent); }
+.etiq .navi { color: var(--navi); }
+
+/* ---------- Le mouvement : vivant, calme si l'iPhone demande moins d'animations ---------- */
+@keyframes calme { from { opacity: 0; transform: translateY(8px); } }
+@keyframes vivant { from { opacity: 0; transform: translateY(26px) scale(0.96); } }
+@media (prefers-reduced-motion: reduce) {
+  :root { --entree: calme 0.28s ease-out; --pas: 40ms; }
+  .tuile, .espace-entete, .sous-salut { animation: none; }
+  .pastille-k b.direct { animation: none; }
+}
+
+/* ---------- Tael : elle vient à toi ---------- */
+/* Son orbe : le dessin de la fée (Fee.tsx), petit, à côté du salut et sur sa carte. */
+.orbe { position: relative; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: none; flex: none; -webkit-touch-callout: none; user-select: none; touch-action: manipulation; }
+.orbe svg { width: 56px; height: 56px; overflow: visible; display: block; animation: flotte 3.4s ease-in-out infinite; }
+.orbe .halo { transform-box: fill-box; transform-origin: center; animation: fee-respire 3.2s ease-in-out infinite; }
+.orbe.fee-violette .ailes-rondes, .orbe.fee-bleue .ailes-pointues { display: none; }
+.orbe .aile { transform-box: view-box; transform-origin: 60px 58px; }
+.orbe .aile-hg { animation: fee-battre-g 0.34s ease-in-out infinite alternate; }
+.orbe .aile-hd { animation: fee-battre-d 0.34s ease-in-out infinite alternate; }
+.orbe .aile-bg { animation: fee-battre-g 0.34s ease-in-out infinite alternate-reverse; }
+.orbe .aile-bd { animation: fee-battre-d 0.34s ease-in-out infinite alternate-reverse; }
+.orbe.ecoute .aile { animation-duration: 0.09s; }
+/* Sa vie (ui/vieFee.ts) : la nuit elle dort, une tâche faite la fait boucler, une alerte la fait scintiller. */
+.orbe.nuit svg { opacity: 0.55; transform: scale(0.85); }
+.orbe.nuit .aile { animation-duration: 1.4s; }
+.orbe.joie svg { animation: fee-boucle 1.2s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.orbe.alerte .halo { animation: fee-respire 0.9s ease-in-out infinite; filter: brightness(1.4); }
+@keyframes fee-boucle { 0% { transform: rotate(0) scale(1); } 50% { transform: translateY(-14px) rotate(180deg) scale(1.12); } 100% { transform: rotate(360deg) scale(1); } }
+.orbe.appuie svg { transform: scale(0.9); }
+.orbe .attente { position: absolute; top: 0; right: 0; width: 16px; height: 16px; border-radius: 50%; background: var(--fee-teinte); color: #fff; display: grid; place-items: center; font-size: 10px; font-weight: 700; box-shadow: 0 0 0 2px var(--fond); }
+.orbe .attente.coeur { background: #ff7a9a; }
+.orbe.attend .halo { animation-duration: 1.4s; }
+@keyframes flotte { 50% { transform: translateY(-4px); } }
+/* L'orbe en vol, du salut à sa carte (Tael.tsx). */
+.orbe-vol { position: fixed; z-index: 70; width: 44px; height: 44px; pointer-events: none; }
+/* Sa carte : ce qu'elle propose, ce qu'elle a fait ; elle s'en va une fois répondu. */
+.tuile.fee-carte { background: var(--surface-haute); border-color: color-mix(in srgb, var(--fee-teinte) 35%, transparent); }
+.tuile.fee-carte .orbe { position: absolute; right: 10px; top: -14px; }
+.tuile.fee-carte small { display: block; font-size: var(--t-legende); color: var(--discret); font-weight: 600; margin-bottom: 4px; }
+.tuile.fee-carte small.de-lautre { color: var(--fee-texte, var(--fee-teinte)); }
+.tuile.fee-carte p { margin: 0 52px 0 0; font-size: var(--t-corps); line-height: 1.4; }
+.tuile.fee-carte.fait p { color: var(--discret); }
+.tuile.fee-carte.part { opacity: 0; transform: scale(0.96); transition: opacity 0.35s, transform 0.35s; }
+/* Sur une page sans sa carte : sa bulle sous la barre du haut, près de l'orbe. */
+.bulle-tael {
+  position: fixed; z-index: 12; top: calc(env(safe-area-inset-top) + 56px); right: calc(14px + var(--bord-droit)); left: auto;
+  max-width: min(320px, calc(100vw - 28px - var(--bord-gauche) - var(--bord-droit)));
+  padding: 10px 14px 12px; border-radius: var(--rayon-carte) var(--rayon-fin) var(--rayon-carte) var(--rayon-carte);
+  background: var(--surface-haute); border: 1px solid color-mix(in srgb, var(--fee-teinte) 35%, transparent);
+  box-shadow: 0 14px 34px -18px rgb(0 0 0 / 0.6); font-size: var(--t-detail); line-height: 1.4; transform-origin: top right;
+}
+.bulle-tael .de { display: block; font-size: var(--t-legende); font-weight: 600; color: var(--fee-texte, var(--fee-teinte)); margin-bottom: 2px; }
+.bulle-tael .actions-c { margin-top: 10px; gap: var(--espace-3); }
+.bulle-tael .pilule { min-height: 34px; padding: 0 12px; font-size: var(--t-detail); }
+.bulle-tael.crie { font-weight: 600; border-color: var(--urgent); }
+/* Quand elle écoute : l'orbe en grand, les ondes, au-dessus de la saisie. */
+.ecoute-tael { text-align: center; padding: 10px 0 6px; }
+.ecoute-tael .grande { width: 72px; height: 72px; margin: 0 auto 8px; display: grid; place-items: center; }
+.ecoute-tael .grande svg { width: 96px; height: 96px; overflow: visible; animation: souffle 1.6s ease-in-out infinite; }
+@keyframes souffle { 50% { transform: scale(1.08); } }
+.onde { display: flex; justify-content: center; gap: var(--espace-2); height: 22px; align-items: center; margin: 0 0 8px; }
+.onde i { width: 3px; border-radius: 2px; background: var(--fee-lueur); height: 6px; animation: onde 1s ease-in-out infinite; }
+.onde i:nth-child(2) { animation-delay: 0.1s; } .onde i:nth-child(3) { animation-delay: 0.2s; } .onde i:nth-child(4) { animation-delay: 0.3s; }
+.onde i:nth-child(5) { animation-delay: 0.4s; } .onde i:nth-child(6) { animation-delay: 0.5s; } .onde i:nth-child(7) { animation-delay: 0.6s; }
+@keyframes onde { 50% { height: 20px; } }
+.ecoute-tael p { margin: 0 0 4px; font-size: 17px; font-weight: 600; }
+.ecoute-tael .ex { color: var(--discret); font-size: var(--t-detail); margin: 0 0 6px; }
+.ecoute-tael .lien { font-size: var(--t-detail); color: var(--discret); text-decoration: underline; text-underline-offset: 3px; }
+/* Sa feuille : son niveau, et ce qu'elle a fait aujourd'hui. */
+.feuille-tael h3 { margin: 14px 0 8px; font-family: var(--police-fixe); font-size: var(--t-legende); text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); font-weight: 600; }
+.niveaux { display: flex; flex-direction: column; gap: var(--espace-4); }
+.niv { display: flex; align-items: center; gap: var(--espace-5); padding: 12px 14px; border-radius: var(--rayon-petit); background: var(--surface-haute); border: 1px solid var(--trait); width: 100%; color: inherit; text-align: left; }
+.niv[aria-checked="true"] { border-color: color-mix(in srgb, var(--fee-teinte) 55%, transparent); }
+.niv .pt { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--sourd); flex: none; display: grid; place-items: center; }
+.niv[aria-checked="true"] .pt { border-color: var(--fee-lueur); }
+.niv[aria-checked="true"] .pt::after { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--fee-lueur); }
+.niv b { display: block; font-size: var(--t-corps); }
+.niv span { display: block; color: var(--discret); font-size: var(--t-detail); line-height: 1.35; }
+.jl { display: flex; align-items: center; gap: var(--espace-5); padding: 11px 0; border-top: 1px solid var(--trait); font-size: 15px; }
+.jl:first-child { border-top: 0; }
+.jl time { color: var(--sourd); font-size: var(--t-legende); font-variant-numeric: tabular-nums; flex: none; width: 40px; }
+.jl span { flex: 1; min-width: 0; }
+.jl .pilule { min-height: 34px; padding: 0 12px; font-size: var(--t-detail); }
+.jl.annule span { text-decoration: line-through; color: var(--sourd); }
+@media (prefers-reduced-motion: reduce) {
+  .orbe svg, .orbe .halo, .orbe .aile, .ecoute-tael .grande svg, .onde i { animation: none; }
+}
+
+/* ---------- La navigation : la pile sur l'iPhone, le rail sur l'iPad et le Duo ouvert ---------- */
+/* Repliée, la pile ne prend que son bouton rond : les cartes derrière restent touchables. */
+.pile-kora { position: fixed; left: calc(16px + var(--bord-gauche)); bottom: calc(env(safe-area-inset-bottom) + 16px); z-index: 25; display: flex; flex-direction: column-reverse; align-items: flex-start; gap: 10px; pointer-events: none; }
+.pile-kora .kora, .pile-kora.ouvert { pointer-events: auto; }
+.pile-kora .kora { width: 56px; height: 56px; border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); border-radius: 50%; background: var(--verre); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); display: grid; place-items: center; color: var(--accent); box-shadow: 0 10px 28px rgb(0 0 0 / 0.4); transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.pile-kora.ouvert .kora { transform: rotate(45deg); }
+.pile-kora .item { display: flex; align-items: center; gap: 10px; padding: 0; border: 0; background: none; color: inherit; opacity: 0; transform: translateY(10px) scale(0.9); pointer-events: none; transition: opacity 0.25s, transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.pile-kora.ouvert .item { opacity: 1; transform: none; pointer-events: auto; }
+.pile-kora .item:nth-child(2) { transition-delay: 0.03s; } .pile-kora .item:nth-child(3) { transition-delay: 0.06s; } .pile-kora .item:nth-child(4) { transition-delay: 0.09s; }
+.pile-kora .item:nth-child(5) { transition-delay: 0.12s; } .pile-kora .item:nth-child(6) { transition-delay: 0.15s; } .pile-kora .item:nth-child(7) { transition-delay: 0.18s; }
+.pile-kora .rond { width: 48px; height: 48px; border-radius: 50%; background: var(--surface); border: 1px solid var(--trait); display: grid; place-items: center; color: var(--discret); position: relative; }
+.pile-kora .item[aria-current="page"] .rond { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.pile-kora .nom { padding: 7px 12px; border-radius: var(--rayon-rond); background: var(--ivoire); color: var(--sur-ivoire); font-size: var(--t-detail); font-weight: 600; }
+.pile-kora .alerte { position: absolute; top: -2px; right: -2px; }
+.voile-pile { position: fixed; inset: 0; z-index: 24; background: rgb(10 10 12 / 0.78); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); border: 0; padding: 0; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.3s, visibility 0.3s; }
+.voile-pile.ouvert { opacity: 1; visibility: visible; pointer-events: auto; }
+/* Une page par-dessus un espace, une feuille, la saisie : le bouton Kora se retire. */
+html.feuille-ouverte .pile-kora, html.saisie-ouverte .pile-kora { opacity: 0; pointer-events: none; }
+.pile-kora { transition: opacity 0.25s; }
+.rail { display: none; position: fixed; left: calc(14px + var(--bord-gauche)); top: calc(env(safe-area-inset-top) + 24px); bottom: calc(env(safe-area-inset-bottom) + 24px); z-index: 20; flex-direction: column; gap: var(--espace-4); }
+.rail button { position: relative; display: flex; align-items: center; justify-content: center; gap: var(--espace-5); width: 48px; min-height: 48px; padding: 0; border-radius: var(--rayon-rond); background: none; color: var(--discret); font-size: 15px; font-weight: 600; border: 1px solid transparent; transition: color 0.25s, background 0.25s; }
+.rail button[aria-current="page"] { color: var(--accent); background: var(--surface); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.rail .nom { display: none; }
+.rail .sep { height: 1px; margin: 6px 12px; background: var(--trait); }
+.rail .alerte { position: absolute; top: 6px; right: 6px; }
+@media (min-width: 640px) {
+  :root { --bord-rail: 72px; }
+  .pile-kora, .voile-pile { display: none; }
+  .rail { display: flex; }
+  .grille { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; grid-auto-flow: dense; }
+  .tuile.large { grid-column: span 2; }
+  .espace-entete h1 { font-size: 34px; }
+}
+@media (min-width: 900px) {
+  :root { --bord-rail: 190px; }
+  .rail { left: calc(20px + var(--bord-gauche)); }
+  .rail .nom { display: inline; }
+  .rail button { width: auto; justify-content: flex-start; padding: 0 14px 0 12px; }
+  .grille { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; }
+  .tuile.large { grid-column: span 2; }
+  .tuile.forte { grid-column: span 2; }
+  .tuile.contraste.large, .tuile.mot.large, .tuile.fee-carte.large { grid-column: span 3; }
+  .tuile.tres-large { grid-column: span 4; }
+  .espace-entete h1, .grand-chiffre { font-size: 40px; }
+}

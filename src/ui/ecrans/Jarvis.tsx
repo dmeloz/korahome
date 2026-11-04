@@ -19,6 +19,8 @@ import { annulerModifications, direAVoixHaute, ecouter, enregistrerModifications
 import type { DonneesModule } from "../modules";
 import { vibrer } from "../haptique";
 import { nomFee } from "../fee";
+import { attendUnOui, peutAgir } from "../../domaine/tael";
+import { lireNiveau, noterAuJournal } from "../tael";
 
 interface Echange extends TourJarvis {
   n: number;
@@ -91,12 +93,17 @@ export function Jarvis(props: {
         historique,
         image,
       });
-      const actions = lireActions(reponse.appels);
-      // Supprimer, ou retenir ce qu'il a remarqué seul : chaque fois, une question avant d'agir.
-      const enAttente = actions.filter((a) => aConfirmer(a, texte));
-      const resultat = appliquerActions(actions.filter((a) => !aConfirmer(a, texte)), avecVersion, donnees.membreId, donnees.aujourdhui, contexteReel);
+      // Son niveau (Réglages, ou garder le doigt sur son orbe) : « Observe » ne touche à rien,
+      // « Propose » demande un oui pour ce qui s'efface, « Agit » fait et note dans son journal.
+      const niveau = lireNiveau();
+      const actions = peutAgir(niveau) ? lireActions(reponse.appels) : [];
+      const enAttente = actions.filter((a) => attendUnOui(niveau, aConfirmer(a, texte)));
+      const resultat = appliquerActions(actions.filter((a) => !attendUnOui(niveau, aConfirmer(a, texte))), avecVersion, donnees.membreId, donnees.aujourdhui, contexteReel);
       await enregistrerModifications(depot, resultat.modifications);
-      if (resultat.modifications.length) vibrer();
+      if (resultat.modifications.length) {
+        vibrer();
+        noterAuJournal({ id: `${Date.now()}`, quand: new Date().toISOString(), texte: resultat.faits.join(" ") || texte, modifications: resultat.modifications });
+      }
       const dit = [reponse.texte, ...resultat.faits, ...resultat.echecs].filter(Boolean).join(" ") || (enAttente.length ? "" : "C'est fait.");
       if (dit) ajouter({ role: "jarvis", texte: dit, modifications: resultat.modifications.length ? resultat.modifications : undefined });
       for (const action of enAttente) {

@@ -1,11 +1,13 @@
 // Essai des écrans dans un iPhone simulé (Chromium de Playwright) : crée un foyer, ouvre chaque
-// espace (tuile de l'accueil puis sélecteur de la barre du haut) et chaque page des Réglages, et signale toute erreur ou page
-// sans titre. À lancer avant une version : `npm run build`, puis `node scripts/essai-ecrans.mjs`.
+// espace (par la pile de Kora en bas à gauche, ou le rail sur l'iPad), chaque page qu'une carte
+// ouvre, et chaque page des Réglages, et signale toute erreur ou page sans titre. À lancer avant
+// une version : `npm run build`, puis `node scripts/essai-ecrans.mjs`.
 // Les captures vont dans le dossier donné en argument (par défaut un dossier temporaire).
 // Depuis 0.0.67, axe-core (le contrôleur d'accessibilité de Deque) passe sur chaque écran : une
 // faute « grave » ou « critique » (contraste, bouton sans nom, rôle mal formé) fait échouer l'essai.
-// Depuis 0.0.79, il passe aussi sur l'accueil, et toute la tournée se refait en mode clair, puis
-// avec la plus grande taille de texte de l'iPhone (23 px au lieu de 17) : rien ne doit déborder.
+// Toute la tournée se refait en mode clair (Réglages › Apparence › Suit l'iPhone), avec la plus
+// grande taille de texte de l'iPhone (23 px au lieu de 17), puis sur l'iPhone Duo plié et déplié
+// et sur l'iPad couché : rien ne doit déborder.
 import { spawn } from "node:child_process";
 import { existsSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -34,7 +36,11 @@ const navigateur = await chromium.launch({ executablePath: NAVIGATEUR });
 try {
   const ctx = await navigateur.newContext({ ...devices["iPhone 14 Pro"], colorScheme: "dark" });
   // Depuis 0.0.96 la pastille Dev et les retours de test sont cachés par défaut : l'essai les allume.
-  await ctx.addInitScript(() => localStorage.setItem("korahome.coinDev", "visible"));
+  // Le thème « Suit l'iPhone », pour que la tournée en clair soit vraiment claire.
+  await ctx.addInitScript(() => {
+    localStorage.setItem("korahome.coinDev", "visible");
+    localStorage.setItem("korahome.theme", "auto");
+  });
   const p = await ctx.newPage();
   await p.clock.install({ time: new Date("2026-10-20T09:15:00+02:00") });
   p.on("pageerror", (e) => erreurs.push(`Erreur JavaScript : ${e.message}`));
@@ -48,10 +54,6 @@ try {
   await p.getByPlaceholder("Prénom").fill("Sarah");
   await p.getByText("Créer notre foyer").click();
   await p.waitForTimeout(1500);
-  for (let k = 0; k < 12 && (await p.locator(".visite").count()); k++) {
-    await p.locator(".visite button").last().click({ timeout: 1500 }).catch(() => {});
-    await p.waitForTimeout(300);
-  }
 
   let theme = "";
   const capture = (nom) => p.screenshot({ path: join(dossier, `${nom}${theme}.png`) });
@@ -61,7 +63,7 @@ try {
     if (!titre) erreurs.push(`« ${nom} »${theme} : pas de titre`);
     await capture(nom.replace(/\W+/g, "-"));
     const fautes = (await accessibilite(nom)) + (await debordement(nom));
-    console.log(`${titre && !fautes ? "ok " : "?? "} ${nom}${titre ? ` → ${titre}` : ""}${fautes ? ` · ${fautes} faute${fautes > 1 ? "s" : ""} d'accessibilité` : ""}`);
+    console.log(`${titre && !fautes ? "ok " : "?? "} ${nom}${theme}${titre ? ` → ${titre}` : ""}${fautes ? ` · ${fautes} faute${fautes > 1 ? "s" : ""}` : ""}`);
   };
   /** axe sur la page du dessus : WCAG A et AA, fautes graves et critiques seulement. Rend leur nombre. */
   const accessibilite = async (nom) => {
@@ -76,6 +78,7 @@ try {
     const graves = resultat.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
     for (const v of graves) {
       const cible = v.nodes[0]?.target?.join(" ") ?? "";
+      console.log(`   ${v.help} (${v.id}) — ${cible}`);
       erreurs.push(`« ${nom} »${theme} : ${v.help} (${v.id}, ${v.nodes.length}×)${cible ? ` — ${cible}` : ""}`);
     }
     return graves.length;
@@ -91,73 +94,78 @@ try {
       }
       // L'iPhone Duo plié : rien qu'on touche sous la colonne de l'heure, à droite.
       if (colonne) {
-        for (const el of document.querySelectorAll("button, a, input, textarea, select, [role=button], .fee, .pastille-dev")) {
+        for (const el of document.querySelectorAll("button, a, input, textarea, select, [role=button], .orbe, .pastille-dev")) {
           const r = el.getBoundingClientRect();
           if (r.width && r.height && r.right > w - colonne + 1 && getComputedStyle(el).visibility !== "hidden") vus.add(`${el.tagName.toLowerCase()}${[...el.classList].map((c) => `.${c}`).join("")} sous la colonne`);
         }
       }
       return [...vus].slice(0, 4);
     }, colonneDroite);
-    if (hors.length) erreurs.push(`« ${nom} »${theme} : dépasse de l'écran — ${hors.join(", ")}`);
+    if (hors.length) {
+      console.log(`   dépasse : ${hors.join(", ")}`);
+      erreurs.push(`« ${nom} »${theme} : dépasse de l'écran — ${hors.join(", ")}`);
+    }
     return hors.length ? 1 : 0;
   };
   const revenir = async () => {
     await p.locator(".page-dessus .retour").click();
     await p.waitForTimeout(500);
   };
-  // Depuis 0.0.73, plus de « Tous les espaces » : on ouvre Tâches par sa tuile de l'accueil,
-  // puis chaque espace par le sélecteur de la barre du haut.
+  /** Un espace, par la pile de Kora (iPhone) ou le rail (iPad, Duo ouvert). */
   const allerEspace = async (espace) => {
-    if (!(await p.locator(".page-dessus .barre-haut-espaces").count())) {
-      // Sur le hub de l'iPad (0.0.95), pas de tuiles : la carte « Demain » ouvre l'Agenda.
-      const hub = await p.locator(".page-dessus .hub").count();
-      await p.locator(hub ? ".page-dessus .hub-demain" : '.page-dessus .chiffres-accueil [data-widget="taches"]').click();
-      await p.waitForTimeout(700);
+    const kora = p.locator(".pile-kora .kora");
+    if (await kora.isVisible()) {
+      await kora.click();
+      await p.waitForTimeout(300);
+      await p.locator(".pile-kora .item").filter({ hasText: espace }).first().click();
+    } else {
+      await p.locator(`.rail button[aria-label="${espace}"]`).click();
     }
-    await p.locator(".page-dessus .barre-haut-espaces").click();
-    await p.locator(".barre-haut-menu").getByText(espace, { exact: true }).first().click();
     await p.waitForTimeout(700);
   };
-  const accueil = async () => {
-    for (let i = 0; i < 4 && (await p.locator(".page-dessus .retour").count()); i++) await revenir();
+  /** Une page d'un espace, par sa carte : toute la carte, ou son bouton « Tout voir ». */
+  const ouvrirCarte = async (carte) => {
+    const tuile = p.locator(".page-dessus .tuile").filter({ has: p.locator(`[aria-label^="${carte}"], .etiq:has-text("${carte}")`) }).or(p.locator(`.page-dessus .tuile[aria-label^="${carte}"]`)).first();
+    const toutVoir = tuile.getByText(/^Tout voir/);
+    if (await toutVoir.count()) await toutVoir.first().click();
+    else await tuile.click();
+    await p.waitForTimeout(700);
   };
 
   const tournee = async () => {
-  await capture("accueil");
-  const fautesAccueil = await accessibilite("Accueil");
-  console.log(`${fautesAccueil ? "?? " : "ok "} Accueil${theme}${fautesAccueil ? ` · ${fautesAccueil} faute${fautesAccueil > 1 ? "s" : ""} d'accessibilité` : ""}`);
-  // Les quatre espaces (Kora 0.0.75), et chaque onglet qui reprend une ancienne page.
-  const ESPACES = {
-    Organisation: ["Agenda", "Administratif"],
-    Cuisine: ["Courses", "Autres listes", "Recettes", "Frigo"],
-    Maison: ["Entretien", "Jardin", "Mitsu", "Vêtements"],
-    Budget: [],
-  };
-  for (const [espace, onglets] of Object.entries(ESPACES)) {
-    await allerEspace(espace);
-    await verifier(espace);
-    for (const onglet of onglets) {
-      await p.locator(".page-dessus").getByRole("tab", { name: onglet }).first().click();
-      await verifier(`${espace} › ${onglet}`);
+    await capture("aujourdhui");
+    const fautesAccueil = (await accessibilite("Aujourd'hui")) + (await debordement("Aujourd'hui"));
+    console.log(`${fautesAccueil ? "?? " : "ok "} Aujourd'hui${theme}${fautesAccueil ? ` · ${fautesAccueil} faute${fautesAccueil > 1 ? "s" : ""}` : ""}`);
+    // Les quatre espaces (Kora 0.1) : leur page de cartes, puis chaque page qu'une carte ouvre.
+    const ESPACES = {
+      Cuisine: ["Courses", "Cette semaine", "Nos recettes", "Frigo", "Autres listes"],
+      Maison: ["Entretien", "Balcon", "Mitsu", "Vêtements"],
+      Organisation: ["Tâches", "Agenda", "Administratif"],
+      // Sans plan, le Budget n'a qu'une carte : celle qui le commence.
+      Budget: ["Commencer le budget"],
+    };
+    for (const [espace, cartes] of Object.entries(ESPACES)) {
+      await allerEspace(espace);
+      await verifier(espace);
+      for (const carte of cartes) {
+        await ouvrirCarte(carte);
+        await verifier(`${espace} › ${carte}`);
+        await revenir();
+      }
     }
-  }
-  await accueil();
-  // Le fil du foyer (0.0.65), depuis sa carte dans les piles de l'accueil (pas sur le hub).
-  if (!(await p.locator(".page-dessus .hub").count())) {
-    await p.locator('.page-dessus .pile-tirets [aria-label="Chez nous"]').first().click();
-    await p.waitForTimeout(400);
-    await p.locator('.page-dessus .pile-carte[aria-label$="Chez nous"] .pile-entete .lien').click();
+    // Le fil du foyer (0.0.65), depuis sa carte d'Aujourd'hui.
+    await allerEspace("Aujourd'hui");
+    await ouvrirCarte("Chez nous");
     await verifier("Chez nous");
     await revenir();
-  }
-  await p.getByLabel(/^Réglages/).first().click();
-  await verifier("Réglages");
-  for (const ligne of ["Apparence", "Partage", "Sauvegarde", "Corbeille", "Notifications", "Calendrier de l'iPhone", "Siri", "Ce que", "Retours de test"]) {
-    await p.locator(".page-dessus").getByText(ligne).first().click();
-    await verifier(ligne);
-    await revenir();
-  }
-  await accueil();
+    await allerEspace("Réglages");
+    await verifier("Réglages");
+    for (const ligne of ["Apparence", "Nos mots", "Partage", "Sauvegarde", "Corbeille", "Notifications", "Calendrier de l'iPhone", "Siri", /^Ce que \w+ sait/, "Retours de test"]) {
+      await p.locator(".page-dessus").getByText(ligne).first().click();
+      await verifier(typeof ligne === "string" ? ligne : "Ce que Tael sait");
+      await revenir();
+    }
+    await allerEspace("Aujourd'hui");
   };
   await tournee();
   // La même tournée en mode clair : le laiton y est plus sombre, son contraste se vérifie à part.
@@ -171,45 +179,16 @@ try {
   await tournee();
   // L'iPhone Duo (pliable, sorti le 23 octobre 2026), en app de l'écran d'accueil : l'écran du
   // dehors (466 × 678 points, dont une colonne de 84 à droite pour l'heure et l'île dynamique,
-  // simulée par --bord-droit), puis l'écran du dedans, presque carré (669 × 951).
+  // simulée par --bord-droit), puis l'écran du dedans, presque carré (669 × 951, le rail),
+  // puis l'iPad couché (1180 × 820, le rail avec les noms, six colonnes).
   await p.addStyleTag({ content: "html { font-size: 17px !important; }" });
   const colonne = await p.addStyleTag({ content: ":root { --bord-droit: 84px !important; }" });
-  // Puis l'iPad couché (0.0.95) : le hub de l'accueil, six cartes sur la grille large.
   for (const [nom, largeur, hauteur, bord] of [["plie", 466, 678, 84], ["deplie", 669, 951, 0], ["ipad", 1180, 820, 0]]) {
     theme = `-${nom}`;
     colonneDroite = bord;
     if (!bord) await colonne.evaluate((el) => el.remove());
     await p.setViewportSize({ width: largeur, height: hauteur });
     await tournee();
-  }
-  // La nouvelle interface en essai (0.0.100), allumée comme dans Réglages › Apparence : la capsule
-  // et ses trois vues, sur l'iPhone, en sombre puis en clair.
-  colonneDroite = 0;
-  await p.setViewportSize({ width: 393, height: 852 });
-  await p.evaluate(() => localStorage.setItem("korahome.interfaceCapsule", "1"));
-  await p.reload();
-  await p.waitForTimeout(1200);
-  await p.addScriptTag({ path: AXE });
-  for (const [suffixe, schema] of [["-capsule", "dark"], ["-capsule-clair", "light"]]) {
-    theme = suffixe;
-    await p.emulateMedia({ colorScheme: schema });
-    for (const vue of ["Aujourd'hui", "Courses", "Nous"]) {
-      const onglet = p.locator(`.capsule-tirets [role=tab][aria-label="${vue}"]`);
-      if (!(await onglet.count())) {
-        erreurs.push(`Capsule${theme} : pas de vue « ${vue} »`);
-        continue;
-      }
-      await onglet.click();
-      await p.waitForTimeout(700);
-      await capture(`capsule-${vue.replace(/\W+/g, "-")}`);
-      const fautes = (await accessibilite(`Capsule › ${vue}`)) + (await debordement(`Capsule › ${vue}`));
-      console.log(`${fautes ? "?? " : "ok "} Capsule › ${vue}${theme}${fautes ? ` · ${fautes} faute${fautes > 1 ? "s" : ""}` : ""}`);
-      // Le bas de la vue : la dernière carte doit se lire au-dessus de la capsule.
-      await p.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
-      await p.waitForTimeout(400);
-      await capture(`capsule-${vue.replace(/\W+/g, "-")}-bas`);
-      await p.evaluate(() => scrollTo(0, 0));
-    }
   }
 } finally {
   await navigateur.close();
