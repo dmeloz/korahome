@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { CLES, ecrireJson, ecrireTexte, effacer, effacerPrefixe, lireJson, lireTexte } from "./stockageLocal";
+import { CLES, ecrireJson, ecrireTexte, effacer, effacerPrefixe, lireJson, lireTexte, MEMOIRES_PERSONNELLES, oublierMemoires } from "./stockageLocal";
 
 // Un faux localStorage sur globalThis (les tests tournent sous Node, sans navigateur).
 class FauxStockage {
@@ -108,6 +108,21 @@ describe("stockageLocal", () => {
     const boucle: Record<string, unknown> = {};
     boucle.moi = boucle;
     expect(ecrireJson("k", boucle)).toBe(false);
+  });
+
+  it("repart à neuf : oublie les mémoires personnelles et les aides, garde l'appareil et ses réglages", () => {
+    const stockage: Record<string, string> = { [CLES.usage]: "{}", [CLES.demarrageRange]: "1", [CLES.prefixeAide + "courses"]: "1", [CLES.membreCourant]: "melo", [CLES.theme]: "auto", [CLES.niveauTael]: "agit" };
+    Object.defineProperty(stockage, "getItem", { value: (cle: string) => stockage[cle] ?? null, enumerable: false });
+    Object.defineProperty(stockage, "removeItem", { value: (cle: string) => delete stockage[cle], enumerable: false });
+    poser(stockage);
+    oublierMemoires();
+    expect(lireTexte(CLES.usage)).toBeNull();
+    expect(lireTexte(CLES.demarrageRange)).toBeNull();
+    expect(lireTexte(`${CLES.prefixeAide}courses`)).toBeNull();
+    expect(lireTexte(CLES.membreCourant)).toBe("melo");
+    expect(lireTexte(CLES.theme)).toBe("auto");
+    expect(lireTexte(CLES.niveauTael)).toBe("agit");
+    for (const cle of [CLES.membreCourant, CLES.theme, CLES.pastilleDev, CLES.rappels, CLES.siri, CLES.verrouBudget, CLES.niveauTael, CLES.guideVu]) expect(MEMOIRES_PERSONNELLES).not.toContain(cle);
   });
 
   it("garde le texte exact des clés déjà sur les téléphones", () => {
