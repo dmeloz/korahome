@@ -1,13 +1,10 @@
 import { ajusterRythme, apprentissages, souvenirAppris, type Apprentissage } from "../domaine/apprentissage";
 import { recalerCommande } from "../domaine/mitsu";
-import { basculerRetiree, carteDeLEspace, CARTES } from "../domaine/ecranAccueil";
-import type { WidgetId } from "../domaine/tableauDeBord";
 import type { Depot } from "../donnees/depot";
-import { enregistrerRetirees, lireRetirees } from "./accueilLocal";
 import { contexteReel } from "./contexte";
 import type { DonneesModule } from "./modules";
 import { lirePreferences } from "./rappels";
-import { deciderPerso, lireDecisionsPerso, lireUsages, oublierDecisionPerso, signalerChangement } from "./usage";
+import { deciderPerso, lireDecisionsPerso, lireUsages, oublierDecisionPerso } from "./usage";
 
 // Le lien entre ce que Kora a appris (règles dans src/domaine/apprentissage.ts) et ce téléphone :
 // ce qu'il lit pour apprendre, et ce qu'il change quand on garde un apprentissage.
@@ -16,12 +13,6 @@ import { deciderPerso, lireDecisionsPerso, lireUsages, oublierDecisionPerso, sig
 function heureRappel(): number | null {
   const permis = typeof Notification !== "undefined" && Notification.permission === "granted";
   return permis ? lirePreferences().heure : null;
-}
-
-/** Les espaces dont la carte est encore dans les piles de l'accueil de ce téléphone. */
-function cartesSurLAccueil(): WidgetId[] {
-  const retirees = lireRetirees();
-  return CARTES.map((c) => c.id).filter((id): id is WidgetId & typeof id => carteDeLEspace(id) === id && !retirees.includes(id));
 }
 
 export function calculerApprentissages(d: DonneesModule): Apprentissage[] {
@@ -34,8 +25,8 @@ export function calculerApprentissages(d: DonneesModule): Apprentissage[] {
     animaux: d.animaux,
     souvenirs: d.souvenirs,
     usages: lireUsages(),
-    // Depuis 0.0.72, l'accueil montre des piles : un espace délaissé est une carte qu'on peut retirer.
-    disposition: cartesSurLAccueil(),
+    // Depuis Kora 0.1, les cartes des espaces ne se retirent plus : rien à apprendre de leur usage.
+    disposition: [],
     heureRappel: heureRappel(),
     decisionsPerso: decisions,
     aujourdhui: d.aujourdhui,
@@ -73,15 +64,6 @@ export async function deciderApprentissage(a: Apprentissage, garde: boolean, s: 
       const avant = lirePreferences().heure;
       await s.changerHeureRappel(action.heure);
       defaire.push(() => s.changerHeureRappel(avant));
-    } else if (action.type === "retirerWidget") {
-      const avant = lireRetirees();
-      const carte = carteDeLEspace(action.widget);
-      if (carte && !avant.includes(carte)) enregistrerRetirees(basculerRetiree(avant, carte));
-      signalerChangement();
-      defaire.push(async () => {
-        enregistrerRetirees(avant);
-        signalerChangement();
-      });
     } else if (action.type === "recalerCommande") {
       const animal = donnees.animaux.find((x) => x.id === action.animalId);
       if (animal) {

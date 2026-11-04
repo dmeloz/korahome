@@ -15,9 +15,9 @@ C'est la structure de toutes les apps de la maison, à reprendre telle quelle po
 | Rôle | Fichier |
 | --- | --- |
 | Le catalogue des sections et leur espace (`fusionneDans`), testé | `src/domaine/tableauDeBord.ts` |
-| Ce que montre l'accueil selon le moment (chiffres, piles, ce qui presse), testé | `src/domaine/ecranAccueil.ts`, `src/ui/pieces/EcranAccueil.tsx` |
+| Ce que montre Aujourd'hui (la carte du jour, ce qui presse), testé | `src/domaine/aujourdhui.ts`, `src/ui/ecrans/Aujourdhui.tsx` |
 | Le registre des modules : pour chacun, son aperçu (`widget`) et sa page | `src/ui/modules.tsx` |
-| L'accueil | `src/ui/ecrans/Accueil.tsx` |
+| Aujourd'hui et les pages de cartes des espaces | `src/ui/ecrans/Aujourdhui.tsx`, `src/ui/ecrans/Espace*.tsx` |
 | La navigation par pile, avec le bouton de retour et la page qu'on glisse vers la droite pour revenir | `src/ui/App.tsx` |
 | Les gestes (revenir, glisser une ligne pour la supprimer), testés | `src/ui/gestes.ts` |
 | Une ligne qu'on glisse vers la gauche pour la supprimer, avec « Annuler » | `src/ui/Glissable.tsx`, `src/ui/annulation.tsx` |

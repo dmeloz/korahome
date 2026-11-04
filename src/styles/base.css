@@ -1,33 +1,41 @@
 /* ===== Les fondations : couleurs des deux thèmes, tailles de texte, mouvement, fond, passage d'une page à l'autre ===== */
 
-/* KoraHome : sombre et élégant, et clair quand l'iPhone est en mode clair.
-   Graphite légèrement vert, laiton pour l'accent, étiquettes en chasse fixe. */
-/* Le système visuel de Kora (0.0.23) :
+/* Kora 0.1 (refonte validée par Melo le 4 novembre 2026, direction « Dashboard with AI ») :
+   graphite et laiton, sombre par défaut, un seul grand chiffre par écran, des cartes de trois
+   tailles. Le système visuel garde ses règles de 0.0.23 :
    - cinq tailles de texte, pas une de plus, qui suivent la taille choisie dans l'iPhone (Dynamic Type) ;
    - trois états : urgent (en retard ou avant ce soir), jour (aujourd'hui, et les actions), calme (le reste) ;
-   - deux thèmes, un par téléphone (Réglages › Ce téléphone) : Sombre laiton et Clair doux ;
+   - deux réglages par téléphone (Réglages › Apparence) : Sombre, ou Suit l'iPhone (clair le jour s'il l'est) ;
    - un seul mouvement, la courbe de l'iPhone, en fondu si l'iPhone demande moins d'animations. */
 :root {
-  --fond: #0f1211;
-  --surface: #181c1a;
-  --surface-haute: #1f2421;
-  --texte: #ecebe5;
-  --discret: #9aa09a;
-  --trait: #2a302d;
-  --accent: #d3a14a;
-  --accent-doux: #3a2f1a;
-  --sur-accent: #15120b;
+  --fond: #0f1012;
+  --surface: #17181b;
+  --surface-haute: #1f2125;
+  --texte: #f1ede6;
+  --discret: #a19d95;
+  /* Plus discret encore : les petites dates, les cases vides. */
+  --sourd: #6b6862;
+  --trait: rgb(255 255 255 / 0.07);
+  /* Le laiton : en texte et en fond plein (--accent), en reflet clair (--accent-clair). */
+  --accent: #d4af63;
+  --accent-clair: #e8c986;
+  --accent-doux: color-mix(in srgb, var(--accent) 16%, transparent);
+  --sur-accent: #1a1409;
+  /* La carte de contraste : ivoire sur le sombre, graphite sur le clair. */
+  --ivoire: #efe9dc;
+  --sur-ivoire: #141311;
   --urgent: #e2916a;
+  /* Le bleu ciel de Navi, la fée de Sarah : ce qui vient d'elle. */
+  --navi: #6fc6f0;
   --coche: #6f746f;
   --ombre: 0 18px 40px -24px rgb(0 0 0 / 0.8);
-  --verre: rgb(24 28 26 / 0.72);
+  --verre: rgb(23 24 27 / 0.82);
   --verre-trait: rgb(255 255 255 / 0.08);
-  --verre-reflet: inset 0 1px 0 rgb(255 255 255 / 0.06);
-  --carte-jour: linear-gradient(180deg, #2a2418 0%, #181c1a 72%);
-  --carte-jour-trait: #3a3222;
+  --verre-reflet: inset 0 1px 0 rgb(255 255 255 / 0.05);
   --police: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
   --police-titre: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
   --police-fixe: ui-monospace, "SF Mono", Menlo, monospace;
+  --police-mot: "New York", "Iowan Old Style", Georgia, serif;
 
   /* Les cinq tailles, relatives à la taille de texte de l'iPhone (17 px par défaut). Rien sous 13. */
   --t-titre: min(1.765rem, 40px);
@@ -36,11 +44,11 @@
   --t-detail: max(0.882rem, 13px);
   --t-legende: max(0.765rem, 13px);
 
-  /* Quatre arrondis (0.0.84), du plus fin au plus grand, et le rond des pastilles. Un cercle garde 50 %. */
+  /* Quatre arrondis, du plus fin au plus grand, et le rond des pastilles. Un cercle garde 50 %. */
   --rayon-fin: 4px;
-  --rayon-petit: 10px;
-  --rayon-carte: 14px;
-  --rayon-feuille: 20px;
+  --rayon-petit: 12px;
+  --rayon-carte: 22px;
+  --rayon-feuille: 28px;
   --rayon-rond: 999px;
 
   /* Sept écarts entre les éléments (gap), sur une grille de 2 et 4 (0.0.84). */
@@ -54,80 +62,61 @@
 
   /* Les bords de côté que l'iPhone garde pour lui (0.0.92) : la colonne de l'heure et de l'île
      dynamique sur l'iPhone Duo plié, 0 sur les autres iPhone debout. Tout ce qui touche un côté
-     de l'écran s'en écarte (ui/bords.ts les mesure pour la fée). */
+     de l'écran s'en écarte (ui/bords.ts les mesure). */
   --bord-gauche: env(safe-area-inset-left, 0px);
   --bord-droit: env(safe-area-inset-right, 0px);
+  /* La place de la navigation : rien sur l'iPhone (le bouton Kora flotte), le rail sur l'iPad et le Duo ouvert. */
+  --bord-rail: 0px;
 
   /* Le mouvement : la courbe des feuilles de l'iPhone. */
   --courbe: cubic-bezier(0.32, 0.72, 0, 1);
   --duree-feuille: 0.5s;
   --duree-page: 0.35s;
-  /* Un widget qui s'ouvre en page : la durée du ressort « widget » (ui/moteur/ressorts.ts). */
+  /* Une carte qui s'ouvre en page : la durée du ressort « widget » (ui/moteur/ressorts.ts). */
   --duree-widget: 0.48s;
   color-scheme: dark;
 }
 
-/* Clair doux : papier chaud, laiton plus profond. Automatique quand l'iPhone est en clair,
-   ou choisi pour ce téléphone. Le laiton #845d1c (0.0.79) se lit à 4,5:1 au moins sur le papier,
-   la surface et le laiton doux, comme le demande la règle de contraste des petits textes. */
+/* Le clair : papier, laiton plus profond. Seulement quand ce téléphone suit l'iPhone et que
+   l'iPhone est en clair (Réglages › Apparence). Le laiton #845d1c se lit à 4,5:1 au moins sur le
+   papier et les surfaces, comme le demande la règle de contraste des petits textes ; le laiton
+   plein des cartes fortes (#b8863c) ne porte que du texte sombre. */
 @media (prefers-color-scheme: light) {
-  :root:not([data-theme="sombre"]) {
-    --fond: #f4efe6;
-    --surface: #fffcf6;
-    --surface-haute: #f7f1e6;
-    --texte: #2a2620;
-    --discret: #6e675c;
-    --trait: #e6dccb;
+  :root[data-theme="auto"] {
+    --fond: #f3f1ec;
+    --surface: #ffffff;
+    --surface-haute: #efece5;
+    --texte: #1a1916;
+    --discret: #6b675f;
+    --sourd: #8f8a81;
+    --trait: rgb(0 0 0 / 0.07);
     --accent: #845d1c;
+    --accent-clair: #b8863c;
     --accent-doux: #f3e4c4;
     --sur-accent: #fffaf0;
+    --ivoire: #1a1916;
+    --sur-ivoire: #f1ede6;
     --urgent: #a64b29;
+    --navi: #1d7fb3;
     --coche: #9a9488;
     --ombre: 0 10px 24px -18px rgb(90 70 40 / 0.35);
-    --verre: rgb(255 252 246 / 0.78);
-    --verre-trait: rgb(160 130 80 / 0.22);
+    --verre: rgb(255 255 255 / 0.86);
+    --verre-trait: rgb(0 0 0 / 0.08);
     --verre-reflet: inset 0 1px 0 rgb(255 255 255 / 0.9);
-    --carte-jour: linear-gradient(180deg, #fbefd9 0%, #fffcf6 70%);
-    --carte-jour-trait: #ecd9b4;
     color-scheme: light;
   }
 }
-:root[data-theme="clair"] {
-  --fond: #f4efe6;
-  --surface: #fffcf6;
-  --surface-haute: #f7f1e6;
-  --texte: #2a2620;
-  --discret: #6e675c;
-  --trait: #e6dccb;
-  --accent: #845d1c;
-  --accent-doux: #f3e4c4;
-  --sur-accent: #fffaf0;
-  --urgent: #a64b29;
-  --coche: #9a9488;
-  --ombre: 0 10px 24px -18px rgb(90 70 40 / 0.35);
-  --verre: rgb(255 252 246 / 0.78);
-  --verre-trait: rgb(160 130 80 / 0.22);
-  --verre-reflet: inset 0 1px 0 rgb(255 255 255 / 0.9);
-  --carte-jour: linear-gradient(180deg, #fbefd9 0%, #fffcf6 70%);
-  --carte-jour-trait: #ecd9b4;
-  color-scheme: light;
-}
 
-/* Confort (0.0.67) : l'iPhone peut demander plus de contraste, moins de transparence, ou être un iPad. */
+/* Confort (0.0.67) : l'iPhone peut demander plus de contraste ou moins de transparence. */
 @media (prefers-contrast: more) {
-  :root { --discret: #c4c9c3; --trait: #4a524d; --coche: #9ea39e; --verre-trait: rgb(255 255 255 / 0.22); }
+  :root { --discret: #c4c9c3; --sourd: #9a978f; --trait: rgb(255 255 255 / 0.22); --coche: #9ea39e; --verre-trait: rgb(255 255 255 / 0.22); }
   @media (prefers-color-scheme: light) {
-    :root:not([data-theme="sombre"]) { --discret: #4d473e; --trait: #b9ab93; --coche: #6f6a60; --verre-trait: rgb(120 95 50 / 0.45); }
+    :root[data-theme="auto"] { --discret: #4d473e; --sourd: #6b665c; --trait: rgb(0 0 0 / 0.22); --coche: #6f6a60; --verre-trait: rgb(120 95 50 / 0.45); }
   }
-  :root[data-theme="clair"] { --discret: #4d473e; --trait: #b9ab93; --coche: #6f6a60; --verre-trait: rgb(120 95 50 / 0.45); }
 }
 @media (prefers-reduced-transparency: reduce) {
   :root { --verre: var(--surface-haute); --verre-reflet: none; }
   * { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
-}
-/* iPad et grand écran : le contenu s'élargit. */
-@media (min-width: 760px) {
-  .contenu { max-width: 980px; padding-left: calc(32px + var(--bord-gauche)); padding-right: calc(32px + var(--bord-droit)); }
 }
 
 * { box-sizing: border-box; }
@@ -154,9 +143,13 @@ button:disabled { cursor: default; }
 .contenu {
   /* La marge des côtés, reprise par la barre du haut qui va d'un bord à l'autre. */
   --marge-cote: 16px;
-  padding: calc(env(safe-area-inset-top) + 12px) calc(16px + var(--bord-droit)) calc(env(safe-area-inset-bottom) + 72px) calc(16px + var(--bord-gauche));
-  max-width: 720px;
+  padding: calc(env(safe-area-inset-top) + 12px) calc(16px + var(--bord-droit)) calc(env(safe-area-inset-bottom) + 72px) calc(16px + var(--bord-gauche) + var(--bord-rail));
+  max-width: calc(720px + var(--bord-rail));
   margin: 0 auto;
+}
+/* iPad et grand écran : le contenu s'élargit. */
+@media (min-width: 760px) {
+  .contenu { max-width: calc(980px + var(--bord-rail)); padding-left: calc(32px + var(--bord-gauche) + var(--bord-rail)); padding-right: calc(32px + var(--bord-droit)); }
 }
 
 h1 {
@@ -179,22 +172,7 @@ h1 {
 .discret { color: var(--discret); font-size: var(--t-detail); }
 .erreur { color: var(--urgent); font-size: var(--t-detail); margin: 0; }
 .vide { color: var(--discret); text-align: center; margin-top: 48px; }
-
-/* Allure iOS 26 : un fond qui respire, des surfaces de verre, des pages qui glissent. */
-:root {
-  --reflet: var(--verre-reflet);
-  --lueur: color-mix(in srgb, var(--accent) 18%, transparent);
-}
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(120% 55% at 85% -12%, var(--lueur), transparent 62%),
-    radial-gradient(90% 45% at -10% 105%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 70%);
-}
+:root { --reflet: var(--verre-reflet); }
 
 ::view-transition-old(root),
 ::view-transition-new(root) {
@@ -209,18 +187,18 @@ html[data-sens="arriere"]::view-transition-new(root) { animation-name: page-revi
 @keyframes page-recule { to { transform: translateX(-28%); opacity: 0.6; } }
 @keyframes page-part { to { transform: translateX(100%); } }
 @keyframes page-revient { from { transform: translateX(-28%); opacity: 0.6; } }
-/* Un widget qui s'ouvre en page (transitions.ts) : le widget grandit jusqu'à la page, la page
-   rentre dans le widget au retour ; le reste de l'écran passe en fondu, sans glissement. */
+/* Une carte qui s'ouvre en page (transitions.ts) : la carte grandit jusqu'à la page, la page
+   rentre dans la carte au retour ; le reste de l'écran passe en fondu, sans glissement. */
 html[data-sens="widget"]::view-transition-old(root) { animation: page-efface 0.3s ease both; }
 html[data-sens="widget"]::view-transition-new(root) { animation: page-montre 0.3s ease both; }
 ::view-transition-group(widget-page) {
   animation-duration: var(--duree-widget);
   animation-timing-function: var(--courbe);
-  border-radius: var(--rayon-feuille);
+  border-radius: var(--rayon-carte);
   overflow: clip;
 }
-/* Le cadre grandit et découpe ; dedans, le widget et la page gardent leur taille réelle, calés en
-   haut à gauche : l'un s'efface vite, l'autre apparaît, sans rien étirer. */
+/* Le cadre grandit et découpe ; dedans, la carte et la page gardent leur taille réelle, calées en
+   haut à gauche : l'une s'efface vite, l'autre apparaît, sans rien étirer. */
 ::view-transition-old(widget-page), ::view-transition-new(widget-page) {
   height: 100%;
   object-fit: none;
@@ -234,12 +212,5 @@ html[data-sens="widget"]::view-transition-new(root) { animation: page-montre 0.3
 /* Moins d'animations demandées : les pages passent en fondu. */
 html[data-sens="fondu"]::view-transition-old(root), html[data-sens="fondu"]::view-transition-new(root) { animation-duration: 0.2s; animation-timing-function: ease; }
 
-/* La place de la barre Jarvis en bas des pages qui l'ont (0.0.23). */
+/* La place de la saisie de la fée en bas des pages qui l'ont (0.0.23). */
 .contenu { padding-bottom: calc(env(safe-area-inset-bottom) + 132px); }
-
-/* Le verre des widgets (0.0.42) : de 0 (transparent) à 100 (plein). Le thème choisit si personne ne l'a
-   réglé : le plus transparent en sombre, le plus opaque en clair. */
-:root { --verre-defaut: 28%; --verre-widget: var(--verre-choisi, var(--verre-defaut)); --flou-widget: 22px; }
-@media (prefers-color-scheme: light) { :root:not([data-theme="sombre"]) { --verre-defaut: 92%; } }
-:root[data-theme="clair"] { --verre-defaut: 92%; }
-:root[data-theme="sombre"] { --verre-defaut: 28%; }

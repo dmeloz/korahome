@@ -269,30 +269,3 @@ export function enregistrerVues(vues: Iterable<string>): void {
   // Stockage indisponible : l'icône reviendra à la prochaine ouverture.
   ecrireJson(CLES.feeVues, [...vues]);
 }
-
-// ----- Où elle se tient -----
-
-export interface PlaceFee {
-  cote: "gauche" | "droite";
-  /** Distance au bas de l'écran, en points. */
-  bas: number;
-  /** Rangée contre le bord, à moitié cachée. */
-  rangee: boolean;
-}
-
-export const PLACE_DE_DEPART: PlaceFee = { cote: "droite", bas: 96, rangee: false };
-
-export function lirePlace(): PlaceFee {
-  const v = lireJson<Partial<PlaceFee> | null>(CLES.placeFee, null);
-  if (!v) return PLACE_DE_DEPART;
-  return {
-    cote: v.cote === "gauche" ? "gauche" : "droite",
-    bas: typeof v.bas === "number" && v.bas >= 0 ? v.bas : PLACE_DE_DEPART.bas,
-    rangee: v.rangee === true,
-  };
-}
-
-export function enregistrerPlace(p: PlaceFee): void {
-  // La place vaut pour cette visite.
-  ecrireJson(CLES.placeFee, p);
-}

@@ -7,6 +7,7 @@ import { facturesDuJour } from "../domaine/budget";
 import { resiliationsDuJour } from "../domaine/abonnements";
 import { budgetVisible } from "../domaine/aMoi";
 import type { WidgetId } from "../domaine/tableauDeBord";
+import type { Page } from "./pages";
 import type { Foyer } from "../domaine/types";
 import type { DepotLocal } from "../donnees/depotLocal";
 import { FournisseurAnnulation } from "./annulation";
@@ -16,7 +17,7 @@ import { aPurger, trierCorbeille } from "../domaine/corbeille";
 import { nomTelephone, noterAppareil, plateformeDe } from "../domaine/foyer";
 import { ignorer } from "./journal";
 import { aujourdhuiLocal, choisirMembreCourant, lireMembreCourant } from "./contexte";
-import { Accueil } from "./ecrans/Accueil";
+import { Aujourdhui } from "./ecrans/Aujourdhui";
 import { Bienvenue } from "./ecrans/Bienvenue";
 import { CalendrierIphone, icloudEnErreur } from "./ecrans/CalendrierIphone";
 import { Siri, siriRelie } from "./ecrans/Siri";
@@ -27,31 +28,28 @@ import { CentreRappels } from "./ecrans/CentreRappels";
 import { demanderRepartition } from "./ecrans/Taches";
 import { preparerDemande } from "./ecrans/Jarvis";
 import { BarreJarvis, FournisseurSaisie } from "./pieces";
-import { BarreHaut, type EspaceBarre } from "./pieces/BarreHaut";
+import { BarreHaut } from "./pieces/BarreHaut";
+import { ESPACES, Navigation, type EspaceId } from "./pieces/Navigation";
+import { BulleTael, FeuilleTael } from "./pieces/Tael";
+import { annulerModifications } from "./jarvis";
 import { useEtatPartage } from "./etatPartage";
 import { lireRappels } from "./centreRappels";
 import { nonLus } from "../domaine/centreRappels";
 import type { LieuBarre } from "../domaine/barre";
+import type { OuRecherche } from "../domaine/recherche";
 import { Icone } from "./Icone";
 import type { MiseAJour } from "./miseAJour";
 import { BORD_RETOUR, finRetour, gesteRetour } from "./gestes";
 import { noter } from "./journal";
 import { useMeteo } from "./meteo";
-import { MODULES, PICTOS, prechargerPages, type DonneesModule } from "./modules";
-import type { OngletMemoire } from "./ecrans/Memoire";
+import { MODULES, prechargerPages, type DonneesModule } from "./modules";
 import type { ServicesPartage } from "./ecrans/Partage";
 import { enregistrerPastilleVisible, lirePastilleVisible } from "./rapport";
 import { afficherPastilleIcone, enregistrerPreferences, lirePreferences, mettreAJourRappels } from "./rappels";
 import { planifierSynchro, synchroEnDirect } from "./synchroAuto";
 import { avecTransition } from "./transitions";
 import { useDonnees } from "./useDonnees";
-import { demanderVisite } from "./visite";
 import { definirFee, nomFee } from "./fee";
-import { appuiLongFeeCapsule, etatsDeLaCapsule, toucherFeeCapsule, useInterfaceCapsule } from "./capsule";
-import type { VueCapsule } from "../domaine/capsule";
-import { Capsule } from "./pieces/Capsule";
-import { Feuille } from "./pieces";
-import { Nous } from "./ecrans/Nous";
 
 // Les pages qu'on ouvre rarement se chargent à leur première ouverture.
 const PAGES_DIFFEREES = {
@@ -79,40 +77,29 @@ const Sauvegarde = lazy(PAGES_DIFFEREES.Sauvegarde);
 const Corbeille = lazy(PAGES_DIFFEREES.Corbeille);
 const Fil = lazy(PAGES_DIFFEREES.Fil);
 
-// Pas de barre d'onglets : tout part du tableau de bord, chaque widget ouvre la
-// page de son module, et chaque page a son retour vers la précédente.
-type Page =
-  | { nom: "accueil" }
-  | { nom: "module"; id: WidgetId; onglet?: string }
-  | { nom: "liste"; id: string }
-  | { nom: "reglages" }
-  | { nom: "partage" }
-  | { nom: "notifications" }
-  | { nom: "telephone" }
-  | { nom: "apparence" }
-  | { nom: "retours" }
-  | { nom: "jarvis" }
-  | { nom: "conseil" }
-  | { nom: "memoire"; onglet?: OngletMemoire }
-  | { nom: "mots" }
-  | { nom: "bilan" }
-  | { nom: "rappels" }
-  | { nom: "sauvegarde" }
-  | { nom: "corbeille" }
-  | { nom: "fil" }
-  | { nom: "calendrier" }
-  | { nom: "siri" }
-  | { nom: "fee" }
-  | { nom: "nous" };
+/** Une page de la pile : où elle était défilée quand on en est parti, et la carte d'où elle est venue (elle y rentre au retour). */
+type Entree = Page & { defilement?: number; depuisWidget?: string };
 
-/** Une page de la pile, avec l'endroit où elle était défilée quand on en est parti. */
-type Entree = Page & { defilement?: number };
-
-// Les quatre espaces (0.0.75), dans le sélecteur de la barre du haut.
-const ESPACES_BARRE: EspaceBarre[] = (["chef", "maison", "taches", "budget"] as const).flatMap((id) => {
-  const module = MODULES[id];
-  return module ? [{ id, libelle: module.libelle, picto: PICTOS[id] }] : [];
-});
+// Les pages de départ : Aujourd'hui (le fond de la pile), un espace (sa page de cartes) ou Réglages.
+// Les autres s'ouvrent par-dessus, avec leur retour. La navigation (pile ou rail) ne se montre
+// que là, et une carte touchée grandit jusqu'à devenir sa page (transitions.ts).
+const estRacine = (p: Page) => p.nom === "accueil" || (p.nom === "module" && !p.onglet) || p.nom === "reglages";
+/** La page de cartes d'un espace, avec sa carte de Tael : ailleurs, elle parle dans sa bulle. */
+const avecCartes = (p: Page) => p.nom === "accueil" || (p.nom === "module" && !p.onglet);
+const ESPACE_DE: Partial<Record<WidgetId, EspaceId>> = { chef: "chef", maison: "maison", taches: "taches", budget: "budget" };
+const espaceDe = (p: Page): EspaceId | undefined => (p.nom === "accueil" ? "aujourdhui" : p.nom === "reglages" ? "reglages" : p.nom === "module" ? ESPACE_DE[p.id] : undefined);
+/** La carte (`data-widget`) qui mène à cette page : Courses ouvre Cuisine › Courses, mais c'est la carte « courses » qui grandit. */
+const carteDe = (p: Page): string | null => {
+  if (p.nom === "module") return (Object.keys(MODULES) as WidgetId[]).find((k) => MODULES[k]?.ouvre?.id === p.id && MODULES[k]?.ouvre?.onglet === p.onglet) ?? p.id;
+  return p.nom === "fil" ? "fil" : null;
+};
+/** Le nom des pages d'un espace, sur le bouton retour et dans la barre du haut. */
+const ONGLETS: Record<string, string> = {
+  courses: "Courses", listes: "Listes", semaine: "Menus", recettes: "Recettes", frigo: "Frigo",
+  taches: "Tâches", agenda: "Agenda", administratif: "Administratif",
+  entretien: "Entretien", mitsu: "Mitsu", jardin: "Jardin", vetements: "Vêtements",
+  mois: "Ce mois", depenses: "Dépenses", charges: "Charges", analyse: "Analyse", conseiller: "Conseiller",
+};
 
 // L'écran affiché, lu par le journal des retours de test à chaque geste.
 let ecranCourant = "Accueil";
@@ -132,9 +119,6 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   const [membreId, setMembreId] = useState<string | null>(lireMembreCourant);
   const nouvelleVersion = useSyncExternalStore(miseAJour.abonner, miseAJour.prete);
   const [pastille, setPastille] = useState(lirePastilleVisible);
-  // La nouvelle interface, essayée sur ce téléphone (Réglages › Apparence).
-  const capsule = useInterfaceCapsule();
-  const [toutKora, setToutKora] = useState(false);
 
   const synchro = partage?.synchro;
   const etatPartage = useEtatPartage(depot, synchro ?? null);
@@ -212,11 +196,9 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   useLayoutEffect(() => {
     window.scrollTo(0, page.defilement ?? 0);
   }, [pile.length]); // eslint-disable-line react-hooks/exhaustive-deps
-  // Le widget d'où vient la page du dessus : elle y rentre au retour (transitions.ts).
-  const widgetOuvert = useRef<string | null>(null);
+  // La carte d'où vient la page du dessus : elle y rentre au retour (transitions.ts).
   const revenirAnime = () => {
-    const widget = pile.length === 2 ? widgetOuvert.current : null;
-    widgetOuvert.current = null;
+    const widget = page.depuisWidget ?? null;
     avecTransition(
       "arriere",
       revenir,
@@ -231,7 +213,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   }, [pret, nomEcran]);
 
   function libelle(p: Page): string {
-    if (p.nom === "accueil") return "Accueil";
+    if (p.nom === "accueil") return "Aujourd'hui";
     if (p.nom === "reglages") return "Réglages";
     if (p.nom === "retours") return "Retours de test";
     if (p.nom === "partage") return "Partage";
@@ -250,8 +232,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     if (p.nom === "calendrier") return "Calendrier de l'iPhone";
     if (p.nom === "siri") return "Siri";
     if (p.nom === "fee") return `Réglages de ${nomFee()}`;
-    if (p.nom === "nous") return "Nous";
-    if (p.nom === "module") return p.id === "chef" && p.onglet === "listes" ? "Listes" : (MODULES[p.id]?.libelle ?? "Retour");
+    if (p.nom === "module") return p.onglet ? (p.onglet.startsWith("recette:") ? "Recette" : ONGLETS[p.onglet] ?? MODULES[p.id]?.libelle ?? "Retour") : (MODULES[p.id]?.libelle ?? "Retour");
     return listes.find((l) => l.id === p.id)?.nom ?? "Liste";
   }
   /** Le nom de l'écran tel qu'il apparaît dans les notes et le journal. */
@@ -298,15 +279,14 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     // Courses et Listes ouvrent leur onglet de Cuisine, Agenda le sien d'Organisation, Entretien celui de Maison.
     const vers = demandee.nom === "module" ? MODULES[demandee.id]?.ouvre : undefined;
     const p: Page = vers ? { nom: "module", id: vers.id, onglet: vers.onglet } : demandee;
-    // Depuis l'accueil, le widget touché grandit jusqu'à devenir sa page.
-    const widget = pile.length === 1 && demandee.nom === "module" ? demandee.id : null;
+    // Depuis une page de cartes, la carte touchée grandit jusqu'à devenir sa page.
+    const widget = avecCartes(page) && demandee.nom !== "liste" ? carteDe(demandee) : null;
     const depuisWidget = widget ? document.querySelector(`.page-dessus [data-widget="${widget}"]`) : null;
-    widgetOuvert.current = depuisWidget ? widget : null;
     avecTransition(
       "avant",
       () => {
         const defilement = window.scrollY;
-        setPile((avant) => [...avant.slice(0, -1), { ...avant[avant.length - 1], defilement }, p]);
+        setPile((avant) => [...avant.slice(0, -1), { ...avant[avant.length - 1], defilement }, { ...p, depuisWidget: depuisWidget ? widget! : undefined }]);
       },
       depuisWidget ? { depart: () => depuisWidget, arrivee: () => document.querySelector(".page-dessus") } : undefined,
     );
@@ -317,11 +297,12 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       const haut = avant[avant.length - 1];
       return haut.nom === "module" ? [...avant.slice(0, -1), { ...haut, onglet }] : avant;
     });
-  /** Le sélecteur de la barre du haut : l'espace choisi remplace la page, l'accueil reste dessous. */
-  const allerEspace = (id: WidgetId) => {
-    widgetOuvert.current = null;
-    avecTransition("avant", () => {
-      setPile((avant) => [avant[0], { nom: "module", id }]);
+  /** La pile ou le rail : l'espace choisi remplace tout ce qui est ouvert, Aujourd'hui reste au fond. */
+  const allerEspace = (id: EspaceId) => {
+    const rang = (e: EspaceId | undefined) => ESPACES.findIndex((x) => x.id === e);
+    const sens = rang(id) < rang(espaceDe(page)) ? "arriere" : "avant";
+    avecTransition(sens, () => {
+      setPile((avant) => (id === "aujourdhui" ? [avant[0]] : [avant[0], id === "reglages" ? { nom: "reglages" } : { nom: "module", id }]));
       window.scrollTo(0, 0);
     });
   };
@@ -340,51 +321,27 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   // Chaque page de la pile et son écran ; une page oubliée ici est une erreur de types.
   const ECRANS: { [N in Page["nom"]]: (page: Extract<Page, { nom: N }>) => ReactNode } = {
     accueil: () => (
-      <Accueil
+      <Aujourdhui
         donnees={donnees}
-        ouvrirModule={(id) => ouvrir({ nom: "module", id })}
-        ouvrirOnglet={(id, onglet) => ouvrir({ nom: "module", id, onglet })}
-        ouvrirJarvis={() => ouvrir({ nom: "jarvis" })}
-        ouvrirReglages={() => ouvrir({ nom: "reglages" })}
-        ouvrirMots={() => ouvrir({ nom: "mots" })}
-        ouvrirFil={() => ouvrir({ nom: "fil" })}
-        ouvrirReglage={(ou) => ouvrir({ nom: ou })}
+        depot={depot}
+        jarvis={jarvisPartage}
         partageActif={partageActif}
-        ouvrirBilan={() => ouvrir({ nom: "bilan" })}
-        ouvrirRappels={() => ouvrir({ nom: "rappels" })}
-        ouvrirSauvegarde={() => ouvrir({ nom: "sauvegarde" })}
-        ouvrirNotifications={() => ouvrir({ nom: "notifications" })}
-        ouvrirPartage={() => ouvrir({ nom: "partage" })}
+        partage={etatPartage}
+        rappelsNonLus={rappelsNonLus}
+        ouvrir={ouvrir}
         synchroniser={synchro && partageActif ? () => synchro.synchroniser() : undefined}
         ouvrirRepartition={() => {
           demanderRepartition();
-          ouvrir({ nom: "module", id: "taches" });
+          ouvrir({ nom: "module", id: "taches", onglet: "taches" });
         }}
-        aller={(ou) =>
-          ouvrir(
-            ou.type === "module"
-              ? { nom: "module", id: ou.id, onglet: ou.onglet }
-              : ou.type === "liste"
-                ? { nom: "liste", id: ou.id }
-                : ou.type === "recette"
-                  ? { nom: "module", id: "chef", onglet: `recette:${ou.id}` }
-                  : ou.type === "mots"
-                    ? { nom: "mots" }
-                    : { nom: "memoire" },
-          )
-        }
-        depot={depot}
-        jarvis={jarvisPartage}
-        nouvelleVersion={nouvelleVersion}
-        partage={etatPartage}
-        rappelsNonLus={rappelsNonLus}
+        aller={allerRecherche}
         auDessus={pile.length === 1}
-        fil={capsule}
       />
     ),
     module: (page) => MODULES[page.id]?.page?.({
       ...donnees,
       depot,
+      ouvrir,
       ouvrirListe,
       jarvis: jarvisPartage,
       agendaDistant: agendaPartage,
@@ -421,11 +378,9 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         ouvrirCalendrier={() => ouvrir({ nom: "calendrier" })}
         ouvrirSiri={() => ouvrir({ nom: "siri" })}
         ouvrirFee={() => ouvrir({ nom: "fee" })}
+        ouvrirMots={() => ouvrir({ nom: "mots" })}
+        ouvrirFil={() => ouvrir({ nom: "fil" })}
         siri={siriRelie() ? "Relié" : "Pas relié"}
-        revoirVisite={() => {
-          demanderVisite();
-          avecTransition("arriere", () => setPile((avant) => avant.slice(0, 1)));
-        }}
         calendrier={comptesIcloudDe(agenda).some((c) => c.membre === membre) ? "Relié" : "Pas relié"}
         calendrierEnErreur={icloudEnErreur(comptesIcloudDe(agenda), membre)}
         etatPartage={etatPartage}
@@ -492,15 +447,6 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     corbeille: () => <Corbeille depot={depot} foyer={leFoyer} corbeille={corbeille} />,
     calendrier: () => <CalendrierIphone foyer={leFoyer} membreId={membre} comptes={comptesIcloudDe(agenda)} distant={agendaPartage} ouvrirPartage={() => ouvrir({ nom: "partage" })} />,
     fee: () => <LaFee />,
-    nous: () => (
-      <Nous
-        donnees={donnees}
-        depot={depot}
-        ouvrirMots={() => ouvrir({ nom: "mots" })}
-        ouvrirFil={() => ouvrir({ nom: "fil" })}
-        ouvrirBudget={() => ouvrir({ nom: "module", id: "budget" })}
-      />
-    ),
     siri: () => <Siri foyer={leFoyer} membreId={membre} distant={jarvisPartage} ouvrirPartage={() => ouvrir({ nom: "partage" })} />,
     retours: () => <RetoursTest depot={depot} foyer={leFoyer} retours={retours} partageActif={partageActif} />,
   };
@@ -524,35 +470,22 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         ? "stock"
         : null;
   const lieuBarre: LieuBarre | null =
-    page.nom === "accueil" ? "accueil" : page.nom === "module" ? (ongletBarre ?? page.id) : page.nom === "liste" || page.nom === "memoire" || page.nom === "mots" ? page.nom : page.nom === "nous" ? "mots" : null;
+    page.nom === "accueil" ? "accueil" : page.nom === "module" ? (ongletBarre ?? page.id) : page.nom === "liste" || page.nom === "memoire" || page.nom === "mots" ? page.nom : null;
   const cleBarre = page.nom === "module" ? `module:${page.id}${ongletBarre ? `:${ongletBarre}` : ""}` : page.nom === "liste" ? `liste:${page.id}` : page.nom;
-  // La capsule vivante : sur l'accueil (Aujourd'hui), les Courses et Nous, quand ce téléphone l'essaie.
-  const vueDe = (p: Page, i: number): VueCapsule | null =>
-    p.nom === "accueil" ? "aujourdhui" : i === 1 && p.nom === "module" && p.id === "chef" && p.onglet === "courses" ? "courses" : i === 1 && p.nom === "nous" ? "nous" : null;
-  const vueCapsule = capsule ? vueDe(page, pile.length - 1) : null;
-  const capsuleEtats = vueCapsule ? etatsDeLaCapsule(donnees, new Date()) : null;
-  const allerVue = (vue: VueCapsule) => {
-    const ordre: VueCapsule[] = ["aujourdhui", "courses", "nous"];
-    const sens = vueCapsule && ordre.indexOf(vue) < ordre.indexOf(vueCapsule) ? "arriere" : "avant";
-    widgetOuvert.current = null;
-    avecTransition(sens, () => {
-      setPile((avant) => (vue === "aujourdhui" ? [avant[0]] : [avant[0], vue === "courses" ? { nom: "module", id: "chef", onglet: "courses" } : { nom: "nous" }]));
-      window.scrollTo(0, 0);
-    });
-  };
-  const ouvrirVue = () => {
-    if (vueCapsule === "aujourdhui") {
-      const ou = capsuleEtats?.premiere?.destination;
-      if (ou === "administratif") ouvrir({ nom: "module", id: "taches", onglet: "administratif" });
-      else ouvrir({ nom: "module", id: ou && ou in MODULES ? (ou as WidgetId) : "taches" });
-    } else if (vueCapsule === "nous") ouvrir({ nom: "mots" });
-    else window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-  const allerDepuisTout = (p: Page) => {
-    setToutKora(false);
-    if (p.nom === "module") allerEspace(p.id);
-    else ouvrir(p);
-  };
+  // La recherche de la fée (RechercheFee) et « Voir » de ses remarques mènent où elles disent.
+  const allerRecherche = (ou: OuRecherche) =>
+    ouvrir(
+      ou.type === "module"
+        ? { nom: "module", id: ou.id, onglet: ou.onglet }
+        : ou.type === "liste"
+          ? { nom: "liste", id: ou.id }
+          : ou.type === "recette"
+            ? { nom: "module", id: "chef", onglet: `recette:${ou.id}` }
+            : ou.type === "mots"
+              ? { nom: "mots" }
+              : { nom: "memoire" },
+    );
+  const racine = estRacine(page);
 
   const coinDev = pastille && !nouvelleVersion && page.nom !== "retours" && (
     <CoinDev depot={depot} ecran={nomEcran} membreId={membre} ouvertes={ouvertes} voirRetours={() => ouvrir({ nom: "retours" })} />
@@ -566,16 +499,9 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     {pile.map((p, i) => {
       const dessus = i === pile.length - 1;
       const avant = i > 0 ? pile[i - 1] : null;
-      const retour = avant && !(capsule && vueDe(p, i)) && (
-        <BarreHaut
-          retour={libelle(avant)}
-          revenir={revenirAnime}
-          titre={libelle(p)}
-          espaces={ESPACES_BARRE}
-          actuel={p.nom === "module" ? p.id : undefined}
-          allerA={allerEspace}
-          inerte={!dessus}
-        />
+      // Une page de départ n'a pas de barre du haut : son grand titre et Tael suffisent.
+      const retour = avant && !estRacine(p) && (
+        <BarreHaut retour={libelle(avant)} revenir={revenirAnime} titre={libelle(p)} inerte={!dessus} />
       );
       if (!dessus) {
         const visible = i === pile.length - 2 && glissement;
@@ -616,59 +542,11 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
           ouvrir({ nom: "jarvis" });
         }}
         ouvrirPage={(ou) => ouvrir(ou === "mots" ? { nom: "mots" } : ou === "reglages" ? { nom: "reglages" } : { nom: "module", id: ou })}
-        dansCapsule={!!vueCapsule}
       />
     ) : null}
-    {vueCapsule && capsuleEtats && !toutKora && (
-      <Capsule
-        vue={vueCapsule}
-        etat={capsuleEtats.etats[vueCapsule]}
-        aller={allerVue}
-        ouvrir={ouvrirVue}
-        ouvrirTout={() => setToutKora(true)}
-        toucherFee={toucherFeeCapsule}
-        appuiLongFee={appuiLongFeeCapsule}
-      />
-    )}
-    {capsule && (
-      <Feuille ouverte={toutKora} onFermer={() => setToutKora(false)} titre="Tout Kora" className="tout-kora">
-        <button
-          type="button"
-          className="tout-kora-recherche"
-          onClick={() => {
-            setToutKora(false);
-            appuiLongFeeCapsule();
-          }}
-        >
-          <span className="tout-kora-orbe" aria-hidden />
-          Cherche ou demande à {nomFee()}
-        </button>
-        <div className="tout-kora-grille">
-          {ESPACES_BARRE.map((e) => (
-            <button key={e.id} type="button" onClick={() => allerDepuisTout({ nom: "module", id: e.id })}>
-              <Icone nom={e.picto} taille={20} />
-              <b>{e.libelle}</b>
-            </button>
-          ))}
-          <button type="button" onClick={() => allerDepuisTout({ nom: "mots" })}>
-            <Icone nom="coeur" taille={20} />
-            <b>Nos mots</b>
-          </button>
-          <button type="button" onClick={() => allerDepuisTout({ nom: "fil" })}>
-            <Icone nom="activite" taille={20} />
-            <b>Chez nous</b>
-          </button>
-          <button type="button" onClick={() => allerDepuisTout({ nom: "memoire" })}>
-            <Icone nom="appris" taille={20} />
-            <b>Ce que {nomFee()} sait</b>
-          </button>
-          <button type="button" onClick={() => allerDepuisTout({ nom: "reglages" })}>
-            <Icone nom="reglages" taille={20} />
-            <b>Réglages</b>
-          </button>
-        </div>
-      </Feuille>
-    )}
+    <Navigation actuel={espaceDe(page)} aller={allerEspace} pile={racine} alertes={{ reglages: nouvelleVersion }} />
+    {!avecCartes(page) && <BulleTael />}
+    <FeuilleTael annuler={(mods) => annulerModifications(depot, mods as Parameters<typeof annulerModifications>[1])} />
     {coinDev}
     </FournisseurSaisie>
     </FournisseurAnnulation>

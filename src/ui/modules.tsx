@@ -1,4 +1,4 @@
-import { lazy, useEffect, type ReactNode } from "react";
+import { lazy, type ReactNode } from "react";
 import { evenementsDe, ligneWidget, resumeAgenda, type DocAgenda } from "../domaine/agenda";
 import type { DocCouple } from "../domaine/bandeau";
 import { paiementsAClasser } from "../domaine/paiements";
@@ -15,17 +15,21 @@ import type { WidgetId } from "../domaine/tableauDeBord";
 import type { ProduitHabituel } from "../domaine/catalogue";
 import { decrirePeremption, resumeStock, type Produit } from "../domaine/stock";
 import { compterDues, decaler, decrireEcheance, organiserTaches } from "../domaine/taches";
-import { compterVetements, type DocVetement } from "../domaine/vetements";
+import type { DocVetement } from "../domaine/vetements";
 import type { DocMaison } from "../domaine/maison";
 import type { Element, Foyer, Jour, Liste, Tache } from "../domaine/types";
 import type { Depot } from "../donnees/depot";
 import type { ServeurAgenda, ServeurJarvis } from "../donnees/distant";
 import { organiserEntretien } from "../domaine/entretien";
 import { Courses } from "./ecrans/Listes";
+import { EspaceBudget } from "./ecrans/EspaceBudget";
+import { EspaceCuisine } from "./ecrans/EspaceCuisine";
+import { EspaceMaison } from "./ecrans/EspaceMaison";
+import { EspaceOrganisation } from "./ecrans/EspaceOrganisation";
+import type { Page as PageKora } from "./pages";
 import { Taches } from "./ecrans/Taches";
-import { vibrer } from "./haptique";
 import type { NomIcone } from "./Icone";
-import { Espace, Page } from "./pieces";
+import { Page } from "./pieces";
 import { Entretien } from "./ecrans/Entretien";
 import { Vetements } from "./ecrans/Vetements";
 import { Appareils, Carnet, Dechets, Rangements } from "./ecrans/Maison";
@@ -90,6 +94,8 @@ export interface DonneesModule {
 
 export interface PropsPage extends DonneesModule {
   depot: Depot;
+  /** Ouvre une page par-dessus celle-ci (une carte d'un espace mène à sa page). */
+  ouvrir: (p: PageKora) => void;
   /** Ouvre une liste, par-dessus la page du module. */
   ouvrirListe: (id: string) => void;
   /** Jarvis, quand le foyer est partagé (il passe par son serveur). */
@@ -100,7 +106,7 @@ export interface PropsPage extends DonneesModule {
   ouvrirPartage: () => void;
   /** Ouvre Réglages › Calendrier de l'iPhone. */
   ouvrirCalendrier: () => void;
-  /** L'onglet ouvert, quand la page en a (« listes » dans Courses, « entretien » dans Tâches, « frigo » dans Cuisine, « jardin » dans Maison). */
+  /** La page de l'espace ouverte (« courses », « frigo », « agenda », « mitsu »…) ; absente : la page de cartes de l'espace. */
   onglet?: string;
   changerOnglet: (onglet: string | undefined) => void;
 }
@@ -229,128 +235,50 @@ function widgetCuisine(d: DonneesModule): ApercuWidget {
   return { ...menus, lignes: [...frigo.lignes.slice(0, 1).map((l) => `Frigo : ${l}`), ...menus.lignes].slice(0, 3), urgent: true };
 }
 
-/** L'onglet de Maison qui s'ouvre : Mitsu s'il presse, sinon le jardin, sinon l'entretien dû, sinon Mitsu. */
-const ongletMaison = (d: DonneesModule): "entretien" | "mitsu" | "jardin" =>
-  widgetMitsu(d).urgent ? "mitsu" : widgetJardin(d).urgent ? "jardin" : widgetEntretien(d).chiffre > 0 ? "entretien" : "mitsu";
-
-/** Cuisine (0.0.75) : les courses et les autres listes, les menus de la semaine, les recettes et le frigo. */
+/** Cuisine : sa page de cartes, ou l'une de ses pages (Courses et Autres listes, Menus, Recettes, Frigo). */
 function PageCuisine(p: PropsPage) {
-  // « recette:<id> » : une recette trouvée par la recherche, ouverte sur l'onglet Recettes.
-  const recette = p.onglet?.startsWith("recette:") ? p.onglet.slice("recette:".length) : null;
-  const aConsommer = resumeStock(p.produits, p.aujourdhui).aConsommer.length;
-  const courses = listeCourses(p);
-  const aPrendre = courses ? compterAPrendre(courses, p.elements) : 0;
-  // Sans onglet demandé (0.0.79, choix de Melo) : les courses s'il y a quelque chose à acheter, sinon les menus.
-  const onglet =
-    p.onglet === "courses" || p.onglet === "listes"
-      ? "courses"
-      : p.onglet === "recettes" || recette
-        ? "recettes"
-        : p.onglet === "frigo"
-          ? "frigo"
-          : p.onglet === "semaine" || aPrendre === 0
-            ? "semaine"
-            : "courses";
-  return (
-    <Espace
-      titre="Cuisine"
-      libelle="Courses, menus, recettes ou frigo"
-      onglets={[
-        { id: "courses", libelle: "Courses", compte: aPrendre },
-        { id: "semaine", libelle: "Menus" },
-        { id: "recettes", libelle: "Recettes", compte: recettesDe(p.menus).length },
-        { id: "frigo", libelle: "Frigo", compte: aConsommer },
-      ] as const}
-      actif={onglet}
-      changer={(o) => {
-        vibrer();
-        p.changerOnglet(o);
-      }}
-    >
-      {onglet === "courses" ? (
-        // Les puces Courses et Autres listes de la page restent sous les onglets de Cuisine.
-        <Courses {...p} onglet={p.onglet === "listes" ? "listes" : undefined} changerOnglet={(o) => p.changerOnglet(o ?? "courses")} />
-      ) : onglet === "frigo" ? (
-        <Stock depot={p.depot} membreId={p.membreId} produits={p.produits} catalogue={p.catalogue} listes={p.listes} elements={p.elements} aujourdhui={p.aujourdhui} jarvis={p.jarvis} donnees={p} />
-      ) : (
-        <Chef {...p} onglet={onglet} recette={recette} />
-      )}
-    </Espace>
-  );
+  if (!p.onglet) return <EspaceCuisine donnees={p} depot={p.depot} ouvrir={p.ouvrir} />;
+  // « recette:<id> » : une recette trouvée par la recherche, ouverte sur la page Recettes.
+  const recette = p.onglet.startsWith("recette:") ? p.onglet.slice("recette:".length) : null;
+  if (p.onglet === "courses" || p.onglet === "listes") {
+    return <Courses {...p} onglet={p.onglet === "listes" ? "listes" : undefined} changerOnglet={(o) => p.changerOnglet(o ?? "courses")} />;
+  }
+  if (p.onglet === "frigo") {
+    return <Stock depot={p.depot} membreId={p.membreId} produits={p.produits} catalogue={p.catalogue} listes={p.listes} elements={p.elements} aujourdhui={p.aujourdhui} jarvis={p.jarvis} donnees={p} />;
+  }
+  return <Chef {...p} onglet={p.onglet === "recettes" || recette ? "recettes" : "semaine"} recette={recette} />;
 }
 
-/** Organisation (0.0.75) : les tâches, l'agenda et les démarches administratives. */
+/** Organisation : sa page de cartes, ou l'une de ses pages (Tâches, Agenda, Administratif). */
 function PageOrganisation(p: PropsPage) {
-  const onglet = p.onglet === "agenda" || p.onglet === "administratif" ? p.onglet : "taches";
-  return (
-    <Espace
-      titre="Organisation"
-      libelle="Tâches, agenda ou administratif"
-      onglets={[
-        { id: "taches", libelle: "Tâches" },
-        { id: "agenda", libelle: "Agenda" },
-        { id: "administratif", libelle: "Administratif" },
-      ] as const}
-      actif={onglet}
-      changer={(o) => {
-        vibrer();
-        p.changerOnglet(o === "taches" ? undefined : o);
-      }}
-    >
-      {onglet === "agenda" ? (
-        <Agenda {...p} />
-      ) : (
-        <Taches depot={p.depot} foyer={p.foyer} membreId={p.membreId} taches={p.taches} administratif={onglet === "administratif"} budget={p.budget} />
-      )}
-    </Espace>
-  );
+  if (!p.onglet) return <EspaceOrganisation donnees={p} depot={p.depot} ouvrir={p.ouvrir} />;
+  if (p.onglet === "agenda") return <Agenda {...p} />;
+  return <Taches depot={p.depot} foyer={p.foyer} membreId={p.membreId} taches={p.taches} administratif={p.onglet === "administratif"} budget={p.budget} />;
 }
 
-/** Maison : l'entretien, Mitsu et le jardin, chacun dans son onglet. */
+/** Maison : sa page de cartes, ou l'une de ses pages (Entretien, Mitsu, Jardin, Vêtements). */
 function PageMaison(p: PropsPage) {
-  const onglet = p.onglet === "jardin" || p.onglet === "mitsu" || p.onglet === "entretien" || p.onglet === "vetements" ? p.onglet : null;
-  const { changerOnglet } = p;
-  const parDefaut = ongletMaison(p);
-  // L'onglet choisi à l'ouverture reste en place, même si l'urgence change en route.
-  useEffect(() => {
-    if (!onglet) changerOnglet(parDefaut);
-  }, [onglet, parDefaut, changerOnglet]);
-  const actif = onglet ?? parDefaut;
-  return (
-    <Espace
-      titre="Maison"
-      libelle="Entretien, Mitsu, jardin ou vêtements"
-      onglets={[
-        { id: "entretien", libelle: "Entretien", compte: widgetEntretien(p).chiffre },
-        { id: "mitsu", libelle: p.animaux[0]?.nom ?? "Mitsu" },
-        { id: "jardin", libelle: "Jardin" },
-        { id: "vetements", libelle: "Vêtements", compte: compterVetements(p.vetements, p.membreId, `${p.aujourdhui}T12:00:00.000Z`) },
-      ] as const}
-      actif={actif}
-      changer={(o) => {
-        vibrer();
-        changerOnglet(o);
-      }}
-    >
-      {actif === "jardin" ? (
-        <Jardin {...p} />
-      ) : actif === "vetements" ? (
-        <Page titre="Vêtements" sousTitre="Tailles, envies, à trier" aide={{ cle: "vetements-aide", resume: "Tailles et envies de chacun, partagées", texte: "Les tailles et les envies de chacun, partagées : de quoi trouver un cadeau qui va." }}>
-          <Vetements depot={p.depot} foyer={p.foyer} membreId={p.membreId} vetements={p.vetements} aujourdhui={p.aujourdhui} />
-        </Page>
-      ) : actif === "entretien" ? (
-        <Page titre="Entretien" sousTitre="Ce qui revient pour la maison">
-          <Entretien depot={p.depot} membreId={p.membreId} taches={p.taches} aujourdhui={p.aujourdhui} />
-          <Dechets depot={p.depot} maison={p.maison} aujourdhui={p.aujourdhui} />
-          <Appareils depot={p.depot} maison={p.maison} aujourdhui={p.aujourdhui} />
-          <Carnet depot={p.depot} maison={p.maison} />
-          <Rangements depot={p.depot} maison={p.maison} />
-        </Page>
-      ) : (
-        <Mitsu depot={p.depot} foyer={p.foyer} membreId={p.membreId} animaux={p.animaux} listes={p.listes} elements={p.elements} />
-      )}
-    </Espace>
-  );
+  if (!p.onglet) return <EspaceMaison donnees={p} depot={p.depot} ouvrir={p.ouvrir} />;
+  if (p.onglet === "jardin") return <Jardin {...p} />;
+  if (p.onglet === "vetements") {
+    return (
+      <Page titre="Vêtements" sousTitre="Tailles, envies, à trier" aide={{ cle: "vetements-aide", resume: "Tailles et envies de chacun, partagées", texte: "Les tailles et les envies de chacun, partagées : de quoi trouver un cadeau qui va." }}>
+        <Vetements depot={p.depot} foyer={p.foyer} membreId={p.membreId} vetements={p.vetements} aujourdhui={p.aujourdhui} />
+      </Page>
+    );
+  }
+  if (p.onglet === "entretien") {
+    return (
+      <Page titre="Entretien" sousTitre="Ce qui revient pour la maison">
+        <Entretien depot={p.depot} membreId={p.membreId} taches={p.taches} aujourdhui={p.aujourdhui} />
+        <Dechets depot={p.depot} maison={p.maison} aujourdhui={p.aujourdhui} />
+        <Appareils depot={p.depot} maison={p.maison} aujourdhui={p.aujourdhui} />
+        <Carnet depot={p.depot} maison={p.maison} />
+        <Rangements depot={p.depot} maison={p.maison} />
+      </Page>
+    );
+  }
+  return <Mitsu depot={p.depot} foyer={p.foyer} membreId={p.membreId} animaux={p.animaux} listes={p.listes} elements={p.elements} />;
 }
 
 export const MODULES: Partial<Record<WidgetId, ModuleUI>> = {
@@ -512,7 +440,7 @@ export const MODULES: Partial<Record<WidgetId, ModuleUI>> = {
         jauge: courses.budgetDuMois > 0 ? Math.min(1, courses.depenseDuMois / courses.budgetDuMois) : undefined,
       };
     },
-    page: (p) => <Budget {...p} />,
+    page: (p) => (p.onglet ? <Budget {...p} /> : <EspaceBudget donnees={p} ouvrir={p.ouvrir} />),
   },
 };
 

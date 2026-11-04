@@ -64,7 +64,7 @@ export function nomDuSoir(jour: string, aujourdhui: string): string {
 }
 
 /** L'onglet Recettes : les filtres, la liste, et la barre qui ajoute une recette. */
-export function OngletRecettes(p: PropsPage & { recettes: Recette[]; ouvrir: (id: string) => void }) {
+export function OngletRecettes(p: PropsPage & { recettes: Recette[]; ouvrirFiche: (id: string) => void }) {
   const annoncer = useAnnoncer();
   const [filtre, setFiltre] = useState<FiltreRecettes>("toutes");
   const [nouvelle, setNouvelle] = useState<string | null>(null);
@@ -80,7 +80,7 @@ export function OngletRecettes(p: PropsPage & { recettes: Recette[]; ouvrir: (id
     const entiere = t.length > 60 || /[:\n]|,.*,/.test(t);
     if (!entiere) {
       const deja = trouverRecette(p.recettes, t);
-      if (deja && deja.cle === cleRecette(t)) p.ouvrir(deja.id);
+      if (deja && deja.cle === cleRecette(t)) p.ouvrirFiche(deja.id);
       else setNouvelle(t);
       return true;
     }
@@ -106,7 +106,7 @@ export function OngletRecettes(p: PropsPage & { recettes: Recette[]; ouvrir: (id
       }
       vibrer();
       annoncer(resultat.faits.join(" "), () => annulerModifications(p.depot, resultat.modifications));
-      p.ouvrir(rangee.apres.id);
+      p.ouvrirFiche(rangee.apres.id);
     } catch (e) {
       annoncer(e instanceof Error && e.message ? e.message : `${nomFee()} n'a pas pu lire la recette, réessaie.`, () => {});
     } finally {
@@ -163,7 +163,7 @@ export function OngletRecettes(p: PropsPage & { recettes: Recette[]; ouvrir: (id
             return (
               <Ligne key={r.id}>
                 <Glissable onSupprimer={() => void supprimer(r)} libelle="Retirer">
-                  <button type="button" className="ligne recette-ligne" onClick={() => p.ouvrir(r.id)}>
+                  <button type="button" className="ligne recette-ligne" onClick={() => p.ouvrirFiche(r.id)}>
                     <span className="ligne-texte">
                       <span className="recette-titre">
                         {a === "aime" && <Icone nom="coeur" taille={13} />}
@@ -199,7 +199,7 @@ export function OngletRecettes(p: PropsPage & { recettes: Recette[]; ouvrir: (id
           vibrer();
           setNouvelle(null);
           annoncer(`« ${r.titre} » ajoutée à vos recettes.`, () => p.depot.supprimerMenu(r.id));
-          p.ouvrir(r.id);
+          p.ouvrirFiche(r.id);
         }}
       />
     </>

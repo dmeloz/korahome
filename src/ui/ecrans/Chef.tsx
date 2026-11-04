@@ -181,11 +181,11 @@ export function Chef(p: PropsPage & { recette?: string | null }) {
 
   const ajouts = menu ? etatDesAjouts(menu, p.elements) : [];
   return (
-    <Page titre="Menus de la semaine" className="chef" aide={{ cle: "chef", resume: "Le Chef cuisine avec ce qui reste", texte: `Le Chef prépare les repas du soir avec ce qui reste au frigo. Valide les soirs qui te vont : ce qui manque part alors aux courses, marqué « Chef ». Chaque repas rejoint vos recettes, avec celles que tu donnes à ${nomFee()}.` }}>
+    <Page titre={onglet === "recettes" ? "Nos recettes" : "Menus de la semaine"} className="chef" aide={{ cle: "chef", resume: "Le Chef cuisine avec ce qui reste", texte: `Le Chef prépare les repas du soir avec ce qui reste au frigo. Valide les soirs qui te vont : ce qui manque part alors aux courses, marqué « Chef ». Chaque repas rejoint vos recettes, avec celles que tu donnes à ${nomFee()}.` }}>
       <FicheRecette {...p} recette={fiche} fermer={() => setFicheId(null)} />
 
       {onglet === "recettes" ? (
-        <OngletRecettes {...p} recettes={recettes} ouvrir={setFicheId} />
+        <OngletRecettes {...p} recettes={recettes} ouvrirFiche={setFicheId} />
       ) : (
         <>
 

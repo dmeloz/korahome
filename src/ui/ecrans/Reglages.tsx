@@ -1,4 +1,3 @@
-import { choisirInterfaceCapsule, useInterfaceCapsule } from "../capsule";
 import { useRef, useState, type ReactNode } from "react";
 import { Feuille } from "../Feuille";
 import type { Foyer } from "../../domaine/types";
@@ -12,8 +11,10 @@ import { aujourdhuiLocal } from "../contexte";
 import { lireDerniereSauvegarde } from "../sauvegarde";
 import { nomFee, sonActif } from "../fee";
 import { choisirTheme, lireTheme, THEMES, type Theme } from "../theme";
-import { enregistrerDate, enregistrerVerre, lireDate, lireVerre, TAILLE_DATE } from "../accueilLocal";
 import { Page } from "../pieces";
+import { Orbe } from "../pieces/Tael";
+import { ouvrirFeuilleTael, useNiveau } from "../tael";
+import { titreNiveau } from "../../domaine/tael";
 
 const ETATS_PARTAGE = { indisponible: "Bientôt", inactif: "Désactivé", actif: "Activé" } as const;
 
@@ -54,8 +55,9 @@ export function Reglages(props: {
   ouvrirCalendrier: () => void;
   ouvrirSiri: () => void;
   ouvrirFee: () => void;
+  ouvrirMots: () => void;
+  ouvrirFil: () => void;
   siri: string;
-  revoirVisite: () => void;
   calendrier: string;
   calendrierEnErreur: boolean;
   etatPartage: EtatPartage;
@@ -66,6 +68,7 @@ export function Reglages(props: {
   const [verification, setVerification] = useState<string | null>(null);
   const moi = props.foyer.membres.find((m) => m.id === props.membreId);
   const rappels = lirePreferences();
+  const niveau = useNiveau();
   // Cinq touchers sur la version en deux secondes : la section Développement apparaît.
   const touchers = useRef<number[]>([]);
 
@@ -84,7 +87,7 @@ export function Reglages(props: {
   };
 
   return (
-    <Page titre="Réglages" className="reglages avec-cadre">
+    <Page titre="Réglages" className="reglages avec-cadre" actions={<Orbe salut />}>
 
       <button className="carte profil" onClick={props.ouvrirTelephone}>
         <span className="initiale profil-initiale" style={{ background: moi?.couleur ?? "var(--surface-haute)" }}>
@@ -100,6 +103,12 @@ export function Reglages(props: {
 
       <ul className="carte groupe">
         <Ligne picto="lune" titre="Apparence" valeur={THEMES.find((t) => t.id === lireTheme())?.libelle} onClick={props.ouvrirApparence} />
+        <Ligne picto="jarvis" titre={`Ce que ${nomFee()} fait seule`} valeur={titreNiveau(niveau)} onClick={() => ouvrirFeuilleTael()} />
+      </ul>
+
+      <ul className="carte groupe">
+        <Ligne picto="coeur" titre="Nos mots" onClick={props.ouvrirMots} />
+        <Ligne picto="activite" titre="Chez nous" onClick={props.ouvrirFil} />
       </ul>
 
       <ul className="carte groupe">
@@ -127,7 +136,6 @@ export function Reglages(props: {
           chevron={false}
           onClick={() => void version()}
         />
-        <Ligne picto="info" titre="Visite guidée" valeur="Revoir" onClick={props.revoirVisite} />
       </ul>
 
       {props.pastilleVisible && (<>
@@ -261,93 +269,7 @@ export function Apparence() {
           </button>
         ))}
       </div>
-      <ReglagesAccueil theme={theme} />
-      <EssaiCapsule />
     </Page>
   );
 }
 
-/** L'essai de la nouvelle interface (0.0.100) : la capsule vivante, sur ce téléphone seulement. */
-function EssaiCapsule() {
-  const actif = useInterfaceCapsule();
-  return (
-    <>
-      <h2 className="rayon">Nouvelle interface</h2>
-      <div className="carte groupe">
-        <button type="button" className="ligne chef-interrupteur" onClick={() => choisirInterfaceCapsule(!actif)} aria-pressed={actif}>
-          <span className="ligne-texte">
-            Essayer la capsule vivante
-            <span className="tache-details">Une seule capsule en bas : glisse pour Aujourd'hui, Courses et Nous, touche pour ouvrir, pousse vers le haut pour tout le reste.</span>
-          </span>
-          <span className={`interrupteur${actif ? " actif" : ""}`} aria-hidden />
-        </button>
-      </div>
-    </>
-  );
-}
-
-/** Le verre des widgets et la taille de la date. */
-function ReglagesAccueil({ theme }: { theme: Theme }) {
-  const sombre = theme === "sombre" || (theme === "auto" && window.matchMedia?.("(prefers-color-scheme: dark)").matches);
-  const [verre, setVerre] = useState<number | null>(lireVerre);
-  const [date, setDate] = useState(lireDate);
-  const valeurVerre = verre ?? (sombre ? 28 : 92);
-  return (
-    <>
-      <h2 className="rayon">Accueil</h2>
-      <div className="carte reglages-curseurs">
-        <label className="curseur-reglage">
-          <span className="curseur-titre">
-            Verre des widgets
-            <span className="discret">{verre === null ? (sombre ? "Transparent, comme le thème sombre" : "Opaque, comme le thème clair") : `${valeurVerre} %`}</span>
-          </span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            value={valeurVerre}
-            aria-label="Verre des widgets, de transparent à opaque"
-            onChange={(e) => {
-              const v = Number(e.target.value);
-              setVerre(v);
-              enregistrerVerre(v);
-            }}
-          />
-        </label>
-        {verre !== null && (
-          <button
-            className="lien"
-            onClick={() => {
-              setVerre(null);
-              enregistrerVerre(null);
-            }}
-          >
-            Suivre le thème
-          </button>
-        )}
-        <label className="curseur-reglage">
-          <span className="curseur-titre">
-            Taille de la date
-            <span className="discret">{date.taille} points</span>
-          </span>
-          <input
-            type="range"
-            min={TAILLE_DATE.min}
-            max={TAILLE_DATE.max}
-            step={1}
-            value={date.taille}
-            aria-label="Taille de la date de l'accueil"
-            onChange={(e) => {
-              const r = { ...date, taille: Number(e.target.value) };
-              setDate(r);
-              enregistrerDate(r);
-              window.dispatchEvent(new Event("korahome:date"));
-            }}
-          />
-        </label>
-        <p className="discret curseur-aide">La date se glisse aussi du doigt sur l'accueil, à gauche ou au centre.</p>
-      </div>
-    </>
-  );
-}

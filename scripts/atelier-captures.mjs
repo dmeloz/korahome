@@ -342,20 +342,27 @@ async function parcourir(p, capter, apresRemplissage) {
   const attendre = (ms = 650) => p.waitForTimeout(ms);
   const revenir = async () => { await p.locator(".page-dessus .retour").first().click().catch(() => {}); await attendre(500); };
   const fermerFeuille = async () => { await p.keyboard.press("Escape"); await attendre(300); const b = p.locator(".feuille-entete button").first(); if (await b.count()) await b.click().catch(() => {}); await attendre(400); };
-  // Depuis 0.0.73, plus de « Tous les espaces » : on entre par la tuile Tâches de l'accueil (la carte
-  // « Demain » sur le hub de l'iPad), puis chaque espace par le sélecteur de la barre du haut.
+  // Kora 0.1 : un espace s'ouvre par la pile de Kora (iPhone) ou le rail (iPad, Duo ouvert), puis
+  // chaque page de l'espace par sa carte (toute la carte, ou son bouton « Tout voir »).
   const espace = async (nom) => {
-    if (!(await p.locator(".page-dessus .barre-haut-espaces").count())) {
-      const hub = await p.locator(".page-dessus .hub").count();
-      await p.locator(hub ? ".page-dessus .hub-demain" : '.page-dessus .chiffres-accueil [data-widget="taches"]').click();
-      await attendre(700);
+    const kora = p.locator(".pile-kora .kora");
+    if (await kora.isVisible()) {
+      await kora.click();
+      await attendre(300);
+      await p.locator(".pile-kora .item").filter({ hasText: nom }).first().click();
+    } else {
+      await p.locator(`.rail button[aria-label="${nom}"]`).click();
     }
-    await p.locator(".page-dessus .barre-haut-espaces").click();
-    await p.locator(".barre-haut-menu").getByText(nom, { exact: true }).first().click();
     await attendre(700);
   };
-  const accueil = async () => { for (let i = 0; i < 4 && (await p.locator(".page-dessus .retour").count()); i++) await revenir(); };
-  const onglet = async (nom) => { await p.locator(".page-dessus").getByRole("tab", { name: nom }).first().click(); await attendre(); };
+  const accueil = async () => { for (let i = 0; i < 4 && (await p.locator(".page-dessus .retour").count()); i++) await revenir(); await espace("Aujourd'hui"); };
+  const carte = async (nom) => {
+    const tuile = p.locator(".page-dessus .tuile").filter({ has: p.locator(`[aria-label^="${nom}"], .etiq:has-text("${nom}")`) }).or(p.locator(`.page-dessus .tuile[aria-label^="${nom}"]`)).first();
+    const toutVoir = tuile.getByText(/^Tout voir/);
+    if (await toutVoir.count()) await toutVoir.first().click();
+    else await tuile.click();
+    await attendre();
+  };
 
   await capter("bienvenue", "Bienvenue", "Premier lancement");
   await p.getByText(/Créer|créer/).first().click().catch(() => {});
@@ -365,43 +372,40 @@ async function parcourir(p, capter, apresRemplissage) {
   await p.getByPlaceholder("Prénom").fill("Sarah");
   await p.getByText("Créer notre foyer").click();
   await attendre(1500);
-  if (await p.locator(".visite").count()) await capter("visite", "Visite guidée", "Premier lancement");
-  for (let k = 0; k < 12 && (await p.locator(".visite").count()); k++) {
-    await p.locator(".visite button").last().click({ timeout: 1500 }).catch(() => {});
-    await attendre(300);
-  }
-  await capter("accueil-vide", "Accueil, foyer neuf", "Accueil");
+  await capter("accueil-vide", "Aujourd'hui, foyer neuf", "Aujourd'hui");
 
   await remplir(p);
   await p.reload();
   await attendre(1500);
   await apresRemplissage?.(p);
-  await capter("accueil", "Accueil", "Accueil");
-  const fee = p.getByLabel(/touche pour parler/).first();
+  await capter("accueil", "Aujourd'hui", "Aujourd'hui");
+  const fee = p.locator(".page-dessus .orbe-salut").first();
   if (await fee.count()) {
     await fee.click();
     await attendre(700);
-    await capter("fee-saisie", "Tael, saisie ouverte", "Accueil");
+    await capter("fee-saisie", "Tael, saisie ouverte", "Aujourd'hui");
     await p.keyboard.press("Escape");
     await attendre(500);
   }
 
-  // Les quatre espaces (Kora 0.0.75) et leurs onglets.
+  // Les quatre espaces (Kora 0.1) : leur page de cartes, puis chaque page qu'une carte ouvre.
   await espace("Organisation");
-  await onglet("Tâches");
-  await capter("organisation", "Organisation › Tâches", "Organisation");
+  await capter("organisation", "Organisation", "Organisation");
+  await carte("Tâches"); await capter("organisation-taches", "Organisation › Tâches", "Organisation");
   // Le clic de Playwright passe par Glissable, qui le prend pour un début de geste : clic direct.
   await p.locator(".page-dessus .tache-texte").first().evaluate((b) => b.click()).catch(() => {});
   await attendre(700);
   if (await p.locator(".feuille").count()) await capter("organisation-feuille", "Organisation, détail d'une tâche", "Organisation");
   await fermerFeuille();
-  await onglet("Agenda"); await capter("organisation-agenda", "Organisation › Agenda", "Organisation");
-  await onglet("Administratif"); await capter("organisation-administratif", "Organisation › Administratif", "Organisation");
+  await revenir();
+  await carte("Agenda"); await capter("organisation-agenda", "Organisation › Agenda", "Organisation"); await revenir();
+  await carte("Administratif"); await capter("organisation-administratif", "Organisation › Administratif", "Organisation"); await revenir();
 
   await espace("Cuisine");
-  await onglet("Courses"); await capter("cuisine", "Cuisine › Courses", "Cuisine");
+  await capter("cuisine", "Cuisine", "Cuisine");
+  await carte("Courses"); await capter("cuisine-courses", "Cuisine › Courses", "Cuisine");
   if (await fee.count()) {
-    await fee.click();
+    await p.locator(".page-dessus .barre-haut .orbe").first().click();
     await attendre(500);
     await p.locator("input:visible, textarea:visible").last().fill("2 kg de pommes et du pain").catch(() => {});
     await attendre(500);
@@ -409,30 +413,31 @@ async function parcourir(p, capter, apresRemplissage) {
     await p.keyboard.press("Escape");
     await attendre(500);
   }
-  await onglet("Autres listes"); await capter("cuisine-autres", "Cuisine › Autres listes", "Cuisine");
-  await onglet("Menus"); await capter("cuisine-menus", "Cuisine › Menus", "Cuisine");
-  await onglet("Recettes"); await capter("cuisine-recettes", "Cuisine › Recettes", "Cuisine");
-  await onglet("Frigo"); await capter("cuisine-frigo", "Cuisine › Frigo", "Cuisine");
+  await revenir();
+  await carte("Autres listes"); await capter("cuisine-autres", "Cuisine › Autres listes", "Cuisine"); await revenir();
+  await carte("Cette semaine"); await capter("cuisine-menus", "Cuisine › Menus", "Cuisine"); await revenir();
+  await carte("Nos recettes"); await capter("cuisine-recettes", "Cuisine › Recettes", "Cuisine"); await revenir();
+  await carte("Frigo"); await capter("cuisine-frigo", "Cuisine › Frigo", "Cuisine"); await revenir();
 
   await espace("Maison");
-  await onglet("Entretien"); await capter("maison", "Maison › Entretien", "Maison");
-  await onglet("Mitsu"); await capter("maison-mitsu", "Maison › Mitsu", "Maison");
-  await onglet("Jardin"); await capter("maison-jardin", "Maison › Jardin", "Maison");
-  await onglet("Vêtements"); await capter("maison-vetements", "Maison › Vêtements", "Maison");
+  await capter("maison", "Maison", "Maison");
+  await carte("Entretien"); await capter("maison-entretien", "Maison › Entretien", "Maison"); await revenir();
+  await carte("Mitsu"); await capter("maison-mitsu", "Maison › Mitsu", "Maison"); await revenir();
+  await carte("Balcon"); await capter("maison-jardin", "Maison › Jardin", "Maison"); await revenir();
+  await carte("Vêtements"); await capter("maison-vetements", "Maison › Vêtements", "Maison"); await revenir();
 
   await espace("Budget");
   await capter("budget", "Budget", "Budget");
-  await accueil();
+  await carte("À toi ce mois"); await capter("budget-mois", "Budget › Ce mois", "Budget"); await revenir();
 
-  await p.getByLabel(/^Réglages/).first().click();
-  await attendre();
+  await espace("Réglages");
   await capter("reglages", "Réglages", "Réglages");
-  const PAGES = [["Apparence", "apparence"], ["Partage", "partage"], ["Sauvegarde", "sauvegarde"], ["Corbeille", "corbeille"], ["Notifications", "notifications"], ["Calendrier de l'iPhone", "calendrier"], ["Siri", "siri"], ["Ce que", "ce-que-tael-sait"], ["Retours de test", "retours"]];
+  const PAGES = [["Apparence", "apparence"], ["Nos mots", "mots"], ["Partage", "partage"], ["Sauvegarde", "sauvegarde"], ["Corbeille", "corbeille"], ["Notifications", "notifications"], ["Calendrier de l'iPhone", "calendrier"], ["Siri", "siri"], [/^Ce que \w+ sait/, "ce-que-tael-sait"], ["Retours de test", "retours"]];
   for (const [ligne, cle] of PAGES) {
     await p.locator(".page-dessus").getByText(ligne).first().click().catch(() => {});
     await attendre();
-    const titre = await p.locator(".page-dessus h1").first().textContent({ timeout: 2000 }).catch(() => ligne);
-    await capter(`reglages-${cle}`, `Réglages › ${titre?.trim() || ligne}`, "Réglages");
+    const titre = await p.locator(".page-dessus h1").first().textContent({ timeout: 2000 }).catch(() => cle);
+    await capter(`reglages-${cle}`, `Réglages › ${titre?.trim() || cle}`, "Réglages");
     await revenir();
   }
   await accueil();
@@ -441,7 +446,7 @@ async function parcourir(p, capter, apresRemplissage) {
   await p.evaluate(() => sessionStorage.setItem("atelier:heure", "2026-10-20T23:40:00+02:00"));
   await p.reload();
   await attendre(1500);
-  await capter("accueil-nuit", "Accueil, la nuit", "Accueil");
+  await capter("accueil-nuit", "Aujourd'hui, la nuit", "Aujourd'hui");
 }
 
 // ---- Le tout ----

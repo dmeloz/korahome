@@ -114,8 +114,6 @@ describe("stockageLocal", () => {
     const toutes = Object.values(CLES);
     expect(new Set(toutes).size).toBe(toutes.length);
     expect(toutes.every((c) => c.startsWith("korahome."))).toBe(true);
-    expect(CLES.taillesWidgets).toBe("korahome.taillesWidgets.2");
-    expect(CLES.placeFee).toBe("korahome.fee");
     expect(CLES.pastilleDev).toBe("korahome.coinDev");
     expect(CLES.decisionsPerso).toBe("korahome.appris");
   });
