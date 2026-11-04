@@ -54,6 +54,24 @@ try {
   await p.getByPlaceholder("Prénom").fill("Sarah");
   await p.getByText("Créer notre foyer").click();
   await p.waitForTimeout(1500);
+  // Le guide de première ouverture (0.1.1) : chaque page passe sous axe, puis « Commencer ».
+  for (let i = 1; ; i++) {
+    await p.waitForTimeout(600);
+    const titre = await p.locator(".guide h1").textContent({ timeout: 3000 }).catch(() => null);
+    if (!titre) erreurs.push(`Guide, page ${i} : pas de titre`);
+    await p.screenshot({ path: join(dossier, `guide-${i}.png`) });
+    const resultat = await p.evaluate(() => window.axe.run(document.querySelector(".guide"), { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21aa"] }, resultTypes: ["violations"] })).catch((e) => ({ violations: [{ id: "axe", impact: "critical", help: e.message, nodes: [] }] }));
+    const graves = resultat.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
+    for (const v of graves) erreurs.push(`Guide, page ${i} : ${v.help} (${v.id}, ${v.nodes.length}×)`);
+    console.log(`${titre && !graves.length ? "ok " : "?? "} Guide, page ${i}${titre ? ` → ${titre}` : ""}`);
+    const commencer = p.locator(".guide").getByText("Commencer");
+    if (await commencer.count()) {
+      await commencer.click();
+      break;
+    }
+    await p.locator(".guide").getByText("Suivant").click();
+  }
+  await p.waitForTimeout(800);
 
   let theme = "";
   const capture = (nom) => p.screenshot({ path: join(dossier, `${nom}${theme}.png`) });

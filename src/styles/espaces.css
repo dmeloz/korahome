@@ -272,3 +272,33 @@ html.feuille-ouverte .pile-kora, html.saisie-ouverte .pile-kora { opacity: 0; po
   .tuile.tres-large { grid-column: span 4; }
   .espace-entete h1, .grand-chiffre { font-size: 40px; }
 }
+
+/* ===== Le guide de première ouverture (0.1.1) ===== */
+.guide { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; background: var(--fond); color: var(--texte); padding: calc(env(safe-area-inset-top) + var(--espace-6)) var(--espace-7) calc(env(safe-area-inset-bottom) + var(--espace-7)); overflow: hidden; }
+.guide-haut { display: flex; justify-content: space-between; align-items: center; min-height: 44px; }
+.guide-haut .etiq { margin: 0; }
+.guide-haut .lien { color: var(--discret); font-size: var(--t-detail); padding: var(--espace-4) 0; background: none; border: 0; }
+.guide-page { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: var(--espace-5); touch-action: pan-y; max-width: 420px; width: 100%; margin: 0 auto; }
+.guide-page h1 { font-family: var(--police-titre); font-size: var(--t-titre); letter-spacing: -0.03em; margin: 0; }
+.guide-page p { margin: 0; color: var(--discret); line-height: 1.5; font-size: var(--t-corps); }
+.guide-bas { display: flex; flex-direction: column; align-items: stretch; gap: var(--espace-6); max-width: 420px; width: 100%; margin: 0 auto; }
+.guide-bas .points { display: flex; justify-content: center; gap: var(--espace-4); }
+.guide-bas .points span { width: 6px; height: 6px; border-radius: 50%; background: var(--sourd); transition: width 0.3s, background 0.3s; }
+.guide-bas .points span.actif { width: 18px; border-radius: var(--rayon-rond); background: var(--accent); }
+.guide-dessin { display: flex; align-items: center; justify-content: center; min-height: 150px; margin-bottom: var(--espace-5); }
+.guide-dessin .rond { width: 48px; height: 48px; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); background: var(--surface-haute); color: var(--accent); display: grid; place-items: center; }
+.guide-dessin.ronds { gap: var(--espace-4); flex-wrap: wrap; max-width: 300px; }
+.guide-dessin.pile { flex-direction: column-reverse; align-items: flex-start; gap: var(--espace-5); }
+.guide-dessin .kora { width: 56px; height: 56px; box-shadow: 0 10px 28px rgb(0 0 0 / 0.4); }
+.guide-dessin.pile .item { display: flex; align-items: center; gap: var(--espace-5); font-size: 15px; animation: monte 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(0.15s + var(--j) * 0.08s); }
+.guide-dessin.pile .item .rond { width: 40px; height: 40px; }
+@keyframes monte { from { transform: translateY(10px) scale(0.9); } to { transform: none; } }
+.guide-dessin.cartes { display: grid; grid-template-columns: repeat(2, 108px); gap: var(--espace-4); }
+.guide-dessin.cartes .tuile { height: 64px; padding: var(--espace-5); display: flex; flex-direction: column; gap: var(--espace-3); }
+.guide-dessin.cartes .tuile:first-child { grid-column: 1 / -1; height: 56px; }
+.guide-dessin.cartes i { display: block; height: 7px; width: 36px; border-radius: var(--rayon-fin); background: currentColor; opacity: 0.35; }
+.guide-dessin.cartes i.long { width: 80%; opacity: 0.6; }
+.guide-dessin.cartes i.court { width: 50%; opacity: 0.6; }
+.guide-dessin.fee .orbe { width: 96px; height: 96px; }
+.guide-dessin.fee .orbe svg { width: 120px; height: 120px; }
+@media (prefers-reduced-motion: reduce) { .guide-dessin.pile .item { animation: none; } }

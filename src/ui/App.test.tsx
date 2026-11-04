@@ -7,6 +7,8 @@ import { IDBFactory } from "fake-indexeddb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { contexteTest } from "../domaine/contexteTest";
 import { creerFoyer, listesInitiales } from "../domaine/foyer";
+import { VERSION_GUIDE } from "../domaine/guide";
+import { CLES } from "./stockageLocal";
 import { nouvelElement } from "../domaine/listes";
 import { nouvelleTache } from "../domaine/taches";
 import { creerDepotLocal, type DepotLocal } from "../donnees/depotLocal";
@@ -29,6 +31,8 @@ beforeEach(() => {
   // Pas de réseau ici : la météo et le reste échouent sans bruit, comme hors ligne.
   vi.stubGlobal("fetch", () => Promise.reject(new TypeError("hors ligne")));
   localStorage.clear();
+  // Le guide de première ouverture a déjà été vu : les tests regardent les pages derrière.
+  localStorage.setItem(CLES.guideVu, VERSION_GUIDE);
   depot = creerDepotLocal(`essai-${Math.random()}`, new IDBFactory());
 });
 afterEach(() => {

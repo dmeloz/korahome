@@ -30,6 +30,7 @@ import { preparerDemande } from "./ecrans/Jarvis";
 import { BarreJarvis, FournisseurSaisie } from "./pieces";
 import { BarreHaut } from "./pieces/BarreHaut";
 import { ESPACES, Navigation, type EspaceId } from "./pieces/Navigation";
+import { Guide, guideADonner } from "./pieces/Guide";
 import { BulleTael, FeuilleTael } from "./pieces/Tael";
 import { annulerModifications } from "./jarvis";
 import { useEtatPartage } from "./etatPartage";
@@ -117,6 +118,8 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
   const meteo = meteoFraiche(meteoLue, new Date().toISOString()) ? meteoLue : null;
   const [pile, setPile] = useState<Entree[]>([{ nom: "accueil" }]);
   const [membreId, setMembreId] = useState<string | null>(lireMembreCourant);
+  // Le guide de première ouverture : une fois par téléphone quand Kora a changé d'allure (0.1.1).
+  const [guide, setGuide] = useState(guideADonner);
   const nouvelleVersion = useSyncExternalStore(miseAJour.abonner, miseAJour.prete);
   const [pastille, setPastille] = useState(lirePastilleVisible);
 
@@ -547,6 +550,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     <Navigation actuel={espaceDe(page)} aller={allerEspace} pile={racine} alertes={{ reglages: nouvelleVersion }} />
     {!avecCartes(page) && <BulleTael />}
     <FeuilleTael annuler={(mods) => annulerModifications(depot, mods as Parameters<typeof annulerModifications>[1])} />
+    {guide && <Guide fermer={() => setGuide(false)} />}
     {coinDev}
     </FournisseurSaisie>
     </FournisseurAnnulation>

@@ -23,6 +23,8 @@ export const CLES = {
   prefixeAide: "korahome.aide.",
   /** La version dont la fée a déjà annoncé la nouveauté sur ce téléphone (0.0.79). */
   nouveauteVue: "korahome.nouveaute.vue",
+  /** La version du guide de première ouverture déjà vue sur ce téléphone (0.1.1). */
+  guideVu: "korahome.guide.vu",
 
   // ----- La fée -----
   /** « 1 » quand son tintement est allumé. */
@@ -148,4 +150,22 @@ export function effacerPrefixe(prefixe: string): void {
   } catch {
     // Stockage indisponible : rien à oublier.
   }
+}
+
+/**
+ * Ce que Kora a appris ou déjà dit sur ce téléphone : tout ce qui repart à zéro quand on
+ * repart à neuf (0.1.1). Restent l'appareil (qui, l'apparence, la pastille Dev), ses réglages
+ * (rappels, Siri, Apple Pay, Face ID, la voix de la fée, le niveau de Tael) et la dernière sauvegarde.
+ */
+export const MEMOIRES_PERSONNELLES: readonly string[] = [
+  CLES.journal, CLES.demarrageRange, CLES.nouveauteVue,
+  CLES.feeRenvois, CLES.feeDiscreteDit, CLES.feeVues, CLES.feeAlertes, CLES.feeHeures, CLES.feeRituels, CLES.feeCoursesVues, CLES.feeCoursesDit, CLES.clinDemande, CLES.clinVu,
+  CLES.usage, CLES.decisionsPerso, CLES.dernierBilan, CLES.adaptations, CLES.remarque,
+  CLES.meteo, CLES.derniereRepartition, CLES.conseillerBudget, CLES.applePayVu, CLES.journalTael,
+];
+
+/** Oublie les mémoires personnelles et les petites aides rangées : le téléphone repart comme neuf. */
+export function oublierMemoires(): void {
+  for (const cle of MEMOIRES_PERSONNELLES) effacer(cle);
+  effacerPrefixe(CLES.prefixeAide);
 }
