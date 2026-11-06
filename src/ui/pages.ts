@@ -7,8 +7,11 @@ import type { OngletMemoire } from "./ecrans/Memoire";
 
 export type Page =
   | { nom: "accueil" }
-  /** Un espace (sans onglet : sa page de cartes) ou l'une de ses pages (onglet : « courses », « agenda »…). */
-  | { nom: "module"; id: WidgetId; onglet?: string }
+  /**
+   * Un espace (sans onglet : sa page de cartes) ou l'une de ses pages (onglet : « courses », « agenda »…).
+   * ancre : la carte de cette page où arriver (« carnet », « rangements »), quand on vient d'une tuile qui la montre.
+   */
+  | { nom: "module"; id: WidgetId; onglet?: string; ancre?: string }
   | { nom: "liste"; id: string }
   | { nom: "reglages" }
   | { nom: "partage" }

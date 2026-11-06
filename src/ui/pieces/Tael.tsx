@@ -192,7 +192,7 @@ export function CarteTael({ vol }: { vol?: boolean }) {
     v.className = `orbe-vol orbe fee-${fee.teinte}`;
     v.style.left = `${a.left + a.width / 2 - 22}px`;
     v.style.top = `${a.top + a.height / 2 - 22}px`;
-    v.innerHTML = salut.outerHTML;
+    v.appendChild(salut.cloneNode(true));
     document.body.appendChild(v);
     arrivee.style.opacity = "0";
     const dx = z.left - a.left - a.width / 2 + 22;

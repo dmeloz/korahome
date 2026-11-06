@@ -150,6 +150,22 @@ try {
     await p.waitForTimeout(700);
   };
 
+  /**
+   * Les tuiles qui ouvrent une page sur l'une de ses cartes (0.1.2) : la carte doit être dans le
+   * haut de l'écran, ou tout entière à l'écran quand elle finit la page.
+   */
+  const ANCRES = { Carnet: "carnet", "Où est quoi": "rangements" };
+  const arriveSur = async (nom, ancre) => {
+    const place = await p.evaluate((id) => {
+      const el = document.querySelector(`.page-dessus #ancre-${id}`);
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { haut: r.top / innerHeight, bas: r.bottom / innerHeight };
+    }, ancre);
+    const bien = place && place.haut >= 0 && (place.haut <= 0.5 || place.bas <= 1);
+    if (!bien) erreurs.push(`« ${nom} »${theme} : la page ne s'ouvre pas sur sa carte (${place ? `à ${Math.round(place.haut * 100)} % de l'écran` : "carte absente"})`);
+  };
+
   const tournee = async () => {
     await capture("aujourdhui");
     const fautesAccueil = (await accessibilite("Aujourd'hui")) + (await debordement("Aujourd'hui"));
@@ -157,7 +173,7 @@ try {
     // Les quatre espaces (Kora 0.1) : leur page de cartes, puis chaque page qu'une carte ouvre.
     const ESPACES = {
       Cuisine: ["Courses", "Cette semaine", "Nos recettes", "Frigo", "Autres listes"],
-      Maison: ["Entretien", "Balcon", "Mitsu", "Vêtements"],
+      Maison: ["Entretien", "Balcon", "Mitsu", "Vêtements", "Carnet", "Où est quoi"],
       Organisation: ["Tâches", "Agenda", "Administratif"],
       // Sans plan, le Budget n'a qu'une carte : celle qui le commence.
       Budget: ["Commencer le budget"],
@@ -168,6 +184,7 @@ try {
       for (const carte of cartes) {
         await ouvrirCarte(carte);
         await verifier(`${espace} › ${carte}`);
+        if (ANCRES[carte]) await arriveSur(`${espace} › ${carte}`, ANCRES[carte]);
         await revenir();
       }
     }

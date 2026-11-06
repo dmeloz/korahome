@@ -29,7 +29,7 @@ import { EspaceOrganisation } from "./ecrans/EspaceOrganisation";
 import type { Page as PageKora } from "./pages";
 import { Taches } from "./ecrans/Taches";
 import type { NomIcone } from "./Icone";
-import { Page } from "./pieces";
+import { Page, VersAncre } from "./pieces";
 import { Entretien } from "./ecrans/Entretien";
 import { Vetements } from "./ecrans/Vetements";
 import { Appareils, Carnet, Dechets, Rangements } from "./ecrans/Maison";
@@ -108,6 +108,8 @@ export interface PropsPage extends DonneesModule {
   ouvrirCalendrier: () => void;
   /** La page de l'espace ouverte (« courses », « frigo », « agenda », « mitsu »…) ; absente : la page de cartes de l'espace. */
   onglet?: string;
+  /** La carte de la page où arriver (voir `Page`), par son id `ancre-<nom>`. */
+  ancre?: string;
   changerOnglet: (onglet: string | undefined) => void;
 }
 
@@ -275,6 +277,7 @@ function PageMaison(p: PropsPage) {
         <Appareils depot={p.depot} maison={p.maison} aujourdhui={p.aujourdhui} />
         <Carnet depot={p.depot} maison={p.maison} />
         <Rangements depot={p.depot} maison={p.maison} />
+        <VersAncre ancre={p.ancre} />
       </Page>
     );
   }

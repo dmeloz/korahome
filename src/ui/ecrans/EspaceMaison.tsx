@@ -26,9 +26,9 @@ export function EspaceMaison(props: { donnees: DonneesModule; depot: Depot; ouvr
   const { donnees, depot } = props;
   const { aujourdhui, membreId } = donnees;
   const annoncer = useAnnoncer();
-  const ouvrir = (onglet: string) => {
+  const ouvrir = (onglet: string, ancre?: string) => {
     noterUsage("widget", "maison");
-    props.ouvrir({ nom: "module", id: "maison", onglet });
+    props.ouvrir(ancre ? { nom: "module", id: "maison", onglet, ancre } : { nom: "module", id: "maison", onglet });
   };
 
   // ----- Ce qui presse -----
@@ -69,7 +69,7 @@ export function EspaceMaison(props: { donnees: DonneesModule; depot: Depot; ouvr
 
       <Grille label="Maison">
         {dechets.length ? (
-          <Tuile forte large i={i++} onClick={() => ouvrir("entretien")} label={phraseSortir(dechets)}>
+          <Tuile forte large i={i++} onClick={() => ouvrir("entretien", "dechets")} label={phraseSortir(dechets)}>
             <p className="etiq">Ce soir</p>
             <p className="titre-c">{phraseSortir(dechets)}</p>
             <p className="doux">Le camion passe demain matin.</p>
@@ -121,12 +121,12 @@ export function EspaceMaison(props: { donnees: DonneesModule; depot: Depot; ouvr
           )}
         </Tuile>
 
-        <Tuile i={i++} onClick={() => ouvrir("entretien")} label={`Carnet : ${carnet.length} ligne${carnet.length > 1 ? "s" : ""}`}>
+        <Tuile i={i++} onClick={() => ouvrir("entretien", "carnet")} label={`Carnet : ${carnet.length} ligne${carnet.length > 1 ? "s" : ""}`}>
           <p className="etiq"><Icone nom="dossier" taille={18} />Carnet</p>
           <p className="phrase">{carnet.length === 0 ? "Concierge, gérance, compteurs : ce qu'on cherche toujours." : <><b>{carnet.length}</b> ligne{carnet.length > 1 ? "s" : ""} : {carnet.slice(0, 3).map((c) => c.titre).join(", ")}{carnet.length > 3 ? "…" : ""}</>}</p>
         </Tuile>
 
-        <Tuile i={i++} onClick={() => ouvrir("entretien")} label={`Où est quoi : ${objets} objets`}>
+        <Tuile i={i++} onClick={() => ouvrir("entretien", "rangements")} label={`Où est quoi : ${objets} objets`}>
           <p className="etiq"><Icone nom="loupe" taille={18} />Où est quoi</p>
           <p className="phrase">{rangements.length === 0 ? "« Cave : perceuse, skis » et Kora s'en souvient." : <><b>{enLettres(objets).replace(/^./, (c) => c.toUpperCase())}</b> objet{objets > 1 ? "s" : ""} dans {rangements.length} lieu{rangements.length > 1 ? "x" : ""}.</>}</p>
         </Tuile>
