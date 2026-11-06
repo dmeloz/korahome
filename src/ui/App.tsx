@@ -351,6 +351,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       ouvrirPartage: () => ouvrir({ nom: "partage" }),
       ouvrirCalendrier: () => ouvrir({ nom: "calendrier" }),
       onglet: page.onglet,
+      ancre: page.ancre,
       changerOnglet,
     }),
     liste: (page) => {

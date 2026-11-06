@@ -7,3 +7,4 @@ export { Glissable } from "../Glissable";
 export { LigneAjout } from "./LigneAjout";
 export { BarreChoix } from "./BarreChoix";
 export { EtatVide } from "./EtatVide";
+export { VersAncre } from "./VersAncre";

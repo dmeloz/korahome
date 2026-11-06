@@ -127,6 +127,9 @@
 
 /* La barre du haut (0.0.71), la même sur chaque page : elle reste en place, le contenu passe
    dessous en se floutant, et le nom de la page y monte quand son grand titre a défilé. */
+/* Une carte où l'on arrive depuis une tuile (VersAncre, 0.1.2) se pose sous la barre du haut. */
+[id^="ancre-"] { scroll-margin-top: calc(env(safe-area-inset-top) + var(--espace-7) * 3); }
+
 .barre-haut {
   position: sticky;
   top: 0;

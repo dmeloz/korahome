@@ -38,7 +38,7 @@ export function Dechets(props: { depot: Depot; maison: DocMaison[]; aujourdhui: 
   }
 
   return (
-    <section className="carte maison-dechets">
+    <section className="carte maison-dechets" id="ancre-dechets">
       <div className="maison-entete">
         <p className="surtitre">Déchets</p>
         <button className="lien" onClick={() => setOuverte(true)} aria-haspopup="dialog">
@@ -244,7 +244,7 @@ export function Carnet(props: { depot: Depot; maison: DocMaison[] }) {
   const numero = brouillon?.avant ? numeroDe(brouillon.avant.valeur) : null;
 
   return (
-    <section className="maison-carnet">
+    <section className="maison-carnet" id="ancre-carnet">
       <p className="surtitre">Carnet de la maison</p>
       <ListeVivante className="carte groupe">
         {carnet.map((x) => (
@@ -350,7 +350,7 @@ export function Rangements(props: { depot: Depot; maison: DocMaison[] }) {
   }
 
   return (
-    <section className="maison-carnet maison-rangements">
+    <section className="maison-carnet maison-rangements" id="ancre-rangements">
       <p className="surtitre">Où est quoi</p>
       <ListeVivante className="carte groupe">
         {rangements.map((x) => (
