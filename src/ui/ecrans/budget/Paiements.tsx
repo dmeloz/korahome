@@ -92,7 +92,9 @@ export function PaiementsAClasser(p: PropsPage & { plan: PlanBudget }) {
                   <input className="budget-champ" inputMode="decimal" placeholder="0.00" value={francs[x.id] ?? ""} onChange={(e) => setFrancs({ ...francs, [x.id]: e.target.value })} />
                 </label>
               )}
-              <div className="puces budget-defile" role="group" aria-label={`Classer ${x.marchand ?? "ce paiement"}`}>
+              {/* Tant que le montant en francs manque, toutes les catégories sont grisées : la rangée prend
+                  alors elle-même le focus, pour qu'on puisse encore la faire défiler au clavier. */}
+              <div className="puces budget-defile" role="group" aria-label={`Classer ${x.marchand ?? "ce paiement"}`} tabIndex={pret ? undefined : 0}>
                 {proposee && (
                   <button type="button" className="puce proposee" disabled={!pret} onClick={() => void classer(x, proposee.pot, proposee)}>
                     {proposee.nom}

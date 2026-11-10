@@ -57,9 +57,9 @@ export function EspaceBudget(props: { donnees: DonneesModule; ouvrir: (p: Page) 
       <Grille label="Budget">
         <Tuile large i={i++} widget="budget" onClick={() => ouvrir("mois")} label={aMoi ? `À toi ce mois : ${formaterMontant(aMoi.reste)}, ${formaterMontant(aMoi.parJour)} par jour` : `Carte courses : ${formaterMontant(pots.courses.solde)}`} className={aMoi && !aMoi.suivi ? "sans-suivi" : undefined}>
           <p className="etiq"><Icone nom="portefeuille" taille={18} />{aMoi ? (aMoi.suivi ? "À toi ce mois" : "Prévu pour toi") : "Carte courses"}</p>
-          <p className="grand-chiffre">{Math.max(0, Math.floor(aMoi ? aMoi.reste : pots.courses.solde))}<small>CHF</small></p>
+          <p className="grand-chiffre">{formaterMontant(Math.max(0, Math.round(aMoi ? (aMoi.suivi ? aMoi.reste : aMoi.prevu) : pots.courses.solde)), false)}<small>CHF</small></p>
           <Courbe points={courbe.map((j) => j.total)} />
-          <p className="doux">{aMoi ? (aMoi.suivi ? `${formaterMontant(aMoi.parJour)} par jour d'ici ta paie, ${aMoi.joursRestants} jour${aMoi.joursRestants > 1 ? "s" : ""}.` : "Dis « 12 café pour moi » à Tael et l'anneau saura.") : `${formaterMontant(pots.courses.depenseDuMois)} dépensés ce mois.`}</p>
+          <p className="doux">{aMoi ? (aMoi.suivi ? `${formaterMontant(Math.floor(aMoi.parJour))} par jour d'ici ta paie, ${aMoi.joursRestants} jour${aMoi.joursRestants > 1 ? "s" : ""}.` : "Dis « 12 café pour moi » à Tael et l'anneau saura.") : `${formaterMontant(pots.courses.depenseDuMois)} dépensés ce mois.`}</p>
         </Tuile>
 
         {aClasser.length ? (
