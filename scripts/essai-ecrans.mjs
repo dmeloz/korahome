@@ -57,6 +57,8 @@ try {
   // Le guide de première ouverture (0.1.1) : chaque page passe sous axe, puis « Commencer ».
   for (let i = 1; ; i++) {
     await p.waitForTimeout(600);
+    // La page glisse en ressort : axe ne regarde qu'une fois qu'elle est arrivée (opacité pleine).
+    await p.waitForFunction(() => { const el = document.querySelector(".guide-page"); return el && getComputedStyle(el).opacity === "1" && document.querySelectorAll(".guide-page").length === 1; }, null, { timeout: 5000 }).catch(() => {});
     const titre = await p.locator(".guide h1").textContent({ timeout: 3000 }).catch(() => null);
     if (!titre) erreurs.push(`Guide, page ${i} : pas de titre`);
     await p.screenshot({ path: join(dossier, `guide-${i}.png`) });
