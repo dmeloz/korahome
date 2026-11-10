@@ -217,6 +217,9 @@ try {
     });
     await p.reload();
     await p.waitForTimeout(1500);
+    // Au rechargement, Tael vole jusqu'à sa carte : axe attend que les mouvements finis soient finis.
+    await p.waitForFunction(() => document.getAnimations().every((a) => a.playState !== "running" || a.effect?.getComputedTiming().iterations === Infinity), null, { timeout: 8000 }).catch(() => {});
+    await p.waitForTimeout(400);
     await p.addScriptTag({ path: AXE });
     budgetRempli = true;
   };
