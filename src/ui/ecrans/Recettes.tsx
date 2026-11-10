@@ -73,21 +73,6 @@ export function OngletRecettes(p: PropsPage & { recettes: Recette[]; ouvrirFiche
   const liste = ordonnerRecettes(p.recettes, p.produits, filtre, (r) => avis(r) === "aime", (r) => avis(r) === "non");
 
   useInvitationBarre("Une recette, ex. gratin de courge");
-  useGestionnaireBarre("module:chef", async (texte) => {
-    const t = texte.trim();
-    // Un titre seul ouvre la fiche à remplir (ou la recette qui porte déjà ce nom) ;
-    // une recette entière, collée ou dictée, part chez Jarvis qui la range.
-    const entiere = t.length > 60 || /[:\n]|,.*,/.test(t);
-    if (!entiere) {
-      const deja = trouverRecette(p.recettes, t);
-      if (deja && deja.cle === cleRecette(t)) p.ouvrirFiche(deja.id);
-      else setNouvelle(t);
-      return true;
-    }
-    if (!p.jarvis) return false;
-    await lireParJarvis(`Range cette recette dans nos recettes : ${t}`, null, "jarvis");
-    return true;
-  });
 
   async function lireParJarvis(demande: string, image: PieceJointe | null, source: Recette["source"]) {
     if (!p.jarvis) return;
@@ -113,6 +98,22 @@ export function OngletRecettes(p: PropsPage & { recettes: Recette[]; ouvrirFiche
       setLecture(null);
     }
   }
+
+  useGestionnaireBarre("module:chef", async (texte) => {
+    const t = texte.trim();
+    // Un titre seul ouvre la fiche à remplir (ou la recette qui porte déjà ce nom) ;
+    // une recette entière, collée ou dictée, part chez Jarvis qui la range.
+    const entiere = t.length > 60 || /[:\n]|,.*,/.test(t);
+    if (!entiere) {
+      const deja = trouverRecette(p.recettes, t);
+      if (deja && deja.cle === cleRecette(t)) p.ouvrirFiche(deja.id);
+      else setNouvelle(t);
+      return true;
+    }
+    if (!p.jarvis) return false;
+    await lireParJarvis(`Range cette recette dans nos recettes : ${t}`, null, "jarvis");
+    return true;
+  });
 
   async function supprimer(r: Recette) {
     await p.depot.supprimerMenu(r.id);

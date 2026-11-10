@@ -106,15 +106,20 @@ try {
     const hors = await p.evaluate((colonne) => {
       const w = innerWidth;
       const vus = new Set();
+      // Une rangée qui défile de côté (catégories du Budget, filtres) cache ce qui dépasse : pas une faute.
+      const defile = (el) => {
+        for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) if (/auto|scroll/.test(getComputedStyle(a).overflowX)) return true;
+        return false;
+      };
       for (const el of document.querySelectorAll(".page-dessus *")) {
         const r = el.getBoundingClientRect();
-        if (r.width && (r.right > w + 1 || r.left < -1)) vus.add(`${el.tagName.toLowerCase()}${[...el.classList].map((c) => `.${c}`).join("")}`);
+        if (r.width && (r.right > w + 1 || r.left < -1) && !defile(el)) vus.add(`${el.tagName.toLowerCase()}${[...el.classList].map((c) => `.${c}`).join("")}`);
       }
       // L'iPhone Duo plié : rien qu'on touche sous la colonne de l'heure, à droite.
       if (colonne) {
         for (const el of document.querySelectorAll("button, a, input, textarea, select, [role=button], .orbe, .pastille-dev")) {
           const r = el.getBoundingClientRect();
-          if (r.width && r.height && r.right > w - colonne + 1 && getComputedStyle(el).visibility !== "hidden") vus.add(`${el.tagName.toLowerCase()}${[...el.classList].map((c) => `.${c}`).join("")} sous la colonne`);
+          if (r.width && r.height && r.right > w - colonne + 1 && getComputedStyle(el).visibility !== "hidden" && !defile(el)) vus.add(`${el.tagName.toLowerCase()}${[...el.classList].map((c) => `.${c}`).join("")} sous la colonne`);
         }
       }
       return [...vus].slice(0, 4);
@@ -166,6 +171,54 @@ try {
     if (!bien) erreurs.push(`« ${nom} »${theme} : la page ne s'ouvre pas sur sa carte (${place ? `à ${Math.round(place.haut * 100)} % de l'écran` : "carte absente"})`);
   };
 
+  /**
+   * Un budget comme celui du foyer (depuis 0.1.3) : un plan, le mois confirmé, des dépenses à soi
+   * (dont Apple Pay), et deux paiements à classer, l'un en euros. Écrit dans IndexedDB, puis Kora
+   * se recharge.
+   */
+  let budgetRempli = false;
+  const remplirBudget = async () => {
+    await p.evaluate(async () => {
+      const base = await new Promise((ok, ko) => { const r = indexedDB.open("korahome"); r.onsuccess = () => ok(r.result); r.onerror = () => ko(r.error); });
+      const foyer = await new Promise((ok) => { const r = base.transaction("foyer").objectStore("foyer").getAll(); r.onsuccess = () => ok(r.result[0]); });
+      const [melo, sarah] = foyer.membres;
+      const cree = "2026-09-26T08:00:00.000Z";
+      const poste = (id, libelle, montant, extra = {}) => ({ id, libelle, montant, frequence: "mois", qui: null, pot: "factures", categorie: "logement", jour: null, mois: null, prelevement: false, ...extra });
+      const depense = (id, jour, montant, pot, libelle, extra = {}) => ({ id, genre: "depense", jour, montant, pot, libelle, magasin: null, posteId: null, echeance: null, source: "main", par: melo.id, creeLe: cree, ...extra });
+      const docs = [
+        {
+          id: "plan", genre: "plan", partPlaisir: 0.3, jourDePaie: 25, projet: null, majLe: cree,
+          personnes: [{ membreId: melo.id, revenu: 5200, versement: 2100 }, { membreId: sarah.id, revenu: 4300, versement: 1700 }],
+          postes: [
+            poste("essai-b1", "Loyer", 1850, { jour: 1, prelevement: true }),
+            poste("essai-b2", "Assurance maladie", 420, { categorie: "sante", jour: 28 }),
+            poste("essai-b3", "Sunrise", 59, { categorie: "abonnement", jour: 22 }),
+            poste("essai-b4", "Serafe", 335, { frequence: "an", categorie: "abonnement", mois: 12 }),
+            poste("essai-b5", "Téléphone de Melo", 35, { qui: melo.id, pot: null, categorie: "abonnement", jour: 5 }),
+          ],
+          comptes: { courses: "Carte courses" }, cartes: { "Carte courses": "courses", "UBS Visa": "perso" },
+          depart: { mois: "2026-10", soldes: { epargne: 4200 } },
+        },
+        { id: "mois-2026-10", genre: "mois", mois: "2026-10", versements: { courses: 900, plaisir: 300, factures: 2300, epargne: 300 }, confirmeLe: cree, par: melo.id },
+        depense("essai-d1", "2026-09-28", 86.4, "courses", "Courses", { magasin: "Migros", source: "applepay", carte: "Carte courses" }),
+        depense("essai-d2", "2026-10-06", 124.9, "courses", "Courses", { magasin: "Coop", par: sarah.id }),
+        depense("essai-d3", "2026-10-12", 6.8, "perso", "Café", { source: "applepay", carte: "UBS Visa" }),
+        depense("essai-d4", "2026-10-16", 42, "perso", "Essence", { source: "jarvis" }),
+        depense("essai-d5", "2026-10-18", 68, "plaisir", "Pizzeria", { par: sarah.id }),
+        { id: "essai-a1", genre: "paiement", jour: "2026-10-19", montant: 23.9, devise: "CHF", marchand: "Manor", carte: "Revolut", par: melo.id, creeLe: cree },
+        { id: "essai-a2", genre: "paiement", jour: "2026-10-20", montant: 9.5, devise: "EUR", marchand: "Amazon.fr", carte: "Revolut", par: melo.id, creeLe: cree },
+      ];
+      const tx = base.transaction("budget", "readwrite");
+      for (const d of docs) tx.objectStore("budget").put(d);
+      await new Promise((ok) => (tx.oncomplete = ok));
+      base.close();
+    });
+    await p.reload();
+    await p.waitForTimeout(1500);
+    await p.addScriptTag({ path: AXE });
+    budgetRempli = true;
+  };
+
   const tournee = async () => {
     await capture("aujourdhui");
     const fautesAccueil = (await accessibilite("Aujourd'hui")) + (await debordement("Aujourd'hui"));
@@ -175,8 +228,9 @@ try {
       Cuisine: ["Courses", "Cette semaine", "Nos recettes", "Frigo", "Autres listes"],
       Maison: ["Entretien", "Balcon", "Mitsu", "Vêtements", "Carnet", "Où est quoi"],
       Organisation: ["Tâches", "Agenda", "Administratif"],
-      // Sans plan, le Budget n'a qu'une carte : celle qui le commence.
-      Budget: ["Commencer le budget"],
+      // Sans plan (premier tour), le Budget n'a qu'une carte : celle qui le commence. Ensuite il est
+      // rempli (`remplirBudget`) : chaque carte ouvre son onglet, avec deux paiements à classer.
+      Budget: budgetRempli ? ["À toi ce mois", "À classer", "Prochaine facture", "Épargne"] : ["Commencer le budget"],
     };
     for (const [espace, cartes] of Object.entries(ESPACES)) {
       await allerEspace(espace);
@@ -203,6 +257,7 @@ try {
     await allerEspace("Aujourd'hui");
   };
   await tournee();
+  await remplirBudget();
   // La même tournée en mode clair : le laiton y est plus sombre, son contraste se vérifie à part.
   theme = "-clair";
   await p.emulateMedia({ colorScheme: "light" });

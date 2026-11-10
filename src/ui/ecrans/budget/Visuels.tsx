@@ -31,7 +31,7 @@ export function AnneauDuCommun(props: { parts: PartDuCommun[]; entree: number; n
   const tour = 2 * Math.PI * rayon;
   const actif = props.parts.find((x) => x.pot === choisi) ?? null;
   return (
-    <section ref={dessin} className="carte budget-anneau">
+    <section ref={dessin} className="carte budget-commun">
       <div className="budget-anneau-dessin">
         <svg viewBox="0 0 140 140" role="img" aria-label="Répartition du compte commun" data-apparait="">
           <circle cx="70" cy="70" r={rayon} className="budget-anneau-fond" />
@@ -152,7 +152,7 @@ export function TrajetSalaire({ b }: { b: BilanPersonne }) {
   if (b.revenu <= 0) return null;
   const part = (n: number) => `${Math.max(0, Math.min(100, (n / b.revenu) * 100))}%`;
   return (
-    <div className="budget-trajet" aria-label={`Sur ${montant(b.revenu)} : ${montant(b.charges)} de charges, ${montant(b.versement)} au commun, ${montant(b.reste)} qui reste`}>
+    <div className="budget-trajet" role="img" aria-label={`Sur ${montant(b.revenu)} : ${montant(b.charges)} de charges, ${montant(b.versement)} au commun, ${montant(b.reste)} qui reste`}>
       <div className="budget-trajet-barre" aria-hidden>
         <span className="charges" style={{ width: part(b.charges) }} />
         <span className="versement" style={{ width: part(b.versement) }} />

@@ -312,7 +312,7 @@ export function Aujourdhui(props: {
           <Tuile i={i++} widget="budget" onClick={() => ouvrirEspace("budget")} label={aMoi ? `À toi ce mois : ${formaterMontant(aMoi.reste)}` : `Budget : ${formaterMontant(pots!.courses.solde)} sur la carte courses`}>
             <p className="etiq"><Icone nom="portefeuille" taille={18} />{aMoi ? "À toi ce mois" : "Carte courses"}</p>
             <p className="grand-chiffre">
-              {Math.max(0, Math.floor(aMoi ? aMoi.reste : pots!.courses.solde))}<small>CHF</small>
+              {formaterMontant(Math.max(0, Math.round(aMoi ? (aMoi.suivi ? aMoi.reste : aMoi.prevu) : pots!.courses.solde)), false)}<small>CHF</small>
             </p>
             {aMoi?.ecartMoisPrecedent !== null && aMoi?.ecartMoisPrecedent !== undefined && (
               <p className="pastille-k"><b>{aMoi.ecartMoisPrecedent > 0 ? "+" : ""}{Math.round(aMoi.ecartMoisPrecedent)}</b> vs le mois d'avant</p>

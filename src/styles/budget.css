@@ -54,7 +54,8 @@
 
 .budget-pastille { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--pot); flex: none; margin-right: 8px; vertical-align: middle; }
 
-.budget-anneau { display: flex; flex-direction: column; gap: var(--espace-5); }
+/* L'anneau du compte commun (onglet Charges). Pas `.budget-anneau` : ce nom est celui de l'anneau « À toi », plus bas, qui le réduisait à 176 points. */
+.budget-commun { display: flex; flex-direction: column; gap: var(--espace-5); }
 .budget-anneau-dessin { position: relative; width: 168px; height: 168px; margin: 4px auto 0; }
 .budget-anneau-dessin svg { width: 100%; height: 100%; transform: rotate(-90deg); }
 .budget-anneau-fond { fill: none; stroke: var(--surface-haute); stroke-width: 14; }
