@@ -286,7 +286,7 @@ function CeMoisAMoi(p: PropsCeMois & { etat: AMoi }) {
             Tes dépenses
             <span className="discret">{duJour.nombre ? `${formaterMontant(duJour.total, false)} aujourd'hui · ${duJour.nombre} ${duJour.nombre > 1 ? "achats" : "achat"}` : "Rien aujourd'hui"}</span>
           </span>
-          <svg className="budget-barres" width="104" height="24" viewBox="0 0 104 24" aria-hidden>
+          <svg className="budget-petites-barres" width="104" height="24" viewBox="0 0 104 24" aria-hidden>
             {jours.map((j, i) => {
               const h = Math.max(2, Math.round((j.total / plusHaut) * 24));
               return <rect key={j.jour} x={i * 9} y={24 - h} width="5" height={h} rx="1.5" className={i === jours.length - 1 ? "aujourdhui" : ""} />;

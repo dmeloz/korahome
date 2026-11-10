@@ -95,7 +95,7 @@ export function EspaceOrganisation(props: { donnees: DonneesModule; depot: Depot
           </Tuile>
         ) : pressee ? (
           <Tuile forte i={i++} role="group" label={`À faire : ${pressee.titre}`}>
-            <p className="etiq">{ecartJours(aujourdhui, pressee.echeance) < 0 ? `En retard, ${decrireEcheance(pressee.echeance, aujourdhui)}` : "À toi aujourd'hui"}</p>
+            <p className="etiq">{ecartJours(aujourdhui, pressee.echeance) < -1 ? decrireEcheance(pressee.echeance, aujourdhui).replace(/^./, (c) => c.toUpperCase()) : ecartJours(aujourdhui, pressee.echeance) < 0 ? "En retard depuis hier" : "À toi aujourd'hui"}</p>
             <p className="titre-c">{pressee.titre}</p>
             <div className="actions-c">
               <button type="button" className="pilule" onClick={() => void faire(pressee)}>C'est fait</button>

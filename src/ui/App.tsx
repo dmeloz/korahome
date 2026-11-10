@@ -473,8 +473,10 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       : page.nom === "module" && page.onglet === "frigo"
         ? "stock"
         : null;
+  // Partout ailleurs (Réglages et ses pages, Chez nous…), la saisie de l'accueil : l'orbe de la barre du haut y répond aussi.
+  // Sauf dans la conversation avec Tael, qui a sa propre saisie.
   const lieuBarre: LieuBarre | null =
-    page.nom === "accueil" ? "accueil" : page.nom === "module" ? (ongletBarre ?? page.id) : page.nom === "liste" || page.nom === "memoire" || page.nom === "mots" ? page.nom : null;
+    page.nom === "module" ? (ongletBarre ?? page.id) : page.nom === "liste" || page.nom === "memoire" || page.nom === "mots" ? page.nom : page.nom === "jarvis" ? null : "accueil";
   const cleBarre = page.nom === "module" ? `module:${page.id}${ongletBarre ? `:${ongletBarre}` : ""}` : page.nom === "liste" ? `liste:${page.id}` : page.nom;
   // La recherche de la fée (RechercheFee) et « Voir » de ses remarques mènent où elles disent.
   const allerRecherche = (ou: OuRecherche) =>

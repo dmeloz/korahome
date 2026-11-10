@@ -137,6 +137,7 @@ export function BarreJarvis(props: {
   /** On répond à un mot de l'autre : la phrase part en mot, pas en courses. */
   const [reponse, setReponse] = useState<string | null>(null);
   const champ = useRef<HTMLInputElement>(null);
+  const envoi = useRef(false);
   const rang = useRef<HTMLDivElement>(null);
   const annoncer = useAnnoncer();
   const voix = voixDisponible();
@@ -298,7 +299,9 @@ export function BarreJarvis(props: {
   async function envoyer(e?: FormEvent, dite?: string) {
     e?.preventDefault();
     const phrase = (dite ?? texte).trim();
-    if (!phrase) return;
+    // Un deuxième « Envoyer » pendant que le premier s'enregistre n'ajoute pas deux fois.
+    if (!phrase || envoi.current) return;
+    envoi.current = true;
     setMessage(null);
     try {
       if (reponse) {
@@ -321,6 +324,8 @@ export function BarreJarvis(props: {
     } catch (err) {
       if (err instanceof ErreurValidation) setMessage(err.message);
       else throw err;
+    } finally {
+      envoi.current = false;
     }
   }
 

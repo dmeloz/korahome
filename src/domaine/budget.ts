@@ -658,7 +658,11 @@ export function lireDepense(texte: string, plan: PlanBudget | null): SaisieDepen
   retirerMot(/^\s*(?:j'ai |on a )?(?:pay[ée]e?s?|d[ée]pens[ée]|achet[ée])\s+/i);
   const magasin = MAGASINS.find((x) => new RegExp(`\\b${sansAccents(x)}\\b`).test(cle)) ?? null;
   const libelle = reste.replace(/\s+/g, " ").replace(/^(?:de |du |chez |à |a )/i, "").trim();
-  const poste = plan && libelle ? plan.postes.find((p) => p.qui === null && sansAccents(p.libelle).includes(sansAccents(libelle.split(" ")[0]))) : undefined;
+  // La charge nommée : son premier mot en entier (« Sunrise »), ou son début dès quatre lettres (« élec »).
+  // Pas un bout de mot : « 15 un livre » payait Sunrise, « un » étant dans son nom.
+  const premier = sansAccents(libelle.split(" ")[0] ?? "");
+  const nomme = (p: Poste) => sansAccents(p.libelle).split(/[^a-z0-9]+/).some((mot) => mot === premier || (premier.length >= 4 && mot.startsWith(premier)));
+  const poste = plan && premier.length >= 3 ? plan.postes.find((p) => p.qui === null && nomme(p)) : undefined;
   if (poste && !pot) pot = poste.pot === "commun" || !poste.pot ? "factures" : poste.pot;
   if (!pot) pot = magasin ? "courses" : "plaisir";
   const nom = libelle ? libelle.charAt(0).toUpperCase() + libelle.slice(1) : magasin ?? etiquette?.nom ?? POTS[pot].nom;
@@ -774,7 +778,12 @@ export function previsionFactures(plan: PlanBudget, docs: readonly DocBudget[], 
   const ceMois = moisBudget(plan, aujourdhui);
   const dejaPaye = (poste: Poste) =>
     auto.some((a) => a.poste.id === poste.id && moisBudget(plan, a.jour) === ceMois) ||
-    toutes.some((d) => regle(d, poste, poste.frequence === "an" ? jourDuMois(ceMois, poste.jour ?? 1) : `${ceMois}-01`) && (poste.frequence === "an" || moisBudget(plan, d.jour) === ceMois));
+    toutes.some((d) =>
+      poste.frequence === "an"
+        ? regle(d, poste, jourDuMois(ceMois, poste.jour ?? 1))
+        : // Une charge du mois est payée quand une dépense la règle dans ce mois du budget, quel que soit son jour.
+          d.posteId === poste.id && moisBudget(plan, d.echeance ?? d.jour) === ceMois,
+    );
   let solde = etatDesPots(plan, docs, aujourdhui).factures.solde;
   const resultat: MoisDeFactures[] = [];
   let mois = ceMois;
