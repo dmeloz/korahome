@@ -551,3 +551,13 @@ html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
 .etat-vide-titre { margin: 0; font-family: var(--police-titre); font-size: var(--t-section); font-weight: 600; color: var(--texte); }
 .etat-vide-texte { margin: 0; font-size: var(--t-detail); line-height: 1.45; color: var(--discret); text-wrap: pretty; }
 .etat-vide .bouton-principal { margin-top: var(--espace-4); }
+/* Trois pièces communes dont les styles vivaient dans l'ancien accueil (retiré en 0.1.0) : la carte
+   qui propose (Tâches, Ce que Tael sait, Sauvegarde, Autres listes), la jauge fine (Budget ›
+   Analyse) et la feuille de l'heure d'une tâche. Rendues en 0.1.4. */
+.proposition { display: flex; align-items: center; gap: var(--espace-5); width: 100%; text-align: left; color: var(--accent); }
+.proposition-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--espace-1); color: var(--texte); }
+.widget-jauge { display: block; height: 6px; border-radius: var(--rayon-fin); background: var(--surface-haute); overflow: hidden; margin: var(--espace-2) 0 var(--espace-1); }
+.widget-jauge > span { display: block; height: 100%; border-radius: var(--rayon-fin); background: var(--accent); }
+.feuille-heure { display: grid; gap: var(--espace-4); }
+.feuille-heure-note { margin: 0; text-align: center; font-size: var(--t-legende); }
+.feuille-heure-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: var(--espace-2) var(--espace-7); }

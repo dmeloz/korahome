@@ -25,7 +25,11 @@ export default function Scanner(props: { trouve: (code: string) => void; fermer:
   const video = useRef<HTMLVideoElement>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [saisie, setSaisie] = useState("");
-  const { trouve } = props;
+  // Le rappel du moment, sans relancer l'appareil photo à chaque rendu de la page (toutes les minutes).
+  const trouve = useRef(props.trouve);
+  useEffect(() => {
+    trouve.current = props.trouve;
+  });
 
   useEffect(() => {
     let flux: MediaStream | null = null;
@@ -48,7 +52,7 @@ export default function Scanner(props: { trouve: (code: string) => void; fermer:
               if (code?.rawValue && !fini) {
                 fini = true;
                 navigator.vibrate?.(30);
-                return trouve(code.rawValue);
+                return trouve.current(code.rawValue);
               }
             }
           } catch {
@@ -72,7 +76,7 @@ export default function Scanner(props: { trouve: (code: string) => void; fermer:
       clearTimeout(minuterie);
       flux?.getTracks().forEach((t) => t.stop());
     };
-  }, [trouve]);
+  }, []);
 
   return (
     <div className="voile voile-scan" onClick={props.fermer}>
@@ -87,7 +91,7 @@ export default function Scanner(props: { trouve: (code: string) => void; fermer:
           className="ajout"
           onSubmit={(e) => {
             e.preventDefault();
-            if (saisie.trim()) trouve(saisie.trim());
+            if (saisie.trim()) trouve.current(saisie.trim());
           }}
         >
           <input value={saisie} onChange={(e) => setSaisie(e.target.value.replace(/\D/g, ""))} inputMode="numeric" placeholder="Ou tape le code" aria-label="Code-barres" />

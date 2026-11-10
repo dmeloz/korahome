@@ -202,6 +202,9 @@ describe("la barre du Budget", () => {
   });
   it("laisse à Jarvis une phrase sans montant", () => {
     expect(lireDepense("combien il reste ?", p)).toBeNull();
+    // Un petit mot n'est pas une charge : « un » est dans « Assurance », « voiture » en est un mot entier.
+    expect(lireDepense("15 un livre", p)).toMatchObject({ pot: "plaisir", libelle: "Un livre", posteId: null });
+    expect(lireDepense("60 élec", p)).toMatchObject({ pot: "factures", libelle: "Électricité" });
   });
 });
 
@@ -257,6 +260,13 @@ describe("les visuels", () => {
     expect(f[0]).toMatchObject({ mois: "2026-10", sorties: 60, solde: 100 - 100 + 280 - 60 });
     expect(f[1]).toMatchObject({ mois: "2026-11", sorties: 1360, annuelles: [{ libelle: "Assurance voiture", montant: 1200 }] });
     expect(f[1].solde).toBeLessThan(0);
+  });
+
+  it("la prévision ne repaie pas une facture du mois déjà payée, quel que soit son jour", () => {
+    const depart = { ...p, depart: { mois: "2026-10", soldes: { factures: 100 } } };
+    const electricite = factures(depart, [depart], AUJOURDHUI).find((f) => f.poste.libelle === "Électricité")!;
+    const docs: DocBudget[] = [depart, payerFacture(electricite, AUJOURDHUI, A, ctx)];
+    expect(previsionFactures(depart, docs, AUJOURDHUI, 1)[0]).toMatchObject({ mois: "2026-10", sorties: 0 });
   });
 
   it("la courbe d'épargne suit les mois versés puis le rythme prévu", () => {
