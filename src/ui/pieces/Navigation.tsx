@@ -65,7 +65,7 @@ export function Navigation(props: {
         ))}
       </nav>
       {props.pile && <>
-      <button type="button" className={`voile-pile${ouvert ? " ouvert" : ""}`} aria-label="Fermer" tabIndex={ouvert ? undefined : -1} onClick={() => setOuvert(false)} />
+      <button type="button" className={`voile-pile${ouvert ? " ouvert" : ""}`} aria-label="Fermer" inert={!ouvert} onClick={() => setOuvert(false)} />
       <nav className={`pile-kora${ouvert ? " ouvert" : ""}`} aria-label="Espaces">
         <button
           type="button"
@@ -81,7 +81,7 @@ export function Navigation(props: {
           {!ouvert && Object.values(props.alertes ?? {}).some(Boolean) && <span className="alerte" aria-hidden />}
         </button>
         {ESPACES.map((e) => (
-          <button key={e.id} type="button" className="item" aria-current={e.id === props.actuel ? "page" : undefined} tabIndex={ouvert ? undefined : -1} onClick={() => choisir(e.id)}>
+          <button key={e.id} type="button" className="item" aria-current={e.id === props.actuel ? "page" : undefined} inert={!ouvert} onClick={() => choisir(e.id)}>
             <span className="rond">
               <Icone nom={e.picto} taille={20} />
               {alerte(e.id)}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { usePiegeFocus } from "./focus";
 
 // Le scan d'un code-barres avec l'appareil photo. Safari sur iPhone n'a pas encore le
 // détecteur de codes-barres du navigateur : on le remplace alors par ZXing compilé en
@@ -23,6 +24,8 @@ async function creerDetecteur(): Promise<Detecteur> {
 
 export default function Scanner(props: { trouve: (code: string) => void; fermer: () => void }) {
   const video = useRef<HTMLVideoElement>(null);
+  const zone = useRef<HTMLDivElement>(null);
+  usePiegeFocus(true, zone, props.fermer);
   const [erreur, setErreur] = useState<string | null>(null);
   const [saisie, setSaisie] = useState("");
   // Le rappel du moment, sans relancer l'appareil photo à chaque rendu de la page (toutes les minutes).
@@ -80,7 +83,7 @@ export default function Scanner(props: { trouve: (code: string) => void; fermer:
 
   return (
     <div className="voile voile-scan" onClick={props.fermer}>
-      <div className="scan" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Scanner un code-barres">
+      <div className="scan" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Scanner un code-barres" ref={zone} tabIndex={-1}>
         <div className="scan-video">
           <video ref={video} playsInline muted />
           <div className="scan-viseur" aria-hidden />

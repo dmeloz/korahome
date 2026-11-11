@@ -50,6 +50,11 @@
   color: var(--sur-accent);
   flex: none;
 }
+/* Une feuille reçoit le focus à l'ouverture (VoiceOver, clavier) : pas de liseré autour d'elle tout entière. */
+.feuille:focus-visible, .guide:focus-visible, .scan:focus-visible { outline: none; }
+/* Une case qui est un bouton se touche sur 44 points sans grossir à l'œil : dix points de plus autour d'elle. */
+button.case { position: relative; }
+button.case::after { content: ""; position: absolute; inset: -10px; }
 .element.coche .case { background: var(--accent); border-color: var(--accent); }
 .element.coche .ligne-texte { color: var(--coche); text-decoration: line-through; }
 
