@@ -48,7 +48,9 @@ jobs:
           name: dist
           path: dist
       # Playwright n'est pas une dépendance de l'app : installé ici seulement, à la version du conteneur de Claude.
-      - run: npm install --no-save playwright@1.63.0 && npx playwright install --with-deps chromium
+      # Si le miroir Ubuntu de la machine ne répond pas (panne du 11 novembre 2026, l'essai n'avait même pas commencé),
+      # on se passe des paquets en plus : la machine de GitHub a déjà les bibliothèques de Chromium.
+      - run: npm install --no-save playwright@1.63.0 && (timeout 240 npx playwright install --with-deps chromium || npx playwright install chromium)
       - run: node scripts/essai-ecrans.mjs captures-essai
       - if: always()
         uses: actions/upload-artifact@v4

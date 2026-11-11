@@ -16,18 +16,13 @@
 .mot-bas .compteur { font-size: var(--t-legende); font-variant-numeric: tabular-nums; }
 .humeurs { padding: 12px 14px; display: flex; flex-direction: column; gap: var(--espace-5); }
 .humeurs p { margin: 0; }
-.humeurs-choix { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: var(--espace-1); }
+.humeurs-choix { display: grid; }
 .humeur-bouton {
-  aspect-ratio: 1;
   min-width: 0;
-  padding: 0;
   line-height: 1;
   border: 1px solid transparent;
   border-radius: var(--rayon-carte);
   background: none;
-  font-size: var(--t-section);
-  filter: grayscale(0.6);
-  opacity: 0.7;
   transition: transform 0.15s, filter 0.15s, opacity 0.15s;
 }
 .humeur-bouton.active { background: var(--accent-doux); border-color: var(--accent); filter: none; opacity: 1; transform: scale(1.08); }

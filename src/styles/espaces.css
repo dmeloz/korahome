@@ -31,7 +31,6 @@ button.tuile:active { transform: translateY(-3px); }
 .tuile.large { grid-column: 1 / -1; }
 .etiq { display: flex; align-items: center; gap: var(--espace-4); font-size: var(--t-detail); color: var(--discret); font-weight: 500; margin: 0; }
 .etiq svg { width: 18px; height: 18px; flex: none; }
-.etiq .a-droite { margin-left: auto; }
 /* Le seul grand chiffre de l'écran. */
 .grand-chiffre { font-family: var(--police-titre); font-size: 40px; font-weight: 700; letter-spacing: -0.03em; margin: 10px 0 6px; line-height: 1; font-variant-numeric: tabular-nums; }
 .grand-chiffre small { font-size: 0.5em; color: var(--discret); font-weight: 600; letter-spacing: 0; margin-left: 4px; }
@@ -114,12 +113,6 @@ button.tuile:active { transform: translateY(-3px); }
 .mois b.auj { background: var(--accent); color: var(--sur-accent); }
 .mois b.auj.pt::after { background: var(--sur-accent); }
 .mois b.passe { color: var(--sourd); }
-/* Les catégories d'un paiement à classer, une rangée qui défile. */
-.categories { display: flex; gap: var(--espace-4); margin-top: 10px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
-.categories::-webkit-scrollbar { display: none; }
-.categories button { flex: none; min-height: 34px; padding: 0 12px; border: none; border-radius: var(--rayon-rond); background: var(--surface-haute); color: var(--texte); font-size: var(--t-detail); font-weight: 600; }
-.tuile.forte .categories button { background: rgb(0 0 0 / 0.14); color: inherit; }
-.tuile.forte .categories button:first-child { background: rgb(0 0 0 / 0.28); }
 /* Une courbe nue. */
 .courbe { display: block; width: 100%; height: 64px; margin-top: 8px; }
 .courbe path { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; }
@@ -127,7 +120,6 @@ button.tuile:active { transform: translateY(-3px); }
 .meteo-c { display: flex; gap: 14px; align-items: center; margin-top: 8px; }
 .meteo-c .deg { font-family: var(--police-titre); font-size: 34px; font-weight: 700; letter-spacing: -0.03em; }
 .meteo-c .doux { margin: 0; }
-.version-espace { grid-column: 1 / -1; margin: 30px 0 0; text-align: center; color: var(--sourd); font-size: var(--t-legende); }
 /* Le pied d'un espace : les états qui demandent un geste (partage, notifications, sauvegarde), en pilules sourdes. */
 .pied-espace { display: flex; flex-wrap: wrap; gap: var(--espace-4); margin-top: var(--espace-7); }
 .etat-pied { display: inline-flex; align-items: center; gap: var(--espace-3); min-height: 36px; padding: 0 14px; border: 1px solid var(--trait); border-radius: var(--rayon-rond); background: var(--surface); color: var(--discret); font-size: var(--t-detail); font-weight: 500; }
@@ -269,7 +261,6 @@ html.feuille-ouverte .pile-kora, html.saisie-ouverte .pile-kora { opacity: 0; po
   .tuile.large { grid-column: span 2; }
   .tuile.forte { grid-column: span 2; }
   .tuile.contraste.large, .tuile.mot.large, .tuile.fee-carte.large { grid-column: span 3; }
-  .tuile.tres-large { grid-column: span 4; }
   .espace-entete h1, .grand-chiffre { font-size: 40px; }
 }
 
