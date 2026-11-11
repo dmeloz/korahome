@@ -21,8 +21,23 @@ function moteur(): HTMLLabelElement {
   return label;
 }
 
+/** Quand la vibration a déjà été donnée sous le doigt (vibrerAvant). */
+let donnee = 0;
+
+/** La vibration sous le doigt, avant un geste qui retarde l'action d'un souffle : le `vibrer()`
+ *  de l'action qui suit, dans la seconde, ne vibre pas une deuxième fois. */
+export function vibrerAvant(): void {
+  vibrer();
+  donnee = Date.now();
+}
+
 /** Une vibration brève : une case cochée, une tâche faite, un appui long. */
 export function vibrer(): void {
+  if (donnee && Date.now() - donnee < 1000) {
+    donnee = 0;
+    return;
+  }
+  donnee = 0;
   if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
     navigator.vibrate(10);
     return;

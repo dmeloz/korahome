@@ -1,15 +1,16 @@
 /* ===== Le langage des gestes (moteur/langage.ts) : c'est fait, c'est raté, elle travaille, tout est fini =====
    Tout passe par les propriétés `scale` et `translate`, qui s'ajoutent au `transform` des cartes et
-   de Motion au lieu de le remplacer. Rien ne bouge si l'iPhone demande moins d'animations. */
+   de Motion au lieu de le remplacer. Les durées (--geste-*) viennent de DUREES, dans langage.ts.
+   Rien ne bouge si l'iPhone demande moins d'animations. */
 
 @property --lisere-angle { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
 @property --lisere-long { syntax: "<percentage>"; inherits: false; initial-value: 26%; }
 
 @media (prefers-reduced-motion: no-preference) {
   /* C'est fait : un souffle. */
-  .respire, .respire-fait { animation: respire 420ms cubic-bezier(0.3, 0.7, 0.3, 1); }
+  .respire, .respire-fait { animation: respire var(--geste-respiration) cubic-bezier(0.3, 0.7, 0.3, 1); }
   /* Une ligne cochée respire avant de partir. */
-  .li.respire, .ligne.respire, .element.vient-detre-coche { animation: respire-ligne 420ms cubic-bezier(0.3, 0.7, 0.3, 1); }
+  .li.respire, .ligne.respire, .element.vient-detre-coche { animation: respire-ligne var(--geste-respiration) cubic-bezier(0.3, 0.7, 0.3, 1); }
 
   /* Le trait laiton « fait » sous une carte que Tael vient de toucher. */
   .respire-fait::after {
@@ -23,11 +24,11 @@
     background: var(--accent);
     transform-origin: left center;
     pointer-events: none;
-    animation: trait-fait 620ms cubic-bezier(0.3, 0.7, 0.3, 1) forwards;
+    animation: trait-fait calc(var(--geste-respiration) + 200ms) cubic-bezier(0.3, 0.7, 0.3, 1) forwards;
   }
 
   /* C'est raté : un tremblement bref. */
-  .tremble, p.erreur, .bulle.en-erreur.nouvelle, .toast.en-erreur, .barre-message.en-erreur { animation: tremble 320ms ease-out; }
+  .tremble, p.erreur, .bulle.en-erreur.nouvelle, .toast.en-erreur, .barre-message.en-erreur { animation: tremble var(--geste-tremblement) ease-out; }
 
   /* Elle travaille : le liseré fait le tour de la bulle, puis se referme. */
   .bulle.attente::after {
@@ -43,13 +44,13 @@
     pointer-events: none;
     animation: lisere-tour 1.3s linear infinite;
   }
-  .bulle.attente.ferme::after { animation: lisere-ferme 280ms ease-out forwards; }
+  .bulle.attente.ferme::after { animation: lisere-ferme var(--geste-fermeture) ease-out forwards; }
 
   /* Tout est fini : le sceau se dessine une fois. */
-  .sceau svg circle, .sceau svg path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: sceau-trait 450ms cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+  .sceau svg circle, .sceau svg path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: sceau-trait var(--geste-sceau) cubic-bezier(0.4, 0, 0.2, 1) forwards; }
   .sceau svg circle + circle { animation-delay: 60ms; }
-  .sceau svg path { animation-delay: 200ms; animation-duration: 250ms; }
-  .sceau { animation: sceau-vie 1350ms ease-out forwards; }
+  .sceau svg path { animation-delay: calc(var(--geste-sceau) * 0.45); animation-duration: calc(var(--geste-sceau) * 0.55); }
+  .sceau { animation: sceau-vie calc(var(--geste-sceau) + 900ms) ease-out forwards; }
 }
 
 /* Moins d'animations : la bulle d'attente garde un liseré fixe, le sceau ne vient pas. */
@@ -59,6 +60,8 @@
 }
 
 .bulle.attente { position: relative; width: 64px; height: 38px; padding: 0; }
+/* Le trait « fait » se pose sous la bulle de Tael, pas ailleurs sur la page. */
+.bulle.respire-fait { position: relative; }
 
 .sceau {
   position: fixed;

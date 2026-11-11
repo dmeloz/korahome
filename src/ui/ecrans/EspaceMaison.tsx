@@ -11,6 +11,7 @@ import { useAnnoncer } from "../annulation";
 import { contexteReel } from "../contexte";
 import { feteFee } from "../fee";
 import { vibrer } from "../haptique";
+import { soufflerPuis } from "../moteur/langage";
 import { Icone } from "../Icone";
 import type { DonneesModule } from "../modules";
 import type { Page } from "../pages";
@@ -80,7 +81,7 @@ export function EspaceMaison(props: { donnees: DonneesModule; depot: Depot; ouvr
             <p className="titre-c">{du.tache.titre}</p>
             {du.depuis && <p className="doux">{majuscule(du.depuis)}.</p>}
             <div className="actions-c">
-              <button type="button" className="pilule" onClick={() => void faire(du.tache)}>C'est fait</button>
+              <button type="button" className="pilule" onClick={(e) => soufflerPuis(e.currentTarget.closest<HTMLElement>(".tuile"), () => void faire(du.tache))}>C'est fait</button>
               <button type="button" className="pilule" onClick={() => ouvrir("entretien")}>Tout l'entretien</button>
             </div>
           </Tuile>
@@ -121,17 +122,17 @@ export function EspaceMaison(props: { donnees: DonneesModule; depot: Depot; ouvr
           )}
         </Tuile>
 
-        <Tuile i={i++} onClick={() => ouvrir("entretien", "carnet")} label={`Carnet : ${carnet.length} ligne${carnet.length > 1 ? "s" : ""}`}>
+        <Tuile i={i++} touche="maison" onClick={() => ouvrir("entretien", "carnet")} label={`Carnet : ${carnet.length} ligne${carnet.length > 1 ? "s" : ""}`}>
           <p className="etiq"><Icone nom="dossier" taille={18} />Carnet</p>
           <p className="phrase">{carnet.length === 0 ? "Concierge, gérance, compteurs : ce qu'on cherche toujours." : <><b>{carnet.length}</b> ligne{carnet.length > 1 ? "s" : ""} : {carnet.slice(0, 3).map((c) => c.titre).join(", ")}{carnet.length > 3 ? "…" : ""}</>}</p>
         </Tuile>
 
-        <Tuile i={i++} onClick={() => ouvrir("entretien", "rangements")} label={`Où est quoi : ${objets} objets`}>
+        <Tuile i={i++} touche="maison" onClick={() => ouvrir("entretien", "rangements")} label={`Où est quoi : ${objets} objets`}>
           <p className="etiq"><Icone nom="loupe" taille={18} />Où est quoi</p>
           <p className="phrase">{rangements.length === 0 ? "« Cave : perceuse, skis » et Kora s'en souvient." : <><b>{enLettres(objets).replace(/^./, (c) => c.toUpperCase())}</b> objet{objets > 1 ? "s" : ""} dans {rangements.length} lieu{rangements.length > 1 ? "x" : ""}.</>}</p>
         </Tuile>
 
-        <Tuile large i={i++} onClick={() => ouvrir("vetements")} label={`Vêtements : ${vetements}`}>
+        <Tuile large i={i++} touche="vetements" onClick={() => ouvrir("vetements")} label={`Vêtements : ${vetements}`}>
           <p className="etiq"><Icone nom="coeur" taille={18} />Vêtements</p>
           <p className="phrase">{vetements || "Les tailles et les envies de chacun, partagées."}</p>
         </Tuile>

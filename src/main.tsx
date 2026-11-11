@@ -11,6 +11,7 @@ import { creerMiseAJour, surveillerMisesAJour } from "./ui/miseAJour";
 import { lireMembreCourant } from "./ui/contexte";
 import { appliquerTheme, lireTheme } from "./ui/theme";
 import "./styles/index.css";
+import { installerGestes } from "./ui/moteur/langage";
 
 const miseAJour = creerMiseAJour(
   registerSW,
@@ -22,6 +23,8 @@ const miseAJour = creerMiseAJour(
 appliquerTheme(lireTheme());
 
 installerJournal(ecranAffiche);
+// Les durées des gestes (respirer, trembler, liseré, sceau), données aux styles.
+installerGestes();
 // Les ressorts d'Anime.js arrivent juste après le premier écran, sans l'alourdir.
 void import("./ui/moteur/anime").then((m) => m.installerRessorts());
 
