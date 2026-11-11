@@ -93,8 +93,8 @@ export function EspaceMaison(props: { donnees: DonneesModule; depot: Depot; ouvr
           </Tuile>
         )}
 
-        <Tuile i={i++} widget="jardin" onClick={() => ouvrir("jardin")} label={`Balcon : ${geste?.texte ?? "rien à faire"}`} className={geste?.urgent ? "presse" : undefined}>
-          <p className="etiq"><Icone nom="feuille" taille={18} />Balcon</p>
+        <Tuile i={i++} widget="jardin" onClick={() => ouvrir("jardin")} label={`Jardin : ${geste?.texte ?? "rien à faire"}`} className={geste?.urgent ? "presse" : undefined}>
+          <p className="etiq"><Icone nom="feuille" taille={18} />Jardin</p>
           <div className="meteo-c">
             {meteo && <span className="deg">{Math.round(meteo.max)}°</span>}
             <p className="doux">{meteo ? `${decrireTemps(meteo.code)}, ${formaterTemperatures(meteo)}. ` : ""}{donnees.zones.length === 0 ? "Ajoute tes pots et tes bacs." : geste?.texte ?? "Rien à faire aujourd'hui."}</p>

@@ -701,7 +701,7 @@ async function rejoindreAvecCode({ compte, synchro }: ServicesPartage, code: str
 function ChoixMembre({ foyer, choisir }: { foyer: Foyer; choisir: (id: string) => void }) {
   return (
     <main className="bienvenue">
-      <div className="monogramme" aria-hidden>KH</div>
+      <div className="monogramme" aria-hidden>K</div>
       <h1>{foyer.nom}</h1>
       <p className="discret">Qui utilise ce téléphone ? Le choix se verrouille ensuite, et se change dans Réglages.</p>
       <ul className="carte groupe choix-membre">
