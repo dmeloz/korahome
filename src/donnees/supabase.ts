@@ -265,13 +265,14 @@ export function creerServicesSupabase(url: string, cle: string): ServicesDistant
       const changements: Changement[] = [];
       for (const collection of new Set(lesquels.map((c) => c.collection))) {
         const ids = lesquels.filter((c) => c.collection === collection).map((c) => c.id);
-        for (let debut = 0; debut < ids.length; debut += PAGE / 2) {
+        // Cent à la fois : les identifiants voyagent dans l'adresse de la requête.
+        for (let debut = 0; debut < ids.length; debut += 100) {
           const { data, error } = await sb
             .from("documents")
             .select("collection, id, donnees, maj_client, maj_serveur")
             .eq("foyer_id", foyerId)
             .eq("collection", collection)
-            .in("id", ids.slice(debut, debut + PAGE / 2));
+            .in("id", ids.slice(debut, debut + 100));
           echec(error);
           for (const l of (data ?? []) as LigneDocument[]) changements.push({ collection: l.collection, id: l.id, donnees: l.donnees, maj: new Date(l.maj_client).toISOString() });
         }
