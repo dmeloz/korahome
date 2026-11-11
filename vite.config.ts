@@ -42,8 +42,8 @@ export default defineConfig({
       },
       includeAssets: ["favicon.svg", "apple-touch-icon.png"],
       manifest: {
-        name: "KoraHome",
-        short_name: "KoraHome",
+        name: "Kora",
+        short_name: "Kora",
         description: "L'app compagnon de la famille : listes, tâches et tableau de bord partagés.",
         lang: "fr",
         start_url: base,

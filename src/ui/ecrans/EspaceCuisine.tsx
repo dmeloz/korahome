@@ -105,14 +105,14 @@ export function EspaceCuisine(props: { donnees: DonneesModule; depot: Depot; ouv
           </div>
         </Tuile>
 
-        <Tuile large i={i++} onClick={() => ouvrir("semaine")} label={`Cette semaine : ${prevus.length} soir${prevus.length > 1 ? "s" : ""} prévu${prevus.length > 1 ? "s" : ""}`}>
-          <p className="etiq"><Icone nom="toque" taille={18} />Cette semaine{passage && <b className="pastille-k" style={{ marginLeft: "auto" }}>Chef {passage}</b>}</p>
+        <Tuile large i={i++} onClick={() => ouvrir("semaine")} label={`Menus de la semaine : ${prevus.length} soir${prevus.length > 1 ? "s" : ""} prévu${prevus.length > 1 ? "s" : ""}`}>
+          <p className="etiq"><Icone nom="toque" taille={18} />Menus de la semaine{passage && <b className="pastille-k" style={{ marginLeft: "auto" }}>Chef {passage}</b>}</p>
           <Semaine aujourdhui={aujourdhui} pleins={pleins} />
           <p className="doux">{prevus.length ? `${enLettres(prevus.length).replace(/^./, (c) => c.toUpperCase())} soir${prevus.length > 1 ? "s" : ""} prévu${prevus.length > 1 ? "s" : ""}.` : menu ? `${menu.repas.length} repas proposés par le Chef, à valider.` : "Aucun soir prévu."}</p>
         </Tuile>
 
-        <Tuile i={i++} widget="stock" onClick={() => ouvrir("frigo")} label={`Frigo : ${frigo.aConsommer.length} à consommer bientôt`} className={frigo.urgent ? "presse" : undefined}>
-          <p className="etiq"><Icone nom="frigo" taille={18} />Frigo</p>
+        <Tuile i={i++} widget="stock" onClick={() => ouvrir("frigo")} label={`Frigo et placards : ${frigo.aConsommer.length} à consommer bientôt`} className={frigo.urgent ? "presse" : undefined}>
+          <p className="etiq"><Icone nom="frigo" taille={18} />Frigo et placards</p>
           <p className="phrase">
             {donnees.produits.length === 0 ? "Note ce qu'il y a au frigo." : frigo.aConsommer.length === 0 ? `${enLettres(donnees.produits.length).replace(/^./, (c) => c.toUpperCase())} produits, rien ne presse.` : <><b>{enLettres(frigo.aConsommer.length).replace(/^./, (c) => c.toUpperCase())}</b> à consommer : {frigo.aConsommer[0].nom}{frigo.aConsommer[0].peremption ? `, ${decrirePeremption(frigo.aConsommer[0], aujourdhui)}` : ""}.</>}
           </p>

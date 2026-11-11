@@ -156,7 +156,7 @@ export function Notifications(props: {
       <h2 className="rayon">Aperçu</h2>
       {rappel ? (
         <div className="notification-ios" aria-label="Aperçu du rappel">
-          <span className="notification-icone" aria-hidden>KH</span>
+          <span className="notification-icone" aria-hidden>K</span>
           <div className="notification-texte">
             <p className="notification-entete">
               <strong>{rappel.titre}</strong>
@@ -185,10 +185,10 @@ export function Notifications(props: {
         </div>
       ) : etat === "ecran-accueil" ? (
         <div className="carte rappels-carte">
-          <p><strong>Ouvre KoraHome depuis l'écran d'accueil.</strong></p>
+          <p><strong>Ouvre Kora depuis l'écran d'accueil.</strong></p>
           <p className="discret">
             Sur iPhone, seules les apps posées sur l'écran d'accueil peuvent envoyer des notifications. Dans Safari, touche
-            Partager puis « Sur l'écran d'accueil », et rouvre KoraHome depuis son icône.
+            Partager puis « Sur l'écran d'accueil », et rouvre Kora depuis son icône.
           </p>
         </div>
       ) : etat === "impossible" ? (
@@ -198,7 +198,7 @@ export function Notifications(props: {
       ) : etat === "refuses" ? (
         <div className="carte rappels-carte">
           <p><strong>Les notifications sont refusées sur cet iPhone.</strong></p>
-          <p className="discret">Pour les rouvrir : Réglages de l'iPhone, Notifications, KoraHome, puis « Autoriser les notifications ».</p>
+          <p className="discret">Pour les rouvrir : Réglages de l'iPhone, Notifications, Kora, puis « Autoriser les notifications ».</p>
         </div>
       ) : etat === "inactifs" ? (
         <>

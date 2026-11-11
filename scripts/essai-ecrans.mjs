@@ -253,8 +253,8 @@ try {
     console.log(`${fautesAccueil ? "?? " : "ok "} Aujourd'hui${theme}${fautesAccueil ? ` · ${fautesAccueil} faute${fautesAccueil > 1 ? "s" : ""}` : ""}`);
     // Les quatre espaces (Kora 0.1) : leur page de cartes, puis chaque page qu'une carte ouvre.
     const ESPACES = {
-      Cuisine: ["Courses", "Cette semaine", "Nos recettes", "Frigo", "Autres listes"],
-      Maison: ["Entretien", "Balcon", "Mitsu", "Vêtements", "Carnet", "Où est quoi"],
+      Cuisine: ["Courses", "Menus de la semaine", "Nos recettes", "Frigo et placards", "Autres listes"],
+      Maison: ["Entretien", "Jardin", "Mitsu", "Vêtements", "Carnet", "Où est quoi"],
       Organisation: ["Tâches", "Agenda", "Administratif"],
       // Sans plan (premier tour), le Budget n'a qu'une carte : celle qui le commence. Ensuite il est
       // rempli (`remplirBudget`) : chaque carte ouvre son onglet, avec deux paiements à classer.

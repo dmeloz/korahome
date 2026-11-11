@@ -28,7 +28,7 @@ describe("la sauvegarde de la semaine", () => {
   });
 
   it("porte le nom du foyer et du jour", () => {
-    expect(nomFichier(foyer, "2026-10-19T18:00:00.000Z")).toBe("KoraHome Cassa 2026-10-19.json");
+    expect(nomFichier(foyer, "2026-10-19T18:00:00.000Z")).toBe("Kora Cassa 2026-10-19.json");
   });
 
   it("refuse un fichier qui n'est pas une sauvegarde", () => {

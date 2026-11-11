@@ -59,10 +59,10 @@ export function creerSauvegarde(contenu: ContenuFoyer, versionKora: string, main
   return { format: FORMAT_SAUVEGARDE, versionFormat: VERSION_FORMAT, versionKora, creeLe: maintenant, ...contenu };
 }
 
-/** « KoraHome Cassa 2026-10-19.json » : le foyer et le jour, rangés dans l'ordre. */
+/** « Kora Cassa 2026-10-19.json » : le foyer et le jour, rangés dans l'ordre. */
 export function nomFichier(foyer: Foyer, maintenant: string): string {
   const nom = foyer.nom.replace(/[^\p{L}\p{N} -]/gu, "").trim() || "foyer";
-  return `KoraHome ${nom} ${maintenant.slice(0, 10)}.json`;
+  return `Kora ${nom} ${maintenant.slice(0, 10)}.json`;
 }
 
 /** Relit un fichier de sauvegarde ; refuse tout ce qui n'en est pas un. */

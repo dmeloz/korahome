@@ -351,8 +351,8 @@ export function Aujourdhui(props: {
         </Tuile>
 
         {hub.balcon && (
-          <Tuile i={i++} widget="jardin" onClick={() => ouvrirEspace("maison", "jardin")} label={`Balcon : ${hub.balcon.geste}`}>
-            <p className="etiq"><Icone nom="feuille" taille={18} />Balcon</p>
+          <Tuile i={i++} widget="jardin" onClick={() => ouvrirEspace("maison", "jardin")} label={`Jardin : ${hub.balcon.geste}`}>
+            <p className="etiq"><Icone nom="feuille" taille={18} />Jardin</p>
             <div className="meteo-c">
               {hub.balcon.nuit && <span className="deg">{hub.balcon.nuit}</span>}
               <p className="doux">{hub.balcon.demain ? `${hub.balcon.demain.replace(/^./, (c) => c.toUpperCase())}. ` : ""}{hub.balcon.geste}</p>

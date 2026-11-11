@@ -29,12 +29,12 @@ export function Bienvenue({
   const [creation, setCreation] = useState(rejoindre === null);
   return (
     <main className="bienvenue">
-      <div className="monogramme" aria-hidden>KH</div>
-      <h1>Bienvenue dans KoraHome</h1>
+      <div className="monogramme" aria-hidden>K</div>
+      <h1>Bienvenue dans Kora</h1>
       <p className="discret">Votre maison, à deux, au même endroit.</p>
       {dansSafariSurIPhone() && (
         <div className="carte bienvenue-safari">
-          <p><strong>D'abord, pose KoraHome sur l'écran d'accueil.</strong></p>
+          <p><strong>D'abord, pose Kora sur l'écran d'accueil.</strong></p>
           <p className="discret">
             Touche Partager, puis « Sur l'écran d'accueil », et ouvre l'app depuis son icône. Ce qui est fait ici, dans
             Safari, n'y serait pas.

@@ -415,15 +415,15 @@ async function parcourir(p, capter, apresRemplissage) {
   }
   await revenir();
   await carte("Autres listes"); await capter("cuisine-autres", "Cuisine › Autres listes", "Cuisine"); await revenir();
-  await carte("Cette semaine"); await capter("cuisine-menus", "Cuisine › Menus", "Cuisine"); await revenir();
+  await carte("Menus de la semaine"); await capter("cuisine-menus", "Cuisine › Menus", "Cuisine"); await revenir();
   await carte("Nos recettes"); await capter("cuisine-recettes", "Cuisine › Recettes", "Cuisine"); await revenir();
-  await carte("Frigo"); await capter("cuisine-frigo", "Cuisine › Frigo", "Cuisine"); await revenir();
+  await carte("Frigo et placards"); await capter("cuisine-frigo", "Cuisine › Frigo", "Cuisine"); await revenir();
 
   await espace("Maison");
   await capter("maison", "Maison", "Maison");
   await carte("Entretien"); await capter("maison-entretien", "Maison › Entretien", "Maison"); await revenir();
   await carte("Mitsu"); await capter("maison-mitsu", "Maison › Mitsu", "Maison"); await revenir();
-  await carte("Balcon"); await capter("maison-jardin", "Maison › Jardin", "Maison"); await revenir();
+  await carte("Jardin"); await capter("maison-jardin", "Maison › Jardin", "Maison"); await revenir();
   await carte("Vêtements"); await capter("maison-vetements", "Maison › Vêtements", "Maison"); await revenir();
 
   await espace("Budget");
