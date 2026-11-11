@@ -175,7 +175,6 @@
   place-items: center;
   border-radius: var(--rayon-carte);
   border: 1px solid var(--trait);
-  background: var(--surface);
   color: var(--texte);
 }
 .bouton-icone:disabled { opacity: 0.3; }
@@ -252,7 +251,6 @@
 .lien.danger { color: var(--urgent); font-weight: 600; }
 
 .toast {
-  z-index: 40;
   position: fixed;
   left: calc(16px + var(--bord-gauche));
   right: calc(16px + var(--bord-droit));
@@ -354,7 +352,6 @@ html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
 .urgent-texte { color: var(--urgent); }
 
 /* Pastille rouge : une nouvelle version attend */
-.avec-alerte { position: relative; }
 .alerte {
   width: 10px;
   height: 10px;
@@ -363,7 +360,6 @@ html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
   box-shadow: 0 0 0 2px var(--fond);
   flex: none;
 }
-.avec-alerte .alerte { position: absolute; top: -3px; right: -3px; }
 
 /* Glisser une ligne vers la gauche pour la supprimer, comme dans Mail. */
 .glissable { position: relative; overflow: hidden; transition: opacity 0.18s ease; }

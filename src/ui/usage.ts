@@ -27,12 +27,6 @@ export function useApprentissageLocal(): number {
   return useSyncExternalStore(abonner, () => version);
 }
 
-/** Prévient les écrans qu'un réglage propre au téléphone a changé ailleurs (la disposition de l'accueil). */
-export function signalerChangement(): void {
-  version++;
-  for (const a of abonnes) a();
-}
-
 // ----- L'usage -----
 
 export function lireUsages(): Usage[] {

@@ -61,7 +61,7 @@
 .budget-anneau-fond { fill: none; stroke: var(--surface-haute); stroke-width: 14; }
 .budget-anneau-part { fill: none; stroke: var(--pot); stroke-width: 14; stroke-linecap: round; cursor: pointer; transition: opacity 0.25s var(--courbe); }
 .budget-anneau-part.estompe { opacity: 0.25; }
-.budget-anneau-centre { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; pointer-events: none; }
+.budget-anneau-centre { text-align: center; pointer-events: none; }
 .budget-anneau-centre .budget-solde { margin: 0; }
 .budget-anneau-centre .discret { font-size: var(--t-legende); }
 .budget-legende { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--espace-1) var(--espace-5); }

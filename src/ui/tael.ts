@@ -87,7 +87,6 @@ const lireBrut = (): LigneJournalTael[] => {
 };
 let journalCache: LigneJournalTael[] | null = null;
 const journal = magasin(() => (journalCache ??= lireBrut()));
-export const lireJournalTael = journal.lire;
 function ecrireJournal(lignes: LigneJournalTael[]): void {
   journalCache = lignes;
   ecrireJson(CLES.journalTael, lignes);
