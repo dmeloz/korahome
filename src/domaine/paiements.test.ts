@@ -58,6 +58,10 @@ describe("les paiements Apple Pay", () => {
     if (recu.genre !== "depense") throw new Error("attendu : une dépense");
     expect(recevoirPaiement({ montant: "CHF 32", marchand: "PATHE", carte: "Plaisir" }, [avecCartes, recu.doc], "melo", JOUR, ctx).genre).toBe("doublon");
 
+    // Le même prix au même endroit plus tard dans la journée est un autre paiement : deux cafés, deux dépenses.
+    const plusTard = contexteTest("2026-10-07T12:00:00.000Z");
+    expect(recevoirPaiement({ montant: "CHF 32", marchand: "PATHE", carte: "Plaisir" }, [avecCartes, recu.doc], "melo", JOUR, plusTard).genre).toBe("depense");
+
     const aLaMain = nouvelleDepense({ montant: 18, pot: "plaisir", libelle: "Glaces", jour: JOUR }, "sarah", ctx);
     expect(recevoirPaiement({ montant: "CHF 18.00", marchand: "GELATERIA", carte: "Plaisir" }, [avecCartes, aLaMain], "melo", JOUR, ctx).genre).toBe("doublon");
   });

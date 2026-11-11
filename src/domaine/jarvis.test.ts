@@ -480,7 +480,7 @@ describe("Jarvis et le budget", () => {
     const { d } = foyerDeTest();
     const c = contexteTest();
     let plan = nouveauPlan(d.foyer.membres.map((m) => m.id), AUJOURDHUI, c);
-    plan = enregistrerPoste(plan, nouveauPoste({ libelle: "Électricité", montant: 60, pot: "factures", jour: 25 }, c), c);
+    plan = enregistrerPoste(plan, nouveauPoste({ libelle: "Électricité", montant: 60, pot: "factures", jour: 25 }, c), c, "2026-01-01");
     return { ...d, budget: [plan] };
   }
 

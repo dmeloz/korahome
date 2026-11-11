@@ -77,7 +77,7 @@ export function Budget(p: PropsPage) {
       if (!m || somme === null) return false;
       const annuel = !!m[3] && /an/i.test(m[3]);
       const nouveau = nouveauPoste({ libelle: m[1], montant: somme, frequence: annuel ? "an" : "mois", pot: annuel ? "factures" : "commun" }, contexteReel);
-      await depot.enregistrerBudget(enregistrerPoste(plan, nouveau, contexteReel));
+      await depot.enregistrerBudget(enregistrerPoste(plan, nouveau, contexteReel, aujourdhui));
       vibrer();
       setPoste(nouveau);
       return true;

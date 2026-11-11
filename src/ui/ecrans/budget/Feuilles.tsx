@@ -21,7 +21,7 @@ import { ajouterEtiquette, etiquettesDuPlan, LONGUEUR_NOM, modifierEtiquette, su
 import { POTS_DE_CARTE } from "../../../domaine/paiements";
 import type { Foyer, Id } from "../../../domaine/types";
 import { useAnnoncer } from "../../annulation";
-import { contexteReel } from "../../contexte";
+import { aujourdhuiLocal, contexteReel } from "../../contexte";
 import { Feuille } from "../../pieces";
 import { ouvrirVerrou, poserVerrou, retirerVerrou, verrouActif, verrouPossible } from "../../verrou";
 import { ChampMontant, prenomDe, Puces } from "./communs";
@@ -31,7 +31,7 @@ import { ChampMontant, prenomDe, Puces } from "./communs";
 export function FeuillePoste(props: { plan: PlanBudget; poste: Poste | null; foyer: Foyer; fermer: () => void; enregistrer: (p: PlanBudget) => Promise<void> }) {
   const annoncer = useAnnoncer();
   const actuel = props.poste ? (props.plan.postes.find((x) => x.id === props.poste!.id) ?? props.poste) : null;
-  const changer = (c: Partial<Poste>) => actuel && void props.enregistrer(enregistrerPoste(props.plan, { ...actuel, ...c }, contexteReel));
+  const changer = (c: Partial<Poste>) => actuel && void props.enregistrer(enregistrerPoste(props.plan, { ...actuel, ...c }, contexteReel, aujourdhuiLocal()));
   return (
     <Feuille ouverte={!!actuel} onFermer={props.fermer} titre={actuel?.libelle}>
       {actuel && (
@@ -93,7 +93,7 @@ export function FeuillePoste(props: { plan: PlanBudget; poste: Poste | null; foy
             onClick={() => {
               const avant = props.plan;
               props.fermer();
-              void props.enregistrer(retirerPoste(props.plan, actuel.id, contexteReel));
+              void props.enregistrer(retirerPoste(props.plan, actuel.id, contexteReel, aujourdhuiLocal()));
               annoncer(`${actuel.libelle} retirée.`, () => props.enregistrer(avant));
             }}
           >

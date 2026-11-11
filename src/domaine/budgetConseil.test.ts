@@ -20,7 +20,7 @@ function plan(): PlanBudget {
     nouveauPoste({ libelle: "Électricité", montant: 60, pot: "factures", jour: 25 }, ctx),
     nouveauPoste({ libelle: "Assurance voiture", montant: 1200, frequence: "an", pot: "factures", mois: 11, jour: 2 }, ctx),
   ];
-  for (const x of postes) p = enregistrerPoste(p, x, ctx);
+  for (const x of postes) p = enregistrerPoste(p, x, ctx, "2026-01-01");
   return p;
 }
 
@@ -96,7 +96,7 @@ describe("les factures cochées seules", () => {
   it("une facture retirée du plan n'est plus reconnue", () => {
     const ctx = contexteTest();
     const p = plan();
-    const sans = retirerPoste(p, p.postes.find((x) => x.libelle === "Sunrise")!.id, ctx);
+    const sans = retirerPoste(p, p.postes.find((x) => x.libelle === "Sunrise")!.id, ctx, "2026-01-01");
     expect(factureReglee({ montant: 59.9, jour: "2026-10-18", libelle: "Sunrise", pot: "factures" }, sans, [sans])).toBeNull();
   });
 });

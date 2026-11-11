@@ -19,6 +19,17 @@ se partage entre le **plaisir** (30 %) et l'**épargne** (70 %).
   échéance. Celles « prélevées seules » sortent du pot sans qu'on les coche ; les autres se cochent
   « payée ». La carte « Aujourd'hui » les montre la veille et le jour même, le rappel du matin dans les
   trois jours (Notifications › Factures).
+- **Le passé ne se réécrit pas** (depuis 0.1.8) : le mois en cours suit la charge telle qu'elle est ;
+  les mois d'avant gardent ce qu'elle a vraiment sorti. Une charge prélevée seule compte à partir du
+  mois du budget où on la note (`Poste.depuis`), plus depuis le départ du plan. Quand son montant, son
+  pot, son jour ou son prélèvement change, ses prélèvements des mois passés sont figés dans
+  `plan.preleves` ; quand on la retire, tous ceux déjà passés le sont, ce mois compris
+  (`enregistrerPoste`, `retirerPoste`, `prelevementsPasses`). Avant, passer Sunrise de 59 à 65
+  retirait 6 francs de chaque mois passé, et retirer une charge rendait au pot tout ce qu'elle avait
+  payé.
+- **Le montant d'une phrase** (depuis 0.1.8) : une espace ne sépare que des milliers (« 1 250 ») ou
+  les centimes dits à voix haute (« Coop 12 50 » : 12.50) ; entre plusieurs nombres, celui qui porte
+  des centimes, « .- » ou « CHF » est le prix (« 3 cafés 12.50 »), sinon le premier (`lireDepense`).
 - **Les tickets de caisse** : le bouton ticket (en haut du Budget, des Courses, et dans Frigo et
   placards) lit une photo ou le PDF d'un ticket numérique. La feuille « Sur le ticket » montre tout
   avant d'enregistrer : les produits pour le stock (lieu et date devinée), les courses à cocher, et le
@@ -60,7 +71,10 @@ fait partie du raccourci (vérifié sur l'iPhone de Melo, 0.0.31). Kora :
 - range le paiement dans le pot de la carte, qu'elle retient au premier paiement (`plan.cartes`) ;
   une carte inconnue, ou une autre monnaie, attend d'être classée d'un toucher en haut de « Ce mois » ;
 - ignore une carte marquée « Hors budget » (une carte personnelle) ;
-- ne compte pas deux fois : même jour et même montant qu'une dépense déjà notée, c'est un doublon ;
+- ne compte pas deux fois : même jour et même montant qu'une dépense notée à la main ou par un
+  ticket, c'est un doublon ; le même paiement Apple Pay reçu deux fois en moins de deux minutes aussi
+  (un renvoi du raccourci). Le même prix chez le même commerçant plus tard dans la journée est un autre
+  paiement (deux cafés, depuis 0.1.8) ;
   un ticket photographié ou une dépense écrite ensuite complète le paiement (lignes, magasin) au lieu
   d'en créer un second (`completerPaiement`).
 

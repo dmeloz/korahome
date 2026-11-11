@@ -30,7 +30,7 @@ export function Abonnements(props: { depot: Depot; foyer: Foyer; membreId: strin
   const ligne = lignes.find((l) => l.poste.id === ouvert) ?? null;
 
   const enregistrer = (l: LigneContrat, changements: Parameters<typeof poserContrat>[1]) => {
-    if (plan) sauver(props.depot.enregistrerBudget(enregistrerPoste(plan, poserContrat(l.poste, changements, contexteReel), contexteReel)));
+    if (plan) sauver(props.depot.enregistrerBudget(enregistrerPoste(plan, poserContrat(l.poste, changements, contexteReel), contexteReel, aujourdhui)));
   };
 
   /** « Sunrise 59 » ou « Assurance ménage 320 par an » : une charge de plus au Budget, rangée dans les factures. */
@@ -45,7 +45,7 @@ export function Abonnements(props: { depot: Depot; foyer: Foyer; membreId: strin
     const base = plan ?? nouveauPlan(props.foyer.membres.map((x) => x.id), aujourdhui, contexteReel);
     const poste = nouveauPoste({ libelle: m[1], montant: somme, frequence: annuel ? "an" : "mois", pot: "factures", contrat: contratVide() }, contexteReel);
     const categorie = (CATEGORIES_CONTRAT as readonly string[]).includes(poste.categorie) ? poste.categorie : "abonnement";
-    await props.depot.enregistrerBudget(enregistrerPoste(base, { ...poste, categorie }, contexteReel));
+    await props.depot.enregistrerBudget(enregistrerPoste(base, { ...poste, categorie }, contexteReel, aujourdhui));
     vibrer();
     setOuvert(poste.id);
   }

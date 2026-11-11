@@ -79,6 +79,8 @@ export const paiementsAClasser = (docs: readonly DocBudget[]) =>
   docs.filter((d): d is PaiementAClasser => d.genre === "paiement").sort((a, b) => b.jour.localeCompare(a.jour) || b.creeLe.localeCompare(a.creeLe));
 
 const memeMontant = (a: number, b: number) => Math.abs(a - b) < 0.005;
+/** Le temps pendant lequel le même paiement reçu une seconde fois est un renvoi du raccourci, pas un autre achat. */
+const RENVOI_MS = 2 * 60 * 1000;
 
 /** Ce que la fonction serveur fait d'un paiement reçu, et la phrase qu'elle renvoie au raccourci. */
 export type Reception =
@@ -103,11 +105,16 @@ export function recevoirPaiement(
   const choix = choixDeCarte(plan, carte);
   if (choix === "aucun") return { genre: "ignore", message: `Carte ${carte} : hors du budget du foyer.` };
 
-  // Le même paiement déjà là : envoyé deux fois, ou déjà noté à la main ou par un ticket ce jour-là.
+  // Le même paiement déjà là : déjà noté à la main ou par un ticket ce jour-là, ou envoyé deux fois de suite par
+  // le raccourci. Le même prix chez le même commerçant plus tard dans la journée est un autre paiement
+  // (deux cafés, Kora 0.1.8) : avant, le second était pris pour un doublon et perdu.
+  const aLInstant = (creeLe: string) => Date.parse(ctx.maintenant()) - Date.parse(creeLe) < RENVOI_MS;
   const deja =
     lu.devise === "CHF" &&
-    depenses(docs).some((d) => d.jour === jour && memeMontant(d.montant, lu.montant) && (d.source !== "applepay" || d.magasin === magasin));
-  const dejaAClasser = paiementsAClasser(docs).some((p) => p.jour === jour && memeMontant(p.montant, lu.montant) && p.devise === lu.devise && p.marchand === magasin);
+    depenses(docs).some((d) => d.jour === jour && memeMontant(d.montant, lu.montant) && (d.source !== "applepay" || (d.magasin === magasin && aLInstant(d.creeLe))));
+  const dejaAClasser = paiementsAClasser(docs).some(
+    (p) => p.jour === jour && memeMontant(p.montant, lu.montant) && p.devise === lu.devise && p.marchand === magasin && aLInstant(p.creeLe),
+  );
   if (deja || dejaAClasser) return { genre: "doublon", message: "Déjà noté." };
 
   if (choix && lu.devise === "CHF") {
