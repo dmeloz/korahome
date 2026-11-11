@@ -66,6 +66,17 @@ export interface Poste {
   prelevement: boolean;
   /** Le contrat derrière la charge (fin, préavis), tenu dans Administratif (voir domaine/abonnements.ts). */
   contrat?: Contrat;
+  /** Le premier jour où ses prélèvements comptent (Kora 0.1.8) ; sans lui, depuis le départ du plan. */
+  depuis?: Jour;
+}
+
+/** Un prélèvement sorti d'un pot, gardé tel qu'il était quand sa charge a changé ou est partie (Kora 0.1.8). */
+export interface Preleve {
+  posteId: Id;
+  libelle: string;
+  pot: Pot;
+  jour: Jour;
+  montant: number;
 }
 
 /** Un contrat qui se renouvelle : jusqu'à quand il court et combien de mois avant il faut résilier. */
@@ -110,6 +121,8 @@ export interface PlanBudget {
   genre: "plan";
   personnes: Personne[];
   postes: Poste[];
+  /** Les prélèvements des mois passés, figés quand leur charge a été modifiée ou retirée : le passé ne se réécrit pas. */
+  preleves?: Preleve[];
   /** Les catégories que le foyer s'est faites, pour classer ses paiements plus finement qu'un pot. */
   etiquettes?: Etiquette[];
   /** La part du reste qui va au plaisir (0,3) ; le reste va à l'épargne. */
@@ -274,14 +287,32 @@ export function modifierPlan(plan: PlanBudget, changement: Partial<Omit<PlanBudg
   return { ...plan, ...changement, majLe: ctx.maintenant() };
 }
 
-export function enregistrerPoste(plan: PlanBudget, poste: Poste, ctx: Contexte): PlanBudget {
+/** Ce qui change ce qu'une charge sort d'un pot. Son nom, sa catégorie ou son contrat ne comptent pas. */
+const CE_QUI_COMPTE = ["montant", "pot", "jour", "prelevement", "frequence", "qui"] as const;
+const veille = (jour: Jour) => decaler(jour, { unite: "jour", tous: -1 });
+
+/**
+ * Noter une charge ou la modifier. Le mois en cours suit la charge telle qu'elle est maintenant ; les mois
+ * d'avant ne se réécrivent pas (Kora 0.1.8) : une charge nouvelle compte dès ce mois du budget, et quand on
+ * change son montant, son pot, son jour ou son prélèvement, ce qu'elle a déjà sorti les mois passés est figé.
+ */
+export function enregistrerPoste(plan: PlanBudget, poste: Poste, ctx: Contexte, aujourdhui: Jour): PlanBudget {
   const propre: Poste = { ...poste, montant: auCentime(Math.max(0, poste.montant)), pot: poste.qui ? null : (poste.pot ?? "commun") };
-  const existe = plan.postes.some((p) => p.id === poste.id);
-  return modifierPlan(plan, { postes: existe ? plan.postes.map((p) => (p.id === poste.id ? propre : p)) : [...plan.postes, propre] }, ctx);
+  const ceMois = debutMoisBudget(plan, moisBudget(plan, aujourdhui));
+  const avant = plan.postes.find((p) => p.id === poste.id);
+  if (!avant) return modifierPlan(plan, { postes: [...plan.postes, { ...propre, depuis: propre.depuis ?? ceMois }] }, ctx);
+  const poser = (p: Poste) => plan.postes.map((x) => (x.id === p.id ? p : x));
+  if (!CE_QUI_COMPTE.some((c) => avant[c] !== propre[c])) return modifierPlan(plan, { postes: poser(propre) }, ctx);
+  const figes = prelevementsDe(plan, avant, veille(ceMois));
+  const depuis = avant.depuis && avant.depuis > ceMois ? avant.depuis : ceMois;
+  return modifierPlan(plan, { postes: poser({ ...propre, depuis }), ...(figes.length ? { preleves: [...(plan.preleves ?? []), ...figes] } : {}) }, ctx);
 }
 
-export function retirerPoste(plan: PlanBudget, id: Id, ctx: Contexte): PlanBudget {
-  return modifierPlan(plan, { postes: plan.postes.filter((p) => p.id !== id) }, ctx);
+/** Retirer une charge : ce qu'elle a déjà sorti des pots, ce mois compris, reste compté. */
+export function retirerPoste(plan: PlanBudget, id: Id, ctx: Contexte, aujourdhui: Jour): PlanBudget {
+  const avant = plan.postes.find((p) => p.id === id);
+  const figes = avant ? prelevementsDe(plan, avant, aujourdhui) : [];
+  return modifierPlan(plan, { postes: plan.postes.filter((p) => p.id !== id), ...(figes.length ? { preleves: [...(plan.preleves ?? []), ...figes] } : {}) }, ctx);
 }
 
 // ----- Le mois, calculé -----
@@ -411,18 +442,24 @@ export function confirmerMois(mois: string, versements: Partial<Record<Pot, numb
   return { id: `mois-${mois}`, genre: "mois", mois, versements: propres, confirmeLe: ctx.maintenant(), par };
 }
 
-/** Les prélèvements automatiques déjà passés depuis le départ : ils sortent seuls du pot. */
-export function prelevementsPasses(plan: PlanBudget, aujourdhui: Jour): { poste: Poste; jour: Jour }[] {
-  const resultat: { poste: Poste; jour: Jour }[] = [];
-  const auto = plan.postes.filter((p) => p.qui === null && p.prelevement && p.frequence === "mois" && p.pot && p.pot !== "commun");
-  const debut = debutMoisBudget(plan, plan.depart.mois);
-  for (let mois = moisDe(debut); mois <= moisDe(aujourdhui); mois = moisSuivant(mois)) {
-    for (const poste of auto) {
-      const jour = jourDuMois(mois, poste.jour ?? 1);
-      if (jour >= debut && jour <= aujourdhui) resultat.push({ poste, jour });
-    }
+/** Ce qu'une charge prélevée seule a sorti de son pot, de son premier jour (ou du départ du plan) à ce jour-là. */
+function prelevementsDe(plan: PlanBudget, poste: Poste, jusqua: Jour): Preleve[] {
+  if (poste.qui !== null || !poste.prelevement || poste.frequence !== "mois" || !poste.pot || poste.pot === "commun") return [];
+  const depart = debutMoisBudget(plan, plan.depart.mois);
+  const debut = poste.depuis && poste.depuis > depart ? poste.depuis : depart;
+  const resultat: Preleve[] = [];
+  for (let mois = moisDe(debut); mois <= moisDe(jusqua); mois = moisSuivant(mois)) {
+    const jour = jourDuMois(mois, poste.jour ?? 1);
+    if (jour >= debut && jour <= jusqua) resultat.push({ posteId: poste.id, libelle: poste.libelle, pot: poste.pot, jour, montant: poste.montant });
   }
   return resultat;
+}
+
+/** Les prélèvements automatiques déjà passés depuis le départ : ils sortent seuls du pot. Ceux des charges modifiées ou retirées sont gardés tels qu'ils étaient. */
+export function prelevementsPasses(plan: PlanBudget, aujourdhui: Jour): Preleve[] {
+  const depart = debutMoisBudget(plan, plan.depart.mois);
+  const figes = (plan.preleves ?? []).filter((a) => a.jour >= depart && a.jour <= aujourdhui);
+  return [...figes, ...plan.postes.flatMap((p) => prelevementsDe(plan, p, aujourdhui))];
 }
 
 export interface EtatPot {
@@ -446,10 +483,10 @@ export function etatDesPots(plan: PlanBudget, docs: readonly DocBudget[], aujour
   const etat = {} as Record<Pot, EtatPot>;
   for (const pot of Object.keys(POTS) as Pot[]) {
     const entre = verses.reduce((t, m) => t + (m.versements[pot] ?? 0), 0);
-    const sorti = sorties.filter((d) => d.pot === pot).reduce((t, d) => t + d.montant, 0) + auto.filter((a) => a.poste.pot === pot).reduce((t, a) => t + a.poste.montant, 0);
+    const sorti = sorties.filter((d) => d.pot === pot).reduce((t, d) => t + d.montant, 0) + auto.filter((a) => a.pot === pot).reduce((t, a) => t + a.montant, 0);
     const sortiCeMois =
       sorties.filter((d) => d.pot === pot && moisBudget(plan, d.jour) === mois).reduce((t, d) => t + d.montant, 0) +
-      auto.filter((a) => a.poste.pot === pot && moisBudget(plan, a.jour) === mois).reduce((t, a) => t + a.poste.montant, 0);
+      auto.filter((a) => a.pot === pot && moisBudget(plan, a.jour) === mois).reduce((t, a) => t + a.montant, 0);
     etat[pot] = {
       pot,
       solde: auCentime((plan.depart.soldes[pot] ?? 0) + entre - sorti),
@@ -615,6 +652,21 @@ export function payerFacture(f: Facture, jour: Jour, par: Id | null, ctx: Contex
   return nouvelleDepense({ montant: f.montant, pot: f.poste.pot ?? "factures", libelle: f.poste.libelle, jour, posteId: f.poste.id, echeance: f.echeance, source }, par, ctx);
 }
 
+/**
+ * Le montant d'une phrase et la phrase sans lui. Une espace ne sépare que des milliers (« 1 250 ») ou les
+ * centimes dits à voix haute (« 12 50 » : 12.50, Kora 0.1.8, avant c'était 1250). Entre plusieurs nombres,
+ * celui qui porte des centimes, « .- » ou « CHF » l'emporte (« 3 cafés 12.50 ») ; sinon le premier.
+ */
+function trouverMontant(phrase: string): { montant: number; reste: string } | null {
+  const re = /(?:^|\s)(\d{1,3}(?:[’' ]\d{3})+|\d+)(?:[.,](\d{1,2})| (\d{2})(?=\s|$))?(\.-)?\s*(chf|fr\.?|francs?)?(?=\s|$)/gi;
+  const candidats = [...phrase.matchAll(re)];
+  const m = candidats.find((c) => c[2] || c[3] || c[4] || c[5]) ?? candidats[0];
+  if (!m) return null;
+  const montant = Number(`${m[1].replace(/[’' ]/g, "")}.${m[2] ?? m[3] ?? "0"}`);
+  if (!Number.isFinite(montant) || montant <= 0) return null;
+  return { montant, reste: `${phrase.slice(0, m.index)} ${phrase.slice(m.index + m[0].length)}` };
+}
+
 const MAGASINS = ["Migros", "Coop", "Lidl", "Denner", "Aldi", "Manor", "Volg", "Spar", "Aligro", "Prodega"];
 const sansAccents = (t: string) => retirerAccents(t).toLowerCase();
 
@@ -634,11 +686,10 @@ export interface SaisieDepense {
  * « Sunrise 145 », « 200 épargne », « 12 café pour moi » (à soi). null quand la phrase n'a pas de montant.
  */
 export function lireDepense(texte: string, plan: PlanBudget | null): SaisieDepense | null {
-  const m = /(?:^|\s)(\d[\d’' ]*(?:[.,]\d{1,2})?)(?:\.-)?\s*(?:chf|fr\.?|francs?)?(?=\s|$)/i.exec(` ${texte.trim()} `);
-  if (!m) return null;
-  const montant = lireMontant(m[1]);
-  if (montant === null || montant <= 0) return null;
-  let reste = ` ${texte} `.replace(m[0], " ").replace(/\b(?:chf|fr\.?|francs?)\b/gi, " ");
+  const trouve = trouverMontant(` ${texte.trim()} `);
+  if (!trouve) return null;
+  const montant = trouve.montant;
+  let reste = trouve.reste.replace(/\b(?:chf|fr\.?|francs?)\b/gi, " ");
   const cle = sansAccents(reste);
   let pot: Pot | null = null;
   const retirerMot = (re: RegExp) => (reste = reste.replace(re, " "));
@@ -777,7 +828,7 @@ export function previsionFactures(plan: PlanBudget, docs: readonly DocBudget[], 
   const auto = prelevementsPasses(plan, aujourdhui);
   const ceMois = moisBudget(plan, aujourdhui);
   const dejaPaye = (poste: Poste) =>
-    auto.some((a) => a.poste.id === poste.id && moisBudget(plan, a.jour) === ceMois) ||
+    auto.some((a) => a.posteId === poste.id && moisBudget(plan, a.jour) === ceMois) ||
     toutes.some((d) =>
       poste.frequence === "an"
         ? regle(d, poste, jourDuMois(ceMois, poste.jour ?? 1))

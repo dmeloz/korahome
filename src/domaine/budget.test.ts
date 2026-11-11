@@ -31,6 +31,8 @@ import {
   nouveauPoste,
   nouvelleDepense,
   payerFacture,
+  prelevementsPasses,
+  retirerPoste,
   type DocBudget,
   type PlanBudget,
 } from "./budget";
@@ -55,7 +57,7 @@ function plan(): PlanBudget {
     nouveauPoste({ libelle: "Assurance voiture", montant: 1200, frequence: "an", pot: "factures", mois: 11, jour: 2 }, ctx),
     nouveauPoste({ libelle: "Taxe véhicule", montant: 240, frequence: "an", pot: "factures" }, ctx),
   ];
-  for (const x of postes) p = enregistrerPoste(p, x, ctx);
+  for (const x of postes) p = enregistrerPoste(p, x, ctx, "2026-10-01");
   return p;
 }
 
@@ -162,6 +164,49 @@ describe("les pots", () => {
   });
 });
 
+describe("le passé ne se réécrit pas", () => {
+  const ctx = contexteTest();
+  const p = plan();
+  const internet = p.postes.find((x) => x.libelle === "Internet")!;
+  const sorti = (pl: PlanBudget, jour: string) => prelevementsPasses(pl, jour).reduce((t, a) => t + a.montant, 0);
+  const LE_10_DECEMBRE = "2026-12-10";
+
+  it("une charge qui change de prix garde ses mois passés à l'ancien prix", () => {
+    // Internet à 100 le 5 depuis octobre : 300 sortis au 10 décembre.
+    expect(sorti(p, LE_10_DECEMBRE)).toBe(300);
+    const plusCher = enregistrerPoste(p, { ...internet, montant: 120 }, ctx, LE_10_DECEMBRE);
+    // Octobre et novembre restent à 100 ; décembre, le mois en cours, suit le nouveau prix.
+    expect(sorti(plusCher, LE_10_DECEMBRE)).toBe(100 + 100 + 120);
+    expect(plusCher.preleves?.map((a) => `${a.jour} ${a.montant}`)).toEqual(["2026-10-05 100", "2026-11-05 100"]);
+    expect(sorti(plusCher, "2027-01-10")).toBe(100 + 100 + 120 + 120);
+  });
+
+  it("un prix tapé chiffre après chiffre ne fige le passé qu'une fois", () => {
+    let q = p;
+    for (const montant of [1, 12, 120]) q = enregistrerPoste(q, { ...q.postes.find((x) => x.id === internet.id)!, montant }, ctx, LE_10_DECEMBRE);
+    expect(q.preleves).toHaveLength(2);
+    expect(sorti(q, LE_10_DECEMBRE)).toBe(320);
+  });
+
+  it("changer le nom d'une charge ne fige rien", () => {
+    const renomme = enregistrerPoste(p, { ...internet, libelle: "Fibre" }, ctx, LE_10_DECEMBRE);
+    expect(renomme.preleves).toBeUndefined();
+    expect(sorti(renomme, LE_10_DECEMBRE)).toBe(300);
+  });
+
+  it("une charge retirée garde ce qu'elle a déjà sorti, et ne sort plus rien", () => {
+    const sans = retirerPoste(p, internet.id, ctx, LE_10_DECEMBRE);
+    expect(sorti(sans, LE_10_DECEMBRE)).toBe(300);
+    expect(sorti(sans, "2027-03-10")).toBe(300);
+    expect(etatDesPots(sans, [sans], LE_10_DECEMBRE).factures.solde).toBe(etatDesPots(p, [p], LE_10_DECEMBRE).factures.solde);
+  });
+
+  it("une charge notée aujourd'hui compte dès ce mois, pas depuis le départ du plan", () => {
+    const avecSerafe = enregistrerPoste(p, nouveauPoste({ libelle: "Serafe", montant: 30, pot: "factures", jour: 5, prelevement: true }, ctx), ctx, LE_10_DECEMBRE);
+    expect(sorti(avecSerafe, LE_10_DECEMBRE)).toBe(300 + 30);
+  });
+});
+
 describe("les factures", () => {
   const ctx = contexteTest();
   const p = plan();
@@ -199,6 +244,14 @@ describe("la barre du Budget", () => {
     expect(lireDepense("payé électricité 60", p)).toMatchObject({ pot: "factures", libelle: "Électricité", posteId: expect.any(String) });
     expect(lireDepense("200 épargne", p)).toMatchObject({ montant: 200, pot: "epargne" });
     expect(lireDepense("Coop 1'185.50 courses", p)).toMatchObject({ montant: 1185.5, pot: "courses", magasin: "Coop" });
+  });
+  it("lit les centimes dits à voix haute, et le prix plutôt que le nombre d'articles", () => {
+    // « Coop 12 50 » faisait 1250 francs.
+    expect(lireDepense("Coop 12 50", p)).toMatchObject({ montant: 12.5, magasin: "Coop" });
+    expect(lireDepense("Coop 1 250", p)).toMatchObject({ montant: 1250 });
+    expect(lireDepense("3 cafés 12.50", p)).toMatchObject({ montant: 12.5, libelle: "3 cafés" });
+    expect(lireDepense("2 billets 30 chf", p)).toMatchObject({ montant: 30, libelle: "2 billets" });
+    expect(lireDepense("45.- essence", p)).toMatchObject({ montant: 45 });
   });
   it("laisse à Jarvis une phrase sans montant", () => {
     expect(lireDepense("combien il reste ?", p)).toBeNull();
@@ -292,7 +345,7 @@ describe("les visuels", () => {
   });
 
   it("les abonnements se lisent à l'année", () => {
-    const q = enregistrerPoste(p, { ...nouveauPoste({ libelle: "Netflix", montant: 20, qui: A }, ctx), id: "netflix" }, ctx);
+    const q = enregistrerPoste(p, { ...nouveauPoste({ libelle: "Netflix", montant: 20, qui: A }, ctx), id: "netflix" }, ctx, AUJOURDHUI);
     expect(abonnementsALAnnee(q).map((x) => `${x.poste.libelle} ${x.parAn}`)).toEqual(["Internet 1200", "Netflix 240"]);
     expect(abonnementsALAnnee(q, [B, null]).map((x) => x.poste.libelle)).toEqual(["Internet"]);
   });

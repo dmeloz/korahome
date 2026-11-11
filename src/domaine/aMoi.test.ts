@@ -12,8 +12,8 @@ const ctx = contexteTest();
 function plan(): PlanBudget {
   let p = nouveauPlan([A, B], "2026-09-01", ctx);
   p = { ...p, jourDePaie: 25, personnes: [{ membreId: A, revenu: 5000, versement: 2500 }, { membreId: B, revenu: 4000, versement: 2000 }] };
-  p = enregistrerPoste(p, nouveauPoste({ libelle: "Assurance maladie", montant: 400, qui: A }, ctx), ctx);
-  p = enregistrerPoste(p, nouveauPoste({ libelle: "Voiture", montant: 1200, frequence: "an", qui: A }, ctx), ctx);
+  p = enregistrerPoste(p, nouveauPoste({ libelle: "Assurance maladie", montant: 400, qui: A }, ctx), ctx, "2026-01-01");
+  p = enregistrerPoste(p, nouveauPoste({ libelle: "Voiture", montant: 1200, frequence: "an", qui: A }, ctx), ctx, "2026-01-01");
   return p;
 }
 
