@@ -2,13 +2,15 @@ import { describe, expect, it } from "vitest";
 import {
   afficherCode,
   ALPHABET_CODE,
-  compacter,
   curseurAvecMarge,
   decrireDerniereSynchro,
   distantGagne,
-  fusionner,
+  fusionnerDocuments,
+  memeContenu,
   normaliserCode,
+  rapprocher,
   type Changement,
+  type EnAttente,
 } from "./synchro";
 
 const ch = (id: string, maj: string, donnees: unknown = { id }, collection: Changement["collection"] = "elements"): Changement => ({
@@ -18,55 +20,99 @@ const ch = (id: string, maj: string, donnees: unknown = { id }, collection: Chan
   maj: `2026-10-09T10:${maj}:00.000Z`,
 });
 
-describe("synchro : la modification la plus récente gagne", () => {
-  it("compacte en gardant la dernière modification de chaque document", () => {
-    const resultat = compacter([ch("lait", "00", "v1"), ch("pain", "01"), ch("lait", "05", "v2"), ch("lait", "03", "v3")]);
-    expect(resultat).toHaveLength(2);
-    expect(resultat.find((c) => c.id === "lait")?.donnees).toBe("v2");
+describe("synchro : deux versions d'un document se rejoignent", () => {
+  const base = { id: "mitsu", nom: "Mitsu", poids: 4.2, soins: [{ id: "vaccin", fait: false }, { id: "vermifuge", fait: false }] };
+
+  it("ce que chacun a touché de son côté est gardé", () => {
+    const mien = { ...base, poids: 4.4 };
+    const leur = { ...base, nom: "Mitsuko" };
+    expect(fusionnerDocuments(base, mien, leur, "leur")).toEqual({ ...base, nom: "Mitsuko", poids: 4.4 });
   });
 
-  it("distingue deux documents de même identifiant dans deux collections", () => {
-    expect(compacter([ch("a", "00", 1, "listes"), ch("a", "00", 2, "elements")])).toHaveLength(2);
+  it("le même champ touché des deux côtés : le côté préféré gagne, le reste est gardé", () => {
+    const mien = { ...base, poids: 4.4, nom: "Mimi" };
+    const leur = { ...base, poids: 4.5 };
+    expect(fusionnerDocuments(base, mien, leur, "leur")).toEqual({ ...base, poids: 4.5, nom: "Mimi" });
+    expect(fusionnerDocuments(base, mien, leur, "mien")).toEqual({ ...base, poids: 4.4, nom: "Mimi" });
   });
 
-  it("à égalité, le dernier arrivé l'emporte", () => {
-    expect(compacter([ch("lait", "00", "v1"), ch("lait", "00", "v2")])[0].donnees).toBe("v2");
+  it("dans une liste, chaque élément se rejoint par son identifiant", () => {
+    const mien = { ...base, soins: [{ id: "vaccin", fait: true }, { id: "vermifuge", fait: false }, { id: "griffes", fait: false }] };
+    const leur = { ...base, soins: [{ id: "vermifuge", fait: true }, { id: "vaccin", fait: false }, { id: "puce", fait: true }] };
+    expect(fusionnerDocuments(base, mien, leur, "leur")).toEqual({
+      ...base,
+      soins: [{ id: "vermifuge", fait: true }, { id: "vaccin", fait: true }, { id: "puce", fait: true }, { id: "griffes", fait: false }],
+    });
   });
 
-  it("applique ce qui vient de l'autre téléphone quand rien n'attend localement", () => {
-    const { aAppliquer, enAttente } = fusionner([], [ch("lait", "00")]);
-    expect(aAppliquer).toEqual([ch("lait", "00")]);
-    expect(enAttente).toEqual([]);
+  it("ce que l'un retire est retiré, sauf si l'autre l'a retouché", () => {
+    const sansVaccin = { ...base, soins: [{ id: "vermifuge", fait: false }] };
+    expect(fusionnerDocuments(base, sansVaccin, { ...base, poids: 5 }, "leur")).toEqual({ ...sansVaccin, poids: 5 });
+    const vaccinFait = { ...base, soins: [{ id: "vaccin", fait: true }, { id: "vermifuge", fait: false }] };
+    expect(fusionnerDocuments(base, sansVaccin, { ...vaccinFait, poids: 5 }, "leur")).toEqual({ ...vaccinFait, poids: 5 });
+    const { poids: _poids, ...sansPoids } = base;
+    expect(fusionnerDocuments(base, sansPoids, { ...base, nom: "Mimi" }, "leur")).toEqual({ ...sansPoids, nom: "Mimi" });
   });
 
-  it("garde la modification locale plus récente et ignore l'ancienne version distante", () => {
-    const local = ch("lait", "05", "coché ici");
-    const { aAppliquer, enAttente } = fusionner([local], [ch("lait", "01", "décoché là-bas")]);
-    expect(aAppliquer).toEqual([]);
-    expect(enAttente).toEqual([local]);
+  it("un champ vide compte comme absent, et l'ordre des champs ne compte pas", () => {
+    expect(memeContenu({ a: 1, b: undefined }, { a: 1 })).toBe(true);
+    expect(memeContenu({ a: 1, b: [1, { c: null }] }, { b: [1, { c: null }], a: 1 })).toBe(true);
+    expect(memeContenu({ a: null }, {})).toBe(false);
+    expect(memeContenu([1, 2], [2, 1])).toBe(false);
   });
 
-  it("abandonne la modification locale battue par une plus récente", () => {
-    const distant = ch("lait", "07", "supprimé là-bas");
-    const { aAppliquer, enAttente } = fusionner([ch("lait", "05")], [distant]);
-    expect(aAppliquer).toEqual([distant]);
-    expect(enAttente).toEqual([]);
+  it("une liste sans identifiants ne se mélange pas : un côté entier est gardé", () => {
+    expect(fusionnerDocuments({ t: ["a"] }, { t: ["a", "b"] }, { t: ["a", "c"] }, "mien")).toEqual({ t: ["a", "b"] });
   });
+});
+
+describe("synchro : une modification en attente rencontre la version du serveur", () => {
+  const lait = { id: "lait", texte: "Lait", coche: false, quantite: null };
+  const attente = (maj: string, donnees: unknown, base?: unknown): EnAttente => ({ ...ch("lait", maj, donnees), ...(base === undefined ? {} : { base }) });
 
   it("à égalité, la version du serveur gagne", () => {
     expect(distantGagne(ch("lait", "05", "ici"), ch("lait", "05", "serveur"))).toBe(true);
     expect(distantGagne(undefined, ch("lait", "05"))).toBe(true);
   });
 
-  it("laisse partir les modifications locales sans rapport", () => {
-    const { aAppliquer, enAttente } = fusionner([ch("pain", "05")], [ch("lait", "01")]);
-    expect(aAppliquer.map((c) => c.id)).toEqual(["lait"]);
-    expect(enAttente.map((c) => c.id)).toEqual(["pain"]);
+  it("sans base connue, la plus récente gagne en entier", () => {
+    const local = attente("05", { ...lait, coche: true });
+    expect(rapprocher(local, ch("lait", "01", { ...lait, quantite: "2 l" }))).toEqual({ donnees: local.donnees, enAttente: local });
+    const distant = ch("lait", "07", null);
+    expect(rapprocher(local, distant)).toEqual({ donnees: null, enAttente: null });
   });
 
-  it("transporte une suppression comme un document vide", () => {
-    const { aAppliquer } = fusionner([], [ch("lait", "09", null)]);
-    expect(aAppliquer[0].donnees).toBeNull();
+  it("avec sa base, les deux retouches restent et la réunion repart juste après l'heure du serveur", () => {
+    const local = attente("05", { ...lait, coche: true }, lait);
+    const distant = ch("lait", "07", { ...lait, quantite: "2 l" });
+    const { donnees, enAttente } = rapprocher(local, distant);
+    expect(donnees).toEqual({ ...lait, coche: true, quantite: "2 l" });
+    expect(enAttente).toEqual({ collection: "elements", id: "lait", donnees, base: distant.donnees, maj: "2026-10-09T10:07:00.001Z" });
+  });
+
+  it("le serveur dit déjà la même chose : plus rien à envoyer", () => {
+    const local = attente("05", { ...lait, coche: true }, lait);
+    expect(rapprocher(local, ch("lait", "03", { ...lait, coche: true }))).toEqual({ donnees: local.donnees, enAttente: null });
+  });
+
+  it("une horloge en retard ne fait pas perdre la modification : le serveur n'a pas bougé depuis la base", () => {
+    const vu = { ...lait, quantite: "2 l" };
+    const local = attente("02", { ...vu, coche: true }, vu);
+    const { donnees, enAttente } = rapprocher(local, ch("lait", "07", vu));
+    expect(donnees).toEqual({ ...vu, coche: true });
+    expect(enAttente?.maj).toBe("2026-10-09T10:07:00.001Z");
+  });
+
+  it("une suppression faite en connaissant la version du serveur tient ; sinon la retouche de l'autre la sauve", () => {
+    expect(rapprocher(attente("02", null, lait), ch("lait", "07", lait))).toMatchObject({ donnees: null, enAttente: { donnees: null } });
+    const retouche = { ...lait, quantite: "2 l" };
+    expect(rapprocher(attente("02", null, lait), ch("lait", "07", retouche))).toEqual({ donnees: retouche, enAttente: null });
+  });
+
+  it("créé des deux côtés sous le même identifiant : les champs de chacun sont réunis", () => {
+    const local = attente("05", { id: "repas-2026-11-11", plat: "Raclette" }, null);
+    const { donnees } = rapprocher(local, ch("repas-2026-11-11", "03", { id: "repas-2026-11-11", note: "chez Léa" }));
+    expect(donnees).toEqual({ id: "repas-2026-11-11", plat: "Raclette", note: "chez Léa" });
   });
 });
 

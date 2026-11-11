@@ -11,3 +11,6 @@ chaque module ; hors ligne d'abord.
 
 **Ce que ça coûte** : deux modifications du même document au même moment, la plus ancienne se perd.
 À revoir (fusion fine, CRDT) seulement au premier écrasement réel constaté.
+
+**Complétée** le 11 novembre 2026 par la fiche [0008](0008-les-retouches-se-rejoignent.md) : deux
+retouches du même document se rejoignent champ par champ, sur le téléphone.

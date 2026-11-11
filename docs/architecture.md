@@ -9,7 +9,7 @@ flowchart TD
   UI["Écrans — src/ui/<br/>React, moteur de mouvement, fée"]
   DOM["Règles — src/domaine/<br/>TypeScript pur, testé, la spécification de l'app native"]
   DEP["Dépôt — src/donnees/<br/>IndexedDB sur le téléphone, file d'attente"]
-  SYN["Synchro — src/donnees/synchro.ts<br/>le plus récent gagne, document par document"]
+  SYN["Synchro — src/donnees/synchro.ts<br/>les retouches se rejoignent, le plus récent gagne par champ"]
   SB[("Supabase<br/>table documents, règles RLS")]
   FN["Fonctions serveur — supabase/functions/<br/>jarvis, siri, rappels, chef, agenda, paiements"]
   UI -->|lit par useDonnees, écrit par Depot| DEP
@@ -42,8 +42,9 @@ Quand un document change, le dépôt prévient ses abonnés avec la liste des co
 ## Le partage
 
 Chaque téléphone garde toutes les données et marche hors ligne. Une modification devient un
-« changement » daté, mis en attente, puis envoyé ; à l'arrivée, le plus récent gagne, document par
-document (`src/domaine/synchro.ts`). Ce qui est effacé passe 30 jours dans la corbeille partagée.
+« changement » daté, mis en attente avec sa base, puis envoyé ; à l'arrivée, deux retouches du même
+document se rejoignent champ par champ, et pour un même champ la plus récente gagne
+(`src/domaine/synchro.ts`, fiche 0008). Ce qui est effacé passe 30 jours dans la corbeille partagée.
 
 ## Les vérifications
 

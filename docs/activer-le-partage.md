@@ -3,7 +3,7 @@
 Le partage passe par un projet Supabase gratuit : une base de données en ligne qui
 garde une copie des listes, des tâches et du suivi de Mitsu. Chaque iPhone garde
 tout de son côté et fonctionne sans réseau ; les modifications se rejoignent dès
-que possible (la plus récente gagne). Les notes de test restent sur chaque téléphone.
+que possible (champ par champ ; pour un même champ, la plus récente gagne). Les notes de test restent sur chaque téléphone.
 
 À faire une seule fois.
 

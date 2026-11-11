@@ -1,4 +1,4 @@
-import { curseurAvecMarge, fusionner } from "../domaine/synchro";
+import { cleDe, curseurAvecMarge, type Changement } from "../domaine/synchro";
 import type { Id } from "../domaine/types";
 import type { StockageSynchro } from "./depotLocal";
 import type { Distant } from "./distant";
@@ -46,19 +46,30 @@ export function creerSynchro(
   };
   const derniere = () => (statut.etat === "inactif" ? null : statut.derniere);
 
+  /** Envoie, retire de l'attente ce que le serveur a pris, et renvoie ce qu'il a refusé. */
+  async function envoyer(foyerId: Id, changements: Changement[]): Promise<Changement[]> {
+    if (changements.length === 0) return [];
+    const refuses = new Set((await distant.envoyer(foyerId, changements)).map(cleDe));
+    await local.retirerEnAttente(changements.filter((c) => !refuses.has(cleDe(c))));
+    return changements.filter((c) => refuses.has(cleDe(c)));
+  }
+
   async function passage(): Promise<void> {
     const etat = await local.lireEtat();
     if (!etat) return changer({ etat: "inactif" });
     changer({ etat: "en_cours", derniere: etat.derniere });
     try {
       const lu = await distant.lire(etat.foyerId, curseurAvecMarge(etat.curseur));
-      const { aAppliquer } = fusionner(await local.lireEnAttente(), lu.changements);
-      await local.appliquer(aAppliquer);
+      await local.appliquer(lu.changements);
       // Relu après l'application : ce qui a été modifié ici pendant la lecture part aussi.
-      const aEnvoyer = await local.lireEnAttente();
-      if (aEnvoyer.length > 0) {
-        await distant.envoyer(etat.foyerId, aEnvoyer);
-        await local.retirerEnAttente(aEnvoyer);
+      const refuses = await envoyer(etat.foyerId, await local.lireEnAttente());
+      if (refuses.length > 0) {
+        // Le serveur avait plus récent (l'autre vient d'écrire, ou l'horloge d'ici retarde) : on lit sa
+        // version, la modification d'ici s'y joint, et ce qu'il reste à dire repart une fois. Refusé de
+        // nouveau, il attend le prochain passage : rien ne se perd sans bruit (Kora 0.1.12).
+        await local.appliquer(await distant.lireDocuments(etat.foyerId, refuses));
+        const cles = new Set(refuses.map(cleDe));
+        await envoyer(etat.foyerId, (await local.lireEnAttente()).filter((c) => cles.has(cleDe(c))));
       }
       const fini = { foyerId: etat.foyerId, curseur: lu.curseur ?? etat.curseur, derniere: horloge() };
       await local.enregistrerEtat(fini);

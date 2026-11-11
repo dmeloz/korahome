@@ -1,7 +1,9 @@
 import { IDBFactory } from "fake-indexeddb";
 import { describe, expect, it } from "vitest";
 import { creerFoyer, listesInitiales } from "../domaine/foyer";
+import { nouveauPlan, type PlanBudget } from "../domaine/budget";
 import { basculerCoche, nouvelElement } from "../domaine/listes";
+import { nouvelAnimal } from "../domaine/mitsu";
 import type { Contexte } from "../domaine/types";
 import { creerDepotLocal } from "./depotLocal";
 import { serveurFactice } from "./serveurFactice";
@@ -73,7 +75,7 @@ describe("partage entre deux téléphones", () => {
     expect(await sarah.depot.lireEnAttente()).toEqual([]);
   });
 
-  it("quand les deux modifient la même chose, la modification la plus récente gagne partout", async () => {
+  it("chacun retouche la même ligne de son côté : les deux retouches restent, partout", async () => {
     const { heure, melo, sarah, courses } = await foyerPartage();
     const lait = nouvelElement(courses, "lait", null, melo.ctx);
     await melo.depot.enregistrerElement(lait);
@@ -92,8 +94,156 @@ describe("partage entre deux téléphones", () => {
     for (const tel of [melo, sarah]) {
       const [element] = await tel.depot.lireElements();
       expect(element.coche).toBe(true);
-      expect(element.quantite).toBeNull();
+      expect(element.quantite).toBe("2 l");
+      expect(await tel.depot.lireEnAttente()).toEqual([]);
     }
+  });
+
+  it("quand les deux changent le même champ, la modification la plus récente gagne partout", async () => {
+    const { heure, melo, sarah, courses } = await foyerPartage();
+    const lait = nouvelElement(courses, "lait", null, melo.ctx);
+    await melo.depot.enregistrerElement(lait);
+    await melo.synchro.synchroniser();
+    await sarah.synchro.synchroniser();
+
+    heure.avancer();
+    await melo.depot.enregistrerElement({ ...lait, quantite: "2 l" });
+    heure.avancer();
+    await sarah.depot.enregistrerElement({ ...lait, quantite: "1 l" });
+    await sarah.synchro.synchroniser();
+    await melo.synchro.synchroniser();
+    await sarah.synchro.synchroniser();
+
+    for (const tel of [melo, sarah]) expect((await tel.depot.lireElements())[0].quantite).toBe("1 l");
+  });
+
+  it("la fiche de Mitsu retouchée sur les deux téléphones garde la pesée de l'un et le soin de l'autre", async () => {
+    const { heure, melo, sarah } = await foyerPartage();
+    const mitsu = nouvelAnimal("Mitsu", "2023-04-01", null, melo.ctx);
+    await melo.depot.enregistrerAnimal(mitsu);
+    await melo.synchro.synchroniser();
+    await sarah.synchro.synchroniser();
+
+    heure.avancer();
+    await sarah.depot.enregistrerAnimal({ ...mitsu, pesees: [{ id: "p1", jour: "2026-11-11", grammes: 4200, par: null }] });
+    heure.avancer();
+    await melo.depot.enregistrerAnimal({ ...mitsu, sterilise: true });
+    await melo.synchro.synchroniser();
+    await sarah.synchro.synchroniser();
+    await melo.synchro.synchroniser();
+
+    for (const tel of [melo, sarah]) {
+      const [fiche] = await tel.depot.lireAnimaux();
+      expect(fiche.sterilise).toBe(true);
+      expect(fiche.pesees.map((p) => p.grammes)).toEqual([4200]);
+    }
+  });
+
+  it("le plan du Budget garde la charge ajoutée par l'un et le salaire changé par l'autre", async () => {
+    const { heure, melo, sarah, foyer } = await foyerPartage();
+    const plan = nouveauPlan(foyer.membres.map((m) => m.id), "2026-11-11", melo.ctx);
+    await melo.depot.enregistrerBudget(plan);
+    await melo.synchro.synchroniser();
+    await sarah.synchro.synchroniser();
+
+    heure.avancer();
+    const [moi, elle] = plan.personnes;
+    await melo.depot.enregistrerBudget({ ...plan, personnes: [{ ...moi, revenu: 5000 }, elle] });
+    heure.avancer();
+    await sarah.depot.enregistrerBudget({ ...plan, personnes: [moi, { ...elle, revenu: 4800 }], partPlaisir: 0.2 });
+    await melo.synchro.synchroniser();
+    await sarah.synchro.synchroniser();
+    await melo.synchro.synchroniser();
+
+    for (const tel of [melo, sarah]) {
+      const [doc] = (await tel.depot.lireBudget()) as PlanBudget[];
+      expect(doc.personnes.map((p) => p.revenu)).toEqual([5000, 4800]);
+      expect(doc.partPlaisir).toBe(0.2);
+    }
+  });
+
+  it("un téléphone dont l'horloge retarde ne perd plus ce qu'il modifie", async () => {
+    const { serveur, heure, melo, courses } = await foyerPartage();
+    const lait = nouvelElement(courses, "lait", null, melo.ctx);
+    await melo.depot.enregistrerElement(lait);
+    await melo.synchro.synchroniser();
+    heure.avancer(30);
+    await melo.depot.enregistrerElement({ ...lait, quantite: "2 l" });
+    await melo.synchro.synchroniser();
+    // D'autres écritures passent ensuite : le lait n'est plus dans ce que le prochain passage relit.
+    for (const texte of ["pain", "riz", "thé", "sel", "miel", "noix"]) await melo.depot.enregistrerElement(nouvelElement(courses, texte, null, melo.ctx));
+    await melo.synchro.synchroniser();
+
+    // L'iPad a dix minutes de retard : avant la 0.1.12, le serveur refusait sa coche sans rien dire.
+    const enRetard = { lire: () => new Date(Date.parse(heure.lire()) - 10 * 60000).toISOString(), avancer: heure.avancer };
+    const ipad = telephone("ipad", serveur, enRetard);
+    await ipad.synchro.rejoindre((await melo.depot.lireFoyer())!.id);
+    const vu = (await ipad.depot.lireElements()).find((e) => e.id === lait.id)!;
+    await ipad.depot.enregistrerElement(basculerCoche(vu, ipad.ctx));
+    await ipad.synchro.synchroniser();
+    expect(await ipad.depot.lireEnAttente()).toEqual([]);
+    await melo.synchro.synchroniser();
+
+    const leLait = async (tel: typeof melo) => (await tel.depot.lireElements()).find((e) => e.id === lait.id);
+    for (const tel of [melo, ipad]) expect(await leLait(tel)).toMatchObject({ coche: true, quantite: "2 l" });
+
+    // Et ce qu'il efface reste effacé.
+    for (const texte of ["café", "lard", "orge", "figues", "kiwis", "noisettes"]) await melo.depot.enregistrerElement(nouvelElement(courses, texte, null, melo.ctx));
+    await melo.synchro.synchroniser();
+    await ipad.synchro.synchroniser();
+    await ipad.depot.supprimerElements([lait.id]);
+    await ipad.synchro.synchroniser();
+    await melo.synchro.synchroniser();
+    for (const tel of [melo, ipad]) expect(await leLait(tel)).toBeUndefined();
+  });
+
+  it("l'autre écrit entre la lecture et l'envoi : la modification refusée se joint à la sienne au lieu de se perdre", async () => {
+    const { serveur, heure, melo, sarah, courses } = await foyerPartage();
+    const lait = nouvelElement(courses, "lait", null, melo.ctx);
+    await melo.depot.enregistrerElement(lait);
+    await melo.synchro.synchroniser();
+    await sarah.synchro.synchroniser();
+
+    heure.avancer();
+    await melo.depot.enregistrerElement({ ...lait, quantite: "2 l" });
+    heure.avancer();
+    await sarah.depot.enregistrerElement(basculerCoche(lait, sarah.ctx));
+    // Sarah passe juste après la lecture de Melo, avant son envoi.
+    const lire = serveur.distant.lire;
+    serveur.distant.lire = async (foyerId, depuis) => {
+      const lu = await lire(foyerId, depuis);
+      serveur.distant.lire = lire;
+      await sarah.synchro.synchroniser();
+      return lu;
+    };
+    await melo.synchro.synchroniser();
+    await sarah.synchro.synchroniser();
+
+    for (const tel of [melo, sarah]) {
+      const [element] = await tel.depot.lireElements();
+      expect(element).toMatchObject({ coche: true, quantite: "2 l" });
+      expect(await tel.depot.lireEnAttente()).toEqual([]);
+    }
+  });
+
+  it("une modification écrite pendant l'envoi garde sa base et repart au passage suivant", async () => {
+    const { serveur, heure, melo, sarah, courses } = await foyerPartage();
+    const lait = nouvelElement(courses, "lait", null, melo.ctx);
+    await melo.depot.enregistrerElement(lait);
+    const envoyer = serveur.distant.envoyer;
+    serveur.distant.envoyer = async (foyerId, changements) => {
+      serveur.distant.envoyer = envoyer;
+      const refuses = await envoyer(foyerId, changements);
+      heure.avancer();
+      await melo.depot.enregistrerElement({ ...lait, quantite: "2 l" });
+      return refuses;
+    };
+    await melo.synchro.synchroniser();
+    expect(await melo.depot.lireEnAttente()).toHaveLength(1);
+    await melo.synchro.synchroniser();
+    await sarah.synchro.synchroniser();
+    expect((await sarah.depot.lireElements())[0].quantite).toBe("2 l");
+    expect(await melo.depot.lireEnAttente()).toEqual([]);
   });
 
   it("une suppression se propage", async () => {

@@ -13,3 +13,4 @@ l'ancienne. Format court, inspiré des « Architecture Decision Records » (ADR)
 | [0005](0005-styles-a-la-main.md) | Des styles écrits à la main, sans Tailwind ni shadcn | 2026-10-19 |
 | [0006](0006-github-pages.md) | Publier sur GitHub Pages | 2026-10-20 |
 | [0007](0007-registre-des-collections.md) | Un registre unique des collections | 2026-10-27 |
+| [0008](0008-les-retouches-se-rejoignent.md) | Deux retouches du même document se rejoignent | 2026-11-11 |
