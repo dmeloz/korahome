@@ -3,8 +3,9 @@ import { createPortal } from "react-dom";
 import { phraseAttente, type Attente } from "../../domaine/fee";
 import { NIVEAUX, journalDuJour } from "../../domaine/tael";
 import { heureMinute } from "../../domaine/texte";
+import { decrireMinute } from "../../domaine/vieFee";
 import { aujourdhuiLocal } from "../contexte";
-import { nomFee, taireFee, useEtatFee, useFee, useParoleFee, type Parole } from "../fee";
+import { changerEtatFee, direFee, nomFee, noterRenvoi, reveillerFee, taireFee, useEtatFee, useFee, useParoleFee, type Parole } from "../fee";
 import { vibrer } from "../haptique";
 import { APPUI_LONG_MS } from "../gestes";
 import { m, Presence } from "../moteur/pieces";
@@ -97,10 +98,26 @@ export function Orbe({ salut, className = "" }: { salut?: boolean; className?: s
     clearTimeout(g.minuterie);
     if (g.long || annule) return;
     vibrer();
-    if (attente) ouvrirAttente(attente);
-    else toucherFee();
+    toucher();
   };
-  const libelle = attente ? (attente.sorte === "message" ? "Un message t'attend" : "Un cœur t'attend") : `${fee.nom} : touche pour parler, garde le doigt pour ses réglages`;
+  const toucher = () => {
+    // Elle scintille pour une chose urgente : la toucher la lui fait dire, au lieu de lancer l'écoute (Kora 0.1.9).
+    if (vie.alerte) {
+      const dite = vie.alerte;
+      changerEtatFee({ alerte: null });
+      direFee({ ...dite, sansSuite: () => changerEtatFee({ cible: null }) });
+      return;
+    }
+    if (attente) return ouvrirAttente(attente);
+    // Touchée la nuit, elle reste réveillée dix minutes.
+    if (vie.nuit) reveillerFee();
+    toucherFee();
+  };
+  const libelle = vie.alerte
+    ? `${fee.nom} a quelque chose d'urgent à te dire : touche pour l'entendre`
+    : attente
+      ? attente.sorte === "message" ? "Un message t'attend" : "Un cœur t'attend"
+      : `${fee.nom} : touche pour parler, garde le doigt pour ses réglages`;
   return (
     <button
       type="button"
@@ -115,7 +132,7 @@ export function Orbe({ salut, className = "" }: { salut?: boolean; className?: s
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          toucherFee();
+          toucher();
         }
       }}
     >
@@ -137,6 +154,9 @@ function useVieParole(parole: Parole, zone: string) {
     const ailleurs = (e: globalThis.PointerEvent) => {
       if ((e.target as Element).closest?.(`${zone}, .orbe`)) return;
       fermer();
+      // Renvoyée d'un toucher ailleurs : elle apprend l'heure où on préfère qu'elle se taise (Réglages de la fée).
+      const heure = parole.spontanee ? noterRenvoi() : null;
+      if (heure !== null) setTimeout(() => direFee({ cle: "discrete", texte: `Tu me renvoies souvent vers ${decrireMinute(heure * 60)}. À cette heure-là, je garderai mes nouvelles pour plus tard.` }), 400);
     };
     window.addEventListener("pointerdown", ailleurs, true);
     return () => {

@@ -97,7 +97,6 @@ export function useVieFee(e: EntreeVie): void {
       const maintenant = new Date();
       const jour = x.aujourdhui;
       const { nuit } = nuitDeCeTelephone(jour, maintenant);
-      document.documentElement.classList.toggle("nuit-kora", nuit);
 
       // La nuit, elle dort sur la date ; rien d'autre.
       if (nuit) {
@@ -235,10 +234,9 @@ export function useVieFee(e: EntreeVie): void {
     };
   }, [e.actif]);
 
-  // En quittant l'accueil, elle quitte le widget ou la date et la page n'est plus assombrie.
+  // En quittant l'accueil, elle quitte le widget ou la date.
   useEffect(() => {
     if (e.actif) return;
-    document.documentElement.classList.remove("nuit-kora");
     changerEtatFee({ cible: null, alerte: null });
   }, [e.actif]);
   useEffect(() => () => clearTimeout(finAlerte.current), []);
