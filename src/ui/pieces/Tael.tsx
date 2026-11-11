@@ -101,7 +101,7 @@ export function Orbe({ salut, className = "" }: { salut?: boolean; className?: s
     toucher();
   };
   const toucher = () => {
-    // Elle scintille pour une chose urgente : la toucher la lui fait dire, au lieu de lancer l'écoute (Kora 0.1.9).
+    // Elle scintille pour une chose urgente : la toucher la lui fait dire, au lieu de lancer l'écoute (Kora 0.1.10).
     if (vie.alerte) {
       const dite = vie.alerte;
       changerEtatFee({ alerte: null });
