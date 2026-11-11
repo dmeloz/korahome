@@ -224,6 +224,29 @@ try {
     budgetRempli = true;
   };
 
+  /**
+   * Le langage des gestes (0.1.5) : la fée ajoute un article et la carte Courses respire avec son
+   * trait ; dans Cuisine, cocher ce seul article fait respirer la ligne puis dessine le sceau.
+   */
+  const gestes = async () => {
+    const attendu = async (quoi, selecteur) => {
+      const vu = await p.waitForSelector(selecteur, { state: "attached", timeout: 2500 }).then(() => true, () => false);
+      if (!vu) erreurs.push(`Gestes : ${quoi} (${selecteur} jamais vu)`);
+      console.log(`${vu ? "ok " : "?? "} Gestes : ${quoi}`);
+    };
+    await p.locator(".page-dessus .orbe").first().click();
+    await p.waitForTimeout(400);
+    await p.locator(".barre-jarvis input").fill("lait");
+    await p.locator(".barre-jarvis input").press("Enter");
+    await attendu("la carte Courses respire après un ajout", '.page-dessus [data-widget="courses"].respire-fait');
+    await p.waitForTimeout(1200);
+    await allerEspace("Cuisine");
+    await p.locator(".page-dessus .courses-c .li").first().click();
+    await attendu("la ligne cochée respire", ".page-dessus .courses-c .li.respire");
+    await attendu("le sceau se dessine au dernier article", ".sceau");
+    await p.waitForTimeout(1600);
+    await allerEspace("Aujourd'hui");
+  };
   const tournee = async () => {
     await capture("aujourdhui");
     const fautesAccueil = (await accessibilite("Aujourd'hui")) + (await debordement("Aujourd'hui"));
@@ -262,6 +285,7 @@ try {
     await allerEspace("Aujourd'hui");
   };
   await tournee();
+  await gestes();
   await remplirBudget();
   // La même tournée en mode clair : le laiton y est plus sombre, son contraste se vérifie à part.
   theme = "-clair";

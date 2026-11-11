@@ -33,7 +33,7 @@ import { vibrer } from "../haptique";
 import { Icone } from "../Icone";
 import { ignorer } from "../journal";
 import { MODULES, type DonneesModule } from "../modules";
-import { sceller } from "../moteur/langage";
+import { sceller, soufflerPuis } from "../moteur/langage";
 import type { Page } from "../pages";
 import { CarteDemarrage } from "../pieces/Demarrage";
 import { dateLongue, enLettres, EnteteEspace, Grille, Jours, Tuile } from "../pieces/Cartes";
@@ -281,7 +281,7 @@ export function Aujourdhui(props: {
             <p className="etiq">À toi{aToi.quand ? `, ${aToi.quand}` : ""}</p>
             <p className="titre-c">{aToi.texte}</p>
             <div className="actions-c">
-              <button type="button" className="pilule" onClick={() => void cocherChose(aToi)}>C'est fait</button>
+              <button type="button" className="pilule" onClick={(e) => soufflerPuis(e.currentTarget.closest<HTMLElement>(".tuile"), () => void cocherChose(aToi))}>C'est fait</button>
               {aToi.heure && <button type="button" className="pilule" onClick={() => setHeureDe(donnees.taches.find((t) => t.id === aToi.tacheId) ?? null)}>Plus tard</button>}
             </div>
           </Tuile>

@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { lundiDe } from "../../domaine/agenda";
 import { decaler } from "../../domaine/taches";
 import type { Jour } from "../../domaine/types";
-import { useCartesTouchees, useRespiration } from "../moteur/langage";
+import { toucheDe, useCartesTouchees, useRespiration } from "../moteur/langage";
 import { Orbe } from "./Tael";
 
 // Le système de cartes de Kora 0.1 (axe 2, validé par Melo le 4 novembre 2026) : une grille de
@@ -40,6 +40,9 @@ export function Tuile(props: {
   onClick?: () => void;
   /** L'espace où mène la carte : elle grandit jusqu'à devenir sa page (transitions.ts). */
   widget?: string;
+  /** Les collections que la carte montre, si son `widget` ne le dit pas (« taches », « budget ») :
+   *  elle respire quand Tael vient d'y toucher (moteur/langage.ts). */
+  touche?: string;
   /** Son rang dans la grille, pour la cascade d'entrée. */
   i?: number;
   label?: string;
@@ -47,15 +50,16 @@ export function Tuile(props: {
 }) {
   const classe = `tuile${props.large ? " large" : ""}${props.forte ? " forte" : ""}${props.contraste ? " contraste" : ""}${props.className ? ` ${props.className}` : ""}`;
   const style = props.i !== undefined ? ({ "--i": props.i } as CSSProperties) : undefined;
+  const touche = toucheDe(props.touche, props.widget);
   if (props.onClick) {
     return (
-      <button type="button" className={classe} style={style} onClick={props.onClick} data-widget={props.widget} aria-label={props.label}>
+      <button type="button" className={classe} style={style} onClick={props.onClick} data-widget={props.widget} data-touche={touche} aria-label={props.label}>
         {props.children}
       </button>
     );
   }
   return (
-    <div className={classe} style={style} data-widget={props.widget} aria-label={props.label} role={props.role}>
+    <div className={classe} style={style} data-widget={props.widget} data-touche={touche} aria-label={props.label} role={props.role}>
       {props.children}
     </div>
   );

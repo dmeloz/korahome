@@ -75,7 +75,7 @@ export function EspaceCuisine(props: { donnees: DonneesModule; depot: Depot; ouv
       <EnteteEspace titre="Cuisine" sous={aPrendre.length ? `${enLettres(aPrendre.length).replace(/^./, (c) => c.toUpperCase())} chose${aPrendre.length > 1 ? "s" : ""} à prendre` : titreCeSoir ? `Ce soir : ${titreCeSoir}` : "Courses, menus, recettes et frigo"} />
 
       <Grille label="Cuisine">
-        <Tuile large i={i++} role="group" label={`Courses : ${aPrendre.length} à prendre`} className="courses-c">
+        <Tuile large i={i++} touche="elements" role="group" label={`Courses : ${aPrendre.length} à prendre`} className="courses-c">
           <p className="etiq"><Icone nom="panier" taille={18} />Courses{direct && <b className="navi direct" style={{ marginLeft: "auto" }}>{direct.qui} coche en direct</b>}</p>
           {montres.length ? (
             <div className="lignes">

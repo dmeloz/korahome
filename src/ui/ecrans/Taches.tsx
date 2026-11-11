@@ -21,7 +21,7 @@ import type { Depot } from "../../donnees/depot";
 import { aujourdhuiLocal, contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
 import { Ligne, ListeVivante, Message } from "../moteur/pieces";
-import { useRespiration } from "../moteur/langage";
+import { sceller, useRespiration } from "../moteur/langage";
 import { vibrer } from "../haptique";
 import { equilibreDesTaches, equilibreVisible } from "../../domaine/apprentissage";
 import { noterUsage } from "../usage";
@@ -105,11 +105,18 @@ export function Taches(props: {
   const reste = vueMoi?.reste ?? [];
   const nombreReste = reste.reduce((n, g) => n + g.taches.length, 0);
 
+  /** Ce qui reste à faire aujourd'hui (ou en retard) dans ce que la page montre en premier. */
+  const duesAujourdhui = () => groupes.flatMap((g) => g.taches).filter((x) => !x.faiteLe && x.echeance <= aujourdhui);
+
   async function faire(t: Tache) {
     vibrer();
+    const dues = duesAujourdhui();
+    const derniere = dues.length === 1 && dues[0].id === t.id;
     const apres = marquerFaite(t, moi, aujourdhui, contexteReel);
     await props.depot.enregistrerTache(apres);
     feteFee();
+    // La dernière tâche du jour : le sceau, comme sur les cartes.
+    if (derniere) sceller();
     noterUsage("tache", t.id);
     const suite = apres.recurrence ? ` Prochaine fois ${decrireEcheance(apres.echeance, aujourdhui)}.` : "";
     setAnnulable({ texte: `« ${t.titre} » faite.${suite}`, avant: t });
@@ -156,11 +163,22 @@ export function Taches(props: {
 
   async function faireChoisies() {
     const avant = lot;
+    if (!avant.length) {
+      setChoisis(null);
+      return;
+    }
+    // Les lignes choisies respirent ensemble, puis partent.
+    souffle.lancer(avant.map((x) => x.id), () => void terminerChoisies(avant));
+  }
+
+  async function terminerChoisies(avant: Tache[]) {
     setChoisis(null);
-    if (!avant.length) return;
     vibrer();
+    const dues = duesAujourdhui();
+    const toutes = dues.length > 0 && dues.every((d) => avant.some((x) => x.id === d.id));
     await props.depot.enregistrerTaches(avant.map((x) => marquerFaite(x, moi, aujourdhui, contexteReel)));
     feteFee();
+    if (toutes) sceller();
     annoncer(`${pluriel(avant.length, "tâche")} ${avant.length === 1 ? "faite" : "faites"}.`, () => props.depot.enregistrerTaches(avant));
   }
 
@@ -197,7 +215,7 @@ export function Taches(props: {
       const pris = choisis.has(t.id);
       return (
         <Ligne key={t.id}>
-          <button className={`ligne tache choix${pris ? " choisi" : ""}`} aria-pressed={pris} onClick={() => choisir(t.id)}>
+          <button className={`ligne tache choix${pris ? " choisi" : ""}${souffle.respire(t.id) ? " respire" : ""}`} aria-pressed={pris} onClick={() => choisir(t.id)}>
             <span className="case case-choix" aria-hidden>{pris ? "✓" : ""}</span>
             <span className="tache-texte">
               <span className="ligne-texte">{t.titre}</span>
@@ -212,7 +230,7 @@ export function Taches(props: {
       <Ligne key={t.id} className={t.id === phare ? "phare-ligne" : undefined}>
         <Glissable
           onSupprimer={() => void supprimer(t)}
-          onFait={terminee ? undefined : () => void faire(t)}
+          onFait={terminee ? undefined : () => souffle.lancer(t.id, () => void faire(t))}
           libelleFait="Faite"
           onAppuiLong={() => {
             setOuverte(t.id);
