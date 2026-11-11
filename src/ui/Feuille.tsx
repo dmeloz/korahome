@@ -1,6 +1,7 @@
 import { useDragControls, type PanInfo } from "motion/react";
-import { useEffect, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useRef, type PointerEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { usePiegeFocus } from "./focus";
 import { vibrer } from "./haptique";
 import { m, Presence } from "./moteur/pieces";
 import { ressortMotion } from "./moteur/ressorts";
@@ -27,6 +28,9 @@ export function Feuille(props: {
   children: ReactNode;
 }) {
   const tirer = useDragControls();
+  const zone = useRef<HTMLDivElement>(null);
+  // Tab reste dans la feuille, Échap la ferme, le focus revient ensuite d'où il venait.
+  usePiegeFocus(props.ouverte, zone, props.onFermer);
 
   // La page dessous ne défile plus tant que la feuille est ouverte.
   useEffect(() => {
@@ -60,6 +64,8 @@ export function Feuille(props: {
           transition={ressortMotion("feuille")}
         >
           <m.div
+            ref={zone}
+            tabIndex={-1}
             className={`feuille${props.alerte ? " feuille-alerte" : ""}${props.className ? ` ${props.className}` : ""}`}
             role={props.alerte ? "alertdialog" : "dialog"}
             aria-modal

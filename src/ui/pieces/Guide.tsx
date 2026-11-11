@@ -1,5 +1,6 @@
-import { type CSSProperties, useState } from "react";
+import { type CSSProperties, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { usePiegeFocus } from "../focus";
 import { guideAMontrer, pagesGuide, VERSION_GUIDE } from "../../domaine/guide";
 import { useFee } from "../fee";
 import { vibrer } from "../haptique";
@@ -24,6 +25,9 @@ export function Guide({ fermer }: { fermer: () => void }) {
   const [i, setI] = useState(0);
   const [sens, setSens] = useState(1);
   const page = pages[i];
+  const zone = useRef<HTMLDivElement>(null);
+  // Tab reste dans le guide. Échap ne le ferme pas : le fermer efface ce que Kora avait appris, ça se décide d'un toucher.
+  usePiegeFocus(true, zone, null);
   const derniere = i === pages.length - 1;
   const aller = (vers: number) => {
     if (vers < 0 || vers >= pages.length) return;
@@ -37,7 +41,7 @@ export function Guide({ fermer }: { fermer: () => void }) {
     fermer();
   };
   return createPortal(
-    <div className="guide" role="dialog" aria-modal="true" aria-labelledby="guide-titre">
+    <div className="guide" role="dialog" aria-modal="true" aria-labelledby="guide-titre" ref={zone} tabIndex={-1}>
       <div className="guide-haut">
         <span className="etiq">Kora {VERSION_GUIDE}</span>
         {!derniere && <button type="button" className="lien" onClick={finir}>Passer</button>}
