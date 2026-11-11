@@ -264,7 +264,7 @@ function PageMaison(p: PropsPage) {
   if (p.onglet === "jardin") return <Jardin {...p} />;
   if (p.onglet === "vetements") {
     return (
-      <Page titre="Vêtements" sousTitre="Tailles, envies, à trier" aide={{ cle: "vetements-aide", resume: "Tailles et envies de chacun, partagées", texte: "Les tailles et les envies de chacun, partagées : de quoi trouver un cadeau qui va." }}>
+      <Page titre="Vêtements" sousTitre="Tailles, envies, à trier" aide={{ cle: "vetements-aide", resume: "Tailles et envies de chacun, partagées", texte: "Tes tailles, notées une fois : l'autre les voit, pratique pour un cadeau. Tes envies : écris « veste en laine 120 », Kora garde le prix. À trier : ce qui ne sert plus, et ce qu'on en fait." }}>
         <Vetements depot={p.depot} foyer={p.foyer} membreId={p.membreId} vetements={p.vetements} aujourdhui={p.aujourdhui} />
       </Page>
     );

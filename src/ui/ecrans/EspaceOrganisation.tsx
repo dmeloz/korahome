@@ -111,7 +111,7 @@ export function EspaceOrganisation(props: { donnees: DonneesModule; depot: Depot
 
         <Tuile i={i++} onClick={() => ouvrir("administratif")} label={`Administratif : ${contrats.length ? resumeContrats(contrats) : "aucun contrat"}`}>
           <p className="etiq"><Icone nom="dossier" taille={18} />Administratif</p>
-          <p className="phrase">{contrats.length ? resumeContrats(contrats) : plan ? "Abonnements et assurances, avec leur date de résiliation." : "Les papiers, les démarches, les contrats."}</p>
+          <p className={contrats.length ? "phrase" : "doux"}>{contrats.length ? resumeContrats(contrats) : plan ? "Abonnements et assurances, avec leur date de résiliation." : "Les papiers, les démarches, les contrats."}</p>
         </Tuile>
 
         <CarteTael />

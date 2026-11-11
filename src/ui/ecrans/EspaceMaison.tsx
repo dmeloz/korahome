@@ -66,7 +66,7 @@ export function EspaceMaison(props: { donnees: DonneesModule; depot: Depot; ouvr
   let i = 0;
   return (
     <main className="page espace maison">
-      <EnteteEspace titre="Maison" sous={dechets.length ? phraseSortir(dechets) : du ? `${du.tache.titre}, ${du.quand}` : geste?.urgent ? geste.texte : "Entretien, balcon, Mitsu et vêtements"} />
+      <EnteteEspace titre="Maison" sous={dechets.length ? phraseSortir(dechets) : du ? `${du.tache.titre}, ${du.quand}` : geste?.urgent ? geste.texte : "Entretien, jardin, Mitsu et vêtements"} />
 
       <Grille label="Maison">
         {dechets.length ? (
@@ -118,23 +118,23 @@ export function EspaceMaison(props: { donnees: DonneesModule; depot: Depot; ouvr
               ))}
             </div>
           ) : (
-            <p className="phrase">Les gestes qui reviennent : filtres, draps, détartrage. Choisis-les ici.</p>
+            <p className="doux">Les gestes qui reviennent : filtres, draps, détartrage. Choisis-les ici.</p>
           )}
         </Tuile>
 
         <Tuile i={i++} touche="maison" onClick={() => ouvrir("entretien", "carnet")} label={`Carnet : ${carnet.length} ligne${carnet.length > 1 ? "s" : ""}`}>
           <p className="etiq"><Icone nom="dossier" taille={18} />Carnet</p>
-          <p className="phrase">{carnet.length === 0 ? "Concierge, gérance, compteurs : ce qu'on cherche toujours." : <><b>{carnet.length}</b> ligne{carnet.length > 1 ? "s" : ""} : {carnet.slice(0, 3).map((c) => c.titre).join(", ")}{carnet.length > 3 ? "…" : ""}</>}</p>
+          <p className={carnet.length === 0 ? "doux" : "phrase"}>{carnet.length === 0 ? "Concierge, gérance, compteurs : ce qu'on cherche toujours." : <><b>{carnet.length}</b> ligne{carnet.length > 1 ? "s" : ""} : {carnet.slice(0, 3).map((c) => c.titre).join(", ")}{carnet.length > 3 ? "…" : ""}</>}</p>
         </Tuile>
 
         <Tuile i={i++} touche="maison" onClick={() => ouvrir("entretien", "rangements")} label={`Où est quoi : ${objets} objets`}>
           <p className="etiq"><Icone nom="loupe" taille={18} />Où est quoi</p>
-          <p className="phrase">{rangements.length === 0 ? "« Cave : perceuse, skis » et Kora s'en souvient." : <><b>{enLettres(objets).replace(/^./, (c) => c.toUpperCase())}</b> objet{objets > 1 ? "s" : ""} dans {rangements.length} lieu{rangements.length > 1 ? "x" : ""}.</>}</p>
+          <p className={rangements.length === 0 ? "doux" : "phrase"}>{rangements.length === 0 ? "« Cave : perceuse, skis » et Kora s'en souvient." : <><b>{enLettres(objets).replace(/^./, (c) => c.toUpperCase())}</b> objet{objets > 1 ? "s" : ""} dans {rangements.length} lieu{rangements.length > 1 ? "x" : ""}.</>}</p>
         </Tuile>
 
         <Tuile large i={i++} touche="vetements" onClick={() => ouvrir("vetements")} label={`Vêtements : ${vetements}`}>
           <p className="etiq"><Icone nom="coeur" taille={18} />Vêtements</p>
-          <p className="phrase">{vetements || "Les tailles et les envies de chacun, partagées."}</p>
+          <p className={vetements ? "phrase" : "doux"}>{vetements || "Les tailles et les envies de chacun, partagées."}</p>
         </Tuile>
       </Grille>
     </main>

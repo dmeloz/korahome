@@ -132,7 +132,7 @@ export function OngletRecettes(p: PropsPage & { recettes: Recette[]; ouvrirFiche
 
       {(p.jarvis || p.recettes.length < 3) && (
       <section className="carte recettes-ajout">
-        {p.recettes.length < 3 && <p className="discret">Le Chef range ici chaque repas qu'il propose, et {nomFee()} chaque recette que tu lui donnes. Écris un titre à ta fée (appui long sur elle) pour en ajouter une à la main, ou colle une recette entière.</p>}
+        {p.recettes.length > 0 && p.recettes.length < 3 && <p className="discret">Pour en ajouter : donne un titre, un lien ou une photo à {nomFee()}.</p>}
         {p.jarvis && (
           <PhotoRecette
             occupe={lecture !== null}

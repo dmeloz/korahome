@@ -13,6 +13,9 @@ import { vibrer } from "../haptique";
 import { Ligne, ListeVivante } from "../moteur/pieces";
 import { sauver } from "../sauver";
 
+/** Combien d'idées de gestes sont proposées à la fois. */
+const IDEES = 3;
+
 /** L'onglet Entretien de Tâches : ce qui revient tous les quelques mois, du plus pressé au plus lointain. */
 export function Entretien(props: { depot: Depot; membreId: string | null; taches: Tache[]; aujourdhui: Jour }) {
   const { depot, aujourdhui } = props;
@@ -20,6 +23,10 @@ export function Entretien(props: { depot: Depot; membreId: string | null; taches
   const [ouverte, setOuverte] = useState<string | null>(null);
   const lignes = organiserEntretien(props.taches, aujourdhui);
   const propositions = entretiensAProposer(props.taches);
+  // Trois idées à la fois plutôt que douze (lot 9 du check) : « D'autres idées » montre les suivantes.
+  const [debut, setDebut] = useState(0);
+  const depart = debut < propositions.length ? debut : 0;
+  const idees = propositions.slice(depart, depart + IDEES);
 
   async function faire(t: Tache) {
     vibrer();
@@ -55,7 +62,7 @@ export function Entretien(props: { depot: Depot; membreId: string | null; taches
           </div>
         )}
       </Feuille>
-      <p className="discret">Les gestes qui reviennent tous les quelques mois, à dire à ta fée : « détartrer la bouilloire tous les 3 mois ». Kora les met dans les tâches la semaine où ils sont dus.</p>
+      <p className="discret">Touche une idée, ou dis-le à ta fée : « détartrer la bouilloire tous les 3 mois ».</p>
 
       {lignes.length > 0 && (
         <ListeVivante className="carte groupe">
@@ -80,14 +87,19 @@ export function Entretien(props: { depot: Depot; membreId: string | null; taches
 
       {propositions.length > 0 && (
         <section className="carte">
-          <p className="surtitre">{lignes.length ? "Ajouter" : "Pour commencer, touche ce qui concerne la maison"}</p>
+          <p className="surtitre">{lignes.length ? "Ajouter" : "Pour commencer"}</p>
           <div className="puces">
-            {propositions.map((p) => (
+            {idees.map((p) => (
               <button key={p.titre} className="puce" onClick={() => sauver(depot.enregistrerTache(nouvelEntretien(p, aujourdhui, contexteReel)))}>
                 {p.titre}
               </button>
             ))}
           </div>
+          {propositions.length > IDEES && (
+            <button type="button" className="lien" onClick={() => setDebut(depart + IDEES)}>
+              D'autres idées
+            </button>
+          )}
         </section>
       )}
     </>

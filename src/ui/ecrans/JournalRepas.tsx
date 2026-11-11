@@ -121,7 +121,7 @@ export function JournalRepas(props: { depot: Depot; menus: DocChef[]; recettes: 
           ))}
         </div>
       )}
-      {!ceSoir && recents.length === 0 && <p className="discret journal-aide">Une ligne par soir, même sans le Chef. Il s'en sert pour ne pas reproposer ce que vous venez de manger.</p>}
+      {!ceSoir && recents.length === 0 && <p className="discret journal-aide">Une ligne par soir : le Chef évite alors de vous le reproposer.</p>}
     </section>
   );
 }
