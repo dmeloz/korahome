@@ -53,7 +53,6 @@
 .agenda-etapes { margin: 0; padding-left: 20px; display: grid; gap: var(--espace-3); line-height: 1.4; }
 .agenda-etapes a { color: var(--accent); }
 /* La vue Jour, heure par heure */
-.agenda-nav-jour { margin-top: 12px; }
 .agenda-jour-vue .rayon { margin-top: 8px; }
 .agenda-journee { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: var(--espace-2); }
 .agenda-heures { --marge-heures: 52px; height: min(62vh, 560px); overflow-y: auto; overscroll-behavior: contain; padding: 0; -webkit-overflow-scrolling: touch; }

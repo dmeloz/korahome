@@ -85,11 +85,3 @@ export const PICTO_HUMEUR: Record<string, NomIcone> = {
   "🤯": "pluie",
   "🤒": "thermometre",
 };
-
-/** Le petit dessin d'un temps (code WMO d'Open-Meteo). */
-export function pictoMeteo(code: number): NomIcone {
-  if (code >= 95) return "eclair";
-  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return "pluie";
-  if (code <= 1) return "soleil";
-  return "nuage";
-}

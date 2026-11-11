@@ -2,17 +2,8 @@
 /* Le bouton secondaire vit ici et dans chef-recettes.css, à sa place d'origine dans la cascade :
    des règles d'autres écrans (Mitsu, Budget) le précèdent et ne doivent pas passer après lui. */
 
-/* Le bouton secondaire, première version (complétée dans chef-recettes.css). */
-.bouton-secondaire {
-  border: 1px solid var(--trait);
-  border-radius: var(--rayon-carte);
-  background: none;
-  color: var(--texte);
-  font: inherit;
-  font-weight: 600;
-  padding: 13px 18px;
-  margin-top: 4px;
-}
+/* Le bouton secondaire est réglé dans chef-recettes.css ; ici seulement sa marge du haut. */
+.bouton-secondaire { margin-top: 4px; }
 .comme-habitude, .appris-bilan {
   border-color: color-mix(in srgb, var(--accent) 45%, var(--trait));
   background: linear-gradient(135deg, var(--accent-doux), var(--verre) 70%);

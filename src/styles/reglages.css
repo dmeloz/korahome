@@ -75,11 +75,3 @@
 .theme-auto .theme-apercu span:nth-child(2) { background: linear-gradient(135deg, #181c1a 50%, #fffcf6 50%); }
 .theme-auto .theme-apercu span:nth-child(3) { background: linear-gradient(135deg, #d3a14a 50%, #845d1c 50%); }
 
-/* Ce téléphone › Accueil : le verre et la taille de la date. */
-.reglages-curseurs { display: grid; gap: var(--espace-6); padding: 14px 16px; margin-bottom: 20px; }
-.curseur-reglage { display: grid; gap: var(--espace-4); }
-.curseur-titre { display: flex; justify-content: space-between; gap: var(--espace-5); font-size: var(--t-corps); }
-.curseur-titre .discret { font-size: var(--t-legende); }
-.curseur-reglage input[type="range"] { width: 100%; accent-color: var(--accent); }
-.reglages-curseurs .lien { justify-self: start; padding: 0; font-size: var(--t-detail); }
-.curseur-aide { margin: 0; font-size: var(--t-legende); }
