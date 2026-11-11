@@ -60,6 +60,14 @@ export function RepereOnglet({ groupe }: { groupe: string }) {
 
 /** Le bandeau de message en bas de l'écran (« Annuler », une erreur) : il monte et redescend.
  *  `cle` : un nouveau message remplace l'ancien en le faisant repartir. */
-export function Message({ visible, cle, role = "status", children }: { visible: boolean; cle?: string | number; role?: "status" | "alert"; children: ReactNode }) {
-  return <AnimatePresence>{visible && <Apparait key={cle ?? "message"} className="toast" role={role}>{children}</Apparait>}</AnimatePresence>;
+export function Message({ visible, cle, role = "status", erreur = false, children }: { visible: boolean; cle?: string | number; role?: "status" | "alert"; erreur?: boolean; children: ReactNode }) {
+  // Un échec arrive en tremblant (styles/langage.css).
+  return <AnimatePresence>{visible && <Apparait key={cle ?? "message"} className={`toast${erreur ? " en-erreur" : ""}`} role={role}>{children}</Apparait>}</AnimatePresence>;
+}
+
+/** Tael travaille : une bulle vide dont le liseré laiton fait le tour (styles/langage.css).
+ *  `ferme` : elle a fini, le liseré se referme avant que la réponse prenne sa place. */
+export function BulleAttente({ label, ferme = false }: { label?: string; ferme?: boolean }) {
+  const classe = `bulle jarvis attente${ferme ? " ferme" : ""}`;
+  return label ? <div className={classe} role="status" aria-label={label} /> : <div className={classe} aria-hidden />;
 }

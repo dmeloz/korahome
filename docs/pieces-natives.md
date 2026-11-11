@@ -39,7 +39,7 @@ Kora range l'interface en quelques pièces qui se répètent sur toutes les page
 | `RepereOnglet` | `src/ui/moteur/pieces.tsx` | `Picker` en `.segmented` ; sinon `.matchedGeometryEffect` |
 | Le widget qui s'ouvre en page (et y rentre) | `src/ui/transitions.ts` | `.matchedTransitionSource(id:in:)` sur le widget, `.navigationTransition(.zoom(sourceID:in:))` sur la page |
 | `Chiffre`, `Montant` : les chiffres qui roulent (NumberFlow) | `src/ui/moteur/Chiffre.tsx` | `Text(…).contentTransition(.numericText())` |
-| `feter` : la gerbe de confettis | `src/ui/moteur/fete.ts` | Un `CAEmitterLayer` (ou un paquet comme ConfettiSwiftUI) |
+| Le langage des gestes (0.1.5) : `respirer`, `trembler`, `BulleAttente` (le liseré), `sceller` (le sceau de la fin) | `src/ui/moteur/langage.ts`, `styles/langage.css` | `.phaseAnimator` pour respirer et trembler, `.trim(from:to:)` pour le liseré et le sceau, `.sensoryFeedback(.success / .error)` |
 | Graphiques qui se dessinent (Anime.js) | `src/ui/moteur/anime.ts` | Un trait en `.trim(from: 0, to: avancee)` animé |
 | `Feuille` | `src/ui/Feuille.tsx` (Motion : glisser et ressort « feuille ») | `.sheet` avec `presentationDetents` |
 | Recherche par la fée (accueil, depuis 0.0.73) | `src/ui/pieces/RechercheFee.tsx` | suggestions d'un `.searchable` au-dessus du champ |

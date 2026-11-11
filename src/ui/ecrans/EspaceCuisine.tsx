@@ -11,7 +11,7 @@ import { feteFee } from "../fee";
 import { vibrer } from "../haptique";
 import { Icone } from "../Icone";
 import type { DonneesModule } from "../modules";
-import { feter } from "../moteur/fete";
+import { sceller } from "../moteur/langage";
 import type { Page } from "../pages";
 import { enLettres, EnteteEspace, Grille, LigneCoche, Semaine, Tuile } from "../pieces/Cartes";
 import { CarteTael } from "../pieces/Tael";
@@ -48,7 +48,7 @@ export function EspaceCuisine(props: { donnees: DonneesModule; depot: Depot; ouv
     sauver(depot.enregistrerElement(apres));
     if (!e.coche) {
       feteFee();
-      if (aPrendre.length === 1) feter(document.querySelector(".page-dessus .grille"));
+      if (aPrendre.length === 1) sceller(document.querySelector(".page-dessus .grille"));
     }
   };
 

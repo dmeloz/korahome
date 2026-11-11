@@ -33,7 +33,7 @@ import { vibrer } from "../haptique";
 import { Icone } from "../Icone";
 import { ignorer } from "../journal";
 import { MODULES, type DonneesModule } from "../modules";
-import { feter } from "../moteur/fete";
+import { sceller } from "../moteur/langage";
 import type { Page } from "../pages";
 import { CarteDemarrage } from "../pieces/Demarrage";
 import { dateLongue, enLettres, EnteteEspace, Grille, Jours, Tuile } from "../pieces/Cartes";
@@ -146,7 +146,7 @@ export function Aujourdhui(props: {
     const apres = marquerFaite(avant, membreId, aujourdhui, contexteReel);
     await depot.enregistrerTache(apres);
     feteFee();
-    if (derniere) feter(document.querySelector(".page-dessus .grille"));
+    if (derniere) sceller(document.querySelector(".page-dessus .grille"));
     noterUsage("tache", avant.id);
     const suite = apres.recurrence ? ` Prochaine fois ${decrireEcheance(apres.echeance, aujourdhui)}.` : "";
     annoncer(`« ${avant.titre} » faite.${suite}`, () => depot.enregistrerTache(avant));
