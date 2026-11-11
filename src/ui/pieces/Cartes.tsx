@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { lundiDe } from "../../domaine/agenda";
 import { decaler } from "../../domaine/taches";
 import type { Jour } from "../../domaine/types";
+import { useCartesTouchees, useRespiration } from "../moteur/langage";
 import { Orbe } from "./Tael";
 
 // Le système de cartes de Kora 0.1 (axe 2, validé par Melo le 4 novembre 2026) : une grille de
@@ -24,7 +25,9 @@ export function EnteteEspace({ titre, sous }: { titre: ReactNode; sous?: ReactNo
 }
 
 export function Grille({ children, label }: { children: ReactNode; label?: string }) {
-  return <div className="grille" aria-label={label}>{children}</div>;
+  // Les cartes que Tael vient de toucher respirent l'une après l'autre (moteur/langage.ts).
+  const ref = useCartesTouchees<HTMLDivElement>();
+  return <div ref={ref} className="grille" aria-label={label}>{children}</div>;
 }
 
 export function Tuile(props: {
@@ -69,8 +72,17 @@ export function Coche() {
 
 /** Une ligne à cocher dans une carte : la case, le texte, et à droite l'heure ou qui. */
 export function LigneCoche(props: { coche: boolean; texte: string; fin?: string | null; finNavi?: boolean; heure?: string | null; urgent?: boolean; onClick: () => void }) {
+  // Cochée, la ligne respire avant de partir : la case se remplit tout de suite.
+  const { respire, lancer } = useRespiration();
+  const souffle = respire("ligne");
   return (
-    <button type="button" className={`li${props.urgent ? " urgent" : ""}`} role="checkbox" aria-checked={props.coche} onClick={props.onClick}>
+    <button
+      type="button"
+      className={`li${props.urgent ? " urgent" : ""}${souffle ? " respire" : ""}`}
+      role="checkbox"
+      aria-checked={props.coche || souffle}
+      onClick={() => (props.coche ? props.onClick() : lancer("ligne", props.onClick))}
+    >
       <span className="case"><Coche /></span>
       <span className="li-texte">{props.texte}</span>
       {props.heure && <time>{props.heure}</time>}

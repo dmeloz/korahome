@@ -10,7 +10,7 @@ import { feteFee } from "../fee";
 import { vibrer } from "../haptique";
 import { Icone } from "../Icone";
 import type { DonneesModule } from "../modules";
-import { feter } from "../moteur/fete";
+import { sceller } from "../moteur/langage";
 import type { Page } from "../pages";
 import { enLettres, EnteteEspace, Grille, Jours, LigneCoche, LigneDite, Tuile } from "../pieces/Cartes";
 import { CarteTael } from "../pieces/Tael";
@@ -55,7 +55,7 @@ export function EspaceOrganisation(props: { donnees: DonneesModule; depot: Depot
     const apres = marquerFaite(t, membreId, aujourdhui, contexteReel);
     await depot.enregistrerTache(apres);
     feteFee();
-    if (derniere) feter(document.querySelector(".page-dessus .grille"));
+    if (derniere) sceller(document.querySelector(".page-dessus .grille"));
     noterUsage("tache", t.id);
     const suite = apres.recurrence ? ` Prochaine fois ${decrireEcheance(apres.echeance, aujourdhui)}.` : "";
     annoncer(`« ${t.titre} » faite.${suite}`, () => depot.enregistrerTache(t));

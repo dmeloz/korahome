@@ -15,6 +15,7 @@ import { vibrer } from "./haptique";
 import { Icone } from "./Icone";
 import { annulerModifications, enregistrerModifications, pdfPourJarvis, photoPourJarvis } from "./jarvis";
 import { nomFee } from "./fee";
+import { BulleAttente } from "./moteur/pieces";
 
 // Le ticket de caisse en entier, depuis Frigo et placards, le Budget ou les Courses : une photo
 // (ou le PDF du ticket numérique Migros, Coop), la fée lit chaque ligne, on vérifie (décocher,
@@ -157,7 +158,7 @@ export function TicketDeCaisse(props: {
       <Feuille ouverte={etat !== "ferme"} onFermer={() => setEtat("ferme")} titre={titre} fermer="Annuler">
         {etat === "lecture" && (
           <div className="ticket-lecture">
-            <div className="bulle jarvis attente" aria-label={`${nomFee()} lit le ticket`}><span /><span /><span /></div>
+            <BulleAttente label={`${nomFee()} lit le ticket`} />
             <p className="discret">{nomFee()} lit chaque ligne du ticket{pdf ? " dans le PDF" : ""}…</p>
           </div>
         )}

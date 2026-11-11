@@ -21,6 +21,7 @@ import type { Depot } from "../../donnees/depot";
 import { aujourdhuiLocal, contexteReel } from "../contexte";
 import { Glissable } from "../Glissable";
 import { Ligne, ListeVivante, Message } from "../moteur/pieces";
+import { useRespiration } from "../moteur/langage";
 import { vibrer } from "../haptique";
 import { equilibreDesTaches, equilibreVisible } from "../../domaine/apprentissage";
 import { noterUsage } from "../usage";
@@ -81,6 +82,8 @@ export function Taches(props: {
   // Les tâches choisies pour agir d'un coup (0.0.99, le même geste que les Courses) ; null hors du mode « Choisir ».
   const [choisis, setChoisis] = useState<ReadonlySet<string> | null>(null);
   const [annulable, setAnnulable] = useState<{ texte: string; avant: Tache } | null>(null);
+  // Une tâche cochée respire avant de rejoindre les faites (moteur/langage.ts).
+  const souffle = useRespiration();
 
   useEffect(() => {
     if (!annulable) return;
@@ -216,13 +219,13 @@ export function Taches(props: {
             setASupprimer(null);
           }}
         >
-        <div className={`ligne tache${terminee ? " coche" : ""}`}>
+        <div className={`ligne tache${terminee || souffle.respire(t.id) ? " coche" : ""}${souffle.respire(t.id) ? " respire" : ""}`}>
           <button
             className="case"
-            onClick={() => (terminee ? refaire(t) : faire(t))}
+            onClick={() => (terminee ? refaire(t) : souffle.lancer(t.id, () => void faire(t)))}
             aria-label={terminee ? `Remettre « ${t.titre} » à faire` : `Marquer « ${t.titre} » comme faite`}
           >
-            {terminee ? "✓" : ""}
+            {terminee || souffle.respire(t.id) ? "✓" : ""}
           </button>
           <button
             className="tache-texte"

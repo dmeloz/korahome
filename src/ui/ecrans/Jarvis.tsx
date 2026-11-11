@@ -21,6 +21,8 @@ import { vibrer } from "../haptique";
 import { nomFee } from "../fee";
 import { attendUnOui, peutAgir } from "../../domaine/tael";
 import { lireNiveau, noterAuJournal } from "../tael";
+import { BulleAttente } from "../moteur/pieces";
+import { attendre, DUREES, signalerTouchees } from "../moteur/langage";
 
 interface Echange extends TourJarvis {
   n: number;
@@ -60,6 +62,10 @@ export function Jarvis(props: {
   const [echanges, setEchanges] = useState<Echange[]>(conversation);
   const [saisie, setSaisie] = useState("");
   const [enCours, setEnCours] = useState(false);
+  // Le liseré de l'attente se referme quand la réponse arrive (moteur/langage.ts).
+  const [ferme, setFerme] = useState(false);
+  // Seules les bulles nées pendant cette visite bougent : revenir sur la page ne rejoue rien.
+  const [premiere] = useState(() => compteur);
   const [ecoute, setEcoute] = useState<(() => void) | null>(null);
   const [alerte, setAlerte] = useState<string | null>(null);
   const bas = useRef<HTMLDivElement>(null);
@@ -93,6 +99,9 @@ export function Jarvis(props: {
         historique,
         image,
       });
+      setFerme(true);
+      await attendre(DUREES.fermeture);
+      setFerme(false);
       // Son niveau (Réglages, ou garder le doigt sur son orbe) : « Observe » ne touche à rien,
       // « Propose » demande un oui pour ce qui s'efface, « Agit » fait et note dans son journal.
       const niveau = lireNiveau();
@@ -102,6 +111,7 @@ export function Jarvis(props: {
       await enregistrerModifications(depot, resultat.modifications);
       if (resultat.modifications.length) {
         vibrer();
+        signalerTouchees(resultat.modifications.map((m) => m.collection));
         noterAuJournal({ id: `${Date.now()}`, quand: new Date().toISOString(), texte: resultat.faits.join(" ") || texte, modifications: resultat.modifications });
       }
       const dit = [reponse.texte, ...resultat.faits, ...resultat.echecs].filter(Boolean).join(" ") || (enAttente.length ? "" : "C'est fait.");
@@ -120,6 +130,7 @@ export function Jarvis(props: {
       ajouter({ role: "jarvis", texte: e instanceof Error && e.message ? e.message : "Je n'ai pas pu répondre, réessaie.", erreur: true });
     } finally {
       setEnCours(false);
+      setFerme(false);
     }
   }
 
@@ -141,7 +152,10 @@ export function Jarvis(props: {
     }
     const resultat = appliquerActions([echange.confirmation.action], avecVersion, donnees.membreId, donnees.aujourdhui, contexteReel);
     await enregistrerModifications(depot, resultat.modifications);
-    if (resultat.modifications.length) vibrer();
+    if (resultat.modifications.length) {
+      vibrer();
+      signalerTouchees(resultat.modifications.map((m) => m.collection));
+    }
     marquer({
       texte: [...resultat.faits, ...resultat.echecs].join(" ") || echange.texte,
       modifications: resultat.modifications.length ? resultat.modifications : undefined,
@@ -234,7 +248,11 @@ export function Jarvis(props: {
       ) : (
         <div className="jarvis-fil" aria-live="polite">
           {echanges.map((e) => (
-            <div key={e.n} className={`bulle ${e.role}${e.erreur ? " en-erreur" : ""}${e.annule ? " annulee" : ""}`}>
+            <div
+              key={e.n}
+              // Nouvelle : une erreur tremble, ce que Tael a fait respire avec son trait « fait ».
+              className={`bulle ${e.role}${e.erreur ? " en-erreur" : ""}${e.annule ? " annulee" : ""}${e.n > premiere ? " nouvelle" : ""}${e.n > premiere && e.modifications && !e.annule ? " respire-fait" : ""}`}
+            >
               {e.photo && <img className="jarvis-photo" src={e.photo} alt={`Photo envoyée à ${nomFee()}`} />}
               <p>{e.texte}</p>
               {e.confirmation && !e.confirmation.reponse && (
@@ -253,7 +271,7 @@ export function Jarvis(props: {
               )}
             </div>
           ))}
-          {enCours && <div className="bulle jarvis attente" aria-label={`${nomFee()} réfléchit`}><span /><span /><span /></div>}
+          {enCours && <BulleAttente label={`${nomFee()} réfléchit`} ferme={ferme} />}
         </div>
       )}
       {alerte && <p className="discret jarvis-alerte">{alerte}</p>}

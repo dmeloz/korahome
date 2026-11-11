@@ -21,6 +21,7 @@ import type { DonneesModule } from "../modules";
 import { TicketDeCaisse } from "../TicketDeCaisse";
 import { EcouteTael } from "./Tael";
 import { sauver } from "../sauver";
+import { signalerTouchees } from "../moteur/langage";
 import { hauteurClavier } from "../bords";
 
 // La fée et sa saisie : en bas de chaque page, la seule façon d'ajouter quoi que ce soit.
@@ -133,6 +134,12 @@ export function BarreJarvis(props: {
   const invitationPage = useInvitationDePage();
   const [ecoute, setEcoute] = useState<(() => void) | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  // Un refus (doublon, phrase incomprise, micro) arrive en tremblant ; un conseil, non.
+  const [refus, setRefus] = useState(false);
+  const refuser = (texte: string) => {
+    setMessage(texte);
+    setRefus(true);
+  };
   const [ouverte, setOuverte] = useState(false);
   /** On répond à un mot de l'autre : la phrase part en mot, pas en courses. */
   const [reponse, setReponse] = useState<string | null>(null);
@@ -248,13 +255,17 @@ export function BarreJarvis(props: {
       if (!liste) return props.demanderAJarvis(texte);
       const r = await ajouterArticles(depot, liste, donnees.elements, intention.articles, donnees.membreId, donnees.catalogue);
       if (r.ajoutes.length === 0) {
-        setMessage(r.doublons.length ? `« ${r.doublons[0]} » est déjà sur la liste.` : "Rien à ajouter.");
+        refuser(r.doublons.length ? `« ${r.doublons[0]} » est déjà sur la liste.` : "Rien à ajouter.");
         return;
       }
       vibrer();
+      signalerTouchees(["elements"]);
       const suite = r.doublons.length ? ` ${r.doublons.join(", ")} y étai${r.doublons.length > 1 ? "ent" : "t"} déjà.` : "";
       annoncer(decrireIntention({ ...intention, articles: r.ajoutes.map((e) => e.texte) }) + suite, () => depot.supprimerElements(r.ajoutes.map((e) => e.id)));
-      if (r.conseil) setMessage(r.conseil);
+      if (r.conseil) {
+        setMessage(r.conseil);
+        setRefus(false);
+      }
       return;
     }
     if (intention.type === "tache") {
@@ -264,6 +275,7 @@ export function BarreJarvis(props: {
       const avecCategorie = props.lieu === "entretien" || props.lieu === "administratif" ? { ...tache, categorie: props.lieu } : tache;
       await depot.enregistrerTache(avecCategorie);
       vibrer();
+      signalerTouchees(["taches"]);
       const quand = intention.recurrence ? `${decrireRecurrence(intention.recurrence).toLowerCase()}, la première ${decrireEcheance(intention.echeance, donnees.aujourdhui)}` : decrireEcheance(intention.echeance, donnees.aujourdhui);
       annoncer(`« ${tache.titre} » ajoutée, ${quand}${intention.heure ? `, rappel à ${intention.heure}` : ""}.`, () => depot.supprimerTache(tache.id));
       return;
@@ -277,6 +289,7 @@ export function BarreJarvis(props: {
       );
       await depot.enregistrerAgenda(ev);
       vibrer();
+      signalerTouchees(["agenda"]);
       annoncer(decrireIntention(intention), () => depot.supprimerAgenda(ev.id));
       return;
     }
@@ -291,6 +304,7 @@ export function BarreJarvis(props: {
     }
     if (!props.jarvis) {
       setMessage(`${nomFee()} répond quand le partage est activé. Les courses, tâches et rendez-vous s'ajoutent sans elle.`);
+      setRefus(false);
       return;
     }
     props.demanderAJarvis(intention.demande);
@@ -322,7 +336,7 @@ export function BarreJarvis(props: {
       changer("");
       fermer();
     } catch (err) {
-      if (err instanceof ErreurValidation) setMessage(err.message);
+      if (err instanceof ErreurValidation) refuser(err.message);
       else throw err;
     } finally {
       envoi.current = false;
@@ -338,7 +352,7 @@ export function BarreJarvis(props: {
     const arreter = ecouter(changer, (dit, erreur) => {
       fini = true;
       setEcoute(null);
-      if (erreur) setMessage(erreur);
+      if (erreur) refuser(erreur);
       if (dit) void envoyer(undefined, dit);
       else if (!erreur && !etat.current.texte.trim()) setOuverte(false);
     });
@@ -386,7 +400,7 @@ export function BarreJarvis(props: {
     <div className={`barre-zone${ouverte ? " ouverte" : ""}`} style={clavier ? { bottom: clavier } : undefined} aria-hidden={!ouverte}>
       <div ref={(el) => void (el && el.firstChild !== emplacement() && el.appendChild(emplacement()))} />
       {ecoute && <EcouteTael exemples={lu.replace(/Jarvis/g, nomFee())} />}
-      {message && <p className="barre-message" role="status">{message}</p>}
+      {message && <p className={`barre-message${refus ? " en-erreur" : ""}`} role="status">{message}</p>}
       <div className="barre-rang" ref={rang}>
         <form className="barre-jarvis" onSubmit={(e) => void envoyer(e)} role="search">
           <input

@@ -16,6 +16,7 @@ import type { DonneesModule } from "../modules";
 import { vibrer } from "../haptique";
 import { nomFee } from "../fee";
 import { Page } from "../pieces";
+import { BulleAttente } from "../moteur/pieces";
 
 interface Proposition {
   resume: string;
@@ -118,7 +119,7 @@ export function Conseil(props: { donnees: DonneesModule; depot: Depot; serveur: 
       {enCours && (
         <div className="carte conseil-depart" aria-live="polite">
           <p>{nomFee()} prépare votre semaine…</p>
-          <div className="bulle jarvis attente" aria-hidden><span /><span /><span /></div>
+          <BulleAttente />
         </div>
       )}
       {erreur && <p className="erreur" role="status">{erreur}</p>}

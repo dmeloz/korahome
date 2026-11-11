@@ -13,9 +13,9 @@ const Contexte = createContext<Annoncer>(() => {});
 export const useAnnoncer = () => useContext(Contexte);
 
 export function FournisseurAnnulation({ children }: { children: ReactNode }) {
-  const [annonce, setAnnonce] = useState<{ texte: string; annuler: (() => unknown) | null; n: number } | null>(null);
+  const [annonce, setAnnonce] = useState<{ texte: string; annuler: (() => unknown) | null; n: number; erreur?: boolean } | null>(null);
 
-  useEffect(() => ecouterEchecs((texte) => setAnnonce((a) => ({ texte, annuler: null, n: (a?.n ?? 0) + 1 }))), []);
+  useEffect(() => ecouterEchecs((texte) => setAnnonce((a) => ({ texte, annuler: null, n: (a?.n ?? 0) + 1, erreur: true }))), []);
 
   useEffect(() => {
     if (!annonce) return;
@@ -28,7 +28,7 @@ export function FournisseurAnnulation({ children }: { children: ReactNode }) {
   return (
     <Contexte.Provider value={annoncer}>
       {children}
-      <Message visible={!!annonce} cle={annonce?.n}>
+      <Message visible={!!annonce} cle={annonce?.n} erreur={annonce?.erreur} role={annonce?.erreur ? "alert" : "status"}>
         {annonce && (
           <>
             <span>{annonce.texte}</span>
