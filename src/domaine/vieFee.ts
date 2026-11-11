@@ -134,21 +134,6 @@ export function jourJ(comptes: readonly CompteARebours[], aujourdhui: Jour): str
   return c ? `${decrireCompte(c, aujourdhui)} !` : null;
 }
 
-/** Le réveil : ce qui attend aujourd'hui, le prochain rendez-vous, la météo, en une phrase ou deux. */
-export function resumeDuMatin(carte: CarteDuJour, extras: { rdv?: string | null; meteo?: string | null }): string {
-  const aFaire = carte.choses.filter((c) => c.etat !== "calme");
-  const parties = [
-    aFaire.length === 0
-      ? "Rien ne presse aujourd'hui."
-      : aFaire.length === 1
-        ? `Une chose aujourd'hui : ${minuscule(aFaire[0].texte)}.`
-        : `${aFaire.length} choses aujourd'hui, d'abord ${minuscule(aFaire[0].texte)}.`,
-    extras.rdv ?? null,
-    extras.meteo ?? null,
-  ];
-  return `Bonjour. ${parties.filter(Boolean).join(" ")}`;
-}
-
 // ----- La météo sur ses ailes -----
 
 export type AllureMeteo = "givre" | "pluie" | null;

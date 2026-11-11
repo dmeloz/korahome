@@ -19,7 +19,6 @@ import {
   nouveautesDeLAutre,
   NUIT_DE_DEPART,
   nuitApprise,
-  resumeDuMatin,
   tacheDeLHeure,
 } from "./vieFee";
 
@@ -103,12 +102,6 @@ describe("les rituels", () => {
     const c = nouveauCompte("Lisbonne", AUJ, null, AUJ, ctx);
     expect(jourJ([c], AUJ)).toBe("C'est aujourd'hui : lisbonne !");
     expect(jourJ([c], "2026-10-18")).toBeNull();
-  });
-
-  it("résume le matin en une phrase", () => {
-    const c = carte([chose({ cle: "a", texte: "Litière de Mitsu" }), chose({ cle: "b" })]);
-    expect(resumeDuMatin(c, { rdv: "Jeudi 14:30, dentiste.", meteo: "12°, soleil." })).toBe("Bonjour. 2 choses aujourd'hui, d'abord litière de Mitsu. Jeudi 14:30, dentiste. 12°, soleil.");
-    expect(resumeDuMatin(carte([]), {})).toBe("Bonjour. Rien ne presse aujourd'hui.");
   });
 });
 

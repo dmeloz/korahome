@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { CarteDuJour, ChoseDuJour, DestinationChose } from "../domaine/aujourdhui";
 import { comptesAVenir, type DocCouple } from "../domaine/bandeau";
-import { decrireTemps, formaterTemperatures, meteoDu, type Meteo } from "../domaine/meteo";
+import type { Meteo } from "../domaine/meteo";
 import type { Element, Id, Jour, Liste, Tache } from "../domaine/types";
 import {
   alerteAFaire,
@@ -13,7 +13,6 @@ import {
   minuscule,
   nouveautesDeLAutre,
   nuitApprise,
-  resumeDuMatin,
   tacheDeLHeure,
 } from "../domaine/vieFee";
 import { changerEtatFee, direSiCalme, estEveillee, feteFee, lireEtatFee, tinter, type Parole } from "./fee";
@@ -22,8 +21,9 @@ import { heureMinute } from "../domaine/texte";
 import { CLES, ecrireJson, ecrireTexte, lireJson, lireTexte } from "./stockageLocal";
 
 // Le moteur de la vie de la fée, sur l'accueil : il regarde le foyer toutes les vingt secondes
-// et décide si elle dort, scintille près d'un widget, rappelle une tâche à son heure, fête un
-// jour J ou dit bonjour au réveil. Les règles sont dans `domaine/vieFee.ts`.
+// et décide si elle dort, scintille près d'un widget, rappelle une tâche à son heure ou fête un
+// jour J. Elle ne résume plus la journée au réveil (0.1.14) : l'écran Aujourd'hui la dit déjà.
+// Les règles sont dans `domaine/vieFee.ts`.
 
 const minuteDuJour = (d: Date) => d.getHours() * 60 + d.getMinutes();
 
@@ -76,8 +76,6 @@ export interface EntreeVie {
   meteo: Meteo | null;
   listes: readonly Liste[];
   elements: readonly Element[];
-  /** Le prochain rendez-vous, déjà dit en une ligne (« Jeu. 14:30 · Dentiste »). */
-  rdv: string | null;
   ouvrir: (destination: DestinationChose | "courses") => void;
   cocher: (c: ChoseDuJour) => void;
   /** « Dans 15 min » : l'heure de la tâche recule d'un quart d'heure. */
@@ -88,7 +86,6 @@ export function useVieFee(e: EntreeVie): void {
   const entree = useRef(e);
   entree.current = e;
   const finAlerte = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const etaitNuit = useRef<boolean | null>(null);
 
   useEffect(() => {
     if (!e.actif) return;
@@ -100,7 +97,6 @@ export function useVieFee(e: EntreeVie): void {
 
       // La nuit, elle dort sur la date ; rien d'autre.
       if (nuit) {
-        etaitNuit.current = true;
         changerEtatFee({ nuit: true, alerte: null, cible: SUR_LA_DATE, allure: null });
         return;
       }
@@ -112,25 +108,6 @@ export function useVieFee(e: EntreeVie): void {
         cible: vie.cible === SUR_LA_DATE ? null : vie.cible,
       });
       const rituels = lireDuJour(CLES.feeRituels, jour);
-
-      // Le réveil : le premier matin où elle ne dort plus, elle s'étire et résume la journée.
-      if (!rituels.has("reveil") && maintenant.getHours() < 12) {
-        const m = meteoDu(x.meteo, jour);
-        const parole: Parole = {
-          cle: `reveil:${jour}`,
-          texte: resumeDuMatin(x.carte, { rdv: x.rdv ? `${x.rdv}.` : null, meteo: m ? `${formaterTemperatures(m)}, ${decrireTemps(m.code).toLowerCase()}.` : null }),
-        };
-        if (etaitNuit.current) {
-          changerEtatFee({ etire: true });
-          setTimeout(() => changerEtatFee({ etire: false }), 2400);
-        }
-        if (direSiCalme(parole)) {
-          rituels.add("reveil");
-          noterDuJour(CLES.feeRituels, jour, rituels);
-          etaitNuit.current = false;
-          return;
-        }
-      }
 
       // L'heure d'une tâche : elle le dit tout de suite, même à une heure où elle se tait.
       const dites = lireDuJour(CLES.feeHeures, jour);

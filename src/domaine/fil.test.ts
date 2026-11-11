@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filDuFoyer, grouperParJour, quiDe, resumeDuJour } from "./fil";
+import { filDuFoyer, gesteDit, grouperParJour } from "./fil";
 import type { Element, Tache } from "./types";
 
 const foyer = { membres: [{ id: "melo", prenom: "Melo", couleur: "#000" }, { id: "sarah", prenom: "Sarah", couleur: "#fff" }] };
@@ -43,11 +43,9 @@ describe("le fil du foyer", () => {
     expect(grouperParJour(fil, "2026-10-21", jourLocal)[0].titre).toBe("Hier");
   });
 
-  it("résume le jour pour l'accueil, en disant « toi »", () => {
+  it("dit le geste à la personne du téléphone : « Tu as fait », « Sarah a fait »", () => {
     const fil = filDuFoyer({ taches: [tache], elements: [lait], budget: [], zones: [], couple: [] }, MAINTENANT);
-    expect(resumeDuJour(fil, "2026-10-20", jourLocal, foyer, "melo")).toBe("toi 1 · Sarah 1");
-    expect(resumeDuJour(fil, "2026-10-21", jourLocal, foyer, "melo")).toBe("");
-    expect(quiDe(fil[0], foyer, "melo")).toBe("Sarah");
-    expect(quiDe(fil[1], foyer, "melo")).toBe("Toi");
+    expect(gesteDit(fil[0], foyer, "melo").qui).toBe("Sarah");
+    expect(gesteDit(fil[1], foyer, "melo")).toMatchObject({ qui: "Tu", texte: expect.stringMatching(/^as /) });
   });
 });

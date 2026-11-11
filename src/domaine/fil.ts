@@ -81,21 +81,11 @@ function nommerJour(jour: Jour): string {
   return nom.charAt(0).toUpperCase() + nom.slice(1);
 }
 
-/** « Sarah 3 · toi 2 » : le compte du jour, pour la ligne de l'accueil ; vide quand rien n'a bougé. */
-export function resumeDuJour(entrees: readonly EntreeFil[], aujourdhui: Jour, jourLocal: (iso: string) => Jour, foyer: Pick<Foyer, "membres">, moi: Id | null): string {
-  const duJour = entrees.filter((e) => jourDe(e.quand, jourLocal) === aujourdhui);
-  if (duJour.length === 0) return "";
-  const parts = foyer.membres
-    .map((m) => ({ m, n: duJour.filter((e) => e.par === m.id).length }))
-    .filter(({ n }) => n > 0)
-    .map(({ m, n }) => `${m.id === moi ? "toi" : m.prenom} ${n}`);
-  const sansQui = duJour.filter((e) => !foyer.membres.some((m) => m.id === e.par)).length;
-  if (sansQui) parts.push(`sans nom ${sansQui}`);
-  return parts.join(" · ");
-}
-
-/** Le prénom du geste : « Sarah », « Toi », ou « Quelqu'un » quand le téléphone ne savait pas qui. */
-export function quiDe(entree: EntreeFil, foyer: Pick<Foyer, "membres">, moi: Id | null): string {
-  if (entree.par && entree.par === moi) return "Toi";
-  return foyer.membres.find((m) => m.id === entree.par)?.prenom ?? "Quelqu'un";
+/**
+ * Le geste dit à la personne du téléphone : « Sarah » « a fait … », « Tu » « as fait … », ou
+ * « Quelqu'un » quand le téléphone ne savait pas qui.
+ */
+export function gesteDit(entree: EntreeFil, foyer: Pick<Foyer, "membres">, moi: Id | null): { qui: string; texte: string } {
+  if (entree.par && entree.par === moi) return { qui: "Tu", texte: entree.texte.replace(/^a /, "as ") };
+  return { qui: foyer.membres.find((m) => m.id === entree.par)?.prenom ?? "Quelqu'un", texte: entree.texte };
 }

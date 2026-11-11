@@ -192,11 +192,12 @@ function ActionsParole({ parole }: { parole: Parole }) {
  * Sa carte, dans la grille d'un espace : ce qu'elle dit (une remarque, un mot de l'autre, ce
  * qu'elle vient de faire) avec ses actions. Rien à dire : pas de carte.
  */
-export function CarteTael({ vol }: { vol?: boolean }) {
+export function CarteTael({ vol, sansMot }: { vol?: boolean; sansMot?: boolean }) {
   const parole = useParoleFee();
   const { attentes, ouvrirAttente, prenomAutre } = useOrbe();
   const fee = useFee();
-  const attente: Attente | undefined = attentes[0];
+  // `sansMot` : la page montre déjà le mot de l'autre dans sa carte, elle ne l'annonce pas une seconde fois.
+  const attente: Attente | undefined = attentes.find((a) => !(sansMot && a.sorte === "message"));
   const carte = useRef<HTMLDivElement>(null);
   // Elle s'envole du salut jusqu'à sa carte quand la carte apparaît (mouvement « vivant »).
   const cle = parole ? `${parole.cle}:${parole.texte}` : attente ? attente.cle : null;
