@@ -10,7 +10,7 @@ import { feteFee } from "../fee";
 import { vibrer } from "../haptique";
 import { Icone } from "../Icone";
 import type { DonneesModule } from "../modules";
-import { sceller } from "../moteur/langage";
+import { sceller, soufflerPuis } from "../moteur/langage";
 import type { Page } from "../pages";
 import { enLettres, EnteteEspace, Grille, Jours, LigneCoche, LigneDite, Tuile } from "../pieces/Cartes";
 import { CarteTael } from "../pieces/Tael";
@@ -98,7 +98,7 @@ export function EspaceOrganisation(props: { donnees: DonneesModule; depot: Depot
             <p className="etiq">{ecartJours(aujourdhui, pressee.echeance) < -1 ? decrireEcheance(pressee.echeance, aujourdhui).replace(/^./, (c) => c.toUpperCase()) : ecartJours(aujourdhui, pressee.echeance) < 0 ? "En retard depuis hier" : "À toi aujourd'hui"}</p>
             <p className="titre-c">{pressee.titre}</p>
             <div className="actions-c">
-              <button type="button" className="pilule" onClick={() => void faire(pressee)}>C'est fait</button>
+              <button type="button" className="pilule" onClick={(e) => soufflerPuis(e.currentTarget.closest<HTMLElement>(".tuile"), () => void faire(pressee))}>C'est fait</button>
             </div>
           </Tuile>
         ) : (
@@ -116,7 +116,7 @@ export function EspaceOrganisation(props: { donnees: DonneesModule; depot: Depot
 
         <CarteTael />
 
-        <Tuile large i={i++} role="group" label={`Tâches : ${miennes.length} à toi`} className="taches-c">
+        <Tuile large i={i++} touche="taches" role="group" label={`Tâches : ${miennes.length} à toi`} className="taches-c">
           <p className="etiq"><Icone nom="coche" taille={18} />Tâches{enRetard.length > 0 && <b className="pastille-k urgent" style={{ marginLeft: "auto" }}>{enRetard.length} en retard</b>}</p>
           {montrees.length ? (
             <div className="lignes">

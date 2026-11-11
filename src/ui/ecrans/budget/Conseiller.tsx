@@ -14,6 +14,7 @@ import { Icone } from "../../Icone";
 import type { PropsPage } from "../../modules";
 import { vibrer } from "../../haptique";
 import { nomFee } from "../../fee";
+import { BulleAttente } from "../../moteur/pieces";
 import { CLES, ecrireJson, lireJson } from "../../stockageLocal";
 
 // Le conseiller du Budget (Kora 0.0.37) : Jarvis lit tout le budget et répond par quelques
@@ -111,7 +112,8 @@ export function CarteConseiller(props: { conseiller: Conseiller; disponible: boo
           {enCours} : {nomFee()} lit le budget…
         </p>
       )}
-      {erreur && <p className="discret">{erreur}</p>}
+      {enCours && <BulleAttente />}
+      {erreur && <p className="discret tremble">{erreur}</p>}
       {!enCours && echange && <Reponse echange={echange} />}
       {alerte && <p className="discret">{alerte}</p>}
     </section>

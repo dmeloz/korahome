@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { vibrerAvant } from "../haptique";
 import { moinsDAnimations } from "./ressorts";
 
 // Le langage des gestes de Kora (0.1.5, demande de Melo du 11 novembre 2026) : quatre mouvements
@@ -8,7 +9,8 @@ import { moinsDAnimations } from "./ressorts";
 // - Le liseré tourne : Tael travaille ; il se ferme quand elle a fini (BulleAttente, pieces.tsx).
 // - Le sceau se dessine : tout est fini (dernière course prise, dernière tâche du jour faite).
 // Chacun dure moins d'une demi-seconde. Les mouvements eux-mêmes sont dans styles/langage.css
-// (propriétés `scale` et `translate`, qui s'ajoutent au `transform` de Motion sans le gêner).
+// (propriétés `scale` et `translate`, qui s'ajoutent au `transform` de Motion sans le gêner) ;
+// leurs durées viennent d'ici (`installerGestes` les donne aux styles en `--geste-*`).
 // Si l'iPhone demande moins d'animations, rien ne bouge et l'action se fait tout de suite.
 // Équivalents natifs : .phaseAnimator pour respirer et trembler, .trim(from:to:) pour le sceau
 // et le liseré, .sensoryFeedback(.success / .error) pour la vibration.
@@ -25,6 +27,11 @@ export const DUREES = {
   /** Le sceau se dessine (cercle puis coche), reste un instant et s'efface. */
   sceau: 450,
 } as const;
+
+/** Donne les durées aux styles (--geste-respiration…), au démarrage : un seul endroit les décide. */
+export function installerGestes(racine: HTMLElement = document.documentElement): void {
+  for (const [nom, duree] of Object.entries(DUREES)) racine.style.setProperty(`--geste-${nom}`, `${duree}ms`);
+}
 
 /** Rejoue une animation de styles/langage.css sur un élément, puis retire sa classe. */
 function jouer(el: Element | null | undefined, classe: string, duree: number, delai = 0): void {
@@ -62,54 +69,68 @@ export function useRespiration() {
   const lances = useRef(new Set<string>());
   return {
     respire: (id: string) => enCours.has(id),
-    lancer(id: string, action: () => void) {
+    /** `ids` : la ligne cochée, ou plusieurs d'un coup (« Choisir », puis « Faites »). */
+    lancer(ids: string | readonly string[], action: () => void) {
+      const liste = (typeof ids === "string" ? [ids] : ids).filter((id) => !lances.current.has(id));
+      if (!liste.length) return;
+      // La vibration sous le doigt, pas à la fin du souffle.
+      vibrerAvant();
       if (moinsDAnimations()) return action();
-      if (lances.current.has(id)) return;
-      lances.current.add(id);
-      setEnCours((s) => new Set(s).add(id));
+      for (const id of liste) lances.current.add(id);
+      setEnCours((s) => new Set([...s, ...liste]));
       setTimeout(() => {
-        lances.current.delete(id);
-        setEnCours((s) => {
-          const t = new Set(s);
-          t.delete(id);
-          return t;
-        });
+        for (const id of liste) lances.current.delete(id);
+        setEnCours((s) => new Set([...s].filter((id) => !liste.includes(id))));
         action();
       }, DUREES.respiration);
     },
   };
 }
 
+/** Un bouton « C'est fait » : sa carte respire, puis l'action part. */
+export function soufflerPuis(el: HTMLElement | null, action: () => void): void {
+  vibrerAvant();
+  if (!el || moinsDAnimations()) return action();
+  if (el.dataset.souffle) return;
+  el.dataset.souffle = "oui";
+  respirer(el);
+  setTimeout(() => {
+    delete el.dataset.souffle;
+    action();
+  }, DUREES.respiration);
+}
+
 // ----- Les cartes que Tael vient de toucher -----
 
-/** Les cartes (data-widget) de chaque collection : ce que Tael touche, elles le montrent. */
-const CARTES_DE: Readonly<Record<string, readonly string[]>> = {
-  elements: ["courses", "listes"],
-  taches: ["taches", "entretien"],
-  agenda: ["agenda"],
-  budget: ["budget"],
-  menus: ["chef"],
-  stock: ["stock"],
-  jardin: ["jardin"],
-  animaux: ["mitsu"],
-  maison: ["entretien"],
+/** Ce que montre la carte d'un espace (son `widget`), quand elle ne le dit pas elle-même (`touche`). */
+const COLLECTIONS_DE: Readonly<Record<string, string>> = {
+  courses: "elements",
+  listes: "elements",
+  taches: "taches",
+  entretien: "taches",
+  agenda: "agenda",
+  budget: "budget",
+  chef: "menus",
+  stock: "stock",
+  jardin: "jardin",
+  mitsu: "animaux",
 };
 
-/** Les cartes à faire respirer pour ces collections, dans l'ordre et sans doublon. */
-export function cartesTouchees(collections: readonly string[]): string[] {
-  return [...new Set(collections.flatMap((c) => CARTES_DE[c] ?? []))];
-}
+/** Les collections qu'une carte montre (`data-touche`) : dites par la carte, sinon celles de son widget. */
+export const toucheDe = (touche?: string, widget?: string): string | undefined => touche ?? (widget ? COLLECTIONS_DE[widget] : undefined);
+
+/** Cette carte montre-t-elle une des collections touchées ? */
+export const estTouchee = (touche: string | undefined, collections: ReadonlySet<string>): boolean => !!touche && touche.split(" ").some((c) => collections.has(c));
 
 /** Ce qui a été touché attend la prochaine page de cartes, deux minutes au plus. */
 const GARDE_MS = 120_000;
-let touchees: { cartes: Set<string>; quand: number } | null = null;
+let touchees: { collections: Set<string>; quand: number } | null = null;
 const abonnes = new Set<() => void>();
 
 /** Tael (ou la fée) vient de modifier ces collections : leurs cartes respireront. */
 export function signalerTouchees(collections: readonly string[]): void {
-  const cartes = cartesTouchees(collections);
-  if (!cartes.length || moinsDAnimations()) return;
-  touchees = { cartes: new Set([...(touchees?.cartes ?? []), ...cartes]), quand: Date.now() };
+  if (!collections.length || moinsDAnimations()) return;
+  touchees = { collections: new Set([...(touchees?.collections ?? []), ...collections]), quand: Date.now() };
   abonnes.forEach((f) => f());
 }
 
@@ -122,10 +143,12 @@ function faireRespirer(grille: HTMLElement): void {
   }
   // Une page recouverte (une page ouverte par-dessus) attend d'être à nouveau dessus.
   if (!grille.closest(".page-dessus")) return;
-  const trouvees = [...grille.querySelectorAll<HTMLElement>("[data-widget]")].filter((c) => touchees!.cartes.has(c.dataset.widget ?? ""));
+  const { collections } = touchees;
+  // Trois cartes au plus : au-delà, ce n'est plus un signe, c'est du bruit.
+  const trouvees = [...grille.querySelectorAll<HTMLElement>("[data-touche]")].filter((c) => estTouchee(c.dataset.touche, collections)).slice(0, 3);
   if (!trouvees.length) return;
-  for (const c of trouvees) touchees.cartes.delete(c.dataset.widget ?? "");
-  if (!touchees.cartes.size) touchees = null;
+  // Montré une fois : la première page de cartes qui en a une le dit, les autres n'y reviennent pas.
+  touchees = null;
   // Un léger temps d'abord : la page finit d'arriver.
   trouvees.forEach((c, i) => respirer(c, { delai: 220 + i * DUREES.cascade, trait: true }));
 }

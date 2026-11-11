@@ -27,7 +27,7 @@
   --urgent: #e2916a;
   /* Le bleu ciel de Navi, la fée de Sarah : ce qui vient d'elle. */
   --navi: #6fc6f0;
-  --coche: #6f746f;
+  --coche: #8b908b;
   --ombre: 0 18px 40px -24px rgb(0 0 0 / 0.8);
   --verre: rgb(23 24 27 / 0.82);
   --verre-trait: rgb(255 255 255 / 0.08);
@@ -98,7 +98,7 @@
     --sur-ivoire: #f1ede6;
     --urgent: #a64b29;
     --navi: #1d7fb3;
-    --coche: #9a9488;
+    --coche: #6f6a60;
     --ombre: 0 10px 24px -18px rgb(90 70 40 / 0.35);
     --verre: rgb(255 255 255 / 0.86);
     --verre-trait: rgb(0 0 0 / 0.08);

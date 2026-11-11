@@ -255,7 +255,9 @@ export function BarreJarvis(props: {
       if (!liste) return props.demanderAJarvis(texte);
       const r = await ajouterArticles(depot, liste, donnees.elements, intention.articles, donnees.membreId, donnees.catalogue);
       if (r.ajoutes.length === 0) {
-        refuser(r.doublons.length ? `« ${r.doublons[0]} » est déjà sur la liste.` : "Rien à ajouter.");
+        // Un doublon est une information, pas un refus : il ne tremble pas.
+        setMessage(r.doublons.length ? `« ${r.doublons[0]} » est déjà sur la liste.` : "Rien à ajouter.");
+        setRefus(false);
         return;
       }
       vibrer();
