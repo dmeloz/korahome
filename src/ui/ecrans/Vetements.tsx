@@ -10,13 +10,10 @@ import { vibrer } from "../haptique";
 import { Icone } from "../Icone";
 import { Ligne, ListeVivante } from "../moteur/pieces";
 import { LigneAjout } from "../pieces/LigneAjout";
-import { CLES, ecrireTexte, lireTexte } from "../stockageLocal";
 
 // L'onglet Vêtements de Maison (idée de Sarah, 0.0.79) : pour chacun, ses tailles, ses envies
 // à acheter et ce qui attend d'être trié. On passe de l'un à l'autre d'un toucher : l'autre
 // voit les tailles et les envies, de quoi trouver un cadeau qui va.
-
-const CLE_TUTO = "vetements";
 
 export function Vetements(props: { depot: Depot; foyer: Foyer; membreId: string | null; vetements: DocVetement[]; aujourdhui: Jour }) {
   const { depot, foyer, vetements, aujourdhui } = props;
@@ -24,7 +21,6 @@ export function Vetements(props: { depot: Depot; foyer: Foyer; membreId: string 
   const membres = [...foyer.membres].sort((a, b) => Number(b.id === props.membreId) - Number(a.id === props.membreId));
   const [qui, setQui] = useState(props.membreId ?? membres[0]?.id ?? null);
   const [sort, setSort] = useState<Sort>("donner");
-  const [tuto, setTuto] = useState(() => lireTexte(CLES.prefixeAide + CLE_TUTO, "1") !== "1");
   const maintenant = new Date().toISOString();
   const personne = membres.find((m) => m.id === qui) ?? null;
   const moi = qui === props.membreId;
@@ -82,27 +78,6 @@ export function Vetements(props: { depot: Depot; foyer: Foyer; membreId: string 
 
   return (
     <>
-      {tuto && (
-        <section className="carte vetements-tuto" aria-label="Comment ça marche">
-          <p className="surtitre">Vos vêtements, à deux</p>
-          <ol>
-            <li><strong>Tes tailles</strong> : note-les une fois. L'autre les voit, pratique pour un cadeau.</li>
-            <li><strong>Tes envies</strong> : écris « veste en laine 120 », Kora garde le prix. Coche quand c'est acheté.</li>
-            <li><strong>À trier</strong> : ce qui ne sert plus, et ce qu'on en fait : donner, vendre, réparer, jeter.</li>
-          </ol>
-          <button
-            className="lien"
-            onClick={() => {
-              // Stockage indisponible : le tuto se range pour cette visite.
-              ecrireTexte(CLES.prefixeAide + CLE_TUTO, "1");
-              setTuto(false);
-            }}
-          >
-            Compris
-          </button>
-        </section>
-      )}
-
       {membres.length > 1 && (
         <div className="puces vetements-qui" role="tablist" aria-label="De qui">
           {membres.map((m) => (

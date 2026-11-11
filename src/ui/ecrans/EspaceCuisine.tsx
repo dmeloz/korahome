@@ -113,14 +113,14 @@ export function EspaceCuisine(props: { donnees: DonneesModule; depot: Depot; ouv
 
         <Tuile i={i++} widget="stock" onClick={() => ouvrir("frigo")} label={`Frigo et placards : ${frigo.aConsommer.length} à consommer bientôt`} className={frigo.urgent ? "presse" : undefined}>
           <p className="etiq"><Icone nom="frigo" taille={18} />Frigo et placards</p>
-          <p className="phrase">
+          <p className={donnees.produits.length === 0 ? "doux" : "phrase"}>
             {donnees.produits.length === 0 ? "Note ce qu'il y a au frigo." : frigo.aConsommer.length === 0 ? `${enLettres(donnees.produits.length).replace(/^./, (c) => c.toUpperCase())} produits, rien ne presse.` : <><b>{enLettres(frigo.aConsommer.length).replace(/^./, (c) => c.toUpperCase())}</b> à consommer : {frigo.aConsommer[0].nom}{frigo.aConsommer[0].peremption ? `, ${decrirePeremption(frigo.aConsommer[0], aujourdhui)}` : ""}.</>}
           </p>
         </Tuile>
 
         <Tuile i={i++} onClick={() => ouvrir("recettes")} label={`Nos recettes : ${recettes.length}`}>
           <p className="etiq"><Icone nom="note" taille={18} />Nos recettes</p>
-          <p className="phrase">{recettes.length === 0 ? "Le Chef les remplit soir après soir." : <><b>{recettes.length}</b> recette{recettes.length > 1 ? "s" : ""} du foyer{ceSoir ? `, ${ceSoir.titre} ce soir` : ""}.</>}</p>
+          <p className={recettes.length === 0 ? "doux" : "phrase"}>{recettes.length === 0 ? "Le Chef les remplit soir après soir." : <><b>{recettes.length}</b> recette{recettes.length > 1 ? "s" : ""} du foyer{ceSoir ? `, ${ceSoir.titre} ce soir` : ""}.</>}</p>
         </Tuile>
 
         <Tuile contraste large i={i++} onClick={() => ouvrir("semaine")} label="Ce soir on a mangé">
@@ -131,7 +131,7 @@ export function EspaceCuisine(props: { donnees: DonneesModule; depot: Depot; ouv
 
         <Tuile large i={i++} widget="listes" onClick={() => ouvrir("listes")} label={`Autres listes : ${autresListes.length}`}>
           <p className="etiq"><Icone nom="liste" taille={18} />Autres listes</p>
-          <p className="phrase">
+          <p className={autresListes.length === 0 ? "doux" : "phrase"}>
             {autresListes.length === 0 ? "Une liste pour autre chose que les courses : vacances, cadeaux, bricolage." : <>{autresListes.slice(0, 3).map((l) => l.nom).join(", ")}{autresListes.length > 3 ? "…" : ""}{aFaireAilleurs ? ` · ${aFaireAilleurs} à faire` : ""}.</>}
           </p>
         </Tuile>
