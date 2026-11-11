@@ -9,8 +9,13 @@ import type { Id } from "../domaine/types";
 export interface Distant {
   /** Ce qui a changé sur le serveur depuis ce curseur (tout si null), et le nouveau curseur. */
   lire(foyerId: Id, depuis: string | null): Promise<{ changements: Changement[]; curseur: string | null }>;
-  /** Envoie des modifications ; le serveur garde la plus récente de chaque document. */
-  envoyer(foyerId: Id, changements: readonly Changement[]): Promise<void>;
+  /**
+   * Envoie des modifications ; le serveur garde la plus récente de chaque document et renvoie
+   * celles qu'il a refusées parce qu'il avait plus récent (Kora 0.1.12 : avant, le refus était muet).
+   */
+  envoyer(foyerId: Id, changements: readonly Changement[]): Promise<Changement[]>;
+  /** Ces documents tels que le serveur les a, pour rapprocher une modification refusée. */
+  lireDocuments(foyerId: Id, lesquels: readonly Pick<Changement, "collection" | "id">[]): Promise<Changement[]>;
 }
 
 export interface FoyerPartage {

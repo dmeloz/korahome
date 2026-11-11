@@ -1,7 +1,7 @@
 // Le partage entre les deux iPhone du foyer. Chaque téléphone garde toutes ses données
 // et fonctionne hors ligne ; chaque modification devient un « changement » daté, mis en
-// attente puis envoyé. Quand deux téléphones ont modifié la même chose, la modification
-// la plus récente gagne, document par document.
+// attente puis envoyé. Quand deux téléphones ont modifié le même document, leurs retouches
+// se rejoignent champ par champ (Kora 0.1.12) ; pour un même champ, la plus récente gagne.
 
 import { NOMS_COLLECTIONS, type CollectionSynchro } from "./collections";
 
@@ -34,35 +34,79 @@ export function distantGagne(local: Changement | undefined, distant: Changement)
   return !local || distant.maj >= local.maj;
 }
 
-/** Ne garde que la dernière modification de chaque document. */
-export function compacter(changements: readonly Changement[]): Changement[] {
-  const parCle = new Map<string, Changement>();
-  for (const c of changements) {
-    const avant = parCle.get(cleDe(c));
-    // À égalité, le dernier arrivé gagne.
-    parCle.set(cleDe(c), avant && avant.maj > c.maj ? avant : c);
-  }
-  return [...parCle.values()];
+/** Une modification en attente d'envoi, avec le document tel que le serveur l'avait quand on l'a retouché. */
+export interface EnAttente extends Changement {
+  /** Le document à la dernière synchro (null s'il n'existait pas). Absent : on ne sait pas, la plus récente gagne. */
+  base?: unknown;
+}
+
+type Objet = Record<string, unknown>;
+const estObjet = (v: unknown): v is Objet => typeof v === "object" && v !== null && !Array.isArray(v);
+/** Le nom d'un élément dans sa liste : son `id`, ou son `membreId` (les personnes du plan du Budget). */
+const nomDe = (e: unknown): string | null => {
+  if (!estObjet(e)) return null;
+  return typeof e.id === "string" ? e.id : typeof e.membreId === "string" ? e.membreId : null;
+};
+/** Une liste de choses qui portent chacune leur nom (charges du budget, soins de Mitsu, membres du foyer…). */
+const estListeNommee = (v: unknown): v is Objet[] =>
+  Array.isArray(v) && v.every((e) => nomDe(e) !== null) && new Set(v.map(nomDe)).size === v.length;
+const clesDe = (o: Objet) => Object.keys(o).filter((k) => o[k] !== undefined);
+
+/** Le même contenu, quel que soit l'ordre des champs ; un champ vide (undefined) compte comme absent. */
+export function memeContenu(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (Array.isArray(a) && Array.isArray(b)) return a.length === b.length && a.every((v, i) => memeContenu(v, b[i]));
+  if (!estObjet(a) || !estObjet(b)) return false;
+  const cles = clesDe(a);
+  return cles.length === clesDe(b).length && cles.every((k) => memeContenu(a[k], b[k]));
 }
 
 /**
- * Rapproche ce qui attend d'être envoyé et ce qui arrive de l'autre téléphone :
- * pour chaque document, la modification la plus récente gagne. Une modification
- * locale battue par une plus récente n'a plus à partir.
+ * Rejoint deux versions d'un document parties de la même base : ce que l'un seul a touché est gardé,
+ * champ par champ, et élément par élément dans une liste dont chaque élément porte son nom. Quand les
+ * deux ont touché le même champ, `prefere` tranche. Ce que l'un a retiré et que l'autre a retouché reste.
  */
-export function fusionner(
-  enAttente: readonly Changement[],
-  distants: readonly Changement[],
-): { aAppliquer: Changement[]; enAttente: Changement[] } {
-  const locaux = new Map(compacter(enAttente).map((c) => [cleDe(c), c]));
-  const aAppliquer: Changement[] = [];
-  for (const d of compacter(distants)) {
-    const local = locaux.get(cleDe(d));
-    if (!distantGagne(local, d)) continue;
-    locaux.delete(cleDe(d));
-    aAppliquer.push(d);
+export function fusionnerDocuments(base: unknown, mien: unknown, leur: unknown, prefere: "mien" | "leur"): unknown {
+  if (memeContenu(mien, leur) || memeContenu(mien, base)) return leur;
+  if (memeContenu(leur, base)) return mien;
+  if (estObjet(mien) && estObjet(leur)) {
+    const b = estObjet(base) ? base : {};
+    const fusion: Objet = {};
+    for (const k of new Set([...clesDe(leur), ...clesDe(mien)])) {
+      const [m, l] = [mien[k], leur[k]];
+      const seul = m === undefined ? l : m;
+      if (m !== undefined && l !== undefined) fusion[k] = fusionnerDocuments(b[k], m, l, prefere);
+      // Présent d'un seul côté : ajouté par lui, ou retiré par l'autre (qui gagne si lui n'y a pas touché).
+      else if (b[k] === undefined || !memeContenu(seul, b[k])) fusion[k] = seul;
+    }
+    return fusion;
   }
-  return { aAppliquer, enAttente: [...locaux.values()] };
+  if (estListeNommee(mien) && estListeNommee(leur)) {
+    const parNom = (liste: unknown) => new Map((estListeNommee(liste) ? liste : []).map((e) => [nomDe(e), e]));
+    const [b, m, l] = [parNom(base), parNom(mien), parNom(leur)];
+    // Présent d'un seul côté : ajouté par lui, ou retiré par l'autre (qui gagne si lui n'y a pas touché).
+    const garde = (e: Objet) => !b.has(nomDe(e)) || !memeContenu(e, b.get(nomDe(e)));
+    return [
+      ...leur.flatMap((e) => (m.has(nomDe(e)) ? [fusionnerDocuments(b.get(nomDe(e)), m.get(nomDe(e)), e, prefere)] : garde(e) ? [e] : [])),
+      ...mien.filter((e) => !l.has(nomDe(e)) && garde(e)),
+    ];
+  }
+  return prefere === "mien" ? mien : leur;
+}
+
+/**
+ * Ce que devient une modification en attente quand la version du serveur arrive : le document à garder
+ * sur le téléphone, et ce qui reste à envoyer (null si le serveur dit déjà tout). Ce qui repart porte
+ * une heure juste après celle du serveur, pour qu'il ne le refuse pas quand l'horloge du téléphone retarde.
+ */
+export function rapprocher(local: EnAttente, distant: Changement): { donnees: unknown; enAttente: EnAttente | null } {
+  if (!("base" in local)) {
+    return distantGagne(local, distant) ? { donnees: distant.donnees, enAttente: null } : { donnees: local.donnees, enAttente: local };
+  }
+  const fusion = fusionnerDocuments(local.base, local.donnees, distant.donnees, distantGagne(local, distant) ? "leur" : "mien");
+  if (memeContenu(fusion, distant.donnees)) return { donnees: distant.donnees, enAttente: null };
+  const maj = local.maj > distant.maj ? local.maj : new Date(Date.parse(distant.maj) + 1).toISOString();
+  return { donnees: fusion, enAttente: { collection: local.collection, id: local.id, donnees: fusion, base: distant.donnees, maj } };
 }
 
 /**

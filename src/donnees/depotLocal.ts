@@ -11,7 +11,7 @@ import type { Souvenir } from "../domaine/memoire";
 import type { Animal } from "../domaine/mitsu";
 import type { Produit } from "../domaine/stock";
 import type { RetourTest } from "../domaine/retours";
-import { cleDe, COLLECTIONS_SYNCHRO, distantGagne, type Changement, type CollectionSynchro } from "../domaine/synchro";
+import { cleDe, COLLECTIONS_SYNCHRO, rapprocher, type Changement, type CollectionSynchro, type EnAttente as Attente } from "../domaine/synchro";
 import type { Element, Foyer, Id, Liste, Tache } from "../domaine/types";
 import type { Changees, Depot } from "./depot";
 
@@ -52,7 +52,7 @@ export interface StockageSynchro {
   lireEnAttente(): Promise<Changement[]>;
   /** Retire ce qui est parti, sauf si le document a été modifié de nouveau entre-temps. */
   retirerEnAttente(envoyes: readonly Changement[]): Promise<void>;
-  /** Applique les modifications de l'autre téléphone, sans écraser une modification locale plus récente. */
+  /** Applique les modifications de l'autre téléphone ; une modification locale pas encore partie s'y joint champ par champ. */
   appliquer(distants: readonly Changement[]): Promise<void>;
   /** Rejoindre un foyer : les données partagées remplacent celles de ce téléphone. */
   remplacerTout(distants: readonly Changement[]): Promise<void>;
@@ -64,7 +64,7 @@ export interface StockageSynchro {
 
 export type DepotLocal = Depot & StockageSynchro;
 
-interface EnAttente extends Changement {
+interface EnAttente extends Attente {
   cle: string;
 }
 
@@ -171,13 +171,26 @@ export function creerDepotLocal(
     const tx = db.transaction([...magasins], "readwrite");
     const maj = horloge();
     const par = auteur();
-    const enAttente = (collection: CollectionSynchro, id: Id, donnees: unknown) => {
-      const c: EnAttente = { cle: cleDe({ collection, id }), collection, id, donnees, maj };
-      tx.objectStore("attente").put(c);
+    // La base d'une modification : le document tel qu'il était à la dernière synchro. Une modification
+    // déjà en attente garde la sienne ; sinon c'est le document d'avant cette écriture (Kora 0.1.12).
+    const bases = new Map<string, unknown>();
+    const enAttente = (collection: CollectionSynchro, id: Id, donnees: unknown, ancien: () => unknown) => {
+      const cle = cleDe({ collection, id });
+      puis(tx.objectStore("attente").get(cle) as IDBRequest<EnAttente | undefined>, (dejaLa) => {
+        const c: EnAttente = { cle, collection, id, donnees, maj };
+        if (bases.has(cle)) c.base = bases.get(cle);
+        else if (!dejaLa) c.base = ancien() ?? null;
+        else if ("base" in dejaLa) c.base = dejaLa.base;
+        if ("base" in c) bases.set(cle, c.base);
+        tx.objectStore("attente").put(c);
+      });
     };
     // Les articles d'une liste effacée sont supprimés dans la même passe : on les garde pour la corbeille.
     const articlesEffaces = operations.filter((o) => o.magasin === "elements" && !o.doc && o.articleDe).map((o) => o.articleDe!);
     for (const { magasin, id, doc } of operations) {
+      // Lu avant l'écriture : les demandes d'une transaction passent dans l'ordre.
+      let ancien: unknown = null;
+      if (estPartage(magasin)) puis(tx.objectStore(magasin).get(id), (avant) => void (ancien = avant));
       if (doc) tx.objectStore(magasin).put(doc);
       else {
         if (estCollectionCorbeille(magasin)) {
@@ -186,12 +199,12 @@ export function creerDepotLocal(
             const articles = magasin === "listes" ? articlesEffaces.filter((e) => e.listeId === id) : undefined;
             const entree = mettreALaCorbeille(magasin, ancien, { maintenant: maj, par }, articles);
             tx.objectStore("corbeille").put(entree);
-            enAttente("corbeille", entree.id, entree);
+            enAttente("corbeille", entree.id, entree, () => null);
           });
         }
         tx.objectStore(magasin).delete(id);
       }
-      if (estPartage(magasin)) enAttente(magasin, id, doc);
+      if (estPartage(magasin)) enAttente(magasin, id, doc, () => ancien);
     }
     await terminer(tx);
     signaler(partagees(magasins));
@@ -313,10 +326,12 @@ export function creerDepotLocal(
         // La vérification se fait dans la même transaction qu'une écriture locale :
         // une modification faite ici pendant la synchro n'est jamais écrasée.
         puis(attente.get(cleDe(d)) as IDBRequest<EnAttente | undefined>, (local) => {
-          if (!distantGagne(local, d)) return;
-          if (local) attente.delete(cleDe(d));
-          if (d.donnees === null) tx.objectStore(d.collection).delete(d.id);
-          else tx.objectStore(d.collection).put(d.donnees);
+          const issue = local ? rapprocher(local, d) : { donnees: d.donnees, enAttente: null };
+          if (issue.enAttente === local) return;
+          if (issue.enAttente) attente.put({ cle: cleDe(d), ...issue.enAttente });
+          else if (local) attente.delete(cleDe(d));
+          if (issue.donnees === null) tx.objectStore(d.collection).delete(d.id);
+          else tx.objectStore(d.collection).put(issue.donnees);
         });
       }
       await terminer(tx);

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { COLLECTIONS_SYNCHRO, type Changement, type CollectionSynchro } from "../domaine/synchro";
+import { cleDe, COLLECTIONS_SYNCHRO, type Changement, type CollectionSynchro } from "../domaine/synchro";
 import type { FoyerPartage, ReponseJarvis, ServicesDistants } from "./distant";
 
 // Le serveur partagé du foyer, sur Supabase (tables et règles : supabase/schema.sql).
@@ -240,17 +240,43 @@ export function creerServicesSupabase(url: string, cle: string): ServicesDistant
 
     async envoyer(foyerId, changements) {
       const sb = await supabase();
+      const refuses: Changement[] = [];
       for (let debut = 0; debut < changements.length; debut += PAGE / 2) {
-        const lignes = changements.slice(debut, debut + PAGE / 2).map((c) => ({
+        const tranche = changements.slice(debut, debut + PAGE / 2);
+        const lignes = tranche.map((c) => ({
           foyer_id: foyerId,
           collection: c.collection,
           id: c.id,
           donnees: c.donnees,
           maj_client: c.maj,
         }));
-        const { error } = await sb.from("documents").upsert(lignes, { onConflict: "foyer_id,collection,id" });
+        // Le serveur ne renvoie que les lignes qu'il a écrites : celles qui manquent, il les a refusées
+        // parce qu'il avait plus récent (règle `documents_plus_recent` de schema.sql).
+        const { data, error } = await sb.from("documents").upsert(lignes, { onConflict: "foyer_id,collection,id" }).select("collection, id");
         echec(error);
+        const ecrites = new Set(((data ?? []) as Pick<LigneDocument, "collection" | "id">[]).map(cleDe));
+        refuses.push(...tranche.filter((c) => !ecrites.has(cleDe(c))));
       }
+      return refuses;
+    },
+
+    async lireDocuments(foyerId, lesquels) {
+      const sb = await supabase();
+      const changements: Changement[] = [];
+      for (const collection of new Set(lesquels.map((c) => c.collection))) {
+        const ids = lesquels.filter((c) => c.collection === collection).map((c) => c.id);
+        for (let debut = 0; debut < ids.length; debut += PAGE / 2) {
+          const { data, error } = await sb
+            .from("documents")
+            .select("collection, id, donnees, maj_client, maj_serveur")
+            .eq("foyer_id", foyerId)
+            .eq("collection", collection)
+            .in("id", ids.slice(debut, debut + PAGE / 2));
+          echec(error);
+          for (const l of (data ?? []) as LigneDocument[]) changements.push({ collection: l.collection, id: l.id, donnees: l.donnees, maj: new Date(l.maj_client).toISOString() });
+        }
+      }
+      return changements;
     },
   };
 }

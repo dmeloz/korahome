@@ -22,12 +22,21 @@ export function serveurFactice() {
     },
     async envoyer(foyerId, changements) {
       if (panne) throw new Error("Serveur injoignable");
+      const refuses: Changement[] = [];
       for (const c of changements) {
         const cle = `${foyerId}/${c.collection}/${c.id}`;
         const avant = lignes.get(cle);
-        if (avant && c.maj < avant.maj) continue;
-        lignes.set(cle, { ...structuredClone(c), foyerId, majServeur: new Date((t += 1000)).toISOString() });
+        if (avant && c.maj < avant.maj) refuses.push(c);
+        else lignes.set(cle, { ...structuredClone(c), foyerId, majServeur: new Date((t += 1000)).toISOString() });
       }
+      return refuses;
+    },
+    async lireDocuments(foyerId, lesquels) {
+      if (panne) throw new Error("Serveur injoignable");
+      return lesquels.flatMap((c) => {
+        const l = lignes.get(`${foyerId}/${c.collection}/${c.id}`);
+        return l ? [{ collection: l.collection, id: l.id, donnees: structuredClone(l.donnees), maj: l.maj }] : [];
+      });
     },
   };
   return {
