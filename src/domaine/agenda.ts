@@ -454,12 +454,16 @@ export function resumeAgenda(evenements: readonly Evenement[], animaux: readonly
   return { aujourdhui: duJour(occ, aujourdhui), semaine: occ.filter((o) => o.debut > aujourdhui) };
 }
 
-/** « Auj. 14:30 · Dentiste », « Jeu. · Anniversaire de maman · 64 ans ». */
-export function ligneWidget(o: Occurrence, aujourdhui: Jour): string {
+/**
+ * « Auj. 14:30 · Dentiste », « Jeu. · Anniversaire de maman · 64 ans » ; `entier` le dit en
+ * toutes lettres pour une phrase : « Samedi 19:00, Souper chez les parents ».
+ */
+export function ligneWidget(o: Occurrence, aujourdhui: Jour, entier = false): string {
   const ecart = ecartJours(aujourdhui, o.debut);
-  const quand = ecart <= 0 ? "Auj." : ecart === 1 ? "Demain" : `${majuscule(NOMS_JOURS[jourSemaine(o.debut)].slice(0, 3))}.`;
+  const nom = NOMS_JOURS[jourSemaine(o.debut)];
+  const quand = ecart <= 0 ? (entier ? "Aujourd'hui" : "Auj.") : ecart === 1 ? "Demain" : majuscule(entier ? nom : `${nom.slice(0, 3)}.`);
   const heure = o.evenement.heure && o.debut >= aujourdhui ? ` ${o.evenement.heure}` : "";
-  return `${quand}${heure} · ${titreDe(o)}`;
+  return `${quand}${heure}${entier ? ", " : " · "}${titreDe(o)}`;
 }
 
 // ----- Écrire comme on parle -----

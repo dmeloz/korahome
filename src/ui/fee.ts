@@ -114,11 +114,9 @@ export interface EtatFee {
   /** Où elle vole (un sélecteur de l'écran), au lieu de sa place. */
   cible: string | null;
   joie: boolean;
-  /** Le réveil : elle s'étire. */
-  etire: boolean;
 }
 
-let etat: EtatFee = { eclat: "normal", nuit: false, allure: null, alerte: null, cible: null, joie: false, etire: false };
+let etat: EtatFee = { eclat: "normal", nuit: false, allure: null, alerte: null, cible: null, joie: false };
 const abonnesEtat = new Set<() => void>();
 
 export function changerEtatFee(changement: Partial<EtatFee>): void {

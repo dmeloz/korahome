@@ -154,6 +154,7 @@ describe("les mots des dates", () => {
   it("une ligne de widget", () => {
     const e = ev({ titre: "Dentiste", jour: "2026-10-22", heure: "14:30" });
     expect(ligneWidget(occurrences([e], AUJOURDHUI, "2026-10-31")[0], AUJOURDHUI)).toBe("Jeu. 14:30 · Dentiste");
+    expect(ligneWidget(occurrences([e], AUJOURDHUI, "2026-10-31")[0], AUJOURDHUI, true)).toBe("Jeudi 14:30, Dentiste");
   });
 
   it("une grille de mois en semaines entières, du lundi au dimanche", () => {

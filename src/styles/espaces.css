@@ -84,6 +84,36 @@ button.tuile:active { transform: translateY(-3px); }
 .li small.navi { color: var(--navi); }
 .li time { color: var(--sourd); font-size: var(--t-legende); font-variant-numeric: tabular-nums; flex: none; }
 .li.urgent time, .li.urgent small { color: var(--urgent); }
+
+/* ---------- Aujourd'hui sans répétition (0.1.14) : la carte du moment ----------
+   Ce qui attend en premier, en laiton ; la suite du jour dessous ; rien n'attend, la carte reste graphite. */
+.moment-haut { display: flex; align-items: center; justify-content: space-between; gap: var(--espace-4); }
+.moment-quand { flex: none; padding: var(--espace-1) var(--espace-4); border-radius: var(--rayon-rond); font-size: var(--t-legende); font-weight: 600; background: var(--accent-doux); color: var(--accent); }
+.tuile.forte .moment-quand { background: rgb(0 0 0 / 0.14); color: var(--sur-accent); }
+.moment-titre { display: block; width: 100%; margin: var(--espace-4) 0 0; padding: 0; border: 0; background: none; color: inherit; font-family: var(--police-titre); font-size: 22px; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em; text-align: left; text-wrap: pretty; }
+/* Rien n'attend : toute la carte ouvre la page, ses lignes restent touchables par-dessus. */
+.moment.calme .moment-titre::after { content: ""; position: absolute; inset: 0; border-radius: var(--rayon-carte); }
+.moment.calme .li, .moment.calme .moment-autres { position: relative; z-index: 1; }
+.moment-fait { display: flex; align-items: center; gap: var(--espace-4); margin: var(--espace-5) 0 0; padding-top: var(--espace-5); border-top: 1px solid var(--trait); color: var(--discret); font-size: var(--t-detail); }
+.moment-fait svg { width: 16px; height: 16px; flex: none; color: var(--accent); }
+.moment-suite { margin-top: var(--espace-6); padding-top: var(--espace-5); border-top: 1px solid var(--trait); }
+.moment-suite .lignes { margin-top: var(--espace-2); }
+/* Une ligne qui ne se coche pas (un produit, le repas) : un point à la place de la case, les textes restent alignés. */
+.li-point { display: grid; place-items: center; width: 24px; height: 24px; flex: none; }
+.li-point::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.45; }
+.moment-autres { display: block; min-height: 44px; margin: var(--espace-2) 0 calc(-1 * var(--espace-4)); padding: 0; border: 0; background: none; color: var(--discret); font-size: var(--t-detail); font-weight: 600; text-align: left; }
+.moment .pilule:not(.pleine) { background: none; box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 40%, transparent); }
+.tuile.forte .pilule.pleine { background: var(--sur-accent); color: var(--accent); }
+/* Les lignes posées sur le laiton : traits, cases et heures prennent l'encre de la carte. */
+.tuile.forte .moment-suite, .tuile.forte .li { border-color: rgb(0 0 0 / 0.16); }
+.tuile.forte .li .case { border-color: color-mix(in srgb, var(--sur-accent) 60%, transparent); }
+.tuile.forte .li[aria-checked="true"] .case { background: var(--sur-accent); border-color: var(--sur-accent); color: var(--accent); }
+.tuile.forte .li[aria-checked="true"] .li-texte, .tuile.forte .li time, .tuile.forte .li small, .tuile.forte .moment-autres { color: color-mix(in srgb, var(--sur-accent) 75%, transparent); }
+.fil-c { font-size: 15px; }
+/* Le chiffre d'une petite carte ne se coupe plus : « CHF » passe à la ligne s'il le faut. */
+.aujourdhui .grand-chiffre { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--espace-2); font-size: 34px; }
+.aujourdhui .grand-chiffre small { margin-left: 0; font-size: 14px; }
+.aujourdhui .jours + .phrase { margin-top: var(--espace-5); font-size: 15px; font-weight: 500; color: var(--discret); }
 .ligne-b { display: flex; justify-content: space-between; align-items: center; gap: var(--espace-5); min-height: 52px; padding: 2px 0; border: 0; border-top: 1px solid var(--trait); background: none; width: 100%; font-size: var(--t-corps); color: inherit; text-align: left; }
 .ligne-b:first-child { border-top: 0; }
 .ligne-b small { display: block; color: var(--discret); font-size: var(--t-detail); }
@@ -238,6 +268,9 @@ button.tuile:active { transform: translateY(-3px); }
 /* Une page par-dessus un espace, une feuille, la saisie : le bouton Kora se retire. */
 html.feuille-ouverte .pile-kora, html.saisie-ouverte .pile-kora { opacity: 0; pointer-events: none; }
 .pile-kora { transition: opacity 0.25s; }
+/* Le bas de l'écran se fond sous le bouton rond : ce qui défile ne passe plus derrière lui (0.1.14). */
+.pile-kora::before { content: ""; position: fixed; left: 0; right: 0; bottom: 0; z-index: -1; height: calc(env(safe-area-inset-bottom) + 132px); background: linear-gradient(to bottom, transparent 0%, color-mix(in srgb, var(--fond) 92%, transparent) 46%, var(--fond) 70%); pointer-events: none; transition: opacity 0.3s; }
+.pile-kora.ouvert::before { opacity: 0; }
 .rail { display: none; position: fixed; left: calc(14px + var(--bord-gauche)); top: calc(env(safe-area-inset-top) + 24px); bottom: calc(env(safe-area-inset-bottom) + 24px); z-index: 20; flex-direction: column; gap: var(--espace-4); }
 .rail button { position: relative; display: flex; align-items: center; justify-content: center; gap: var(--espace-5); width: 48px; min-height: 48px; padding: 0; border-radius: var(--rayon-rond); background: none; color: var(--discret); font-size: 15px; font-weight: 600; border: 1px solid transparent; transition: color 0.25s, background 0.25s; }
 .rail button[aria-current="page"] { color: var(--accent); background: var(--surface); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }

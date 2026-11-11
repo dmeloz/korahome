@@ -5,23 +5,23 @@ import { resiliationsDuJour } from "../../domaine/abonnements";
 import { evenementsDe, ligneWidget, occurrences, resumeAgenda, titreDe } from "../../domaine/agenda";
 import { etatAMoi } from "../../domaine/aMoi";
 import { bilanAOuvrir, bilanDeLaSemaine, remarqueDuJour } from "../../domaine/apprentissage";
-import { carteDuJour, resteAFaire, titreMoment, type ChoseDuJour } from "../../domaine/aujourdhui";
+import { carteDuJour, dejaSurLaCarte, demainDuJour, momentDuJour, resteAFaire, titreMoment, type ChoseDuJour } from "../../domaine/aujourdhui";
 import { basculerCoeur, clinDuJour } from "../../domaine/bandeau";
 import { etatDesPots, facturesDuJour, formaterMontant, planDe } from "../../domaine/budget";
 import { enDirect } from "../../domaine/ecranAccueil";
 import type { EtatPartage } from "../../domaine/etatPartage";
-import { filDuFoyer, quiDe, resumeDuJour } from "../../domaine/fil";
+import { filDuFoyer, gesteDit } from "../../domaine/fil";
 import { ligneRetard } from "../../domaine/foyer";
 import { composerHub } from "../../domaine/hub";
-import { reglageDechets } from "../../domaine/maison";
+import { aSortirCeSoir, nomDechet, reglageDechets } from "../../domaine/maison";
 import { meteoDu } from "../../domaine/meteo";
 import { nouveauteADire } from "../../domaine/nouveautes";
 import type { OuRecherche } from "../../domaine/recherche";
 import { repartitionDue } from "../../domaine/repartition";
 import { decrireDerniere, sauvegardeDue } from "../../domaine/sauvegarde";
-import { compterDues, decaler, decrireEcheance, marquerFaite } from "../../domaine/taches";
+import { decaler, decrireEcheance, marquerFaite } from "../../domaine/taches";
 import { salutation } from "../../domaine/tael";
-import { heureMinute } from "../../domaine/texte";
+import { heureMinute, NOMS_JOURS } from "../../domaine/texte";
 import type { Tache } from "../../domaine/types";
 import type { WidgetId } from "../../domaine/tableauDeBord";
 import { useAnnoncer } from "../annulation";
@@ -36,7 +36,7 @@ import { MODULES, type DonneesModule } from "../modules";
 import { sceller, soufflerPuis } from "../moteur/langage";
 import type { Page } from "../pages";
 import { CarteDemarrage } from "../pieces/Demarrage";
-import { dateLongue, enLettres, EnteteEspace, Grille, Jours, Tuile } from "../pieces/Cartes";
+import { Coche, dateLongue, enLettres, EnteteEspace, Grille, Jours, LigneCoche, Tuile } from "../pieces/Cartes";
 import { FeuilleHeure } from "../pieces/FeuilleHeure";
 import { RechercheFee } from "../pieces/RechercheFee";
 import { CarteTael } from "../pieces/Tael";
@@ -49,11 +49,13 @@ import { fermerRemarque, lireAdaptations, lireDernierBilan, noterUsage, remarque
 import { nuitDeCeTelephone, useVieFee } from "../vieFee";
 import { lireDerniereRepartition } from "./Taches";
 
-// Aujourd'hui (Kora 0.1) : le premier des six espaces, d'après la maquette validée par Melo le
-// 4 novembre 2026. Le salut et Tael à côté, puis des cartes tirées des données du foyer : sa carte
-// à elle, « Ce soir » en héros, ce qui est à toi maintenant en laiton, les courses, les tâches,
-// la semaine de l'agenda, le seul grand chiffre (à toi ce mois), le mot de l'autre, demain en
-// ivoire, le fil « Chez nous ». Ce qui presse monte ; ce qui n'a rien à dire ne s'affiche pas.
+// Aujourd'hui (Kora 0.1) : le premier des six espaces. Depuis 0.1.14 (maquette « Aujourd'hui sans
+// répétition », validée par Melo le 11 novembre 2026), chaque chose se dit à un seul endroit : le
+// salut et Tael à côté, puis la carte du moment (ce qui attend aujourd'hui, en laiton seulement
+// quand quelque chose attend ; sinon le repas du soir ou le calme), les courses et le seul grand
+// chiffre, l'Agenda pour la suite de la semaine, « Demain » en ivoire pour tout ce que demain
+// apporte, le mot de l'autre, le fil « Chez nous ». Tael n'a sa carte que pour dire autre chose.
+// Les règles sont dans `domaine/aujourdhui.ts` (`momentDuJour`, `demainDuJour`).
 
 /** Combien de choses du jour la carte du jour retient. */
 const CHOSES_CARTE = 12;
@@ -79,7 +81,6 @@ export function Aujourdhui(props: {
   const autre = foyer.membres.find((m) => m.id !== membreId) ?? null;
   const annoncer = useAnnoncer();
   const maintenant = new Date();
-  const heureTexte = heureMinute(maintenant);
   const [heureDe, setHeureDe] = useState<Tache | null>(null);
 
   // Les rappels n'arrivent plus sur ce téléphone (nouvelle installation, autorisation retirée) : on le dit.
@@ -121,22 +122,12 @@ export function Aujourdhui(props: {
     },
     CHOSES_CARTE,
   );
-  const hub = composerHub({
-    foyer,
-    membreId,
-    aujourdhui: jourCarte,
-    maintenant: maintenant.toISOString(),
-    choses: carte.choses,
-    menus: donnees.menus,
-    listes: donnees.listes,
-    elements: donnees.elements,
-    evenements,
-    animaux: donnees.animaux,
-    dechets: reglageDechets(donnees.maison),
-    couple: donnees.couple,
-    zones: donnees.zones,
-    meteo: donnees.meteo,
-  });
+  // La carte du moment : ce qui attend aujourd'hui ; la nuit tombée, elle montre déjà demain.
+  const heure = maintenant.getHours();
+  const nuitTombee = montrer === "demain";
+  const soir = !nuitTombee && heure >= 17;
+  const moment = momentDuJour(carte, soir);
+  const hub = composerHub({ foyer, membreId, aujourdhui, maintenant: maintenant.toISOString(), couple: donnees.couple, zones: donnees.zones, meteo: donnees.meteo });
 
   const cocherChose = async (c: ChoseDuJour) => {
     const avant = donnees.taches.find((t) => t.id === c.tacheId);
@@ -169,7 +160,8 @@ export function Aujourdhui(props: {
   const appris = bilanDeLaSemaine(calculerApprentissages(donnees));
   const bilanPret = bilanAOuvrir(aujourdhui, lireDernierBilan(), appris.length);
   const remarque = adaptations.remarques ? remarqueDuJour({ ...donnees, membreId }) : null;
-  const montrerRemarque = remarqueAMontrer(remarque?.cle ?? null, aujourdhui);
+  // Ce que la carte du moment montre déjà (une tâche en retard, un produit à finir), elle ne le redit pas.
+  const montrerRemarque = remarqueAMontrer(remarque?.cle ?? null, aujourdhui) && !(remarque && dejaSurLaCarte(remarque.cle, moment));
   useClinDuJour({ donnees, depot, jarvis: props.jarvis });
   const clin = clinDuJour(donnees.couple, aujourdhui);
   const nouveaute = nouveauteADire(__VERSION__, lireTexte(CLES.nouveauteVue), donnees.elements.length + donnees.taches.length > 0);
@@ -194,9 +186,8 @@ export function Aujourdhui(props: {
     if (!props.auDessus) taireFee();
   }, [props.auDessus]);
 
-  // ----- La vie de la fée : sommeil, alertes, l'heure des tâches, le réveil, le jour J -----
+  // ----- La vie de la fée : sommeil, alertes, l'heure des tâches, le jour J -----
   const agenda = resumeAgenda(evenements, donnees.animaux, aujourdhui);
-  const prochainRdv = agenda.aujourdhui.find((o) => !o.evenement.heure || o.evenement.heure >= heureTexte) ?? agenda.semaine[0];
   useVieFee({
     actif: props.auDessus,
     aujourdhui,
@@ -208,7 +199,6 @@ export function Aujourdhui(props: {
     meteo: donnees.meteo,
     listes: donnees.listes,
     elements: donnees.elements,
-    rdv: prochainRdv ? ligneWidget(prochainRdv, aujourdhui).replace(" · ", ", ") : null,
     ouvrir: (destination) => (destination === "courses" ? ouvrirEspace("chef", "courses") : toucherChose({ destination })),
     cocher: (c) => void cocherChose(c),
     repousser: (c) => {
@@ -219,33 +209,40 @@ export function Aujourdhui(props: {
   });
 
   // ----- Les cartes -----
-  const heure = maintenant.getHours();
   const meteoJour = meteoDu(donnees.meteo, aujourdhui);
   const sous = `${dateLongue(maintenant)}${meteoJour ? ` · ${Math.round(meteoJour.max)}° dehors` : ""}`;
-  // Ce soir : le repas du Chef s'il y en a un, sinon la première chose du jour.
-  const ceSoir = hub.menu;
-  const premiere = carte.choses[0];
-  const titreCeSoir = montrer === "demain" ? "Demain" : titreMoment(heure);
-  // À toi, maintenant : la chose la plus pressée qui se coche d'ici.
-  const aToi = carte.choses.find((c) => c.tacheId && (c.etat === "urgent" || c.etat === "jour"));
-  const dues = compterDues(donnees.taches, aujourdhui);
-  const totalDues = dues.aujourdhui + dues.enRetard;
+  const titreCarte = nuitTombee ? "Demain" : titreMoment(heure);
+  const premiere = moment.premiere;
+  const quandPremiere = premiere ? (premiere.quand !== "aujourd'hui" ? premiere.quand : (premiere.heure ?? null)) : null;
   const direct = enDirect({ ...donnees, foyer, membreId }, maintenant.toISOString());
+  // Demain en une carte : ses rendez-vous, la collecte des déchets, le froid du matin.
+  const demainJour = decaler(aujourdhui, { unite: "jour", tous: 1 });
+  const meteoDemain = meteoDu(donnees.meteo, demainJour);
+  const demain = nuitTombee
+    ? null
+    : demainDuJour({
+        evenements: agenda.semaine.filter((o) => o.debut === demainJour).map((o) => ({ titre: titreDe(o), heure: o.evenement.heure ?? null })),
+        dechets: aSortirCeSoir(reglageDechets(donnees.maison), aujourdhui).map(nomDechet),
+        meteo: meteoDemain,
+        soir,
+      });
+  // L'Agenda dit la suite de la semaine : aujourd'hui est dans la carte du moment (sauf ce qui
+  // ne concerne que l'autre), demain dans sa carte.
   const marques = new Set(occurrences(evenements, decaler(aujourdhui, { unite: "jour", tous: -7 }), decaler(aujourdhui, { unite: "jour", tous: 7 }), donnees.animaux).map((o) => o.debut));
-  const rdvs = [...agenda.aujourdhui, ...agenda.semaine].slice(0, 2);
-  const phraseAgenda = rdvs.length
-    ? rdvs.map((o) => ligneWidget(o, aujourdhui).replace(" · ", ", ")).join(" ; ") + "."
-    : "Rien de prévu cette semaine.";
+  const suiteSemaine = [...agenda.aujourdhui.filter((o) => o.evenement.pour && o.evenement.pour !== membreId), ...agenda.semaine.filter((o) => o.debut > demainJour)].slice(0, 2);
+  const phraseAgenda = suiteSemaine.length
+    ? `${suiteSemaine.map((o) => ligneWidget(o, aujourdhui, true)).join(" ; ")}.`
+    : `${agenda.aujourdhui.length + agenda.semaine.length ? "Rien d'autre" : "Rien de prévu"} d'ici ${NOMS_JOURS[maintenant.getDay()]} prochain.`;
   const plan = planDe(donnees.budget);
   const aMoi = plan && membreId ? etatAMoi(plan, donnees.budget, membreId, aujourdhui) : null;
   const pots = plan ? etatDesPots(plan, donnees.budget, aujourdhui) : null;
   const filEntrees = filDuFoyer(donnees, maintenant.toISOString());
-  const jourLocal = (iso: string) => aujourdhuiLocal(new Date(iso));
-  const resumeFil = resumeDuJour(filEntrees, aujourdhui, jourLocal, foyer, membreId);
+  const filDuJour = filEntrees.some((e) => aujourdhuiLocal(new Date(e.quand)) === aujourdhui);
   const retard = ligneRetard(foyer, membreId, __VERSION__, maintenant.toISOString());
-  const demain = hub.demain[0];
-  const demainJour = decaler(aujourdhui, { unite: "jour", tous: 1 });
-  const demainEvenement = agenda.semaine.find((o) => o.debut === demainJour);
+  // Les petites cartes du bas : la dernière prend toute la largeur quand elles sont en nombre impair.
+  const petites = [hub.balcon ? "jardin" : null, bilanPret ? "bilan" : null, props.rappelsNonLus > 0 ? "rappels" : null].filter((c) => c !== null);
+  const seule = (carteId: string) => petites.length % 2 === 1 && petites[petites.length - 1] === carteId;
+  const majuscule = (n: number) => enLettres(n).replace(/^./, (c) => c.toUpperCase());
 
   let i = 0;
   return (
@@ -261,51 +258,61 @@ export function Aujourdhui(props: {
       />
 
       <Grille label="Aujourd'hui">
-        <CarteTael vol />
+        {/* Le mot de l'autre a sa carte plus bas : Tael ne le redit pas dans la sienne. */}
+        <CarteTael vol sansMot={!!hub.mot && !!autre} />
 
-        <Tuile className="heros" large i={i++} widget={ceSoir ? "chef" : premiere ? premiere.destination : "taches"} onClick={() => (ceSoir ? ouvrirEspace("chef", "semaine") : premiere ? toucherChose(premiere) : ouvrirEspace("taches", "taches"))} label={`${titreCeSoir} : ${ceSoir ?? premiere?.texte ?? "rien de prévu"}`}>
-          <div className="heros-haut" aria-hidden />
-          <div className="heros-corps">
-            <div>
-              <p className="etiq">{titreCeSoir}</p>
-              <p className="titre-c">{ceSoir ?? premiere?.texte ?? (carte.faites ? "Tout est fait. Belle soirée." : "Rien de prévu, rien ne presse.")}</p>
-              {ceSoir && premiere && <p className="doux">{premiere.texte}{premiere.quand ? `, ${premiere.quand}` : ""}</p>}
-              {!ceSoir && carte.choses.length > 1 && <p className="doux">{carte.choses.length - 1} autre{carte.choses.length > 2 ? "s" : ""} chose{carte.choses.length > 2 ? "s" : ""} aujourd'hui</p>}
-            </div>
-            {(premiere?.heure || (!ceSoir && premiere?.quand)) && <span className="heros-heure">{premiere.heure ?? premiere.quand}</span>}
+        <Tuile className={`moment${premiere ? "" : " calme"}`} forte={!!premiere} large i={i++} role="group" widget={premiere ? premiere.destination : moment.menu ? "chef" : "taches"} touche="taches" label={`${titreCarte} : ${premiere?.texte ?? moment.menu ?? "rien ne presse"}`}>
+          <div className="moment-haut">
+            <p className="etiq">{titreCarte}</p>
+            {premiere ? quandPremiere && <span className="moment-quand">{quandPremiere}</span> : moment.menu && <span className="moment-quand">menu du Chef</span>}
           </div>
+          <button type="button" className="moment-titre" onClick={() => (premiere ? toucherChose(premiere) : moment.menu ? ouvrirEspace("chef", "semaine") : ouvrirEspace("taches", "taches"))}>
+            {premiere?.texte ?? moment.menu ?? (moment.faites ? `Tout est fait.${heure >= 17 ? " Belle soirée." : ""}` : "Rien de prévu, rien ne presse.")}
+          </button>
+          {premiere && (
+            <div className="actions-c">
+              {premiere.tacheId ? (
+                <>
+                  <button type="button" className="pilule pleine" onClick={(e) => soufflerPuis(e.currentTarget.closest<HTMLElement>(".tuile"), () => void cocherChose(premiere))}>C'est fait</button>
+                  <button type="button" className="pilule" onClick={() => setHeureDe(donnees.taches.find((t) => t.id === premiere.tacheId) ?? null)}>Plus tard</button>
+                </>
+              ) : (
+                <button type="button" className="pilule pleine" onClick={() => toucherChose(premiere)}>Ouvrir</button>
+              )}
+            </div>
+          )}
+          {!premiere && moment.faites > 0 && (
+            <p className="moment-fait"><Coche />{majuscule(moment.faites)} chose{moment.faites > 1 ? "s" : ""} faite{moment.faites > 1 ? "s" : ""} aujourd'hui{moment.menu ? ", plus rien à faire" : ""}.</p>
+          )}
+          {moment.ensuite.length > 0 && (
+            <div className="moment-suite">
+              {premiere && <p className="etiq">Ensuite</p>}
+              <div className="lignes">
+                {moment.ensuite.map((c) =>
+                  c.tacheId ? (
+                    <LigneCoche key={c.cle} coche={false} texte={c.texte} heure={c.heure} fin={c.etat === "urgent" ? c.quand : null} onClick={() => void cocherChose(c)} />
+                  ) : (
+                    <button key={c.cle} type="button" className="li" onClick={() => toucherChose(c)}>
+                      <span className="li-point" aria-hidden />
+                      <span className="li-texte">{c.texte}</span>
+                      <small>{c.quand}</small>
+                    </button>
+                  ),
+                )}
+              </div>
+            </div>
+          )}
+          {moment.autres > 0 && (
+            <button type="button" className="moment-autres" onClick={() => ouvrirEspace("taches", "taches")}>Et {enLettres(moment.autres)} autre{moment.autres > 1 ? "s" : ""}</button>
+          )}
         </Tuile>
 
-        {aToi && (
-          <Tuile forte i={i++} role="group" label={`À toi : ${aToi.texte}`}>
-            <p className="etiq">À toi{aToi.quand ? `, ${aToi.quand}` : ""}</p>
-            <p className="titre-c">{aToi.texte}</p>
-            <div className="actions-c">
-              <button type="button" className="pilule" onClick={(e) => soufflerPuis(e.currentTarget.closest<HTMLElement>(".tuile"), () => void cocherChose(aToi))}>C'est fait</button>
-              {aToi.heure && <button type="button" className="pilule" onClick={() => setHeureDe(donnees.taches.find((t) => t.id === aToi.tacheId) ?? null)}>Plus tard</button>}
-            </div>
-          </Tuile>
-        )}
-
-        <Tuile i={i++} widget="courses" onClick={() => ouvrirEspace("chef", "courses")} label={`Courses : ${courses.chiffre} ${courses.legende}`}>
+        <Tuile large={!plan} i={i++} widget="courses" onClick={() => ouvrirEspace("chef", "courses")} label={`Courses : ${courses.chiffre} ${courses.legende}`}>
           <p className="etiq"><Icone nom="panier" taille={18} />Courses</p>
           <p className="phrase">
-            {courses.chiffre === 0 ? "Rien à acheter." : direct ? <>{direct.qui} finit les courses, il reste <b>{enLettres(courses.chiffre)}</b> chose{courses.chiffre > 1 ? "s" : ""}.</> : <><b>{enLettres(courses.chiffre).replace(/^./, (c) => c.toUpperCase())}</b> chose{courses.chiffre > 1 ? "s" : ""} à prendre.</>}
+            {courses.chiffre === 0 ? "Rien à acheter." : direct ? <>{direct.qui} finit les courses, il reste <b>{enLettres(courses.chiffre)}</b> chose{courses.chiffre > 1 ? "s" : ""}.</> : <><b>{majuscule(courses.chiffre)}</b> chose{courses.chiffre > 1 ? "s" : ""} à prendre.</>}
           </p>
           {direct && <p className="pastille-k"><b className="navi direct">en direct</b></p>}
-        </Tuile>
-
-        <Tuile i={i++} widget="taches" onClick={() => ouvrirEspace("taches", "taches")} label={`Tâches : ${totalDues} ${totalDues ? "à faire" : "rien à faire"}`}>
-          <p className="etiq"><Icone nom="coche" taille={18} />Tâches</p>
-          <p className="phrase">
-            {donnees.taches.length === 0 ? "Aucune tâche pour l'instant." : totalDues === 0 ? `Rien à faire aujourd'hui${carte.faites ? `, ${enLettres(carte.faites)} faite${carte.faites > 1 ? "s" : ""}` : ""}.` : <><b>{enLettres(totalDues).replace(/^./, (c) => c.toUpperCase())}</b> à faire{dues.enRetard ? `, ${enLettres(dues.enRetard)} en retard` : ""}{carte.faites ? `, ${enLettres(carte.faites)} faite${carte.faites > 1 ? "s" : ""}` : ""}.</>}
-          </p>
-        </Tuile>
-
-        <Tuile large i={i++} widget="agenda" onClick={() => ouvrirEspace("taches", "agenda")} label={`Agenda : ${phraseAgenda}`}>
-          <p className="etiq"><Icone nom="calendrier" taille={18} />Agenda</p>
-          <Jours aujourdhui={aujourdhui} marques={marques} />
-          <p className="phrase" style={{ marginTop: 6 }}>{phraseAgenda}</p>
         </Tuile>
 
         {plan && (
@@ -317,6 +324,20 @@ export function Aujourdhui(props: {
             {aMoi?.ecartMoisPrecedent !== null && aMoi?.ecartMoisPrecedent !== undefined && (
               <p className="pastille-k"><b>{aMoi.ecartMoisPrecedent > 0 ? "+" : ""}{Math.round(aMoi.ecartMoisPrecedent)}</b> vs le mois d'avant</p>
             )}
+          </Tuile>
+        )}
+
+        <Tuile large i={i++} widget="agenda" onClick={() => ouvrirEspace("taches", "agenda")} label={`Agenda : ${phraseAgenda}`}>
+          <p className="etiq"><Icone nom="calendrier" taille={18} />Agenda</p>
+          <Jours aujourdhui={aujourdhui} marques={marques} />
+          <p className="phrase">{phraseAgenda}</p>
+        </Tuile>
+
+        {demain && (
+          <Tuile contraste large i={i++} onClick={() => ouvrirEspace("taches", "agenda")} label={`Demain : ${demain.titre}`}>
+            <p className="etiq">Demain</p>
+            <p className="titre-c">{demain.titre}</p>
+            {demain.suite && <p className="doux">{demain.suite}</p>}
           </Tuile>
         )}
 
@@ -333,44 +354,37 @@ export function Aujourdhui(props: {
           </Tuile>
         )}
 
-        <Tuile contraste large i={i++} onClick={() => (demainEvenement ? ouvrirEspace("taches", "agenda") : demain ? ouvrirEspace("maison", "entretien") : ouvrirEspace("taches", "agenda"))} label="Demain">
-          <p className="etiq">Demain</p>
-          <p className="titre-c">{demainEvenement ? `${titreDe(demainEvenement)}${demainEvenement.evenement.heure ? `, ${demainEvenement.evenement.heure}` : ""}` : demain ? `${demain.texte}${demain.quand !== "journée" && demain.quand !== "matin" ? `, ${demain.quand}` : ""}` : "Rien de prévu demain."}</p>
-          {demainEvenement && demain && demain.texte !== titreDe(demainEvenement) && <p className="doux">{demain.texte}</p>}
-          {!demainEvenement && !demain && hub.balcon?.demain && <p className="doux">{hub.balcon.demain.replace(/^./, (c) => c.toUpperCase())}.</p>}
-        </Tuile>
-
         <Tuile large i={i++} widget="fil" onClick={() => ouvrir({ nom: "fil" })} label="Chez nous, cette semaine">
-          <p className="etiq"><Icone nom="activite" taille={18} />Chez nous{resumeFil ? ", aujourd'hui" : ", ces sept jours"}</p>
-          <p className="doux" style={{ fontSize: 15 }}>
+          <p className="etiq"><Icone nom="activite" taille={18} />Chez nous{filDuJour ? ", aujourd'hui" : ", ces sept jours"}</p>
+          <p className="doux fil-c">
             {retard ? `${retard}. ` : ""}
-            {filEntrees.length === 0 ? "Ce que chacun fait, au fil des jours : rien encore." : resumeFil ? `${resumeFil}. ` : ""}
-            {filEntrees.slice(0, 2).map((e) => `${quiDe(e, foyer, membreId)} ${e.texte}`).join(". ")}
+            {filEntrees.length === 0 ? "Ce que chacun fait, au fil des jours : rien encore." : ""}
+            {filEntrees.slice(0, 2).map((e) => gesteDit(e, foyer, membreId)).map((g) => `${g.qui} ${g.texte}`).join(". ")}
             {filEntrees.length ? "." : ""}
           </p>
         </Tuile>
 
         {hub.balcon && (
-          <Tuile i={i++} widget="jardin" onClick={() => ouvrirEspace("maison", "jardin")} label={`Jardin : ${hub.balcon.geste}`}>
+          <Tuile large={seule("jardin")} i={i++} widget="jardin" onClick={() => ouvrirEspace("maison", "jardin")} label={`Jardin : ${hub.balcon.geste}`}>
             <p className="etiq"><Icone nom="feuille" taille={18} />Jardin</p>
             <div className="meteo-c">
               {hub.balcon.nuit && <span className="deg">{hub.balcon.nuit}</span>}
-              <p className="doux">{hub.balcon.demain ? `${hub.balcon.demain.replace(/^./, (c) => c.toUpperCase())}. ` : ""}{hub.balcon.geste}</p>
+              <p className="doux">{hub.balcon.geste}</p>
             </div>
           </Tuile>
         )}
 
         {bilanPret && (
-          <Tuile i={i++} onClick={() => ouvrir({ nom: "bilan" })} label="Bilan de la semaine">
+          <Tuile large={seule("bilan")} i={i++} onClick={() => ouvrir({ nom: "bilan" })} label="Bilan de la semaine">
             <p className="etiq"><Icone nom="appris" taille={18} />Bilan</p>
-            <p className="phrase">{appris.length === 1 ? "Une chose apprise, à garder ou non." : `${enLettres(appris.length).replace(/^./, (c) => c.toUpperCase())} choses apprises, à garder ou non.`}</p>
+            <p className="phrase">{appris.length === 1 ? "Une chose apprise, à garder ou non." : `${majuscule(appris.length)} choses apprises, à garder ou non.`}</p>
           </Tuile>
         )}
 
         {props.rappelsNonLus > 0 && (
-          <Tuile i={i++} onClick={() => ouvrir({ nom: "rappels" })} label={`Rappels, ${props.rappelsNonLus} nouveaux`}>
+          <Tuile large={seule("rappels")} i={i++} onClick={() => ouvrir({ nom: "rappels" })} label={`Rappels, ${props.rappelsNonLus} nouveaux`}>
             <p className="etiq"><Icone nom="cloche" taille={18} />Rappels</p>
-            <p className="phrase"><b>{enLettres(props.rappelsNonLus).replace(/^./, (c) => c.toUpperCase())}</b> envoyé{props.rappelsNonLus > 1 ? "s" : ""} par Kora, pas encore relu{props.rappelsNonLus > 1 ? "s" : ""}.</p>
+            <p className="phrase"><b>{majuscule(props.rappelsNonLus)}</b> envoyé{props.rappelsNonLus > 1 ? "s" : ""} par Kora, pas encore relu{props.rappelsNonLus > 1 ? "s" : ""}.</p>
           </Tuile>
         )}
       </Grille>

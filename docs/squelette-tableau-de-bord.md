@@ -37,4 +37,12 @@ Un test vérifie que chaque widget disponible a son module.
 
 ## Aujourd'hui
 
+Depuis 0.1.14, chaque chose est dite à un seul endroit de l'écran (`src/ui/ecrans/Aujourdhui.tsx`) :
+
+- la **carte du moment** (`momentDuJour` dans `src/domaine/aujourdhui.ts`) porte ce qui attend aujourd'hui : la chose qui presse en grand, en laiton, avec « C'est fait » et « Plus tard », puis trois lignes de suite au plus ; rien n'attend, elle reste graphite et dit le repas du soir ou « Rien de prévu, rien ne presse » ;
+- la carte ivoire **Demain** (`demainDuJour`) rassemble tout demain : le premier rendez-vous, les autres, les poubelles à sortir, le froid du matin ; elle n'existe pas quand demain est vide ;
+- l'**Agenda** dit le reste de la semaine (`ligneWidget(…, true)`), jamais aujourd'hui ni demain ;
+- **Tael** ne prend une carte que pour ce que les cartes ne disent pas : une remarque déjà montrée par la carte du moment est tue (`dejaSurLaCarte`), et le mot de l'autre n'est pas annoncé deux fois (`CarteTael sansMot`) ;
+- le bas de l'écran se fond sous le bouton rond (`.pile-kora::before` dans `styles/espaces.css`), sur les six espaces.
+
 La fée flotte au-dessus de tous les écrans et remplace les boutons « + » : on la touche pour parler, et un appui long sert à écrire. Les pièces communes ont leur équivalent SwiftUI, décrit dans `docs/pieces-natives.md` : la page, les onglets, la fée, les gestes, le thème et l'état vide. La carte d'ensemble des couches est dans `docs/architecture.md`.

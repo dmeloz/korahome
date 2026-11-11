@@ -2,7 +2,7 @@
 // L'app entière dans un navigateur simulé (happy-dom), avec le vrai dépôt sur un IndexedDB factice :
 // ce que les données du foyer doivent faire apparaître à l'écran, sans passer par un iPhone.
 // L'essai sur iPhone simulé (scripts/essai-ecrans.mjs) reste le filet des gestes et des styles.
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { contexteTest } from "../domaine/contexteTest";
@@ -97,6 +97,9 @@ describe("l'app entière", () => {
     const aujourdhui = new Date().toISOString().slice(0, 10);
     await depot.enregistrerTache(nouvelleTache("Sortir le verre", null, aujourdhui, ctx));
     await ouvrir();
-    expect(tuile("Tâches").getAttribute("aria-label")).toMatch(/^Tâches : 1\b/);
+    // La tâche du jour est dite une fois, dans la carte du moment, avec ses deux gestes.
+    const moment = screen.getByRole("group", { name: /: Sortir le verre$/ });
+    expect(within(moment).getByRole("button", { name: "C'est fait" })).toBeTruthy();
+    expect(screen.getAllByText("Sortir le verre")).toHaveLength(1);
   });
 });

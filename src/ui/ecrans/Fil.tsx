@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { filDuFoyer, grouperParJour, quiDe, type GesteFil } from "../../domaine/fil";
+import { filDuFoyer, gesteDit, grouperParJour, type GesteFil } from "../../domaine/fil";
 import { aujourdhuiLocal } from "../contexte";
 import { Icone, type NomIcone } from "../Icone";
 import type { DonneesModule } from "../modules";
@@ -33,7 +33,7 @@ export function Fil(props: { donnees: DonneesModule }) {
                 <span className="fil-heure">{new Date(e.quand).toLocaleTimeString("fr-CH", { hour: "2-digit", minute: "2-digit" })}</span>
                 <span className="fil-picto" style={couleur(e.par) ? { color: couleur(e.par) } : undefined} aria-hidden><Icone nom={PICTO[e.geste]} taille={16} /></span>
                 <span className="ligne-texte">
-                  <strong>{quiDe(e, foyer, membreId)}</strong> {e.texte}
+                  <strong>{gesteDit(e, foyer, membreId).qui}</strong> {gesteDit(e, foyer, membreId).texte}
                   <span className="discret fil-espace">{e.espace}</span>
                 </span>
               </li>

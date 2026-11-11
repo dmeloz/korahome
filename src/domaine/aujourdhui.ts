@@ -196,11 +196,80 @@ export function resteAFaire(carte: CarteDuJour): number {
   return carte.choses.length + carte.autres;
 }
 
-/**
- * La chose du moment, mise en grand : la première de la carte (la plus urgente, sinon celle
- * qui a l'heure la plus proche), pour peu qu'il y en ait une.
- */
-export function choseDuMoment(carte: CarteDuJour): ChoseDuJour | null {
-  return carte.choses[0] ?? null;
+// ----- Aujourd'hui sans répétition (Kora 0.1.14, maquette validée par Melo le 11 novembre 2026) -----
+// Chaque chose se dit à un seul endroit : ce qui attend aujourd'hui dans la carte du moment,
+// demain dans la carte « Demain », la suite de la semaine dans l'Agenda.
+
+/** Combien de lignes suivent la chose mise en grand dans la carte du moment. */
+export const ENSUITE_MAX = 3;
+
+export interface Moment {
+  /** La chose la plus pressée, mise en grand ; null quand rien n'attend (la carte reste graphite). */
+  premiere: ChoseDuJour | null;
+  /** Les suivantes, dans l'ordre : à cocher pour une tâche, à ouvrir sinon. */
+  ensuite: ChoseDuJour[];
+  /** Ce qui ne tient pas dans la carte. */
+  autres: number;
+  /** Le repas du soir : en grand quand rien n'attend, en ligne sinon. */
+  menu: string | null;
+  /** Les tâches cochées aujourd'hui. */
+  faites: number;
 }
 
+/**
+ * La carte du moment : ce qui attend aujourd'hui, et seulement cela. Les rendez-vous de demain
+ * vont à la carte « Demain », la sauvegarde au pied de l'écran, et les poubelles ne s'y disent
+ * que le soir venu, quand il faut les sortir (avant, « Demain » annonce la collecte).
+ */
+export function momentDuJour(carte: CarteDuJour, soir: boolean): Moment {
+  const ici = carte.choses.filter((c) => !(c.cle.startsWith("agenda-") && c.quand.startsWith("demain")) && c.cle !== "sauvegarde" && (soir || c.cle !== "dechets"));
+  const repas = ici.find((c) => c.cle === "chef-ce-soir") ?? null;
+  const attend = ici.filter((c) => c.etat !== "calme" && c !== repas);
+  const calmes = ici.filter((c) => c.etat === "calme");
+  const premiere = attend[0] ?? null;
+  const suite = premiere ? [...attend.slice(1), ...(repas ? [repas] : []), ...calmes] : calmes;
+  return {
+    premiere,
+    ensuite: suite.slice(0, ENSUITE_MAX),
+    autres: carte.autres + Math.max(0, suite.length - ENSUITE_MAX),
+    menu: repas?.texte ?? null,
+    faites: carte.faites,
+  };
+}
+
+export interface Demain {
+  /** « Vétérinaire de Mitsu, 17:30 ». */
+  titre: string;
+  /** Le reste de demain en une ligne : « Poubelles : papier et carton. 9° le matin. », ou null. */
+  suite: string | null;
+}
+
+/**
+ * La carte « Demain » : tout ce que demain apporte, une seule fois. Les rendez-vous d'abord,
+ * puis la collecte des déchets (sauf le soir, où la carte du moment dit de les sortir), puis le
+ * froid du matin. Rien de prévu ni à sortir : pas de carte.
+ */
+export function demainDuJour(e: { evenements: readonly { titre: string; heure: string | null }[]; dechets: readonly string[]; meteo: { min: number; pluie: number } | null; soir: boolean }): Demain | null {
+  const lignes = [...e.evenements]
+    .sort((a, b) => (a.heure ?? "99").localeCompare(b.heure ?? "99"))
+    .map((o) => `${o.titre}${o.heure ? `, ${o.heure}` : ""}`);
+  if (e.dechets.length && !e.soir) {
+    const noms = e.dechets.map((n) => n.toLowerCase());
+    lignes.push(`Poubelles : ${noms.length === 1 ? noms[0] : `${noms.slice(0, -1).join(", ")} et ${noms[noms.length - 1]}`}`);
+  }
+  if (!lignes.length) return null;
+  const [titre, ...reste] = lignes;
+  if (e.meteo) reste.push(`${Math.round(e.meteo.min)}° le matin${e.meteo.pluie >= 1 ? ", pluie" : ""}`);
+  return { titre, suite: reste.length ? `${reste.join(". ")}.` : null };
+}
+
+/**
+ * La remarque du jour de Tael (`remarqueDuJour`) redit-elle ce que la carte du moment montre déjà ?
+ * Une tâche en retard qui est sur la carte, ou un produit « à finir aujourd'hui » : elle se tait.
+ */
+export function dejaSurLaCarte(cleRemarque: string, moment: Moment): boolean {
+  const montrees = [moment.premiere, ...moment.ensuite].filter((c) => c !== null);
+  if (cleRemarque.startsWith("tache:")) return montrees.some((c) => c.tacheId && cleRemarque.startsWith(`tache:${c.tacheId}:`));
+  if (cleRemarque.startsWith("stock:")) return montrees.some((c) => c.cle.startsWith("stock-") && c.quand === "à finir aujourd'hui");
+  return false;
+}
