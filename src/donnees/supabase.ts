@@ -28,6 +28,7 @@ export function traduireErreur(message: string): string {
   if (/email.*invalid|invalid.*email/i.test(message)) return "Adresse e-mail invalide.";
   if (/JWT|not authenticated|Connexion requise/i.test(message)) return "Reconnecte-toi pour continuer.";
   if (/autre compte/i.test(message)) return "Ce téléphone n'est pas relié à ce foyer : vérifie le partage.";
+  if (/réservé à son foyer/i.test(message)) return "Ce serveur est réservé à un foyer déjà ouvert. Pour le rejoindre, tape son code (Réglages, Partage, sur l'autre iPhone).";
   return message;
 }
 
@@ -123,6 +124,9 @@ export function creerServicesSupabase(url: string, cle: string): ServicesDistant
     async retirerTelephone(foyerId, id) {
       echec((await (await supabase()).rpc("retirer_appareil", { p_foyer_id: foyerId, p_id: id })).error);
     },
+    async lierRaccourcis(foyerId, membreId, lesquels) {
+      echec((await (await supabase()).rpc("lier_raccourcis", { p_foyer_id: foyerId, p_membre_id: membreId, p_siri: lesquels.siri, p_paiements: lesquels.paiements })).error);
+    },
     async nouveauCode(foyerId) {
       const { data, error } = await (await supabase()).rpc("nouveau_code_foyer", { p_foyer_id: foyerId });
       echec(error);
@@ -206,6 +210,8 @@ export function creerServicesSupabase(url: string, cle: string): ServicesDistant
 
     async lienPaiements(demande) {
       const { jeton } = (await appelerFonction(await supabase(), "paiements", { mode: "lien", ...demande })) as { jeton: string };
+      // Ce téléphone signe sa clé : elle sera coupée avec lui. Un échec ici se rattrape à la prochaine ouverture.
+      await (await supabase()).rpc("lier_raccourcis", { p_foyer_id: demande.foyerId, p_membre_id: demande.membreId, p_siri: false, p_paiements: true });
       return `${url.replace(/\/$/, "")}/functions/v1/paiements?j=${jeton}`;
     },
 
@@ -215,6 +221,7 @@ export function creerServicesSupabase(url: string, cle: string): ServicesDistant
 
     async lienSiri(demande) {
       const { jeton } = (await appelerFonction(await supabase(), "siri", { mode: "lien", ...demande })) as { jeton: string };
+      await (await supabase()).rpc("lier_raccourcis", { p_foyer_id: demande.foyerId, p_membre_id: demande.membreId, p_siri: true, p_paiements: false });
       return `${url.replace(/\/$/, "")}/functions/v1/siri?j=${jeton}`;
     },
 

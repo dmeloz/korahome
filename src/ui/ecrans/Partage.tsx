@@ -390,7 +390,7 @@ function FoyerRelie(props: {
           <NouveauCode compte={props.compte} foyerId={props.foyer.id} change={() => { setCopie(false); props.rafraichir(); }} />
         </div>
       )}
-      <TelephonesRelies compte={props.compte} foyerId={props.foyer.id} maintenant={maintenant} />
+      <TelephonesRelies compte={props.compte} foyerId={props.foyer.id} maintenant={maintenant} change={() => { setCopie(false); props.rafraichir(); }} />
     </>
   );
 }
@@ -432,7 +432,7 @@ function NouveauCode({ compte, foyerId, change }: { compte: Compte; foyerId: str
 }
 
 /** Les téléphones reliés au foyer sur le serveur (dix au plus) : retirer une vieille installation ou un téléphone perdu. */
-function TelephonesRelies({ compte, foyerId, maintenant }: { compte: Compte; foyerId: string; maintenant: string }) {
+function TelephonesRelies({ compte, foyerId, maintenant, change }: { compte: Compte; foyerId: string; maintenant: string; change: () => void }) {
   const [telephones, setTelephones] = useState<TelephoneRelie[] | null>(null);
   const [aRetirer, setARetirer] = useState<string | "anciens" | null>(null);
   const [occupe, setOccupe] = useState(false);
@@ -454,6 +454,8 @@ function TelephonesRelies({ compte, foyerId, maintenant }: { compte: Compte; foy
       for (const id of ids) await compte.retirerTelephone(foyerId, id);
       setARetirer(null);
       await charger();
+      // Le serveur a changé le code du foyer : l'écran montre le nouveau.
+      change();
     } catch (e) {
       setErreur(message(e));
     } finally {
@@ -488,7 +490,7 @@ function TelephonesRelies({ compte, foyerId, maintenant }: { compte: Compte; foy
       {anciens.length > 1 &&
         (aRetirer === "anciens" ? (
           <div className="partage-confirmer">
-            <p className="discret">Les {anciens.length} anciennes installations quittent le foyer. Elles pourront revenir avec le code.</p>
+            <p className="discret">Les {anciens.length} anciennes installations quittent le foyer. Le code du foyer change : elles pourront revenir avec le nouveau.</p>
             <button className="bouton-doux" disabled={occupe} onClick={() => retirer(anciens.map((l) => l.id))}>
               {occupe ? "Un instant…" : `Retirer les ${anciens.length}`}
             </button>

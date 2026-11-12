@@ -45,8 +45,10 @@ export interface Compte {
   nommerTelephone(foyerId: Id, nom: string): Promise<void>;
   /** Les téléphones reliés au foyer (dix au plus). */
   telephones(foyerId: Id): Promise<TelephoneRelie[]>;
-  /** Retire un autre téléphone : sa place se libère, ses rappels s'arrêtent. */
+  /** Retire un autre téléphone : sa place se libère, ses rappels et ses raccourcis s'arrêtent, le code du foyer change. */
   retirerTelephone(foyerId: Id, id: string): Promise<void>;
+  /** Ce téléphone signe les raccourcis (Siri, Apple Pay) qu'il garde pour cette personne : ils seront coupés avec lui. */
+  lierRaccourcis(foyerId: Id, membreId: Id, lesquels: { siri: boolean; paiements: boolean }): Promise<void>;
   /** Un nouveau code pour rejoindre le foyer ; l'ancien ne marche plus. */
   nouveauCode(foyerId: Id): Promise<string>;
 }
