@@ -90,7 +90,16 @@ Chaque installation de Kora est un compte membre du foyer, dix au plus. Réglage
 liste ces téléphones (« Dany · iPhone · Kora 0.0.82 », dit par le téléphone lui-même à chaque
 ouverture ; « Ancienne installation » pour ceux d'avant 0.0.82), le plus récent d'abord, et grise
 ceux qui ne se sont pas ouverts depuis 14 jours. « Retirer » libère la place tout de suite et coupe
-les rappels de ce téléphone ; avec le code, il peut revenir. « Nouveau code », sous le code,
+les rappels de ce téléphone ; depuis 0.1.15, ses raccourcis Siri et Apple Pay sont coupés aussi et
+le code du foyer change, pour qu'il ne rentre pas avec l'ancien. « Nouveau code », sous le code,
 en tire un autre : l'ancien ne permet plus d'entrer, les téléphones déjà reliés le restent.
 Fonctions du serveur : `appareils_foyer`, `nommer_appareil`, `retirer_appareil`,
 `nouveau_code_foyer` (migration `20261027000000_appareils_relies.sql`).
+
+Depuis 0.1.15 (migration `20261111160000_porte_du_serveur.sql`), le serveur n'ouvre un nouveau foyer
+qu'à un téléphone déjà membre d'un foyer (le premier foyer d'un serveur neuf s'ouvre librement) :
+le dépôt et la clé publique étant publics, un inconnu ne peut plus remplir la base. Les autres
+téléphones rejoignent avec le code. Chaque téléphone signe les raccourcis qu'il a créés
+(`lier_raccourcis`) ; le déclencheur `couper_raccourcis` les efface quand il quitte le foyer.
+Si plus aucun téléphone n'est relié (tous réinstallés), le code se lit dans la table `foyers` du
+tableau de bord Supabase : avec lui, le premier téléphone rentre et retrouve les données.

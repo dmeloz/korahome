@@ -16,6 +16,7 @@ import { Garde, Squelette } from "./Garde";
 import { aPurger, trierCorbeille } from "../domaine/corbeille";
 import { nomTelephone, noterAppareil, plateformeDe } from "../domaine/foyer";
 import { ignorer } from "./journal";
+import { CLES, lireTexte } from "./stockageLocal";
 import { aujourdhuiLocal, choisirMembreCourant, lireMembreCourant } from "./contexte";
 import { Aujourdhui } from "./ecrans/Aujourdhui";
 import { Bienvenue } from "./ecrans/Bienvenue";
@@ -171,6 +172,13 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
     const plateforme = plateformeDe(navigator.userAgent, navigator.maxTouchPoints);
     partage.compte.nommerTelephone(foyerPartage, nomTelephone(prenomTelephone, plateforme, __VERSION__)).catch(ignorer);
   }, [partage, foyerPartage, prenomTelephone]);
+
+  // Et signe les raccourcis qu'il garde (Siri, Apple Pay) : retirer ce téléphone du foyer les coupera.
+  useEffect(() => {
+    if (!partage || !foyerPartage || !membreRappels) return;
+    const lesquels = { siri: lireTexte(CLES.siri) !== null, paiements: lireTexte(CLES.lienPaiements) !== null };
+    if (lesquels.siri || lesquels.paiements) partage.compte.lierRaccourcis(foyerPartage, membreRappels, lesquels).catch(ignorer);
+  }, [partage, foyerPartage, membreRappels]);
 
   // La corbeille se vide seule de ce qui a plus de trente jours, une fois par ouverture.
   const corbeilleLue = useRef(false);
