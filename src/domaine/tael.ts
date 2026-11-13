@@ -34,6 +34,15 @@ export function attendUnOui(niveau: NiveauTael, dejaAConfirmer: boolean): boolea
 /** Quand elle observe, elle répond mais ne touche à rien : l'assistant n'a pas ses outils. */
 export const peutAgir = (niveau: NiveauTael): boolean => niveau !== "observe";
 
+/**
+ * Réglée sur « Elle observe », elle ne touche à rien : au lieu de laisser croire que c'est fait,
+ * elle dit ce qu'on lui demandait et comment la laisser faire (0.1.16).
+ */
+export function refusDObserver(demandes: readonly string[]): string {
+  if (!demandes.length) return "";
+  return `Je n'ai touché à rien : tu m'as réglée sur « Elle observe ». Ce que j'aurais fait : ${demandes.join(" ; ")}. Pour me laisser faire, garde le doigt sur mon orbe, en haut.`;
+}
+
 /** Une ligne du journal : ce qu'elle a fait, quand, et ce qu'il faut pour le défaire. */
 export interface LigneJournalTael {
   id: string;

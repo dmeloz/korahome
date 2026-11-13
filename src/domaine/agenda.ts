@@ -393,6 +393,9 @@ export const jourSemaine = (j: Jour) => new Date(`${j}T12:00:00Z`).getUTCDay();
 const dateCourte = (j: Jour) => `${Number(j.slice(8, 10))} ${MOIS_COURTS[Number(j.slice(5, 7)) - 1]}`;
 const majuscule = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 
+/** « jeudi 23 oct. » : un jour dit sans repère (la fée ne lit jamais une date en chiffres). */
+export const jourEnClair = (jour: Jour): string => `${NOMS_JOURS[jourSemaine(jour)]} ${dateCourte(jour)}`;
+
 /** « Aujourd'hui », « Demain », « Jeudi 23 oct. », avec l'année quand ce n'est pas celle-ci. */
 export function decrireJour(jour: Jour, aujourdhui: Jour): string {
   const ecart = ecartJours(aujourdhui, jour);

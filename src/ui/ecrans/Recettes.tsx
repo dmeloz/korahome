@@ -72,7 +72,7 @@ export function OngletRecettes(p: PropsPage & { recettes: Recette[]; ouvrirFiche
   const avis = (r: Recette) => avisDuPlat(p.souvenirs, r.titre)?.avis ?? null;
   const liste = ordonnerRecettes(p.recettes, p.produits, filtre, (r) => avis(r) === "aime", (r) => avis(r) === "non");
 
-  useInvitationBarre("Une recette, ex. gratin de courge");
+  useInvitationBarre("Ex. gratin de courge");
 
   async function lireParJarvis(demande: string, image: PieceJointe | null, source: Recette["source"]) {
     if (!p.jarvis) return;

@@ -11,7 +11,7 @@
 // Il a aussi une mémoire du foyer (memoire.ts) et note ce qu'il ne sait pas encore faire
 // comme souhait pour Claude (une note « Idée » des retours de test).
 
-import { CATEGORIES, decrireAgenda, decrireJour, evenementsDe, preparerEvenement, REPETITIONS, type Categorie, type DocAgenda, type Evenement, type Repetition } from "./agenda";
+import { CATEGORIES, decrireAgenda, decrireJour, evenementsDe, jourEnClair, preparerEvenement, REPETITIONS, type Categorie, type DocAgenda, type Evenement, type Repetition } from "./agenda";
 import { decrireBudget, facturesAPayer, formaterMontant as formaterMontantCourt, nouvelleDepense, payerFacture, planDe, POTS, type ArticleTicket, type Depense, type DocBudget, type Pot } from "./budget";
 import { completerPaiement } from "./paiements";
 import { avisDuPlat, menuDeLaSemaine, type DocChef } from "./chef";
@@ -240,7 +240,7 @@ export function aConfirmer(action: ActionJarvis, demande = ""): boolean {
 }
 
 /** La question posée avant une action à confirmer, et le libellé de son bouton « oui ». */
-export function questionPour(action: ActionJarvis): { question: string; oui: string } {
+export function questionPour(action: ActionJarvis, aujourdhui?: Jour): { question: string; oui: string } {
   switch (action.outil) {
     case "supprimer_tache":
       return { question: `Supprimer la tâche « ${action.titre} » ?`, oui: "Supprimer" };
@@ -253,9 +253,12 @@ export function questionPour(action: ActionJarvis): { question: string; oui: str
     case "retenir":
       return { question: `J'ai remarqué : « ${action.fait} ». Je le retiens ?`, oui: "Retenir" };
     default:
-      return { question: decrireAction(action), oui: "Oui" };
+      return { question: decrireAction(action, aujourdhui), oui: "Oui" };
   }
 }
+
+/** Le point final d'une phrase, sans le doubler après « oct. ». */
+const finir = (phrase: string): string => (phrase.endsWith(".") ? phrase : `${phrase}.`);
 
 const estTexte = (v: unknown): v is string => typeof v === "string" && v.trim().length > 0;
 const textes = (v: unknown): string[] => (Array.isArray(v) ? v.filter(estTexte) : []);
@@ -569,7 +572,7 @@ export function appliquerActions(
           let apres: Animal;
           if (action.outil === "noter_pesee") {
             apres = ajouterPesee(animal, action.grammes, action.jour ?? aujourdhui, membreId, ctx);
-            faits.push(`Pesée notée : ${animal.nom}, ${formaterPoids(Math.round(action.grammes))}${action.jour && action.jour !== aujourdhui ? ` le ${action.jour}` : ""}.`);
+            faits.push(finir(`Pesée notée : ${animal.nom}, ${formaterPoids(Math.round(action.grammes))}${action.jour && action.jour !== aujourdhui ? `, ${decrireJour(action.jour, aujourdhui).toLowerCase()}` : ""}`));
           } else if (action.outil === "regler_animal") {
             apres = reglerPoidsEtRation(animal, { ...(action.poidsEstime !== null ? { poidsEstime: action.poidsEstime } : {}), ...(action.ration !== null ? { ration: action.ration } : {}) }, aujourdhui);
             const ration = rationDuJour(apres, aujourdhui);
@@ -582,7 +585,7 @@ export function appliquerActions(
           } else {
             apres = noterSoin(animal, action, ctx);
             if (apres === animal) break;
-            faits.push(`Carnet de ${animal.nom} : ${apres.soins[apres.soins.length - 1].libelle.toLowerCase()}, ${action.fait ? "fait" : "prévu"} le ${action.date}.`);
+            faits.push(finir(`Carnet de ${animal.nom} : ${apres.soins[apres.soins.length - 1].libelle.toLowerCase()}, ${action.fait ? "fait" : "prévu"} ${decrireJour(action.date, aujourdhui).toLowerCase()}`));
           }
           animaux = animaux.map((a) => (a.id === apres.id ? apres : a));
           // Plusieurs notes sur le même animal dans une demande : la version d'avant reste la toute première.
@@ -686,7 +689,7 @@ export function appliquerActions(
           const membre = action.pour ? trouverParNom(donnees.foyer.membres, action.pour, (m) => m.prenom) : undefined;
           const doublon = evenements.find((x) => x.jour === action.jour && normaliser(x.titre) === normaliser(action.titre));
           if (doublon) {
-            faits.push(`Déjà dans l'agenda : ${doublon.titre.toLowerCase()}, ${decrireJour(doublon.jour, aujourdhui).toLowerCase()}.`);
+            faits.push(finir(`Déjà dans l'agenda : ${doublon.titre.toLowerCase()}, ${decrireJour(doublon.jour, aujourdhui).toLowerCase()}`));
             break;
           }
           const evenement = preparerEvenement({ ...action, pour: membre?.id ?? null }, membreId, ctx);
@@ -694,7 +697,7 @@ export function appliquerActions(
           modifications.push({ collection: "agenda", avant: null, apres: evenement });
           const heure = evenement.heure ? ` à ${evenement.heure}` : "";
           const qui = membre ? `, pour ${membre.prenom}` : "";
-          faits.push(`Dans l'agenda : ${evenement.titre.toLowerCase()}, ${decrireJour(evenement.jour, aujourdhui).toLowerCase()}${heure}${qui}.`);
+          faits.push(finir(`Dans l'agenda : ${evenement.titre.toLowerCase()}, ${decrireJour(evenement.jour, aujourdhui).toLowerCase()}${heure}${qui}`));
           break;
         }
         case "supprimer_evenement": {
@@ -826,15 +829,19 @@ export function appliquerActions(
   return { modifications, faits, echecs };
 }
 
-/** Une action proposée, en une ligne, pour la valider ou l'écarter (conseil du dimanche). */
-export function decrireAction(action: ActionJarvis): string {
+/**
+ * Une action proposée, en une ligne, pour la valider ou l'écarter (conseil du dimanche, question
+ * de la fée). Les jours sont dits en clair (« demain », « jeudi 23 oct. »), jamais en chiffres.
+ */
+export function decrireAction(action: ActionJarvis, aujourdhui?: Jour): string {
+  const dire = (jour: Jour) => (aujourdhui ? decrireJour(jour, aujourdhui).toLowerCase() : jourEnClair(jour));
   switch (action.outil) {
     case "ajouter_courses":
       return `Courses : ${enumerer(action.articles)}`;
     case "cocher_courses":
       return `Cocher : ${enumerer(action.articles)}`;
     case "ajouter_tache":
-      return `Nouvelle tâche : ${action.titre}, le ${action.echeance}${action.responsable ? `, pour ${action.responsable}` : ""}`;
+      return `Nouvelle tâche : ${action.titre}, ${dire(action.echeance)}${action.responsable ? `, pour ${action.responsable}` : ""}`;
     case "tache_faite":
       return `Marquer faite : ${action.titre}`;
     case "attribuer_tache":
@@ -848,13 +855,13 @@ export function decrireAction(action: ActionJarvis): string {
     case "noter_journal":
       return `${action.animal} : ${TYPES_EVENEMENT[action.quoi].toLowerCase()}${action.note ? ` (${action.note})` : ""}`;
     case "noter_soin":
-      return `Carnet de ${action.animal} : ${action.libelle || TYPES_SOIN[action.type]}, ${action.fait ? "fait" : "prévu"} le ${action.date}`;
+      return `Carnet de ${action.animal} : ${action.libelle || TYPES_SOIN[action.type]}, ${action.fait ? "fait" : "prévu"} ${dire(action.date)}`;
     case "ajouter_plante":
       return `Planter : ${enumerer(action.plantes)}${action.zone ? ` (${action.zone})` : ""}`;
     case "arrosage_fait":
       return action.zone ? `Arrosé : ${action.zone}` : "Arrosé : tout le jardin";
     case "modifier_tache":
-      return `Modifier : ${action.titre}${action.nouveauTitre ? ` → ${action.nouveauTitre}` : ""}${action.echeance ? `, le ${action.echeance}` : ""}`;
+      return `Modifier : ${action.titre}${action.nouveauTitre ? ` → ${action.nouveauTitre}` : ""}${action.echeance ? `, ${dire(action.echeance)}` : ""}`;
     case "supprimer_tache":
       return `Supprimer la tâche : ${action.titre}`;
     case "retirer_du_stock":
@@ -868,7 +875,7 @@ export function decrireAction(action: ActionJarvis): string {
     case "enregistrer_recette":
       return `Recette : ${action.recette.titre} (${SOURCES_RECETTE[action.recette.source].toLowerCase()})`;
     case "ajouter_evenement":
-      return `Agenda : ${action.titre}, le ${action.jour}${action.heure ? ` à ${action.heure}` : ""}${action.pour ? `, pour ${action.pour}` : ""}`;
+      return `Agenda : ${action.titre}, ${dire(action.jour)}${action.heure ? ` à ${action.heure}` : ""}${action.pour ? `, pour ${action.pour}` : ""}`;
     case "supprimer_evenement":
       return `Retirer de l'agenda : ${action.titre}`;
     case "noter_depense":

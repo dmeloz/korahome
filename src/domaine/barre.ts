@@ -167,6 +167,12 @@ export function comprendrePhrase(texte: string, lieu: LieuBarre, aujourdhui: Jou
 }
 
 /** Ce que la barre propose d'écrire, selon la page. */
+/**
+ * Le plus long texte qui tient dans la saisie de l'iPhone sans être coupé (235 points à côté
+ * des boutons du ticket et du micro, mesuré à la veille du 13 novembre 2026).
+ */
+export const INVITATION_MAX = 28;
+
 export function invitation(lieu: LieuBarre): string {
   switch (lieu) {
     case "courses":
@@ -174,25 +180,25 @@ export function invitation(lieu: LieuBarre): string {
     case "liste":
       return "Ajouter à la liste…";
     case "listes":
-      return "Nouvelle liste, ex. cadeaux de Noël";
+      return "Nouvelle liste, ex. cadeaux";
     case "taches":
-      return "Une tâche, ex. linge chaque mercredi";
+      return "Ex. linge chaque mercredi";
     case "entretien":
-      return "Un entretien, ex. détartrer tous les 3 mois";
+      return "Ex. filtre tous les 3 mois";
     case "administratif":
-      return "Une démarche, ex. renouveler l'assurance chaque année";
+      return "Ex. assurance chaque année";
     case "agenda":
       return "Ex. dentiste jeudi 14h30";
     case "stock":
-      return "Ex. 2 yaourts au frigo jusqu'au 25";
+      return "Ex. 6 œufs frigo jusqu'au 25";
     case "budget":
-      return "Une dépense, ex. Migros 84.30";
+      return "Ex. Migros 84.30";
     case "memoire":
       return "Retiens que…";
     case "mots":
-      return "Un mot doux, ou un compte à rebours";
+      return "Mot doux ou compte à rebours";
     case "accueil":
-      return "Ajouter, chercher, demander à Jarvis…";
+      return "Ajouter, chercher, demander…";
     default:
       return "Demander à Jarvis…";
   }

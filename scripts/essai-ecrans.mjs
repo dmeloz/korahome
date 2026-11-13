@@ -277,9 +277,10 @@ try {
     await revenir();
     await allerEspace("Réglages");
     await verifier("Réglages");
-    for (const ligne of ["Apparence", "Nos mots", "Partage", "Sauvegarde", "Corbeille", "Notifications", "Calendrier de l'iPhone", "Siri", /^Ce que \w+ sait/, "Retours de test"]) {
+    for (const ligne of ["Apparence", "Nos mots", "Partage", "Sauvegarde", "Corbeille", "Notifications", "Calendrier de l'iPhone", /^Tael$/, "Siri", /^Ce que \w+ sait/, "Retours de test"]) {
       await p.locator(".page-dessus").getByText(ligne).first().click();
-      await verifier(typeof ligne === "string" ? ligne : "Ce que Tael sait");
+      // Les réglages de la fée (son, nuit, gestes) n'étaient pas visités avant la 0.1.16.
+      await verifier(typeof ligne === "string" ? ligne : String(ligne) === "/^Tael$/" ? "Réglages de Tael" : "Ce que Tael sait");
       await revenir();
     }
     await allerEspace("Aujourd'hui");

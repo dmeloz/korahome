@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { analyserTache, comprendrePhrase, decouperArticles, decrireIntention, invitation, lirePesee, pageAOuvrir } from "./barre";
+import { analyserTache, comprendrePhrase, decouperArticles, decrireIntention, invitation, INVITATION_MAX, lirePesee, pageAOuvrir, type LieuBarre } from "./barre";
 
 const auj = "2026-10-19"; // un lundi
 const membres = [{ id: "melo", prenom: "Melo", couleur: "#d3a14a" }, { id: "sarah", prenom: "Sarah", couleur: "#8fc1bd" }];
@@ -74,10 +74,15 @@ describe("la barre Jarvis", () => {
     expect(comprendrePhrase("Ranger la cave samedi", "taches", auj)).toMatchObject({ type: "tache", titre: "Ranger la cave", echeance: "2026-10-24" });
   });
 
+  it("aucune invitation n'est coupée dans la saisie de l'iPhone", () => {
+    const lieux: LieuBarre[] = ["accueil", "liste", "memoire", "mots", "administratif", "courses", "listes", "taches", "entretien", "agenda", "stock", "budget", "mitsu"];
+    for (const lieu of lieux) expect(invitation(lieu).length, lieu).toBeLessThanOrEqual(INVITATION_MAX);
+  });
+
   it("invite et confirme avec les mots de la page", () => {
     expect(invitation("courses")).toBe("Ajouter aux courses…");
     expect(invitation("mitsu")).toBe("Demander à Jarvis…");
-    expect(invitation("administratif")).toContain("démarche");
+    expect(invitation("administratif")).toBe("Ex. assurance chaque année");
     expect(decrireIntention({ type: "courses", articles: ["Lait"] })).toBe("Lait ajouté aux courses.");
     expect(decrireIntention({ type: "courses", articles: ["Lait", "Pain"] })).toBe("2 articles ajoutés aux courses.");
   });
