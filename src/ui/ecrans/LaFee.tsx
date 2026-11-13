@@ -11,9 +11,7 @@ import { Page } from "../pieces";
 
 const GESTES = (micro: boolean): [string, string][] => [
   ["Un toucher", micro ? "elle t'écoute" : "le clavier s'ouvre"],
-  ["Appui long", "tu lui écris"],
-  ["Deux touchers", "elle se cache un moment"],
-  ["La faire glisser", "elle change de place, ou se range contre le bord"],
+  ["Appui long", "son niveau et son journal"],
 ];
 
 export function LaFee() {
@@ -84,7 +82,7 @@ export function LaFee() {
       </div>
       <p className="discret rappels-intro">
         {nuit.apprise
-          ? `${fee} l'a apprise de l'usage de ce téléphone. Elle dort sur la date et l'accueil montre demain ; un toucher la réveille.`
+          ? `${fee} l'a apprise de l'usage de ce téléphone. Elle se fait petite et la carte d'Aujourd'hui montre demain ; un toucher la réveille.`
           : `En attendant d'apprendre l'heure où tu dors (il lui faut ${JOURS_POUR_NUIT} jours d'usage), elle dort de 23 h à 7 h.`}
       </p>
 

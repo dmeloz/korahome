@@ -139,7 +139,7 @@ export function Conseil(props: { donnees: DonneesModule; depot: Depot; serveur: 
                   <li key={i}>
                     <button className={`ligne proposee${proposition.retenues[i] ? " retenue" : ""}`} onClick={() => basculer(i)} aria-pressed={proposition.retenues[i]}>
                       <span className="case" aria-hidden>{proposition.retenues[i] ? "✓" : ""}</span>
-                      <span className="ligne-texte">{decrireAction(a)}</span>
+                      <span className="ligne-texte">{decrireAction(a, donnees.aujourdhui)}</span>
                     </button>
                   </li>
                 ))}

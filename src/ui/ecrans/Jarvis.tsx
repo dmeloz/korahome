@@ -2,6 +2,7 @@ import { useEffect, useEffectEvent, useRef, useState, type FormEvent } from "rea
 import {
   aConfirmer,
   appliquerActions,
+  decrireAction,
   decrireFoyer,
   formaterChf,
   lireActions,
@@ -19,7 +20,7 @@ import { annulerModifications, direAVoixHaute, ecouter, enregistrerModifications
 import type { DonneesModule } from "../modules";
 import { vibrer } from "../haptique";
 import { nomFee } from "../fee";
-import { attendUnOui, peutAgir } from "../../domaine/tael";
+import { attendUnOui, peutAgir, refusDObserver } from "../../domaine/tael";
 import { lireNiveau, noterAuJournal } from "../tael";
 import { BulleAttente } from "../moteur/pieces";
 import { attendre, DUREES, signalerTouchees } from "../moteur/langage";
@@ -105,7 +106,10 @@ export function Jarvis(props: {
       // Son niveau (Réglages, ou garder le doigt sur son orbe) : « Observe » ne touche à rien,
       // « Propose » demande un oui pour ce qui s'efface, « Agit » fait et note dans son journal.
       const niveau = lireNiveau();
-      const actions = peutAgir(niveau) ? lireActions(reponse.appels) : [];
+      const demandees = lireActions(reponse.appels);
+      const actions = peutAgir(niveau) ? demandees : [];
+      // « Elle observe » : rien n'est fait, et elle le dit au lieu de « C'est fait. ».
+      const retenue = peutAgir(niveau) ? "" : refusDObserver(demandees.map((a) => decrireAction(a, donnees.aujourdhui)));
       const enAttente = actions.filter((a) => attendUnOui(niveau, aConfirmer(a, texte)));
       const resultat = appliquerActions(actions.filter((a) => !attendUnOui(niveau, aConfirmer(a, texte))), avecVersion, donnees.membreId, donnees.aujourdhui, contexteReel);
       await enregistrerModifications(depot, resultat.modifications);
@@ -114,10 +118,10 @@ export function Jarvis(props: {
         signalerTouchees(resultat.modifications.map((m) => m.collection));
         noterAuJournal({ id: `${Date.now()}`, quand: new Date().toISOString(), texte: resultat.faits.join(" ") || texte, modifications: resultat.modifications });
       }
-      const dit = [reponse.texte, ...resultat.faits, ...resultat.echecs].filter(Boolean).join(" ") || (enAttente.length ? "" : "C'est fait.");
+      const dit = [reponse.texte, ...resultat.faits, ...resultat.echecs, retenue].filter(Boolean).join(" ") || (enAttente.length ? "" : "C'est fait.");
       if (dit) ajouter({ role: "jarvis", texte: dit, modifications: resultat.modifications.length ? resultat.modifications : undefined });
       for (const action of enAttente) {
-        const { question, oui } = questionPour(action);
+        const { question, oui } = questionPour(action, donnees.aujourdhui);
         ajouter({ role: "jarvis", texte: question, confirmation: { action, oui } });
       }
       setAlerte(
@@ -125,7 +129,7 @@ export function Jarvis(props: {
           ? `${nomFee()} a utilisé ${formaterChf(reponse.budget.depenseChf)} sur ${formaterChf(reponse.budget.plafondChf)} ce mois-ci.`
           : null,
       );
-      if (parVoix) direAVoixHaute([dit, ...enAttente.map((a) => questionPour(a).question)].filter(Boolean).join(" "));
+      if (parVoix) direAVoixHaute([dit, ...enAttente.map((a) => questionPour(a, donnees.aujourdhui).question)].filter(Boolean).join(" "));
     } catch (e) {
       ajouter({ role: "jarvis", texte: e instanceof Error && e.message ? e.message : "Je n'ai pas pu répondre, réessaie.", erreur: true });
     } finally {

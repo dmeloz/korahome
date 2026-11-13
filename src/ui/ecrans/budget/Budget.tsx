@@ -61,7 +61,7 @@ export function Budget(p: PropsPage) {
   const [plus, setPlus] = useState(false);
   const conseiller = useConseiller(p);
   const plan = planDe(p.budget);
-  useInvitationBarre(onglet === "conseiller" && p.jarvis ? "Une question, ex. où économiser ?" : null);
+  useInvitationBarre(onglet === "conseiller" && p.jarvis ? "Ex. où économiser ?" : null);
 
   useGestionnaireBarre("module:budget", async (texte) => {
     if (!plan) return false;

@@ -173,8 +173,8 @@ describe("les actions de Jarvis", () => {
     expect(r.echecs).toEqual([]);
     expect(r.faits).toEqual([
       "Noté pour Mitsu : a vomi.",
-      "Carnet de Mitsu : rappel typhus coryza, fait le 2026-07-07.",
-      "Pesée notée : Mitsu, 1,8 kg le 2026-07-07.",
+      "Carnet de Mitsu : rappel typhus coryza, fait mardi 7 juil.",
+      "Pesée notée : Mitsu, 1,8 kg, mardi 7 juil.",
     ]);
     expect(r.modifications).toHaveLength(1);
     const apres = r.modifications[0].apres as { journal: unknown[]; soins: unknown[]; pesees: { jour: string }[] };
@@ -255,6 +255,13 @@ describe("le conseil du dimanche", () => {
   it("décrit chaque proposition en une ligne", () => {
     expect(decrireAction({ outil: "attribuer_tache", titre: "Litière", responsable: "Sarah" })).toBe("Litière → Sarah");
     expect(decrireAction({ outil: "ajouter_courses", articles: ["lait", "œufs", "riz"] })).toBe("Courses : lait, œufs et riz");
+  });
+
+  it("dit les jours en clair, jamais en chiffres", () => {
+    const tache = { outil: "ajouter_tache", titre: "Linge", echeance: "2026-11-14", responsable: null, frequence: null } as const;
+    expect(decrireAction(tache)).toBe("Nouvelle tâche : Linge, samedi 14 nov.");
+    expect(decrireAction(tache, "2026-11-13")).toBe("Nouvelle tâche : Linge, demain");
+    expect(questionPour({ outil: "ajouter_evenement", titre: "Dentiste", jour: "2026-11-17", fin: null, heure: "14:30", heureFin: null, lieu: null, pour: null, categorie: "rdv", repetition: "aucune" }, "2026-11-13").question).toMatch(/^Agenda : Dentiste, mardi 17 nov\. à 14:30/);
   });
 
   it("compte le modèle du conseil à son prix", () => {
@@ -455,7 +462,8 @@ describe("Jarvis et l'agenda", () => {
     expect(evenement).toMatchObject({ pour: sarah, lieu: "Renens" });
 
     const avecAgenda = { ...d, agenda: [r.modifications[0].apres as never] };
-    expect(appliquerActions(actions, avecAgenda, null, AUJOURDHUI, ctx()).faits[0]).toMatch(/^Déjà dans l'agenda/);
+    // Le point de « oct. » finit la phrase : pas de deuxième point.
+    expect(appliquerActions(actions, avecAgenda, null, AUJOURDHUI, ctx()).faits[0]).toMatch(/^Déjà dans l'agenda.*[^.]\.$/);
     expect(decrireFoyer(avecAgenda, null, AUJOURDHUI)).toContain("- Dentiste : 2026-10-15 à 14:30, Sarah, Renens");
   });
 

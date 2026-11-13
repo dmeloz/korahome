@@ -25,7 +25,7 @@ import { signalerTouchees } from "../moteur/langage";
 import { hauteurClavier } from "../bords";
 
 // La fée et sa saisie : en bas de chaque page, la seule façon d'ajouter quoi que ce soit.
-// On touche la fée et on parle, ou on garde le doigt et on écrit ; Kora range seule la
+// On touche l'orbe de la fée et on parle ou on écrit (selon le réglage) ; Kora range seule la
 // phrase quand c'est simple, sinon la confie à l'assistant. Une page peut prendre la main sur
 // la phrase (Frigo et placards complète la quantité, le lieu et la date pendant qu'on écrit)
 // et lire ce qui est tapé (Courses propose les articles déjà achetés).
@@ -375,7 +375,7 @@ export function BarreJarvis(props: {
     } else ecrire();
   };
 
-  // L'orbe de Tael (à côté du salut, sur sa carte, dans la barre du haut) réveille la saisie : toucher pour parler, appui long pour écrire.
+  // L'orbe de Tael (à côté du salut, sur sa carte, dans la barre du haut) réveille la saisie : un toucher pour parler (ou écrire, selon le réglage) ; « Écrire plutôt » et « Ajouter » ouvrent le clavier. L'appui long sur l'orbe ouvre sa feuille (Tael.tsx).
   const gestesFee = useRef({ toucher: toucherFee, appuiLong: () => {} });
   gestesFee.current = {
     toucher: toucherFee,

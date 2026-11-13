@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ajouterAuJournal, attendUnOui, elaguerJournal, journalDuJour, marquerAnnulee, nettoyerNiveau, peutAgir, salutation, titreNiveau, type LigneJournalTael } from "./tael";
+import { ajouterAuJournal, attendUnOui, elaguerJournal, journalDuJour, marquerAnnulee, nettoyerNiveau, peutAgir, refusDObserver, salutation, titreNiveau, type LigneJournalTael } from "./tael";
 
 const ligne = (id: string, quand: string): LigneJournalTael => ({ id, quand, texte: id });
 const jourLocal = (iso: string) => iso.slice(0, 10);
@@ -18,6 +18,19 @@ describe("le niveau de Tael", () => {
     expect(attendUnOui("agit", true)).toBe(true);
     expect(peutAgir("observe")).toBe(false);
     expect(peutAgir("propose")).toBe(true);
+  });
+});
+
+describe("quand elle observe", () => {
+  it("dit ce qu'elle n'a pas fait, et comment la laisser faire", () => {
+    const dit = refusDObserver(["Courses : lait et œufs", "Nouvelle tâche : Linge, samedi 14 nov."]);
+    expect(dit).toContain("Je n'ai touché à rien");
+    expect(dit).toContain("Courses : lait et œufs ; Nouvelle tâche : Linge, samedi 14 nov.");
+    expect(dit).toContain("garde le doigt sur mon orbe");
+  });
+
+  it("ne dit rien quand on ne lui demandait aucune action", () => {
+    expect(refusDObserver([])).toBe("");
   });
 });
 
