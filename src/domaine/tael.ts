@@ -10,7 +10,7 @@ export type NiveauTael = "observe" | "propose" | "agit";
 
 export const NIVEAUX: readonly { id: NiveauTael; titre: string; detail: string }[] = [
   { id: "observe", titre: "Elle observe", detail: "Elle répond quand tu lui parles. Rien de plus." },
-  { id: "propose", titre: "Elle propose", detail: "Elle pose sa question sur sa carte, tu dis oui ou plus tard." },
+  { id: "propose", titre: "Elle propose", detail: "Elle fait ce que tu lui demandes. Ses propres idées, elle les propose d'abord." },
   { id: "agit", titre: "Elle agit, puis te dit", detail: "Elle note seule les petites choses et te laisse « Annuler »." },
 ];
 
@@ -24,11 +24,25 @@ export function nettoyerNiveau(brut: unknown): NiveauTael {
 export const titreNiveau = (niveau: NiveauTael): string => NIVEAUX.find((n) => n.id === niveau)?.titre ?? "";
 
 /**
- * Une action de l'assistant attend-elle un oui ? Ce qui supprime attend toujours (règle de
- * `jarvis.ts`) ; quand elle propose, tout attend ; quand elle agit, le reste passe et se défait.
+ * La personne demande-t-elle clairement de faire quelque chose (« ajoute du lait ») ? Une
+ * question (« on mange quoi ce soir ? ») ou une photo ne sont pas un ordre : ce que Tael en tire
+ * est son idée à elle.
  */
-export function attendUnOui(niveau: NiveauTael, dejaAConfirmer: boolean): boolean {
-  return dejaAConfirmer || niveau === "propose";
+export function demandeClaire(demande: string, avecImage = false): boolean {
+  const texte = demande.trim().toLowerCase();
+  if (!texte || avecImage) return false;
+  if (texte.includes("?")) return false;
+  return !/^(est-ce|qu'est-ce|qu’est-ce|que |quoi|qui |quel|quand|combien|comment|pourquoi|où |ou est|peux-tu me dire|dis-moi)/.test(texte);
+}
+
+/**
+ * Une action de l'assistant attend-elle un oui ? Ce qui supprime attend toujours (règle de
+ * `jarvis.ts`). Quand elle propose, ce qu'on lui demande clairement est fait tout de suite et se
+ * défait avec « Annuler » (0.1.17, oui de Melo du 16 novembre 2026) ; ses propres idées attendent.
+ * Quand elle agit, tout le reste passe.
+ */
+export function attendUnOui(niveau: NiveauTael, dejaAConfirmer: boolean, claire = false): boolean {
+  return dejaAConfirmer || (niveau === "propose" && !claire);
 }
 
 /** Quand elle observe, elle répond mais ne touche à rien : l'assistant n'a pas ses outils. */
