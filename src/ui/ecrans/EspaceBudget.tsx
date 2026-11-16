@@ -1,4 +1,4 @@
-import { apercuAutre, depensesParJour, etatAMoi } from "../../domaine/aMoi";
+import { apercuAutre, chiffreAMoi, depensesParJour, etatAMoi } from "../../domaine/aMoi";
 import { decrireEcheanceFacture, etatDesPots, facturesAPayer, formaterMontant, nommerMois, planDe, POTS } from "../../domaine/budget";
 import { paiementsAClasser } from "../../domaine/paiements";
 import { Icone } from "../Icone";
@@ -40,6 +40,7 @@ export function EspaceBudget(props: { donnees: DonneesModule; ouvrir: (p: Page) 
   }
 
   const aMoi = membreId ? etatAMoi(plan, donnees.budget, membreId, aujourdhui) : null;
+  const chiffre = aMoi ? chiffreAMoi(aMoi) : null;
   const courbe = membreId ? depensesParJour(donnees.budget, membreId, aujourdhui) : [];
   const pots = etatDesPots(plan, donnees.budget, aujourdhui);
   const aClasser = paiementsAClasser(donnees.budget);
@@ -57,9 +58,9 @@ export function EspaceBudget(props: { donnees: DonneesModule; ouvrir: (p: Page) 
       <Grille label="Budget">
         <Tuile large i={i++} widget="budget" onClick={() => ouvrir("mois")} label={aMoi ? `À toi ce mois : ${formaterMontant(aMoi.reste)}, ${formaterMontant(aMoi.parJour)} par jour` : `Carte courses : ${formaterMontant(pots.courses.solde)}`} className={aMoi && !aMoi.suivi ? "sans-suivi" : undefined}>
           <p className="etiq"><Icone nom="portefeuille" taille={18} />{aMoi ? (aMoi.suivi ? "À toi ce mois" : "Prévu pour toi") : "Carte courses"}</p>
-          <p className="grand-chiffre">{formaterMontant(Math.max(0, Math.round(aMoi ? (aMoi.suivi ? aMoi.reste : aMoi.prevu) : pots.courses.solde)), false)}<small>CHF</small></p>
+          <p className={`grand-chiffre${chiffre?.depasse ? " depasse" : ""}`}>{formaterMontant(chiffre ? chiffre.montant : Math.max(0, Math.round(pots.courses.solde)), false)}<small>CHF</small></p>
           <Courbe points={courbe.map((j) => j.total)} />
-          <p className="doux">{aMoi ? (aMoi.suivi ? `${formaterMontant(Math.floor(aMoi.parJour))} par jour d'ici ta paie, ${aMoi.joursRestants} jour${aMoi.joursRestants > 1 ? "s" : ""}.` : "Dis « 12 café pour moi » à Tael et l'anneau saura.") : `${formaterMontant(pots.courses.depenseDuMois)} dépensés ce mois.`}</p>
+          <p className="doux">{aMoi ? (aMoi.suivi ? (chiffre?.depasse ? `Tu as dépassé. Ta paie arrive dans ${aMoi.joursRestants} jour${aMoi.joursRestants > 1 ? "s" : ""}.` : `${formaterMontant(Math.floor(aMoi.parJour))} par jour d'ici ta paie, ${aMoi.joursRestants} jour${aMoi.joursRestants > 1 ? "s" : ""}.`) : "Dis « 12 café pour moi » à Tael et l'anneau saura.") : `${formaterMontant(pots.courses.depenseDuMois)} dépensés ce mois.`}</p>
         </Tuile>
 
         {aClasser.length ? (

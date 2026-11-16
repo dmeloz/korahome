@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ajouterAuJournal, attendUnOui, elaguerJournal, journalDuJour, marquerAnnulee, nettoyerNiveau, peutAgir, refusDObserver, salutation, titreNiveau, type LigneJournalTael } from "./tael";
+import { ajouterAuJournal, attendUnOui, demandeClaire, elaguerJournal, journalDuJour, marquerAnnulee, nettoyerNiveau, peutAgir, refusDObserver, salutation, titreNiveau, type LigneJournalTael } from "./tael";
 
 const ligne = (id: string, quand: string): LigneJournalTael => ({ id, quand, texte: id });
 const jourLocal = (iso: string) => iso.slice(0, 10);
@@ -18,6 +18,23 @@ describe("le niveau de Tael", () => {
     expect(attendUnOui("agit", true)).toBe(true);
     expect(peutAgir("observe")).toBe(false);
     expect(peutAgir("propose")).toBe(true);
+  });
+
+  it("quand elle propose, fait tout de suite ce qu'on lui demande clairement, sauf ce qui supprime", () => {
+    expect(attendUnOui("propose", false, true)).toBe(false);
+    expect(attendUnOui("propose", true, true)).toBe(true);
+    expect(attendUnOui("propose", false, false)).toBe(true);
+  });
+
+  it("reconnaît une demande claire d'une question ou d'une photo", () => {
+    expect(demandeClaire("Ajoute du lait et des œufs")).toBe(true);
+    expect(demandeClaire("dentiste jeudi 14h30")).toBe(true);
+    expect(demandeClaire("12 café pour moi")).toBe(true);
+    expect(demandeClaire("On mange quoi ce soir ?")).toBe(false);
+    expect(demandeClaire("Qu'est-ce qu'on a cette semaine")).toBe(false);
+    expect(demandeClaire("Combien il reste sur la carte courses")).toBe(false);
+    expect(demandeClaire("Note ce ticket", true)).toBe(false);
+    expect(demandeClaire("  ")).toBe(false);
   });
 });
 

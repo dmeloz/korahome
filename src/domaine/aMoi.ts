@@ -136,6 +136,17 @@ export function etatAMoi(plan: PlanBudget, docs: readonly DocBudget[], moi: Id, 
   };
 }
 
+/**
+ * Le grand chiffre des cartes « À toi ce mois » (Aujourd'hui, Budget) : ce qui reste quand Kora
+ * voit tes dépenses, sinon ce qui était prévu. Un dépassement se lit (« −120 », en rouge comme
+ * l'anneau), il n'est plus ramené à zéro (0.1.17, oui de Melo du 16 novembre 2026).
+ */
+export function chiffreAMoi(etat: AMoi): { montant: number; depasse: boolean } {
+  if (!etat.suivi) return { montant: Math.max(0, Math.round(etat.prevu)), depasse: false };
+  const montant = Math.round(etat.reste);
+  return { montant, depasse: montant < 0 };
+}
+
 /** Ce qu'une personne a dépensé chaque jour (tous les pots), des `combien` derniers jours à aujourd'hui. */
 export function depensesParJour(docs: readonly DocBudget[], moi: Id, aujourdhui: Jour, combien = 12): { jour: Jour; total: number; nombre: number }[] {
   const siennes = depenses(docs).filter((d) => d.par === moi);

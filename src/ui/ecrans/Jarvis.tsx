@@ -20,7 +20,7 @@ import { annulerModifications, direAVoixHaute, ecouter, enregistrerModifications
 import type { DonneesModule } from "../modules";
 import { vibrer } from "../haptique";
 import { nomFee } from "../fee";
-import { attendUnOui, peutAgir, refusDObserver } from "../../domaine/tael";
+import { attendUnOui, demandeClaire, peutAgir, refusDObserver } from "../../domaine/tael";
 import { lireNiveau, noterAuJournal } from "../tael";
 import { BulleAttente } from "../moteur/pieces";
 import { attendre, DUREES, signalerTouchees } from "../moteur/langage";
@@ -104,14 +104,17 @@ export function Jarvis(props: {
       await attendre(DUREES.fermeture);
       setFerme(false);
       // Son niveau (Réglages, ou garder le doigt sur son orbe) : « Observe » ne touche à rien,
-      // « Propose » demande un oui pour ce qui s'efface, « Agit » fait et note dans son journal.
+      // « Propose » fait ce qu'on lui demande clairement et demande un oui pour ses propres idées
+      // et pour ce qui s'efface, « Agit » fait et note dans son journal.
       const niveau = lireNiveau();
       const demandees = lireActions(reponse.appels);
       const actions = peutAgir(niveau) ? demandees : [];
       // « Elle observe » : rien n'est fait, et elle le dit au lieu de « C'est fait. ».
       const retenue = peutAgir(niveau) ? "" : refusDObserver(demandees.map((a) => decrireAction(a, donnees.aujourdhui)));
-      const enAttente = actions.filter((a) => attendUnOui(niveau, aConfirmer(a, texte)));
-      const resultat = appliquerActions(actions.filter((a) => !attendUnOui(niveau, aConfirmer(a, texte))), avecVersion, donnees.membreId, donnees.aujourdhui, contexteReel);
+      const claire = demandeClaire(texte, !!image);
+      const attend = (a: (typeof actions)[number]) => attendUnOui(niveau, aConfirmer(a, texte), claire);
+      const enAttente = actions.filter(attend);
+      const resultat = appliquerActions(actions.filter((a) => !attend(a)), avecVersion, donnees.membreId, donnees.aujourdhui, contexteReel);
       await enregistrerModifications(depot, resultat.modifications);
       if (resultat.modifications.length) {
         vibrer();

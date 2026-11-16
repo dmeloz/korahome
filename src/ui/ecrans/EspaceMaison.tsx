@@ -21,7 +21,8 @@ import { noterUsage } from "../usage";
 
 // Maison (Kora 0.1) : la page de cartes de l'espace. En laiton, ce qui presse chez nous (les
 // poubelles à sortir, l'entretien dû) avec « C'est fait » ; le balcon et sa météo ; Tael ; Mitsu
-// en ivoire ; l'entretien qui revient ; le carnet ; « Où est quoi » ; les vêtements.
+// en ivoire ; l'entretien qui revient ; le carnet ; « Où est quoi » ; les vêtements. Une carte
+// vide s'écrit en gris, sans laiton ni ivoire : on voit d'un coup d'œil ce qui est rempli (0.1.17).
 
 export function EspaceMaison(props: { donnees: DonneesModule; depot: Depot; ouvrir: (p: Page) => void }) {
   const { donnees, depot } = props;
@@ -86,9 +87,9 @@ export function EspaceMaison(props: { donnees: DonneesModule; depot: Depot; ouvr
             </div>
           </Tuile>
         ) : (
-          <Tuile forte large i={i++} onClick={() => ouvrir("entretien")} label="Rien ne presse à la maison">
+          <Tuile forte={entretien.length > 0} large i={i++} onClick={() => ouvrir("entretien")} label={entretien.length ? "Rien ne presse à la maison" : "La maison : choisis ce qui revient"}>
             <p className="etiq">La maison</p>
-            <p className="titre-c">{entretien.length ? "Rien ne presse cette semaine." : "Choisis ce qui revient pour la maison."}</p>
+            <p className={entretien.length ? "titre-c" : "doux"}>{entretien.length ? "Rien ne presse cette semaine." : "Choisis ce qui revient pour la maison."}</p>
             {entretien[0] && <p className="doux">Prochain : {entretien[0].tache.titre}, {entretien[0].quand}.</p>}
           </Tuile>
         )}
@@ -103,9 +104,9 @@ export function EspaceMaison(props: { donnees: DonneesModule; depot: Depot; ouvr
 
         <CarteTael />
 
-        <Tuile contraste large i={i++} widget="mitsu" onClick={() => ouvrir("mitsu")} label={animal ? `${animal.nom} : ${mitsu[0]?.texte ?? portrait}` : "Mitsu : créer sa fiche"}>
+        <Tuile contraste={!!animal} large i={i++} widget="mitsu" onClick={() => ouvrir("mitsu")} label={animal ? `${animal.nom} : ${mitsu[0]?.texte ?? portrait}` : "Mitsu : créer sa fiche"}>
           <p className="etiq"><Icone nom="chat" taille={18} />{animal?.nom ?? "Mitsu"}</p>
-          <p className="titre-c">{animal ? (mitsu[0]?.texte ?? "Tout va bien.") : "Créer sa fiche."}</p>
+          <p className={animal ? "titre-c" : "doux"}>{animal ? (mitsu[0]?.texte ?? "Tout va bien.") : "Créer sa fiche."}</p>
           {animal && <p className="doux">{mitsu.length > 1 ? `${mitsu.length - 1} autre${mitsu.length > 2 ? "s" : ""} chose${mitsu.length > 2 ? "s" : ""} · ` : ""}{portrait}</p>}
         </Tuile>
 

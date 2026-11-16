@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { apercuAutre, budgetVisible, depensesParJour, etatAMoi } from "./aMoi";
+import { apercuAutre, budgetVisible, chiffreAMoi, depensesParJour, etatAMoi } from "./aMoi";
 import { enregistrerPoste, lireDepense, nouveauPlan, nouveauPoste, nouvelleDepense, type DocBudget, type PlanBudget, type Pot } from "./budget";
 import { contexteTest } from "./contexteTest";
 import type { Jour } from "./types";
@@ -63,6 +63,16 @@ describe("À toi ce mois", () => {
     const calme = etatAMoi(p, [p, dep("2026-11-05", 260)], A, "2026-11-06")!;
     expect(calme.phrase).toMatch(/Au bon rythme/);
     expect(etatAMoi(p, [p, dep("2026-10-26", 100)], A, "2026-10-27")!.restePrevuALaFin).toBeNull();
+  });
+
+  it("montre le dépassement sur la carte au lieu de zéro", () => {
+    const p = plan();
+    const depasse = etatAMoi(p, [p, dep("2026-11-05", 2120)], A, "2026-11-06")!;
+    expect(chiffreAMoi(depasse)).toEqual({ montant: -120, depasse: true });
+    const large = etatAMoi(p, [p, dep("2026-11-05", 260)], A, "2026-11-06")!;
+    expect(chiffreAMoi(large)).toEqual({ montant: 1740, depasse: false });
+    // Sans dépense à soi, la carte montre le prévu, jamais un dépassement.
+    expect(chiffreAMoi(etatAMoi(p, [p], A, "2026-11-06")!)).toEqual({ montant: 2000, depasse: false });
   });
 
   it("prévient quand plus rien n'est noté depuis une semaine", () => {

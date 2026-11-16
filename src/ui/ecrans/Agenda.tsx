@@ -231,7 +231,7 @@ export function Agenda(p: PropsPage) {
       ) : (
         <section>
           <h2 className="rayon">{decrireJour(choisi, aujourdhui)}</h2>
-          <JourneeListe occ={duJour(occ, choisi)} jour={choisi} foyer={foyer} comptes={comptes} ouvrir={setOuvert} vide="Rien de prévu ce jour-là." />
+          <JourneeListe occ={duJour(occ, choisi)} jour={choisi} foyer={foyer} comptes={comptes} ouvrir={setOuvert} vide={choisi === aujourdhui ? "Rien de prévu aujourd'hui." : "Rien de prévu ce jour-là."} />
         </section>
       )}
 

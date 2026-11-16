@@ -33,6 +33,7 @@ button.tuile:active { transform: translateY(-3px); }
 .etiq svg { width: 18px; height: 18px; flex: none; }
 /* Le seul grand chiffre de l'écran. */
 .grand-chiffre { font-family: var(--police-titre); font-size: 40px; font-weight: 700; letter-spacing: -0.03em; margin: 10px 0 6px; line-height: 1; font-variant-numeric: tabular-nums; }
+.grand-chiffre.depasse { color: var(--urgent); }
 .grand-chiffre small { font-size: 0.5em; color: var(--discret); font-weight: 600; letter-spacing: 0; margin-left: 4px; }
 .pastille-k { display: inline-flex; align-items: center; gap: var(--espace-3); font-size: var(--t-legende); color: var(--discret); margin-top: 8px; }
 .pastille-k b { padding: 2px 8px; border-radius: var(--rayon-rond); font-size: var(--t-legende); font-weight: 600; background: var(--accent-doux); color: var(--accent); }

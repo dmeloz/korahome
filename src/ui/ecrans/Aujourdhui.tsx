@@ -3,7 +3,7 @@ import type { Depot } from "../../donnees/depot";
 import type { ServeurJarvis } from "../../donnees/distant";
 import { resiliationsDuJour } from "../../domaine/abonnements";
 import { evenementsDe, ligneWidget, occurrences, resumeAgenda, titreDe } from "../../domaine/agenda";
-import { etatAMoi } from "../../domaine/aMoi";
+import { chiffreAMoi, etatAMoi } from "../../domaine/aMoi";
 import { bilanAOuvrir, bilanDeLaSemaine, remarqueDuJour } from "../../domaine/apprentissage";
 import { carteDuJour, dejaSurLaCarte, demainDuJour, momentDuJour, resteAFaire, titreMoment, type ChoseDuJour } from "../../domaine/aujourdhui";
 import { basculerCoeur, clinDuJour } from "../../domaine/bandeau";
@@ -235,6 +235,7 @@ export function Aujourdhui(props: {
     : `${agenda.aujourdhui.length + agenda.semaine.length ? "Rien d'autre" : "Rien de prévu"} d'ici ${NOMS_JOURS[maintenant.getDay()]} prochain.`;
   const plan = planDe(donnees.budget);
   const aMoi = plan && membreId ? etatAMoi(plan, donnees.budget, membreId, aujourdhui) : null;
+  const chiffre = aMoi ? chiffreAMoi(aMoi) : null;
   const pots = plan ? etatDesPots(plan, donnees.budget, aujourdhui) : null;
   const filEntrees = filDuFoyer(donnees, maintenant.toISOString());
   const filDuJour = filEntrees.some((e) => aujourdhuiLocal(new Date(e.quand)) === aujourdhui);
@@ -318,8 +319,8 @@ export function Aujourdhui(props: {
         {plan && (
           <Tuile i={i++} widget="budget" onClick={() => ouvrirEspace("budget")} label={aMoi ? `À toi ce mois : ${formaterMontant(aMoi.reste)}` : `Budget : ${formaterMontant(pots!.courses.solde)} sur la carte courses`}>
             <p className="etiq"><Icone nom="portefeuille" taille={18} />{aMoi ? "À toi ce mois" : "Carte courses"}</p>
-            <p className="grand-chiffre">
-              {formaterMontant(Math.max(0, Math.round(aMoi ? (aMoi.suivi ? aMoi.reste : aMoi.prevu) : pots!.courses.solde)), false)}<small>CHF</small>
+            <p className={`grand-chiffre${chiffre?.depasse ? " depasse" : ""}`}>
+              {formaterMontant(chiffre ? chiffre.montant : Math.max(0, Math.round(pots!.courses.solde)), false)}<small>CHF</small>
             </p>
             {aMoi?.ecartMoisPrecedent !== null && aMoi?.ecartMoisPrecedent !== undefined && (
               <p className="pastille-k"><b>{aMoi.ecartMoisPrecedent > 0 ? "+" : ""}{Math.round(aMoi.ecartMoisPrecedent)}</b> vs le mois d'avant</p>
