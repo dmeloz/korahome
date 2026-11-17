@@ -349,7 +349,7 @@ async function parcourir(p, capter, apresRemplissage) {
     if (await kora.isVisible()) {
       await kora.click();
       await attendre(300);
-      await p.locator(".menu-kora :is(.menu-section, .menu-entree)").filter({ hasText: nom }).first().click();
+      await p.locator(".menu-kora .menu-entree").filter({ hasText: nom }).first().click();
     } else {
       await p.locator(`.rail button[aria-label="${nom}"]`).click();
     }

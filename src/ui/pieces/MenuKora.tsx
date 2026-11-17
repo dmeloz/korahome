@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { cleMenu, comptesDuMenu, pastille, SECTIONS_MENU, type EspaceMenu } from "../../domaine/menu";
+import { cleActive, cleMenu, comptesDuMenu, pastille, SECTIONS_MENU, type LieuMenu } from "../../domaine/menu";
 import { rechercher, type OuRecherche } from "../../domaine/recherche";
 import { definition, modulesCherches, type WidgetId } from "../../domaine/tableauDeBord";
 import { usePiegeFocus } from "../focus";
@@ -9,36 +9,30 @@ import { m } from "../moteur/pieces";
 import { ressortMotion } from "../moteur/ressorts";
 import { donneesRecherche } from "./RechercheFee";
 
-// Le menu latéral de l'iPhone (Kora 0.1.18, maquette validée par Melo le 17 novembre 2026, d'après
-// sa référence « SideBar UI ») : un panneau de verre fumé qui glisse depuis la gauche, l'accueil
-// recule derrière. Sa ligne (soi et le foyer), la recherche de tout Kora, puis chaque espace en
-// petites capitales (son titre ouvre sa page de cartes) et ses pages, avec les pastilles laiton
-// de ce qui attend. Il se ferme en touchant à côté, en le poussant vers la gauche ou par la flèche.
-// Il glisse en CSS (styles/espaces.css) ; Motion soulève chaque ligne sous le doigt, comme la référence.
+// Le menu latéral de l'iPhone (Kora 0.1.18, d'après la référence « SideBar UI » de Melo ; version
+// minimaliste validée en 0.1.19) : un panneau étroit de verre fumé qui flotte à gauche, l'accueil
+// assombri derrière. Sa ligne (soi et le foyer), la recherche de tout Kora, puis trois sections en
+// petites capitales (Espaces, Raccourcis, Général), une icône et un mot par ligne, la ligne active
+// en laiton d'un bord à l'autre, des pastilles laiton pour ce qui attend. Il se ferme en touchant à
+// côté, en le poussant vers la gauche ou par la flèche. Il glisse en CSS (styles/espaces.css) ;
+// Motion soulève chaque ligne sous le doigt, comme la référence.
 // Règles et pastilles : src/domaine/menu.ts. Équivalent natif : NavigationSplitView en barre latérale.
 
 const PICTOS_MENU: Record<string, NomIcone> = {
-  "chef:courses": "panier", "chef:semaine": "toque", "chef:recettes": "note", "chef:frigo": "frigo",
-  "maison:entretien": "outil", "maison:mitsu": "chat", "maison:jardin": "feuille", "maison:vetements": "coeur",
-  "taches:taches": "coche", "taches:agenda": "calendrier", "taches:administratif": "dossier",
-  "budget:mois": "portefeuille", "budget:depenses": "ticket", "budget:charges": "activite",
+  aujourdhui: "soleil", chef: "toque", maison: "maison", taches: "dossier", budget: "portefeuille", reglages: "reglages",
+  "chef:courses": "panier", "taches:taches": "coche", "taches:agenda": "calendrier",
 };
-
-/** Où l'on est, pour mettre sa ligne en laiton. */
-export type IciMenu = { espace: "aujourdhui" | "reglages" } | { espace: EspaceMenu; onglet?: string } | null;
 
 const TROUVAILLES_MAX = 8;
 
 export function MenuKora(props: {
   ouvert: boolean;
   fermer: () => void;
-  ici: IciMenu;
+  ici: LieuMenu | null;
   donnees: DonneesModule;
   alerteReglages?: boolean;
-  aujourdhui: () => void;
-  reglages: () => void;
-  espace: (id: EspaceMenu) => void;
-  page: (id: EspaceMenu, onglet: string) => void;
+  /** Ouvre un espace, ou l'une de ses pages. */
+  ouvrirLieu: (lieu: LieuMenu) => void;
   module: (id: WidgetId) => void;
   aller: (ou: OuRecherche) => void;
   partage: () => void;
@@ -66,8 +60,7 @@ export function MenuKora(props: {
     props.fermer();
     aller();
   };
-  const ici = props.ici;
-  const courant = (ok: boolean) => (ok ? ("page" as const) : undefined);
+  const active = cleActive(props.ici);
 
   return (
     <nav
@@ -116,7 +109,7 @@ export function MenuKora(props: {
           type="search"
           value={cherche}
           onChange={(e) => setCherche(e.target.value)}
-          placeholder="Chercher dans Kora"
+          placeholder="Chercher"
           aria-label="Chercher dans Kora"
           enterKeyHint="search"
           autoComplete="off"
@@ -146,35 +139,26 @@ export function MenuKora(props: {
           </div>
         ) : (
           <>
-            <Entree libelle="Aujourd'hui" picto="soleil" actuel={courant(ici?.espace === "aujourdhui")} onClick={() => partir(props.aujourdhui)} />
-            {SECTIONS_MENU.map((s) => (
-              <section key={s.espace} aria-label={s.titre}>
-                <button
-                  type="button"
-                  className="menu-section"
-                  aria-current={courant(ici?.espace === s.espace && !("onglet" in ici && ici.onglet))}
-                  onClick={() => partir(() => props.espace(s.espace))}
-                >
-                  {s.titre}
-                  <Icone nom="suivant" taille={12} />
-                </button>
+            {SECTIONS_MENU.map((s, i) => (
+              <section key={s.titre} aria-labelledby={`menu-${i}`}>
+                {i > 0 && <div className="menu-sep" aria-hidden />}
+                <h2 id={`menu-${i}`} className="menu-section">{s.titre}</h2>
                 {s.entrees.map((e) => {
-                  const cle = cleMenu(s.espace, e.onglet);
+                  const cle = cleMenu(e);
                   return (
                     <Entree
                       key={cle}
                       libelle={e.libelle}
                       picto={PICTOS_MENU[cle] ?? "liste"}
                       compte={comptes[cle]}
-                      actuel={courant(ici?.espace === s.espace && "onglet" in ici && ici.onglet === e.onglet)}
-                      onClick={() => partir(() => props.page(s.espace, e.onglet))}
+                      alerte={cle === "reglages" && props.alerteReglages}
+                      actuel={cle === active ? "page" : undefined}
+                      onClick={() => partir(() => props.ouvrirLieu(e))}
                     />
                   );
                 })}
               </section>
             ))}
-            <div className="menu-sep" aria-hidden />
-            <Entree libelle="Réglages" picto="reglages" alerte={props.alerteReglages} actuel={courant(ici?.espace === "reglages")} onClick={() => partir(props.reglages)} />
           </>
         )}
       </div>

@@ -38,7 +38,7 @@ import { useEtatPartage } from "./etatPartage";
 import { lireRappels } from "./centreRappels";
 import { nonLus } from "../domaine/centreRappels";
 import type { LieuBarre } from "../domaine/barre";
-import type { EspaceMenu } from "../domaine/menu";
+import type { LieuMenu } from "../domaine/menu";
 import type { OuRecherche } from "../domaine/recherche";
 import { Icone } from "./Icone";
 import type { MiseAJour } from "./miseAJour";
@@ -90,8 +90,12 @@ const estRacine = (p: Page) => p.nom === "accueil" || (p.nom === "module" && !p.
 /** La page de cartes d'un espace, avec sa carte de Tael : ailleurs, elle parle dans sa bulle. */
 const avecCartes = (p: Page) => p.nom === "accueil" || (p.nom === "module" && !p.onglet);
 const ESPACE_DE: Partial<Record<WidgetId, EspaceId>> = { chef: "chef", maison: "maison", taches: "taches", budget: "budget" };
-const ESPACE_MENU: Partial<Record<WidgetId, EspaceMenu>> = { chef: "chef", maison: "maison", taches: "taches", budget: "budget" };
 const espaceDe = (p: Page): EspaceId | undefined => (p.nom === "accueil" ? "aujourdhui" : p.nom === "reglages" ? "reglages" : p.nom === "module" ? ESPACE_DE[p.id] : undefined);
+/** Où l'on est, pour le menu latéral : l'espace, et sa page s'il y en a une d'ouverte. */
+const lieuMenu = (p: Page): LieuMenu | null => {
+  const espace = espaceDe(p);
+  return espace ? { espace, onglet: p.nom === "module" ? p.onglet : undefined } : null;
+};
 /** La carte (`data-widget`) qui mène à cette page : Courses ouvre Cuisine › Courses, mais c'est la carte « courses » qui grandit. */
 const carteDe = (p: Page): string | null => {
   if (p.nom === "module") return (Object.keys(MODULES) as WidgetId[]).find((k) => MODULES[k]?.ouvre?.id === p.id && MODULES[k]?.ouvre?.onglet === p.onglet) ?? p.id;
@@ -573,12 +577,9 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       alertes={{ reglages: nouvelleVersion }}
       bordOuvre={page.nom === "accueil"}
       menu={{
-        ici: page.nom === "accueil" ? { espace: "aujourdhui" } : page.nom === "reglages" ? { espace: "reglages" } : page.nom === "module" && ESPACE_MENU[page.id] ? { espace: ESPACE_MENU[page.id]!, onglet: page.onglet } : null,
+        ici: lieuMenu(page),
         donnees,
-        aujourdhui: () => allerEspace("aujourdhui"),
-        reglages: () => allerEspace("reglages"),
-        espace: (id) => allerEspace(id),
-        page: allerPage,
+        ouvrirLieu: (l) => (l.onglet && l.espace !== "aujourdhui" && l.espace !== "reglages" ? allerPage(l.espace, l.onglet) : allerEspace(l.espace)),
         module: (id) => ouvrir({ nom: "module", id }),
         aller: allerRecherche,
         partage: () => ouvrir({ nom: "partage" }),

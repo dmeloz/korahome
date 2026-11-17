@@ -145,7 +145,7 @@ try {
       await kora.click();
       await p.locator(".menu-kora.ouvert").waitFor({ timeout: 3000 }).catch(async () => { await capture("menu-rate"); console.log("   le menu ne s'est pas ouvert", await p.evaluate(() => document.documentElement.className)); });
       await p.waitForTimeout(600);
-      await p.locator(".menu-kora :is(.menu-section, .menu-entree)").filter({ hasText: espace }).first().click({ timeout: 5000 }).catch(async (e) => { await capture("menu-rate"); console.log("   menu", await p.evaluate(() => { const n = document.querySelector(".menu-kora"); return [n.getAttribute("style"), JSON.stringify(n.getBoundingClientRect()), document.documentElement.className, innerWidth]; })); throw e; });
+      await p.locator(".menu-kora .menu-entree").filter({ hasText: espace }).first().click({ timeout: 5000 }).catch(async (e) => { await capture("menu-rate"); console.log("   menu", await p.evaluate(() => { const n = document.querySelector(".menu-kora"); return [n.getAttribute("style"), JSON.stringify(n.getBoundingClientRect()), document.documentElement.className, innerWidth]; })); throw e; });
     } else {
       await p.locator(`.rail button[aria-label="${espace}"]`).click();
     }
@@ -260,7 +260,7 @@ try {
       await kora.click();
       await p.waitForTimeout(700);
       await capture("menu");
-      // La page derrière recule vers la droite, exprès : seul le menu est vérifié.
+      // Le menu couvre la page derrière : seul lui est vérifié.
       const fautesMenu = await accessibiliteDe(".menu-kora", "Menu");
       await p.locator("#menu-cherche").fill("lait");
       await p.waitForTimeout(300);

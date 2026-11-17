@@ -2,17 +2,25 @@ import { describe, expect, it } from "vitest";
 import { contexteTest } from "./contexteTest";
 import type { DocBudget } from "./budget";
 import { nouvelElement, nouvelleListe, basculerCoche } from "./listes";
-import { cleMenu, comptesDuMenu, pastille, SECTIONS_MENU } from "./menu";
+import { cleActive, cleMenu, comptesDuMenu, pastille, SECTIONS_MENU } from "./menu";
 import { marquerFaite, nouvelleTache } from "./taches";
 
 const ctx = contexteTest("2026-11-17T18:00:00.000Z");
 const AUJOURDHUI = "2026-11-17";
 
 describe("le menu latéral de l'iPhone", () => {
-  it("garde les quatre espaces et chacune de leurs pages une seule fois", () => {
-    expect(SECTIONS_MENU.map((s) => s.titre)).toEqual(["Cuisine", "Maison", "Organisation", "Budget"]);
-    const cles = SECTIONS_MENU.flatMap((s) => s.entrees.map((e) => cleMenu(s.espace, e.onglet)));
+  it("tient en trois sections, chaque ligne une seule fois", () => {
+    expect(SECTIONS_MENU.map((s) => s.titre)).toEqual(["Espaces", "Raccourcis", "Général"]);
+    expect(SECTIONS_MENU[0].entrees.map((e) => e.libelle)).toEqual(["Aujourd'hui", "Cuisine", "Maison", "Organisation", "Budget"]);
+    const cles = SECTIONS_MENU.flatMap((s) => s.entrees.map(cleMenu));
     expect(new Set(cles).size).toBe(cles.length);
+  });
+
+  it("allume la page ouverte, sinon son espace", () => {
+    expect(cleActive({ espace: "chef", onglet: "courses" })).toBe("chef:courses");
+    expect(cleActive({ espace: "chef", onglet: "frigo" })).toBe("chef");
+    expect(cleActive({ espace: "reglages" })).toBe("reglages");
+    expect(cleActive(null)).toBeNull();
   });
 
   it("compte les courses, les tâches qui pressent et les paiements à classer, sans pastille à zéro", () => {
@@ -25,7 +33,7 @@ describe("le menu latéral de l'iPhone", () => {
     const faite = marquerFaite(nouvelleTache("Poubelles", null, AUJOURDHUI, ctx), null, AUJOURDHUI, ctx);
     const paiement = { genre: "paiement", jour: AUJOURDHUI, creeLe: "2026-11-17T08:00:00.000Z" } as unknown as DocBudget;
     const comptes = comptesDuMenu({ listes: [courses], elements: [lait, pain], taches: [retard, jour, plusTard, faite], budget: [paiement], membreId: "melo", aujourdhui: AUJOURDHUI });
-    expect(comptes).toEqual({ "chef:courses": 1, "taches:taches": 2, "budget:depenses": 1 });
+    expect(comptes).toEqual({ "chef:courses": 1, "taches:taches": 2, budget: 1 });
     expect(comptesDuMenu({ listes: [], elements: [], taches: [], budget: [], membreId: null, aujourdhui: AUJOURDHUI })).toEqual({});
   });
 
