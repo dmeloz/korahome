@@ -311,8 +311,6 @@ html.feuille-ouverte, html.feuille-ouverte body, html.menu-ouvert, html.menu-ouv
   .page-dessus { transition: transform var(--duree-feuille) var(--courbe), border-radius var(--duree-feuille) var(--courbe), filter var(--duree-feuille) var(--courbe); transform-origin: 50% 0; }
     .page-dessus.retour-glisse { transition: none; }
   html.feuille-ouverte .page-dessus { transform: scale(0.94) translateY(calc(env(safe-area-inset-top) + 8px)); border-radius: var(--rayon-feuille); filter: brightness(0.85); overflow: hidden; }
-  /* Le menu latéral de l'iPhone (0.1.18) : la page recule vers la droite, derrière son verre. */
-  html.menu-ouvert .page-dessus { transform: translateX(48px) scale(0.94); border-radius: var(--rayon-feuille); filter: brightness(0.6); overflow: hidden; }
 }
 .poignee { width: 36px; height: 5px; border-radius: var(--rayon-fin); background: var(--trait); margin: 0 auto 4px; }
 .feuille-surtitre { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

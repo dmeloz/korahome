@@ -45,7 +45,7 @@ export function Navigation(props: {
   useEffect(() => {
     if (!props.pile) setOuvert(false);
   }, [props.pile]);
-  // Le menu ouvert : la page derrière recule (styles/pieces.css) et ne défile plus. Échap le ferme (usePiegeFocus).
+  // Le menu ouvert : la page derrière, assombrie par le voile, ne défile plus. Échap le ferme (usePiegeFocus).
   useEffect(() => {
     if (!ouvert) return;
     document.documentElement.classList.add("menu-ouvert");
