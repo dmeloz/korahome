@@ -305,12 +305,14 @@ button.case::after { content: ""; position: absolute; inset: -10px; }
 .feuille-entete h2 { margin: 0; font-size: var(--t-corps); }
 .feuille-entete .lien { font-weight: 600; }
 .feuille-corps { display: flex; flex-direction: column; gap: var(--espace-5); overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
-html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
+html.feuille-ouverte, html.feuille-ouverte body, html.menu-ouvert, html.menu-ouvert body { overflow: hidden; }
 @media (prefers-reduced-motion: no-preference) {
   /* La page derrière recule un peu, comme sous une feuille de l'iPhone. */
   .page-dessus { transition: transform var(--duree-feuille) var(--courbe), border-radius var(--duree-feuille) var(--courbe), filter var(--duree-feuille) var(--courbe); transform-origin: 50% 0; }
     .page-dessus.retour-glisse { transition: none; }
   html.feuille-ouverte .page-dessus { transform: scale(0.94) translateY(calc(env(safe-area-inset-top) + 8px)); border-radius: var(--rayon-feuille); filter: brightness(0.85); overflow: hidden; }
+  /* Le menu latéral de l'iPhone (0.1.18) : la page recule vers la droite, derrière son verre. */
+  html.menu-ouvert .page-dessus { transform: translateX(48px) scale(0.94); border-radius: var(--rayon-feuille); filter: brightness(0.6); overflow: hidden; }
 }
 .poignee { width: 36px; height: 5px; border-radius: var(--rayon-fin); background: var(--trait); margin: 0 auto 4px; }
 .feuille-surtitre { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

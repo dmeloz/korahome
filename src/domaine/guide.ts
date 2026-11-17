@@ -20,7 +20,7 @@ export interface PageGuide {
 export function pagesGuide(fee: string): readonly PageGuide[] {
   return [
     { dessin: "espaces", picto: "espaces", titre: "Bienvenue dans Kora", texte: "Six espaces, chacun sur une page de cartes : Aujourd'hui, Cuisine, Maison, Organisation, Budget et les Réglages." },
-    { dessin: "pile", picto: "haut", titre: "Un seul bouton", texte: "Le rond en bas à gauche déploie les six espaces. Sur l'iPad et l'iPhone déplié, ils sont dans le rail à gauche." },
+    { dessin: "pile", picto: "haut", titre: "Un seul bouton", texte: "Le rond en bas à gauche ouvre le menu : chaque espace et ses pages, avec ce qui attend. Sur l'iPad et l'iPhone déplié, ils sont dans le rail à gauche." },
     { dessin: "cartes", picto: "coche", titre: "Les cartes", texte: "La carte en laiton dit ce qui presse, l'ivoire ce qu'il faut retenir. Coche les courses et les tâches d'ici ; une carte s'ouvre en sa page." },
     { dessin: "fee", picto: "jarvis", titre: `${fee} vient à toi`, texte: `Son orbe est à côté du salut et en haut de chaque page. Un toucher : elle écoute. Un appui long : ce qu'elle fait seule, et de quoi l'annuler.` },
     { dessin: "fin", picto: "sourire", titre: "C'est à vous", texte: "Dis-lui la première course, la première tâche, ce qu'on mange ce soir. Le reste vient avec les jours." },

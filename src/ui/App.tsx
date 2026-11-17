@@ -38,6 +38,7 @@ import { useEtatPartage } from "./etatPartage";
 import { lireRappels } from "./centreRappels";
 import { nonLus } from "../domaine/centreRappels";
 import type { LieuBarre } from "../domaine/barre";
+import type { EspaceMenu } from "../domaine/menu";
 import type { OuRecherche } from "../domaine/recherche";
 import { Icone } from "./Icone";
 import type { MiseAJour } from "./miseAJour";
@@ -89,6 +90,7 @@ const estRacine = (p: Page) => p.nom === "accueil" || (p.nom === "module" && !p.
 /** La page de cartes d'un espace, avec sa carte de Tael : ailleurs, elle parle dans sa bulle. */
 const avecCartes = (p: Page) => p.nom === "accueil" || (p.nom === "module" && !p.onglet);
 const ESPACE_DE: Partial<Record<WidgetId, EspaceId>> = { chef: "chef", maison: "maison", taches: "taches", budget: "budget" };
+const ESPACE_MENU: Partial<Record<WidgetId, EspaceMenu>> = { chef: "chef", maison: "maison", taches: "taches", budget: "budget" };
 const espaceDe = (p: Page): EspaceId | undefined => (p.nom === "accueil" ? "aujourdhui" : p.nom === "reglages" ? "reglages" : p.nom === "module" ? ESPACE_DE[p.id] : undefined);
 /** La carte (`data-widget`) qui mène à cette page : Courses ouvre Cuisine › Courses, mais c'est la carte « courses » qui grandit. */
 const carteDe = (p: Page): string | null => {
@@ -317,6 +319,12 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       window.scrollTo(0, 0);
     });
   };
+  /** Le menu latéral : une page d'un espace s'ouvre par-dessus sa page de cartes, comme depuis elle. */
+  const allerPage = (id: WidgetId, onglet: string) =>
+    avecTransition("avant", () => {
+      setPile((avant) => [avant[0], { nom: "module", id }, { nom: "module", id, onglet }]);
+      window.scrollTo(0, 0);
+    });
   const ouvrirListe = (id: string) => ouvrir({ nom: "liste", id });
   const ouvertes = retours.filter((r) => !r.regleLe).length;
 
@@ -558,7 +566,24 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
         ouvrirPage={(ou) => ouvrir(ou === "mots" ? { nom: "mots" } : ou === "reglages" ? { nom: "reglages" } : { nom: "module", id: ou })}
       />
     ) : null}
-    <Navigation actuel={espaceDe(page)} aller={allerEspace} pile={racine} alertes={{ reglages: nouvelleVersion }} />
+    <Navigation
+      actuel={espaceDe(page)}
+      aller={allerEspace}
+      pile={racine}
+      alertes={{ reglages: nouvelleVersion }}
+      bordOuvre={page.nom === "accueil"}
+      menu={{
+        ici: page.nom === "accueil" ? { espace: "aujourdhui" } : page.nom === "reglages" ? { espace: "reglages" } : page.nom === "module" && ESPACE_MENU[page.id] ? { espace: ESPACE_MENU[page.id]!, onglet: page.onglet } : null,
+        donnees,
+        aujourdhui: () => allerEspace("aujourdhui"),
+        reglages: () => allerEspace("reglages"),
+        espace: (id) => allerEspace(id),
+        page: allerPage,
+        module: (id) => ouvrir({ nom: "module", id }),
+        aller: allerRecherche,
+        partage: () => ouvrir({ nom: "partage" }),
+      }}
+    />
     {!avecCartes(page) && <BulleTael />}
     <FeuilleTael annuler={(mods) => annulerModifications(depot, mods as Parameters<typeof annulerModifications>[1])} />
     {guide && <Guide fermer={() => setGuide(false)} />}

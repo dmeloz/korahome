@@ -342,14 +342,14 @@ async function parcourir(p, capter, apresRemplissage) {
   const attendre = (ms = 650) => p.waitForTimeout(ms);
   const revenir = async () => { await p.locator(".page-dessus .retour").first().click().catch(() => {}); await attendre(500); };
   const fermerFeuille = async () => { await p.keyboard.press("Escape"); await attendre(300); const b = p.locator(".feuille-entete button").first(); if (await b.count()) await b.click().catch(() => {}); await attendre(400); };
-  // Kora 0.1 : un espace s'ouvre par la pile de Kora (iPhone) ou le rail (iPad, Duo ouvert), puis
+  // Kora 0.1 : un espace s'ouvre par le menu latéral de Kora (iPhone) ou le rail (iPad, Duo ouvert), puis
   // chaque page de l'espace par sa carte (toute la carte, ou son bouton « Tout voir »).
   const espace = async (nom) => {
     const kora = p.locator(".pile-kora .kora");
     if (await kora.isVisible()) {
       await kora.click();
       await attendre(300);
-      await p.locator(".pile-kora .item").filter({ hasText: nom }).first().click();
+      await p.locator(".menu-kora :is(.menu-section, .menu-entree)").filter({ hasText: nom }).first().click();
     } else {
       await p.locator(`.rail button[aria-label="${nom}"]`).click();
     }
