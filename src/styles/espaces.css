@@ -252,20 +252,47 @@ button.tuile:active { transform: translateY(-3px); }
 
 /* ---------- La navigation : la pile sur l'iPhone, le rail sur l'iPad et le Duo ouvert ---------- */
 /* Repliée, la pile ne prend que son bouton rond : les cartes derrière restent touchables. */
-.pile-kora { position: fixed; left: calc(16px + var(--bord-gauche)); bottom: calc(env(safe-area-inset-bottom) + 16px); z-index: 25; display: flex; flex-direction: column-reverse; align-items: flex-start; gap: 10px; pointer-events: none; }
-.pile-kora .kora, .pile-kora.ouvert { pointer-events: auto; }
-.pile-kora .kora { width: 56px; height: 56px; border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); border-radius: 50%; background: var(--verre); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); display: grid; place-items: center; color: var(--accent); box-shadow: 0 10px 28px rgb(0 0 0 / 0.4); transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
-.pile-kora.ouvert .kora { transform: rotate(45deg); }
-.pile-kora .item { display: flex; align-items: center; gap: 10px; padding: 0; border: 0; background: none; color: inherit; opacity: 0; transform: translateY(10px) scale(0.9); pointer-events: none; transition: opacity 0.25s, transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
-.pile-kora.ouvert .item { opacity: 1; transform: none; pointer-events: auto; }
-.pile-kora .item:nth-child(2) { transition-delay: 0.03s; } .pile-kora .item:nth-child(3) { transition-delay: 0.06s; } .pile-kora .item:nth-child(4) { transition-delay: 0.09s; }
-.pile-kora .item:nth-child(5) { transition-delay: 0.12s; } .pile-kora .item:nth-child(6) { transition-delay: 0.15s; } .pile-kora .item:nth-child(7) { transition-delay: 0.18s; }
-.pile-kora .rond { width: 48px; height: 48px; border-radius: 50%; background: var(--surface); border: 1px solid var(--trait); display: grid; place-items: center; color: var(--discret); position: relative; }
-.pile-kora .item[aria-current="page"] .rond { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
-.pile-kora .nom { padding: 7px 12px; border-radius: var(--rayon-rond); background: var(--ivoire); color: var(--sur-ivoire); font-size: var(--t-detail); font-weight: 600; }
+.pile-kora { position: fixed; left: calc(16px + var(--bord-gauche)); bottom: calc(env(safe-area-inset-bottom) + 16px); z-index: 25; pointer-events: none; }
+.pile-kora .kora { pointer-events: auto; width: 56px; height: 56px; border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); border-radius: 50%; background: var(--verre); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); display: grid; place-items: center; color: var(--accent); box-shadow: 0 10px 28px rgb(0 0 0 / 0.4); position: relative; transition: opacity 0.25s; }
+/* Le menu ouvert : le bouton rond s'efface, la flèche du menu le referme. */
+.pile-kora.ouvert .kora { opacity: 0; pointer-events: none; }
 .pile-kora .alerte { position: absolute; top: -2px; right: -2px; }
-.voile-pile { position: fixed; inset: 0; z-index: 24; background: rgb(10 10 12 / 0.78); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); border: 0; padding: 0; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.3s, visibility 0.3s; }
+.voile-pile { position: fixed; inset: 0; z-index: 24; background: rgb(10 10 12 / 0.55); border: 0; padding: 0; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.3s, visibility 0.3s; }
 .voile-pile.ouvert { opacity: 1; visibility: visible; pointer-events: auto; }
+/* Le menu latéral de l'iPhone (0.1.18) : du verre fumé posé à gauche, l'accueil recule derrière. */
+.menu-kora { position: fixed; z-index: 26; top: calc(env(safe-area-inset-top) + var(--espace-5)); bottom: calc(env(safe-area-inset-bottom) + var(--espace-5)); left: calc(var(--espace-5) + var(--bord-gauche)); width: min(84vw, 340px); display: flex; flex-direction: column; overflow: hidden; border-radius: var(--rayon-feuille); background: linear-gradient(180deg, color-mix(in srgb, var(--surface-haute) 86%, transparent), color-mix(in srgb, var(--surface) 92%, transparent)); -webkit-backdrop-filter: blur(24px) saturate(1.2); backdrop-filter: blur(24px) saturate(1.2); border: 1px solid var(--verre-trait); box-shadow: var(--verre-reflet), var(--ombre); outline: none; transform: translateX(-112%); transition: transform var(--duree-feuille) var(--courbe), translate 0.25s var(--courbe); }
+.menu-kora.ouvert { transform: none; }
+.menu-kora.glisse { transition: none; }
+@media (prefers-reduced-motion: reduce) { .menu-kora { transition: none; } }
+.menu-tete { display: flex; align-items: center; justify-content: space-between; padding: var(--espace-6) var(--espace-6) var(--espace-5); }
+.menu-marque { font: 600 var(--t-section) var(--police-titre); letter-spacing: 0.01em; }
+.menu-fermer { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--trait); background: var(--accent-doux); color: var(--discret); display: grid; place-items: center; padding: 0; }
+.menu-qui { display: flex; align-items: center; gap: var(--espace-5); margin: 0 var(--espace-5); padding: var(--espace-5); border-radius: var(--rayon-petit); border: 1px solid var(--trait); background: color-mix(in srgb, var(--surface-haute) 60%, transparent); color: var(--texte); text-align: left; font: inherit; }
+.menu-qui > :last-child { color: var(--sourd); flex: none; }
+.menu-avatar { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--accent-doux); color: var(--accent); font-weight: 600; border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
+.menu-qui-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.menu-qui-texte b { font-weight: 500; }
+.menu-qui-texte span { color: var(--discret); font-size: var(--t-detail); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.menu-cherche { display: flex; align-items: center; gap: var(--espace-4); margin: var(--espace-5) var(--espace-5) var(--espace-2); padding: 0 var(--espace-5); min-height: 40px; border-radius: var(--rayon-rond); border: 1px solid var(--trait); background: color-mix(in srgb, var(--fond) 60%, transparent); color: var(--sourd); }
+.menu-cherche input { flex: 1; min-width: 0; border: 0; background: none; color: var(--texte); font: inherit; font-size: 16px; padding: var(--espace-4) 0; outline: none; }
+.menu-cherche input::placeholder { color: var(--sourd); }
+.menu-cherche input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+.menu-cherche:focus-within { border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.menu-defile { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--espace-2) 0 var(--espace-6); scrollbar-width: none; }
+.menu-defile::-webkit-scrollbar { display: none; }
+.menu-section { display: flex; align-items: center; gap: var(--espace-3); margin: var(--espace-5) var(--espace-4) 0; padding: var(--espace-4) var(--espace-6) var(--espace-3); border: 0; border-radius: var(--rayon-petit); background: none; font: 600 var(--t-legende) var(--police); letter-spacing: 0.14em; text-transform: uppercase; color: color-mix(in srgb, var(--accent) 70%, var(--discret)); }
+.menu-section[aria-current="page"] { color: var(--accent-clair); }
+.menu-entree { display: flex; align-items: center; gap: var(--espace-5); width: calc(100% - var(--espace-6)); margin: 0 var(--espace-4); padding: 0 var(--espace-5); min-height: 44px; border: 0; border-radius: var(--rayon-petit); background: none; color: var(--texte); font: inherit; font-size: 15px; text-align: left; position: relative; }
+.menu-entree > svg { color: var(--discret); flex: none; }
+.menu-entree[aria-current="page"] { background: var(--accent); color: var(--sur-accent); font-weight: 600; }
+.menu-entree[aria-current="page"] > svg { color: var(--sur-accent); }
+.menu-libelle { flex: 1; min-width: 0; }
+.menu-compte { min-width: 24px; height: 22px; padding: 0 7px; border-radius: var(--rayon-rond); font-size: var(--t-legende); font-weight: 600; line-height: 22px; text-align: center; font-variant-numeric: tabular-nums; color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); background: var(--accent-doux); }
+.menu-entree[aria-current="page"] .menu-compte { color: var(--sur-accent); border-color: rgb(0 0 0 / 0.25); background: rgb(0 0 0 / 0.1); }
+.menu-entree .alerte { position: static; }
+.menu-sep { height: 1px; margin: var(--espace-5) var(--espace-6) var(--espace-2); background: linear-gradient(90deg, transparent, var(--trait) 20%, var(--trait) 80%, transparent); }
+.menu-trouvailles { padding: var(--espace-4) var(--espace-6); }
+.menu-vide { color: var(--discret); font-size: var(--t-detail); margin: var(--espace-5) 0; }
 /* Une page par-dessus un espace, une feuille, la saisie : le bouton Kora se retire. */
 html.feuille-ouverte .pile-kora, html.saisie-ouverte .pile-kora { opacity: 0; pointer-events: none; }
 .pile-kora { transition: opacity 0.25s; }
@@ -280,7 +307,7 @@ html.feuille-ouverte .pile-kora, html.saisie-ouverte .pile-kora { opacity: 0; po
 .rail .alerte { position: absolute; top: 6px; right: 6px; }
 @media (min-width: 640px) {
   :root { --bord-rail: 72px; }
-  .pile-kora, .voile-pile { display: none; }
+  .pile-kora, .voile-pile, .menu-kora { display: none; }
   .rail { display: flex; }
   .grille { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; grid-auto-flow: dense; }
   .tuile.large { grid-column: span 2; }

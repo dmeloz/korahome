@@ -95,7 +95,7 @@ function Dessin({ quoi }: { quoi: ReturnType<typeof pagesGuide>[number]["dessin"
   if (quoi === "pile") {
     return (
       <div className="guide-dessin pile" aria-hidden>
-        <span className="rond kora"><Icone nom="espaces" taille={22} /></span>
+        <span className="rond kora"><Icone nom="menu" taille={22} /></span>
         {ESPACES.slice(1, 4).map((e, j) => <span key={e.id} className="item" style={{ "--j": j } as CSSProperties}><span className="rond"><Icone nom={e.picto} taille={16} /></span><b>{e.libelle}</b></span>)}
       </div>
     );

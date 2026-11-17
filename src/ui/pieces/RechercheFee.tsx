@@ -17,7 +17,7 @@ import { AuDessusDeLaBarre, useSaisieBarre } from "./barre";
 const TROUVAILLES_MAX = 5;
 
 /** Tout ce que la recherche fouille ; les listes rien qu'à l'autre n'y sont pas. */
-function donneesRecherche(d: DonneesModule) {
+export function donneesRecherche(d: DonneesModule) {
   const listes = listesVisibles(d.listes, d.membreId);
   const ids = new Set(listes.map((l) => l.id));
   return {

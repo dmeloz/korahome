@@ -86,13 +86,15 @@ try {
     console.log(`${titre && !fautes ? "ok " : "?? "} ${nom}${theme}${titre ? ` → ${titre}` : ""}${fautes ? ` · ${fautes} faute${fautes > 1 ? "s" : ""}` : ""}`);
   };
   /** axe sur la page du dessus : WCAG A et AA, fautes graves et critiques seulement. Rend leur nombre. */
-  const accessibilite = async (nom) => {
+  const accessibilite = (nom) => accessibiliteDe(".page-dessus", nom);
+  const accessibiliteDe = async (zone, nom) => {
     const resultat = await p
-      .evaluate(() =>
-        window.axe.run(document.querySelector(".page-dessus") ?? document.body, {
+      .evaluate((zone) =>
+        window.axe.run(document.querySelector(zone) ?? document.body, {
           runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21aa"] },
           resultTypes: ["violations"],
         }),
+        zone,
       )
       .catch((e) => ({ violations: [{ id: "axe", impact: "critical", help: `axe n'a pas tourné : ${e.message}`, nodes: [] }] }));
     const graves = resultat.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
@@ -136,13 +138,14 @@ try {
     await p.locator(".page-dessus .retour").click();
     await p.waitForTimeout(500);
   };
-  /** Un espace, par la pile de Kora (iPhone) ou le rail (iPad, Duo ouvert). */
+  /** Un espace, par le menu latéral de Kora (iPhone) ou le rail (iPad, Duo ouvert). */
   const allerEspace = async (espace) => {
     const kora = p.locator(".pile-kora .kora");
     if (await kora.isVisible()) {
       await kora.click();
-      await p.waitForTimeout(300);
-      await p.locator(".pile-kora .item").filter({ hasText: espace }).first().click();
+      await p.locator(".menu-kora.ouvert").waitFor({ timeout: 3000 }).catch(async () => { await capture("menu-rate"); console.log("   le menu ne s'est pas ouvert", await p.evaluate(() => document.documentElement.className)); });
+      await p.waitForTimeout(600);
+      await p.locator(".menu-kora :is(.menu-section, .menu-entree)").filter({ hasText: espace }).first().click({ timeout: 5000 }).catch(async (e) => { await capture("menu-rate"); console.log("   menu", await p.evaluate(() => { const n = document.querySelector(".menu-kora"); return [n.getAttribute("style"), JSON.stringify(n.getBoundingClientRect()), document.documentElement.className, innerWidth]; })); throw e; });
     } else {
       await p.locator(`.rail button[aria-label="${espace}"]`).click();
     }
@@ -251,6 +254,24 @@ try {
     await capture("aujourdhui");
     const fautesAccueil = (await accessibilite("Aujourd'hui")) + (await debordement("Aujourd'hui"));
     console.log(`${fautesAccueil ? "?? " : "ok "} Aujourd'hui${theme}${fautesAccueil ? ` · ${fautesAccueil} faute${fautesAccueil > 1 ? "s" : ""}` : ""}`);
+    // Le menu latéral de l'iPhone (0.1.18) : ouvert, sa recherche, puis une page en un toucher.
+    const kora = p.locator(".pile-kora .kora");
+    if (await kora.isVisible()) {
+      await kora.click();
+      await p.waitForTimeout(700);
+      await capture("menu");
+      // La page derrière recule vers la droite, exprès : seul le menu est vérifié.
+      const fautesMenu = await accessibiliteDe(".menu-kora", "Menu");
+      await p.locator("#menu-cherche").fill("lait");
+      await p.waitForTimeout(300);
+      await capture("menu-recherche");
+      await p.locator("#menu-cherche").fill("");
+      console.log(`${fautesMenu ? "?? " : "ok "} Menu${theme}${fautesMenu ? ` · ${fautesMenu} faute${fautesMenu > 1 ? "s" : ""}` : ""}`);
+      await p.locator(".menu-kora .menu-entree").filter({ hasText: "Agenda" }).click();
+      await verifier("Menu › Agenda");
+      await revenir();
+      await allerEspace("Aujourd'hui");
+    }
     // Les quatre espaces (Kora 0.1) : leur page de cartes, puis chaque page qu'une carte ouvre.
     const ESPACES = {
       Cuisine: ["Courses", "Menus de la semaine", "Nos recettes", "Frigo et placards", "Autres listes"],
