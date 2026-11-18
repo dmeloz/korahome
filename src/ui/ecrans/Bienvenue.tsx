@@ -86,7 +86,7 @@ function Retrouver({ rejoindre }: { rejoindre: (code: string) => Promise<void> }
           spellCheck={false}
         />
       </label>
-      <p className="discret">Il s'affiche sur l'autre iPhone, dans Réglages, puis Partage. Listes, tâches et Mitsu reviennent seuls.</p>
+      <p className="discret">Il s'affiche sur l'autre iPhone, dans Réglages, puis Partage. Tout le foyer revient seul.</p>
       {erreur && <p className="erreur" role="alert">{erreur}</p>}
       <button type="submit" className="bouton-principal" disabled={occupe || !code}>
         {occupe ? "Connexion au foyer…" : "Retrouver le foyer"}

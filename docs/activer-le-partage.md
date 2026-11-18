@@ -1,9 +1,9 @@
 # Activer le partage entre les deux iPhone
 
 Le partage passe par un projet Supabase gratuit : une base de données en ligne qui
-garde une copie des listes, des tâches et du suivi de Mitsu. Chaque iPhone garde
+garde une copie de tout ce que le foyer note dans Kora (courses, tâches, agenda, budget, maison, Mitsu). Chaque iPhone garde
 tout de son côté et fonctionne sans réseau ; les modifications se rejoignent dès
-que possible (champ par champ ; pour un même champ, la plus récente gagne). Les notes de test restent sur chaque téléphone.
+que possible (champ par champ ; pour un même champ, la plus récente gagne). Les notes de test partent aussi sur le serveur du foyer.
 
 À faire une seule fois.
 
