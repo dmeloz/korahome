@@ -55,6 +55,34 @@ describe("les téléphones du foyer", () => {
   });
 });
 
+describe("les jours se comptent au calendrier", () => {
+  const foyer = creerFoyer("Maison", ["Melo", "Sarah"], contexteTest());
+  const [melo, sarah] = foyer.membres;
+  it("ouverte hier soir et lue ce matin, c'est hier", () => {
+    const avec = { ...foyer, membres: [melo, { ...sarah, appareil: { version: "0.1.19", vuLe: "2026-11-17T21:00:00.000Z" } }] };
+    expect(decrireAppareils(avec, "0.1.19", "2026-11-18T08:00:00.000Z")[1].detail).toBe("ouverte hier");
+    const samedi = { ...foyer, membres: [melo, { ...sarah, appareil: { version: "0.1.19", vuLe: "2026-11-14T08:23:00.000Z" } }] };
+    expect(decrireAppareils(samedi, "0.1.19", "2026-11-18T08:15:00.000Z")[1].detail).toBe("ouverte il y a 4 jours");
+  });
+
+  it("suit le jour du téléphone quand l'écran le donne", () => {
+    // À Renens (une heure d'avance en hiver), 23 h 30 UTC est déjà le lendemain.
+    const renens = (iso: string) => new Date(Date.parse(iso) + 3_600_000).toISOString().slice(0, 10);
+    const avec = { ...foyer, membres: [melo, { ...sarah, appareil: { version: "0.1.19", vuLe: "2026-11-17T23:30:00.000Z" } }] };
+    expect(decrireAppareils(avec, "0.1.19", "2026-11-18T08:00:00.000Z")[1].detail).toBe("ouverte hier");
+    expect(decrireAppareils(avec, "0.1.19", "2026-11-18T08:00:00.000Z", renens)[1].detail).toBe("ouverte aujourd'hui");
+    const [, autre] = decrireTelephones(
+      [
+        { id: "moi", nom: "Melo", rejointLe: "2026-10-01T10:00:00.000Z", actifLe: "2026-11-18T08:00:00.000Z", moi: true },
+        { id: "sarah", nom: "Sarah", rejointLe: "2026-10-01T10:00:00.000Z", actifLe: "2026-11-17T21:00:00.000Z", moi: false },
+      ],
+      "2026-11-18T08:00:00.000Z",
+      renens,
+    );
+    expect(autre.detail).toBe("Ouvert hier");
+  });
+});
+
 describe("les téléphones reliés", () => {
   const maintenant = "2026-10-27T10:00:00.000Z";
   it("nomme ce téléphone", () => {

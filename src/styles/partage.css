@@ -43,8 +43,8 @@
   height: 10px;
   flex: none;
   border-radius: 50%;
-  background: #6fbf8e;
-  box-shadow: 0 0 0 4px rgb(111 191 142 / 0.18);
+  background: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 .partage-etat.en_cours .partage-point { background: var(--accent); animation: partage-pulse 1.2s ease-in-out infinite; }
 .partage-etat.erreur .partage-point { background: var(--urgent); box-shadow: 0 0 0 4px rgb(226 145 106 / 0.18); }

@@ -53,14 +53,24 @@ export interface AppareilDecrit {
   enRetard: boolean;
 }
 
-export function decrireAppareils(foyer: Pick<Foyer, "membres">, versionCourante: string, maintenant: string): AppareilDecrit[] {
+export function decrireAppareils(foyer: Pick<Foyer, "membres">, versionCourante: string, maintenant: string, jourDe = jourUtc): AppareilDecrit[] {
   return foyer.membres.map((m) => {
     if (!m.appareil) return { prenom: m.prenom, version: "Jamais ouverte", detail: "Kora ne s'est pas encore ouverte sur son iPhone.", enRetard: false };
-    const jours = Math.floor((Date.parse(maintenant) - Date.parse(m.appareil.vuLe)) / 86_400_000);
+    const jours = joursDeCalendrier(m.appareil.vuLe, maintenant, jourDe);
     const vu = jours <= 0 ? "ouverte aujourd'hui" : jours === 1 ? "ouverte hier" : `ouverte il y a ${jours} jours`;
     const enRetard = comparerVersions(m.appareil.version, versionCourante) < 0;
     return { prenom: m.prenom, version: `Kora ${m.appareil.version}`, detail: enRetard ? `${vu} · une mise à jour l'attend` : vu, enRetard };
   });
+}
+
+const jourUtc = (iso: string): string => iso.slice(0, 10);
+
+/**
+ * Les jours du calendrier entre deux instants : ouverte hier à 22 h et lue ce matin à 9 h, c'est
+ * « hier », pas « aujourd'hui ». `jourDe` donne le jour du téléphone (l'écran passe le jour local).
+ */
+function joursDeCalendrier(depuis: string, maintenant: string, jourDe: (iso: string) => string): number {
+  return Math.round((Date.parse(jourDe(maintenant)) - Date.parse(jourDe(depuis))) / 86_400_000);
 }
 
 /** « 0.0.9 » < « 0.0.64 » : les numéros se comparent un à un. */
@@ -115,18 +125,18 @@ export function plateformeDe(agent: string, pointsTactiles = 0): string {
   return "Navigateur";
 }
 
-function ilYa(depuis: string, maintenant: string): string {
-  const jours = Math.floor((Date.parse(maintenant) - Date.parse(depuis)) / 86_400_000);
+function ilYa(depuis: string, maintenant: string, jourDe: (iso: string) => string): string {
+  const jours = joursDeCalendrier(depuis, maintenant, jourDe);
   return jours <= 0 ? "aujourd'hui" : jours === 1 ? "hier" : `il y a ${jours} jours`;
 }
 
 /** Les lignes de la liste : ce téléphone d'abord, puis les actifs, puis les anciens. */
-export function decrireTelephones(telephones: readonly TelephoneRelie[], maintenant: string): TelephoneDecrit[] {
+export function decrireTelephones(telephones: readonly TelephoneRelie[], maintenant: string, jourDe = jourUtc): TelephoneDecrit[] {
   const lignes = telephones.map((t) => {
     const vu = t.actifLe ?? t.rejointLe;
     const ancien = !t.moi && Date.parse(maintenant) - Date.parse(vu) > JOURS_ANCIEN * 86_400_000;
     const titre = t.nom ?? "Ancienne installation";
-    const detail = t.moi ? "Ce téléphone" : ancien ? `Pas ouvert depuis ${ilYa(vu, maintenant).replace("il y a ", "")}` : `Ouvert ${ilYa(vu, maintenant)}`;
+    const detail = t.moi ? "Ce téléphone" : ancien ? `Pas ouvert depuis ${ilYa(vu, maintenant, jourDe).replace("il y a ", "")}` : `Ouvert ${ilYa(vu, maintenant, jourDe)}`;
     return { id: t.id, titre, detail, moi: t.moi, ancien, vu };
   });
   const rang = (l: (typeof lignes)[number]) => (l.moi ? 0 : l.ancien ? 2 : 1);

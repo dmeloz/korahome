@@ -5,6 +5,7 @@ import { afficherCode, decrireDerniereSynchro, normaliserCode } from "../../doma
 import type { Foyer } from "../../domaine/types";
 import type { Compte, FoyerPartage, ServeurAgenda, ServeurJarvis, ServeurRappels, TempsReel } from "../../donnees/distant";
 import type { StatutSynchro, Synchro } from "../../donnees/synchro";
+import { aujourdhuiLocal } from "../contexte";
 import { Page } from "../pieces";
 
 export interface ServicesPartage {
@@ -23,6 +24,8 @@ export interface ServicesPartage {
 const LONGUEUR_MOT_DE_PASSE = 8;
 
 const message = (e: unknown) => expliquerErreur(e, "Le partage");
+/** Le jour du téléphone, pour dire « hier » d'après le calendrier et non d'après 24 heures écoulées. */
+const jourLocal = (iso: string) => aujourdhuiLocal(new Date(iso));
 
 /** Partager le foyer entre les deux iPhone : compte, partage ou code pour rejoindre, état de la synchro. */
 export function Partage({ services, foyer }: { services: ServicesPartage | null; foyer: Foyer | null }) {
@@ -85,8 +88,8 @@ function PartageActif({ compte, synchro, foyer }: ServicesPartage & { foyer: Foy
   return (
     <Page titre="Partage" className="partage avec-cadre">
       <p className="discret partage-intro-texte">
-        Vos deux iPhone partagent les listes, les tâches et le suivi de Mitsu. Chacun garde tout sur son téléphone,
-        même sans réseau ; les modifications se rejoignent dès que possible.
+        Vos iPhone partagent ce que vous notez dans Kora : courses, tâches, agenda, budget, maison. Chacun garde tout
+        sur son téléphone, même sans réseau ; les modifications se rejoignent dès que possible.
       </p>
       {session === undefined ? null : avecCompte && !session ? (
         <Connexion
@@ -248,8 +251,8 @@ function Relier(props: {
       <div className="carte partage-confirmation">
         <p><strong>Remplacer les données de ce téléphone ?</strong></p>
         <p className="discret">
-          Les listes, les tâches et le suivi de Mitsu de « {props.foyer?.nom} » seront remplacés par ceux du foyer partagé.
-          Les notes de test restent.
+          Tout ce que ce téléphone garde pour « {props.foyer?.nom} » (courses, tâches, agenda, budget, maison) sera
+          remplacé par le foyer partagé. Les notes de test restent.
         </p>
         <button className="bouton-principal" disabled={props.occupe} onClick={() => props.rejoindre(aConfirmer)}>
           {props.occupe ? "Connexion au foyer…" : "Remplacer et rejoindre"}
@@ -299,7 +302,7 @@ function Relier(props: {
             spellCheck={false}
           />
         </label>
-        <p className="discret">Sur l'autre iPhone : Réglages, puis Partage. Pas besoin de compte.</p>
+        <p className="discret">Le code s'affiche sur l'autre iPhone, dans Réglages, puis Partage. Pas besoin de compte.</p>
         <button type="submit" className="bouton-principal" disabled={props.occupe || !code}>
           {props.occupe ? "Connexion au foyer…" : "Rejoindre ce foyer"}
         </button>
@@ -357,7 +360,7 @@ function FoyerRelie(props: {
         </button>
       </div>
       <ul className="carte groupe partage-appareils" aria-label="Les iPhone du foyer">
-        {decrireAppareils(props.foyer, __VERSION__, maintenant).map((a) => (
+        {decrireAppareils(props.foyer, __VERSION__, maintenant, jourLocal).map((a) => (
           <li key={a.prenom} className="ligne">
             <span className="ligne-texte">
               <strong>{a.prenom}</strong>
@@ -372,7 +375,7 @@ function FoyerRelie(props: {
           <p className="partage-etape">Code pour rejoindre ce foyer</p>
           <p className="partage-code">{afficherCode(code)}</p>
           <p className="discret">
-            Sur l'autre iPhone : Réglages, puis Partage, et taper ce code. Pas besoin de compte.
+            Sur l'autre iPhone : ouvrir Kora et taper ce code. S'il a déjà un foyer : Réglages, puis Partage. Pas besoin de compte.
           </p>
           {typeof navigator !== "undefined" && navigator.clipboard && (
             <button
@@ -444,7 +447,7 @@ function TelephonesRelies({ compte, foyerId, maintenant, change }: { compte: Com
   }, [charger]);
 
   if (!telephones) return erreur ? <p className="erreur" role="alert">{erreur}</p> : null;
-  const lignes = decrireTelephones(telephones, maintenant);
+  const lignes = decrireTelephones(telephones, maintenant, jourLocal);
   const anciens = lignes.filter((l) => l.ancien);
 
   const retirer = async (ids: string[]) => {
