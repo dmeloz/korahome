@@ -10,6 +10,7 @@ import { Onglets, Page, useGestionnaireBarre } from "../pieces";
 import { DetailListe } from "./DetailListe";
 import { TicketDeCaisse } from "../TicketDeCaisse";
 import { Ligne, ListeVivante } from "../moteur/pieces";
+import { EtatVide } from "../pieces/EtatVide";
 
 // Les courses et les autres listes, sur une seule page : l'onglet « Courses » montre la liste
 // du foyer, l'onglet « Autres listes » les cadeaux, le bricolage… Le widget Listes ouvre
@@ -64,7 +65,7 @@ function AutresListes(props: PropsPage & { avant: ReactNode }) {
     <Page titre="Listes" sousTitre="Cadeaux, bricolage, vacances…" aide={{ cle: "listes", texte: "Dis le nom d'une nouvelle liste à ta fée (cadeaux, bricolage, vacances). Glisse une liste vers la gauche pour la retirer." }}>
       {props.avant}
       {props.listes.length === 0 ? (
-        <p className="vide">Aucune autre liste. Dis à ta fée « liste cadeaux de Noël ».</p>
+        <EtatVide picto="liste" titre="Aucune autre liste">Dis à ta fée « liste cadeaux de Noël ».</EtatVide>
       ) : (
         <ListeVivante className="carte groupe">
           {props.listes.map((l) => {

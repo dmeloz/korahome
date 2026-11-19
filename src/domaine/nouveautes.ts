@@ -12,6 +12,7 @@ export interface Nouveaute {
 }
 
 export const NOUVEAUTES: readonly Nouveaute[] = [
+  { version: "0.1.22", texte: "Nouveau : six mois de dépenses en un coup d'œil, une case par jour, tout en bas de Budget › Analyse. Glisse le doigt pour lire un jour.", ou: { id: "budget", onglet: "analyse" } },
   { version: "0.1.21", texte: "Nouveau : glisse le doigt sur les courbes du Budget et de Mitsu pour lire chaque valeur. Et retourne une carte par son coin pour son détail.", ou: { id: "budget" } },
   { version: "0.0.99", texte: "Nouveau : « Choisir » en haut des Tâches. Touche-en plusieurs, puis « À demain », « Faites » ou « Retirer ».", ou: { id: "taches" } },
   { version: "0.0.98", texte: "Nouveau : dans Cuisine › Menus, note ce que vous avez mangé ce soir, ou dis-le-moi. Le Chef s'en sert pour varier.", ou: { id: "chef", onglet: "semaine" } },

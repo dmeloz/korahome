@@ -352,7 +352,7 @@ export function Taches(props: {
       {administratif && <Abonnements depot={props.depot} foyer={props.foyer} membreId={moi} budget={props.budget ?? []} />}
 
       {administratif && groupes.length === 0 && terminees.length === 0 && (
-        <p className="vide">Aucune démarche en cours. Dis-en une à ta fée : « déclaration d'impôts », « renouveler l'assurance chaque année ».</p>
+        <EtatVide picto="dossier" titre="Aucune démarche en cours">Dis-en une à ta fée : « déclaration d'impôts », « renouveler l'assurance chaque année ».</EtatVide>
       )}
 
       {!administratif && etalement.length > 0 && (

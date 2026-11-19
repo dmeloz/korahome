@@ -14,6 +14,7 @@ import { Onglets, Page, useGestionnaireBarre } from "../pieces";
 import { changerAdaptations, effacerUsages, lireAdaptations, lireDecisionsPerso, oublierDecisionPerso, useApprentissageLocal } from "../usage";
 import { Ligne, ListeVivante } from "../moteur/pieces";
 import { sauver } from "../sauver";
+import { EtatVide } from "../pieces/EtatVide";
 
 // Tout ce que Kora et la fée savent de vous, sur une seule page : le bilan de la semaine en
 // haut, puis ce qui concerne le foyer (partagé), ce qui ne concerne que toi (sur ce téléphone)
@@ -133,7 +134,7 @@ function LeFoyer(props: { donnees: DonneesModule; depot: Depot }) {
   return (
     <>
       {souvenirs.length === 0 ? (
-        <p className="vide">{nomFee()} ne sait encore rien de particulier sur le foyer. Dis-lui « retiens que… ».</p>
+        <EtatVide picto="appris" titre={`${nomFee()} ne sait encore rien`}>Dis-lui « retiens que… » et elle s'en souviendra pour le foyer.</EtatVide>
       ) : (
         <ul className="carte groupe memoire">
           {souvenirs.map((s) => (

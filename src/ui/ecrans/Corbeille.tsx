@@ -7,6 +7,7 @@ import { vibrer } from "../haptique";
 import { Icone } from "../Icone";
 import { ListeVivante, Ligne } from "../moteur/pieces";
 import { Page } from "../pieces";
+import { EtatVide } from "../pieces/EtatVide";
 
 // Réglages › Corbeille : ce que l'un de vous deux a effacé ces trente derniers jours, avec
 // qui et quand, et un « Remettre » qui le replace là où il était.
@@ -65,7 +66,7 @@ export function Corbeille(props: { depot: Depot; foyer: Foyer; corbeille: Entree
       aide={{ cle: "corbeille", resume: "Ce qui est effacé attend trente jours", texte: "Une tâche, une recette ou une dépense effacée par l'un de vous deux attend ici. « Remettre » la replace là où elle était ; après trente jours, elle part pour de bon." }}
     >
       {entrees.length === 0 ? (
-        <p className="vide">Rien dans la corbeille.</p>
+        <EtatVide picto="corbeille" titre="Rien dans la corbeille">Ce que vous effacez reste ici trente jours, le temps de changer d'avis.</EtatVide>
       ) : (
         <ListeVivante className="carte groupe">
           {entrees.map((e) => (

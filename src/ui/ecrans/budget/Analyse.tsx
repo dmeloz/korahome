@@ -15,7 +15,8 @@ import {
 import type { PropsPage } from "../../modules";
 import { tableauDesMois } from "../../../domaine/budgetConseil";
 import { FinDuMois, TableauDesMois } from "./Conseiller";
-import { CourbeEpargne, CoursesParMois, Magasins, MoisLourds, PrixQuiMontent } from "./Visuels";
+import { CourbeEpargne,
+  FriseDesJours, CoursesParMois, Magasins, MoisLourds, PrixQuiMontent } from "./Visuels";
 import { montant } from "./communs";
 import { Montant } from "../../moteur/Chiffre";
 
@@ -42,6 +43,8 @@ export function Analyse(p: PropsPage & { plan: PlanBudget; reglerProjet: () => v
       )}
       <Epargne {...p} plan={plan} reglerProjet={p.reglerProjet} />
       <Courses {...p} plan={plan} />
+      {p.budget.some((d) => d.genre === "depense" && !d.posteId) && <h2 className="rayon">Six mois, jour après jour</h2>}
+      <FriseDesJours docs={p.budget} aujourdhui={aujourdhui} />
     </>
   );
 }

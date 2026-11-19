@@ -4,6 +4,7 @@ import { aujourdhuiLocal } from "../contexte";
 import { Icone, type NomIcone } from "../Icone";
 import type { DonneesModule } from "../modules";
 import { Page } from "../pieces";
+import { EtatVide } from "../pieces/EtatVide";
 
 // Le fil du foyer : ce que chacun a fait ces sept derniers jours, jour par jour. Rien ne
 // s'y ajoute à la main, tout vient des tâches, des courses, du budget, du jardin et des mots.
@@ -23,7 +24,7 @@ export function Fil(props: { donnees: DonneesModule }) {
       sousTitre={entrees.length === 0 ? "Ce que chacun fait, au fil des jours" : `${entrees.length} geste${entrees.length > 1 ? "s" : ""} cette semaine`}
       aide={{ cle: "fil", resume: "Qui a fait quoi, sans score", texte: "Chaque tâche cochée, article ajouté, dépense notée, arrosage ou mot laissé apparaît ici avec son prénom. Ni score ni classement : juste ce qui s'est passé à la maison." }}
     >
-      {jours.length === 0 && <p className="vide">Rien cette semaine encore. Dès qu'un de vous coche une tâche ou ajoute aux courses, ça s'écrit ici.</p>}
+      {jours.length === 0 && <EtatVide picto="activite" titre="Rien cette semaine encore">Dès qu'un de vous coche une tâche ou ajoute aux courses, ça s'écrit ici.</EtatVide>}
       {jours.map((j) => (
         <section key={j.jour}>
           <h2 className="rayon">{j.titre}</h2>

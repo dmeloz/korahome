@@ -1,15 +1,19 @@
-import { useState } from "react";
+import { useState, type PointerEvent } from "react";
 import {
   formaterMontant,
   nommerMois,
   POTS,
   type BilanPersonne,
+  type DocBudget,
   type MoisDeFactures,
   type PartDuCommun,
   type PointEpargne,
   type PrixQuiMonte,
   type RythmeCourses,
 } from "../../../domaine/budget";
+import { jourEnClair } from "../../../domaine/agenda";
+import { caseSous, friseDesDepenses, type CaseFrise } from "../../../domaine/frise";
+import { vibrer } from "../../haptique";
 import { Icone } from "../../Icone";
 import { useDessin } from "../../moteur";
 import { Montant } from "../../moteur/Chiffre";
@@ -233,6 +237,49 @@ export function CoursesParMois({ mois, budget, aujourdhui }: { mois: { mois: str
         ))}
       </div>
       {phrase && <p className="discret" aria-live="polite">{phrase}</p>}
+    </section>
+  );
+}
+
+/** La frise des jours : une case par jour sur six mois, plus foncée quand on a plus dépensé. Le doigt lit chaque jour. */
+export function FriseDesJours({ docs, aujourdhui }: { docs: readonly DocBudget[]; aujourdhui: string }) {
+  const frise = friseDesDepenses(docs, aujourdhui);
+  const [lu, setLu] = useState<CaseFrise | null>(null);
+  const lire = (e: PointerEvent<HTMLDivElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    const { semaine, jour } = caseSous((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height, frise.length);
+    const c = frise[semaine][jour];
+    if (c.aVenir || c.jour === lu?.jour) return;
+    vibrer();
+    setLu(c);
+  };
+  const jours = frise.flat().filter((c) => c.nombre > 0);
+  if (!jours.length) return null;
+  return (
+    <section className="carte frise">
+      <div
+        className="frise-grille lisible"
+        role="img"
+        aria-label={`Six mois de dépenses du quotidien : ${jours.length} jours avec une dépense. Plus la case est foncée, plus le jour a coûté.`}
+        style={{ gridTemplateColumns: `repeat(${frise.length}, 1fr)`, touchAction: "pan-y" }}
+        onPointerDown={(e) => { e.currentTarget.setPointerCapture?.(e.pointerId); lire(e); }}
+        onPointerMove={(e) => { if (e.pointerType === "mouse" || e.currentTarget.hasPointerCapture?.(e.pointerId)) lire(e); }}
+        onPointerUp={() => setLu(null)}
+        onPointerCancel={() => setLu(null)}
+        onPointerLeave={() => setLu(null)}
+      >
+        {frise.map((semaine) => (
+          <span key={semaine[0].jour} className="frise-semaine">
+            {semaine.map((c) => <i key={c.jour} className={`frise-case n${c.niveau}${c.aVenir ? " a-venir" : ""}${c.jour === lu?.jour ? " lue" : ""}`} />)}
+          </span>
+        ))}
+      </div>
+      <p className="discret" aria-live="polite">
+        {lu
+          ? lu.nombre ? `${majuscule(jourEnClair(lu.jour))} : ${montant(lu.total)}, ${lu.nombre} dépense${lu.nombre > 1 ? "s" : ""}.` : `${majuscule(jourEnClair(lu.jour))} : rien dépensé.`
+          : "Une case par jour, du lundi en haut au dimanche en bas. Plus elle est foncée, plus le jour a coûté. Les factures n'y sont pas."}
+      </p>
     </section>
   );
 }
