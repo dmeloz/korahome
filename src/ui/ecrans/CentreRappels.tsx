@@ -3,6 +3,7 @@ import { grouperParJour, type RappelRecu } from "../../domaine/centreRappels";
 import { aujourdhuiLocal } from "../contexte";
 import { lireRappels, marquerRappelsLus } from "../centreRappels";
 import { Page } from "../pieces";
+import { EtatVide } from "../pieces/EtatVide";
 
 // La cloche de l'accueil : ce que Kora a envoyé ces trente derniers jours.
 
@@ -26,7 +27,7 @@ export function CentreRappels(props: { ouvrirNotifications: () => void }) {
   return (
     <Page titre="Rappels" sousTitre="Ce que Kora a envoyé ce mois-ci" actions={<button className="lien" onClick={props.ouvrirNotifications}>Réglages</button>}>
       {journal && journal.length === 0 && (
-        <p className="vide">Aucun rappel reçu sur ce téléphone pour l'instant. Le rappel du matin, les mots de l'autre et les menus du Chef arriveront ici.</p>
+        <EtatVide picto="cloche" titre="Aucun rappel pour l'instant">Le rappel du matin, les mots de l'autre et les menus du Chef arriveront ici.</EtatVide>
       )}
       {groupes.map((g) => (
         <section key={g.titre}>

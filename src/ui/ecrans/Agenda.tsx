@@ -40,6 +40,7 @@ import { Onglets, Page, useGestionnaireBarre } from "../pieces";
 import { comprendrePhrase } from "../../domaine/barre";
 import { deuxChiffres } from "../../domaine/texte";
 import { ignorer } from "../journal";
+import { EtatVide } from "../pieces/EtatVide";
 
 type Vue = "jour" | "semaine" | "mois" | "avenir";
 const VUES: Record<Vue, string> = { jour: "Jour", semaine: "Semaine", mois: "Mois", avenir: "À venir" };
@@ -428,7 +429,7 @@ function AVenir(props: { occ: Occurrence[]; aujourdhui: Jour; foyer: Foyer; comp
     return true;
   });
   const jours = [...new Set(occ.flatMap((o) => (o.debut < props.aujourdhui ? [props.aujourdhui] : [o.debut])))].sort();
-  if (!jours.length) return <p className="vide agenda-vide">Rien de prévu pour l'instant. Dis-le à ta fée, par exemple « Dentiste jeudi 14h ».</p>;
+  if (!jours.length) return <EtatVide picto="calendrier" titre="Rien de prévu pour l'instant">Dis-le à ta fée, par exemple « Dentiste jeudi 14h ».</EtatVide>;
   return (
     <>
       {jours.map((j) => (

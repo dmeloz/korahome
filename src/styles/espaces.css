@@ -377,3 +377,16 @@ html.feuille-ouverte .pile-kora, html.saisie-ouverte .pile-kora { opacity: 0; po
   .retournable-dos, .retournable.verso > .retournable-face:not(.retournable-dos) { opacity: 0; }
   .retournable.verso > .retournable-dos { opacity: 1; }
 }
+
+/* La tendance d'une carte (0.1.22) : une courbe nue et un mot. */
+.tendance { display: flex; align-items: center; gap: var(--espace-4); margin-top: var(--espace-4); }
+.tendance svg { flex: 1; min-width: 0; height: 24px; overflow: visible; }
+.tendance path { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; opacity: 0.7; }
+.tendance small { flex: none; font-size: var(--t-legende); opacity: 0.75; }
+
+/* La profondeur du menu (0.1.22) : la page recule d'un rien derrière le menu ouvert, comme une
+   feuille posée sous une autre. Sur l'iPhone seulement, et pas si l'iPhone demande moins d'animations. */
+@media (max-width: 639px) and (prefers-reduced-motion: no-preference) {
+  .contenu.page-dessus { transition: scale 0.35s var(--courbe); transform-origin: 100% 30%; }
+  html.menu-ouvert .contenu.page-dessus { scale: 0.96; }
+}

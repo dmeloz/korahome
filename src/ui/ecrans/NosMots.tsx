@@ -27,6 +27,7 @@ import type { DonneesModule } from "../modules";
 import { Ligne, ListeVivante } from "../moteur/pieces";
 import { ignorer } from "../journal";
 import { sauver } from "../sauver";
+import { EtatVide } from "../pieces/EtatVide";
 
 type Quand = "maintenant" | "soir" | "matin";
 
@@ -185,7 +186,7 @@ export function NosMots(props: {
 
       <h2 className="rayon">Tous nos mots</h2>
       {mots.length === 0 ? (
-        <p className="vide">Pas encore de mot. Le premier est pour toi.</p>
+        <EtatVide picto="coeur" titre="Pas encore de mot">Le premier est pour toi. Écris-le plus haut, il attendra l'autre à l'accueil.</EtatVide>
       ) : (
         <ListeVivante className="carte groupe mots">
           {mots.map((m) => {

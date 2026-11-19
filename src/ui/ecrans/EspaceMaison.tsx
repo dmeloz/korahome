@@ -3,7 +3,7 @@ import { organiserEntretien } from "../../domaine/entretien";
 import { gestesDuJardin } from "../../domaine/jardin";
 import { aSortirCeSoir, carnetDe, phraseSortir, rangementsDe, reglageDechets } from "../../domaine/maison";
 import { decrireTemps, formaterTemperatures, meteoDu } from "../../domaine/meteo";
-import { choseAFaire, decrireAge, formaterPoids, poidsDeReference } from "../../domaine/mitsu";
+import { choseAFaire, decrireAge, formaterPoids, historiquePesees, poidsDeReference } from "../../domaine/mitsu";
 import { decrireEcheance, marquerFaite } from "../../domaine/taches";
 import type { Tache } from "../../domaine/types";
 import { resumeVetements } from "../../domaine/vetements";
@@ -15,7 +15,7 @@ import { soufflerPuis } from "../moteur/langage";
 import { Icone } from "../Icone";
 import type { DonneesModule } from "../modules";
 import type { Page } from "../pages";
-import { enLettres, EnteteEspace, Grille, LigneDite, Retournable, Tuile } from "../pieces/Cartes";
+import { enLettres, EnteteEspace, Grille, LigneDite, Retournable, Tendance, Tuile } from "../pieces/Cartes";
 import { jourEnClair } from "../../domaine/agenda";
 import { dosAnimal } from "../../domaine/dos";
 import { CarteTael } from "../pieces/Tael";
@@ -111,6 +111,7 @@ export function EspaceMaison(props: { donnees: DonneesModule; depot: Depot; ouvr
           <p className="etiq"><Icone nom="chat" taille={18} />{animal?.nom ?? "Mitsu"}</p>
           <p className={animal ? "titre-c" : "doux"}>{animal ? (mitsu[0]?.texte ?? "Tout va bien.") : "Créer sa fiche."}</p>
           {animal && <p className="doux">{mitsu.length > 1 ? `${mitsu.length - 1} autre${mitsu.length > 2 ? "s" : ""} chose${mitsu.length > 2 ? "s" : ""} · ` : ""}{portrait}</p>}
+          {animal && <Tendance points={historiquePesees(animal).reverse().map((x) => x.grammes)} quoi={`Poids de ${animal.nom}`} />}
         </Tuile>
         </Retournable>
 

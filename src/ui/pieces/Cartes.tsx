@@ -2,6 +2,7 @@ import { useState, type CSSProperties, type ReactNode } from "react";
 import { lundiDe } from "../../domaine/agenda";
 import { decaler } from "../../domaine/taches";
 import type { LigneDos } from "../../domaine/dos";
+import { dernieres, motDuSens, sensDe, traceDe } from "../../domaine/tendance";
 import type { Jour } from "../../domaine/types";
 import { vibrer } from "../haptique";
 import { Icone } from "../Icone";
@@ -100,6 +101,20 @@ export function Retournable(props: { children: ReactNode; large?: boolean; titre
         </span>
       </button>
     </div>
+  );
+}
+
+/** La tendance d'une carte (0.1.22) : une courbe nue et un mot. Rien avec moins de deux valeurs. */
+export function Tendance({ points, quoi }: { points: readonly number[]; quoi: string }) {
+  const sens = sensDe(points);
+  if (!sens) return null;
+  return (
+    <span className="tendance" role="img" aria-label={`${quoi} ${motDuSens(sens)}`}>
+      <svg viewBox="0 0 100 24" preserveAspectRatio="none" aria-hidden>
+        <path d={traceDe(dernieres(points), 100, 24)} />
+      </svg>
+      <small aria-hidden>{motDuSens(sens)}</small>
+    </span>
   );
 }
 

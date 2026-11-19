@@ -1,11 +1,11 @@
 import { dosAMoi } from "../../domaine/dos";
 import { apercuAutre, chiffreAMoi, depensesParJour, etatAMoi } from "../../domaine/aMoi";
-import { decrireEcheanceFacture, etatDesPots, facturesAPayer, formaterMontant, nommerMois, planDe, POTS } from "../../domaine/budget";
+import { courbeEpargne, decrireEcheanceFacture, etatDesPots, facturesAPayer, formaterMontant, nommerMois, planDe, POTS } from "../../domaine/budget";
 import { paiementsAClasser } from "../../domaine/paiements";
 import { Icone } from "../Icone";
 import type { DonneesModule } from "../modules";
 import type { Page } from "../pages";
-import { enLettres, EnteteEspace, Grille, Jauge, Retournable, Tuile } from "../pieces/Cartes";
+import { enLettres, EnteteEspace, Grille, Jauge, Retournable, Tendance, Tuile } from "../pieces/Cartes";
 import { CarteTael } from "../pieces/Tael";
 import { noterUsage } from "../usage";
 
@@ -44,6 +44,7 @@ export function EspaceBudget(props: { donnees: DonneesModule; ouvrir: (p: Page) 
   const chiffre = aMoi ? chiffreAMoi(aMoi) : null;
   const courbe = membreId ? depensesParJour(donnees.budget, membreId, aujourdhui) : [];
   const pots = etatDesPots(plan, donnees.budget, aujourdhui);
+  const epargne = courbeEpargne(plan, donnees.budget, aujourdhui).filter((x) => !x.prevu).map((x) => x.solde);
   const aClasser = paiementsAClasser(donnees.budget);
   const factures = facturesAPayer(plan, donnees.budget, aujourdhui);
   const facture = factures[0] ?? null;
@@ -113,6 +114,7 @@ export function EspaceBudget(props: { donnees: DonneesModule; ouvrir: (p: Page) 
         <Tuile i={i++} onClick={() => ouvrir("analyse")} label={`Épargne : ${formaterMontant(pots.epargne.solde)}`}>
           <p className="etiq"><Icone nom="sauvegarde" taille={18} />Épargne</p>
           <p className="phrase"><b>{formaterMontant(pots.epargne.solde, false)}</b> CHF de côté{pots.epargne.budgetDuMois ? `, ${formaterMontant(pots.epargne.budgetDuMois, false)} par mois` : ""}.</p>
+          <Tendance points={epargne} quoi="Épargne" />
         </Tuile>
       </Grille>
     </main>

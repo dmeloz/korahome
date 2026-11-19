@@ -266,3 +266,14 @@ button.budget-pot:active { transform: scale(0.98); }
 .budget-barre.lue .budget-barre-nom, .budget-barre.lue .budget-barre-valeur { color: var(--texte); }
 .budget-barres.larges .budget-barre.lue .budget-barre-trait { background: var(--discret); }
 .budget-barres.larges .budget-barre.actif.lue .budget-barre-trait { background: var(--accent); }
+/* La frise des jours (0.1.22) : une case par jour, une seule teinte du plus clair au plus foncé. */
+.frise-grille { display: grid; gap: var(--espace-1); }
+.frise-semaine { display: grid; gap: var(--espace-1); }
+.frise-case { display: block; aspect-ratio: 1; border-radius: 3px; background: var(--surface-haute); }
+.frise-case.n1 { background: color-mix(in srgb, var(--accent) 28%, var(--surface-haute)); }
+.frise-case.n2 { background: color-mix(in srgb, var(--accent) 52%, var(--surface-haute)); }
+.frise-case.n3 { background: color-mix(in srgb, var(--accent) 76%, var(--surface-haute)); }
+.frise-case.n4 { background: var(--accent); }
+.frise-case.a-venir { background: none; }
+.frise-case.lue { outline: 2px solid var(--texte); outline-offset: 1px; }
+.frise .discret { margin: var(--espace-5) 0 0; font-size: var(--t-detail); }
