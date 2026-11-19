@@ -29,6 +29,8 @@ import { partagerTexte } from "../partage";
 import { texteCarnet } from "../../domaine/exports";
 import { nomFee } from "../fee";
 import { useDessin } from "../moteur";
+import { plusProche } from "../../domaine/lecture";
+import { useLecture, Viseur } from "../pieces/Lecture";
 import { Ligne, ListeVivante } from "../moteur/pieces";
 
 // Les ajouts de la 0.0.14 au suivi de Mitsu : journal du quotidien, courbe de poids,
@@ -153,10 +155,14 @@ export function CourbePoids({ animal, aujourdhui }: { animal: Animal; aujourdhui
   const mediane = echantillons.map((e) => `${x(e.jour)},${y(e.median)}`).join(" ");
   const trace = pesees.map((p) => `${x(p.jour)},${y(p.grammes)}`).join(" ");
   const kg = Array.from({ length: Math.floor(haut / 1000) }, (_, i) => (i + 1) * 1000);
+  // Le doigt lit chaque pesée (Kora 0.1.21) : le dessin commence 28 points avant l'axe et fait L + 36 de large.
+  const abscisses = pesees.map((p) => x(p.jour));
+  const { index, props } = useLecture<SVGSVGElement>(pesees.length, (part) => plusProche(abscisses, part * (L + 36) - 28));
+  const lue = index >= 0 ? pesees[index] : null;
 
   return (
     <figure ref={dessin} className="mitsu-courbe">
-      <svg viewBox={`-28 -6 ${L + 36} ${H + 24}`} role="img" aria-label={`Courbe de poids de ${animal.nom} comparée au poids habituel d'un chat de son âge`}>
+      <svg viewBox={`-28 -6 ${L + 36} ${H + 24}`} role="img" className="lisible" aria-label={`Courbe de poids de ${animal.nom} comparée au poids habituel d'un chat de son âge. Flèches pour lire chaque pesée.`} {...props}>
         {kg.map((g) => (
           <g key={g}>
             <line x1={0} x2={L} y1={y(g)} y2={y(g)} className="mitsu-courbe-grille" />
@@ -174,8 +180,9 @@ export function CourbePoids({ animal, aujourdhui }: { animal: Animal; aujourdhui
         {pesees.map((p) => (
           <circle key={p.id} cx={x(p.jour)} cy={y(p.grammes)} r={4} className="mitsu-courbe-point" data-apparait="" />
         ))}
+        {lue && <Viseur x={x(lue.jour)} y={y(lue.grammes)} haut={0} bas={H} />}
       </svg>
-      <figcaption className="discret">La zone claire est le poids habituel d'un chat de son âge : un repère, les chats varient beaucoup.</figcaption>
+      <figcaption className="discret" aria-live="polite">{lue ? `${dateCourte(lue.jour)} : ${(lue.grammes / 1000).toFixed(2).replace(".", ",")} kg.` : "La zone claire est le poids habituel d'un chat de son âge : un repère, les chats varient beaucoup."}</figcaption>
     </figure>
   );
 }

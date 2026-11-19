@@ -1,10 +1,11 @@
+import { dosAMoi } from "../../domaine/dos";
 import { apercuAutre, chiffreAMoi, depensesParJour, etatAMoi } from "../../domaine/aMoi";
 import { decrireEcheanceFacture, etatDesPots, facturesAPayer, formaterMontant, nommerMois, planDe, POTS } from "../../domaine/budget";
 import { paiementsAClasser } from "../../domaine/paiements";
 import { Icone } from "../Icone";
 import type { DonneesModule } from "../modules";
 import type { Page } from "../pages";
-import { enLettres, EnteteEspace, Grille, Jauge, Tuile } from "../pieces/Cartes";
+import { enLettres, EnteteEspace, Grille, Jauge, Retournable, Tuile } from "../pieces/Cartes";
 import { CarteTael } from "../pieces/Tael";
 import { noterUsage } from "../usage";
 
@@ -56,12 +57,14 @@ export function EspaceBudget(props: { donnees: DonneesModule; ouvrir: (p: Page) 
       <EnteteEspace titre="Budget" sous={aMoi ? aMoi.phrase : `${mois.replace(/^./, (c) => c.toUpperCase())}, d'une paie à l'autre`} />
 
       <Grille label="Budget">
+        <Retournable large titre="Tes dernières dépenses" lignes={membreId ? dosAMoi(donnees.budget, membreId) : []}>
         <Tuile large i={i++} widget="budget" onClick={() => ouvrir("mois")} label={aMoi ? `À toi ce mois : ${formaterMontant(aMoi.reste)}, ${formaterMontant(aMoi.parJour)} par jour` : `Carte courses : ${formaterMontant(pots.courses.solde)}`} className={aMoi && !aMoi.suivi ? "sans-suivi" : undefined}>
           <p className="etiq"><Icone nom="portefeuille" taille={18} />{aMoi ? (aMoi.suivi ? "À toi ce mois" : "Prévu pour toi") : "Carte courses"}</p>
           <p className={`grand-chiffre${chiffre?.depasse ? " depasse" : ""}`}>{formaterMontant(chiffre ? chiffre.montant : Math.max(0, Math.round(pots.courses.solde)), false)}<small>CHF</small></p>
           <Courbe points={courbe.map((j) => j.total)} />
           <p className="doux">{aMoi ? (aMoi.suivi ? (chiffre?.depasse ? `Tu as dépassé. Ta paie arrive dans ${aMoi.joursRestants} jour${aMoi.joursRestants > 1 ? "s" : ""}.` : `${formaterMontant(Math.floor(aMoi.parJour))} par jour d'ici ta paie, ${aMoi.joursRestants} jour${aMoi.joursRestants > 1 ? "s" : ""}.`) : "Dis « 12 café pour moi » à Tael et l'anneau saura.") : `${formaterMontant(pots.courses.depenseDuMois)} dépensés ce mois.`}</p>
         </Tuile>
+        </Retournable>
 
         {aClasser.length ? (
           <Tuile forte large i={i++} onClick={() => ouvrir("depenses")} label={`${aClasser.length} paiement${aClasser.length > 1 ? "s" : ""} à classer`}>

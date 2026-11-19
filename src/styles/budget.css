@@ -262,3 +262,7 @@ button.budget-pot:active { transform: scale(0.98); }
 /* Paiements Apple Pay (0.0.80) : le retour « copié » se voit, et Raccourcis s'ouvre d'un toucher. */
 .budget-etat { margin: 8px 0 0; padding: 8px 12px; border-radius: var(--rayon-petit); background: color-mix(in oklab, var(--accent) 14%, transparent); color: var(--texte); font-size: var(--t-detail); }
 .budget-ouvrir-raccourcis { display: inline-block; margin-top: 8px; text-decoration: none; }
+/* La barre que le doigt lit (0.1.21) : son chiffre et son mois passent en clair. */
+.budget-barre.lue .budget-barre-nom, .budget-barre.lue .budget-barre-valeur { color: var(--texte); }
+.budget-barres.larges .budget-barre.lue .budget-barre-trait { background: var(--discret); }
+.budget-barres.larges .budget-barre.actif.lue .budget-barre-trait { background: var(--accent); }

@@ -15,7 +15,9 @@ import { soufflerPuis } from "../moteur/langage";
 import { Icone } from "../Icone";
 import type { DonneesModule } from "../modules";
 import type { Page } from "../pages";
-import { enLettres, EnteteEspace, Grille, LigneDite, Tuile } from "../pieces/Cartes";
+import { enLettres, EnteteEspace, Grille, LigneDite, Retournable, Tuile } from "../pieces/Cartes";
+import { jourEnClair } from "../../domaine/agenda";
+import { dosAnimal } from "../../domaine/dos";
 import { CarteTael } from "../pieces/Tael";
 import { noterUsage } from "../usage";
 
@@ -104,11 +106,13 @@ export function EspaceMaison(props: { donnees: DonneesModule; depot: Depot; ouvr
 
         <CarteTael />
 
+        <Retournable large contraste titre={animal ? `Les pesées de ${animal.nom}` : "Pesées"} lignes={animal ? dosAnimal(animal, (jour) => jourEnClair(jour)) : []}>
         <Tuile contraste={!!animal} large i={i++} widget="mitsu" onClick={() => ouvrir("mitsu")} label={animal ? `${animal.nom} : ${mitsu[0]?.texte ?? portrait}` : "Mitsu : créer sa fiche"}>
           <p className="etiq"><Icone nom="chat" taille={18} />{animal?.nom ?? "Mitsu"}</p>
           <p className={animal ? "titre-c" : "doux"}>{animal ? (mitsu[0]?.texte ?? "Tout va bien.") : "Créer sa fiche."}</p>
           {animal && <p className="doux">{mitsu.length > 1 ? `${mitsu.length - 1} autre${mitsu.length > 2 ? "s" : ""} chose${mitsu.length > 2 ? "s" : ""} · ` : ""}{portrait}</p>}
         </Tuile>
+        </Retournable>
 
         <Tuile large i={i++} widget="entretien" onClick={() => ouvrir("entretien")} label={`Entretien : ${entretien.filter((l) => l.du).length} cette semaine`}>
           <p className="etiq"><Icone nom="outil" taille={18} />Entretien</p>

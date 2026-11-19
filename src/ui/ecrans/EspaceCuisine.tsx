@@ -2,6 +2,7 @@ import type { Depot } from "../../donnees/depot";
 import { menuDeLaSemaine, prochainPassage, reglageChef } from "../../domaine/chef";
 import { enDirect, noterCocheur } from "../../domaine/ecranAccueil";
 import { basculerCoche, compterAPrendre, listesVisibles } from "../../domaine/listes";
+import { dosRecette } from "../../domaine/dos";
 import { recetteDuSoir, recettesDe, soirsPrevus } from "../../domaine/recettes";
 import { nomDuSoirPasse, repasRecents } from "../../domaine/repas";
 import { decrirePeremption, resumeStock } from "../../domaine/stock";
@@ -13,7 +14,7 @@ import { Icone } from "../Icone";
 import type { DonneesModule } from "../modules";
 import { sceller } from "../moteur/langage";
 import type { Page } from "../pages";
-import { enLettres, EnteteEspace, Grille, LigneCoche, Semaine, Tuile } from "../pieces/Cartes";
+import { enLettres, EnteteEspace, Grille, LigneCoche, Retournable, Semaine, Tuile } from "../pieces/Cartes";
 import { CarteTael } from "../pieces/Tael";
 import { sauver } from "../sauver";
 import { ecrireAFee } from "../tael";
@@ -94,6 +95,7 @@ export function EspaceCuisine(props: { donnees: DonneesModule; depot: Depot; ouv
 
         <CarteTael />
 
+        <Retournable large titre={ceSoir ? `Il faut, pour ${ceSoir.titre}` : "Il faut"} lignes={ceSoir ? dosRecette(ceSoir, donnees.produits) : []}>
         <Tuile className="heros" large i={i++} widget="chef" onClick={() => ouvrir("semaine")} label={`Ce soir : ${titreCeSoir ?? "rien de prévu"}`}>
           <div className="heros-haut" aria-hidden />
           <div className="heros-corps">
@@ -104,6 +106,7 @@ export function EspaceCuisine(props: { donnees: DonneesModule; depot: Depot; ouv
             </div>
           </div>
         </Tuile>
+        </Retournable>
 
         <Tuile large i={i++} onClick={() => ouvrir("semaine")} label={`Menus de la semaine : ${prevus.length} soir${prevus.length > 1 ? "s" : ""} prévu${prevus.length > 1 ? "s" : ""}`}>
           <p className="etiq"><Icone nom="toque" taille={18} />Menus de la semaine{passage && <b className="pastille-k" style={{ marginLeft: "auto" }}>Chef {passage}</b>}</p>

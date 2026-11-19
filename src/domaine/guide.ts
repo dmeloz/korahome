@@ -8,22 +8,38 @@ import type { NomIcone } from "../ui/Icone";
 /** La version du guide : un téléphone qui a vu celle-ci ne le revoit pas. À changer quand l'allure change. */
 export const VERSION_GUIDE = "0.1";
 
+/** Une petite carte montrée en exemple sur une page du guide : une vraie carte de Kora, pas un dessin. */
+export interface ExempleGuide {
+  etiquette: string;
+  texte: string;
+  /** La ligne grise dessous. */
+  detail?: string;
+  /** Sa teinte : le laiton pour ce qui attend, l'ivoire pour demain. */
+  ton?: "forte" | "contraste";
+}
+
 export interface PageGuide {
-  /** Ce que la page illustre : la navigation, les cartes, la fée, l'arrivée, la fin. */
+  /** Ce que la page illustre : le foyer à deux, la navigation, les cartes, la fée, la fin. */
   dessin: "espaces" | "pile" | "cartes" | "fee" | "fin";
   titre: string;
   texte: string;
   picto: NomIcone;
+  /** Les cartes d'exemple de la page, deux au plus. */
+  exemples?: readonly ExempleGuide[];
 }
 
-/** `fee` : le nom de la fée sur ce téléphone (Tael, Navi). */
+/**
+ * `fee` : le nom de la fée sur ce téléphone (Tael, Navi). Réécrit en 0.1.21 (axe « sans effet
+ * IA ») : un titre qui dit ce que Kora fait, une idée par page, un exemple de la vie du foyer.
+ * `VERSION_GUIDE` ne change pas : un téléphone qui l'a vu ne le revoit pas pour une retouche de texte.
+ */
 export function pagesGuide(fee: string): readonly PageGuide[] {
   return [
-    { dessin: "espaces", picto: "espaces", titre: "Bienvenue dans Kora", texte: "Six espaces, chacun sur une page de cartes : Aujourd'hui, Cuisine, Maison, Organisation, Budget et les Réglages." },
-    { dessin: "pile", picto: "haut", titre: "Un seul bouton", texte: "Le rond en bas à gauche ouvre le menu : chaque espace et ses pages, avec ce qui attend. Sur l'iPad et l'iPhone déplié, ils sont dans le rail à gauche." },
-    { dessin: "cartes", picto: "coche", titre: "Les cartes", texte: "La carte en laiton dit ce qui presse, l'ivoire ce qu'il faut retenir. Coche les courses et les tâches d'ici ; une carte s'ouvre en sa page." },
-    { dessin: "fee", picto: "jarvis", titre: `${fee} vient à toi`, texte: `Son orbe est à côté du salut et en haut de chaque page. Un toucher : elle écoute. Un appui long : ce qu'elle fait seule, et de quoi l'annuler.` },
-    { dessin: "fin", picto: "sourire", titre: "C'est à vous", texte: "Dis-lui la première course, la première tâche, ce qu'on mange ce soir. Le reste vient avec les jours." },
+    { dessin: "espaces", picto: "espaces", titre: "Kora tient la maison à deux", texte: "Les courses, les repas, les tâches, l'agenda et le budget, les mêmes sur vos deux iPhone.", exemples: [{ etiquette: "Courses", texte: "Lait, pain, parmesan", detail: "Ajouté par l'autre à l'instant" }] },
+    { dessin: "pile", picto: "haut", titre: "Tout part du rond", texte: "En bas à gauche. Il ouvre chaque espace, et un point laiton dit où quelque chose attend. Sur l'iPad, les espaces sont dans le rail à gauche." },
+    { dessin: "cartes", picto: "coche", titre: "Le laiton, c'est aujourd'hui", texte: "Une seule carte en laiton par page : ce qui attend maintenant. L'ivoire, c'est demain. Touche une carte, elle devient sa page.", exemples: [{ etiquette: "Maintenant", texte: "Sortir le carton", detail: "avant 19 h", ton: "forte" }, { etiquette: "Demain", texte: "Dentiste", detail: "9 h 30", ton: "contraste" }] },
+    { dessin: "fee", picto: "jarvis", titre: `Dis-le à ${fee}, une fois`, texte: `« Lait, pain, et sortir les poubelles jeudi. » Touche son orbe, parle : elle range chaque chose à sa place et te laisse annuler.`, exemples: [{ etiquette: `${fee} a fait`, texte: "Deux courses, une tâche jeudi", detail: "Annuler" }] },
+    { dessin: "fin", picto: "sourire", titre: "Commence par une phrase", texte: "Ta première course, une tâche pour demain, ou ce qu'on mange ce soir. Le reste vient avec les jours." },
   ];
 }
 

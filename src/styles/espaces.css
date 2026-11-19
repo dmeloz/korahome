@@ -338,18 +338,42 @@ html.feuille-ouverte .pile-kora, html.saisie-ouverte .pile-kora { opacity: 0; po
 .guide-bas .points span.actif { width: 18px; border-radius: var(--rayon-rond); background: var(--accent); }
 .guide-dessin { display: flex; align-items: center; justify-content: center; min-height: 150px; margin-bottom: var(--espace-5); }
 .guide-dessin .rond { width: 48px; height: 48px; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); background: var(--surface-haute); color: var(--accent); display: grid; place-items: center; }
-.guide-dessin.ronds { gap: var(--espace-4); flex-wrap: wrap; max-width: 300px; }
 .guide-dessin.pile { flex-direction: column-reverse; align-items: flex-start; gap: var(--espace-5); }
 .guide-dessin .kora { width: 56px; height: 56px; box-shadow: 0 10px 28px rgb(0 0 0 / 0.4); }
 .guide-dessin.pile .item { display: flex; align-items: center; gap: var(--espace-5); font-size: 15px; animation: monte 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(0.15s + var(--j) * 0.08s); }
 .guide-dessin.pile .item .rond { width: 40px; height: 40px; }
 @keyframes monte { from { transform: translateY(10px) scale(0.9); } to { transform: none; } }
-.guide-dessin.cartes { display: grid; grid-template-columns: repeat(2, 108px); gap: var(--espace-4); }
-.guide-dessin.cartes .tuile { height: 64px; padding: var(--espace-5); display: flex; flex-direction: column; gap: var(--espace-3); }
-.guide-dessin.cartes .tuile:first-child { grid-column: 1 / -1; height: 56px; }
-.guide-dessin.cartes i { display: block; height: 7px; width: 36px; border-radius: var(--rayon-fin); background: currentColor; opacity: 0.35; }
-.guide-dessin.cartes i.long { width: 80%; opacity: 0.6; }
-.guide-dessin.cartes i.court { width: 50%; opacity: 0.6; }
+.guide-exemples { display: grid; gap: var(--espace-4); width: 100%; max-width: 280px; text-align: left; }
+.guide-exemples.duo { grid-template-columns: 1fr 1fr; }
+.guide-exemple { display: flex; flex-direction: column; gap: var(--espace-2); padding: var(--espace-5); animation: none; }
+.guide-exemple .etiq { margin: 0; }
+.guide-exemple b { font-weight: 600; }
+.guide-point { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+.guide-dessin.fee { flex-direction: column; gap: var(--espace-5); }
 .guide-dessin.fee .orbe { width: 96px; height: 96px; }
 .guide-dessin.fee .orbe svg { width: 120px; height: 120px; }
 @media (prefers-reduced-motion: reduce) { .guide-dessin.pile .item { animation: none; } }
+
+/* Une carte qui se retourne (0.1.21) : deux faces l'une sur l'autre, un pivot d'une demi-seconde
+   au plus ; en fondu si l'iPhone demande moins d'animations. */
+.retournable { position: relative; display: grid; min-width: 0; perspective: 1100px; }
+.retournable.large { grid-column: 1 / -1; }
+.retournable-face { grid-area: 1 / 1; min-width: 0; display: grid; backface-visibility: hidden; -webkit-backface-visibility: hidden; transition: rotate 0.45s var(--courbe), opacity 0.2s linear; }
+.retournable-dos { rotate: y 180deg; display: flex; flex-direction: column; gap: var(--espace-5); animation: none; }
+.retournable.verso > .retournable-face { rotate: y -180deg; }
+.retournable.verso > .retournable-dos { rotate: y 0deg; }
+.retourner { position: absolute; top: var(--espace-4); right: var(--espace-4); width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 0; background: none; color: var(--discret); border-radius: var(--rayon-rond); z-index: 2; }
+.retourner.sur-laiton { color: color-mix(in srgb, var(--sur-accent) 75%, transparent); }
+.retourner.sur-ivoire { color: color-mix(in srgb, var(--sur-ivoire) 65%, transparent); }
+.dos-lignes { display: flex; flex-direction: column; }
+.dos-ligne { display: flex; justify-content: space-between; align-items: baseline; gap: var(--espace-5); padding: var(--espace-3) 0; border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent); font-size: var(--t-corps); }
+.dos-ligne:last-child { border-bottom: 0; }
+.dos-ligne > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dos-ligne b { flex: none; font-weight: 500; font-variant-numeric: tabular-nums; }
+.dos-ligne.manque b { color: var(--accent); }
+@media (prefers-reduced-motion: reduce) {
+  .retournable-face { transition: opacity 0.2s linear; }
+  .retournable-dos, .retournable.verso > .retournable-face, .retournable.verso > .retournable-dos { rotate: none; }
+  .retournable-dos, .retournable.verso > .retournable-face:not(.retournable-dos) { opacity: 0; }
+  .retournable.verso > .retournable-dos { opacity: 1; }
+}

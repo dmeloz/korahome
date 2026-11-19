@@ -11,8 +11,18 @@ describe("le guide de première ouverture", () => {
   it("nomme la fée du téléphone et finit par l'invitation", () => {
     const pages = pagesGuide("Navi");
     expect(pages.length).toBe(5);
-    expect(pages[3].titre).toBe("Navi vient à toi");
+    expect(pages[3].titre).toBe("Dis-le à Navi, une fois");
+    expect(pages[3].exemples?.[0].etiquette).toBe("Navi a fait");
     expect(pages[pages.length - 1].dessin).toBe("fin");
     for (const p of pages) expect(p.texte.length).toBeLessThan(170);
+  });
+
+  it("dit ce que Kora fait, sans « Bienvenue », avec deux exemples au plus par page", () => {
+    const pages = pagesGuide("Tael");
+    expect(pages[0].titre).not.toMatch(/bienvenue/i);
+    for (const p of pages) {
+      expect(p.titre.length).toBeLessThanOrEqual(30);
+      expect(p.exemples?.length ?? 0).toBeLessThanOrEqual(2);
+    }
   });
 });
