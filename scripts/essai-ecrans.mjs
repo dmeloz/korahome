@@ -284,6 +284,15 @@ try {
     for (const [espace, cartes] of Object.entries(ESPACES)) {
       await allerEspace(espace);
       await verifier(espace);
+      // Une carte qui se retourne (0.1.21) : son dos se vérifie aussi, puis elle revient à l'endroit.
+      const coin = p.locator(".retourner:visible").first();
+      if (await coin.count()) {
+        await coin.click();
+        await p.waitForTimeout(600);
+        await verifier(`${espace} (dos)`);
+        await p.locator(".retournable.verso .retournable-dos").first().click();
+        await p.waitForTimeout(600);
+      }
       for (const carte of cartes) {
         await ouvrirCarte(carte);
         await verifier(`${espace} › ${carte}`);

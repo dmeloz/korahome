@@ -13,6 +13,8 @@ import {
 import { Icone } from "../../Icone";
 import { useDessin } from "../../moteur";
 import { Montant } from "../../moteur/Chiffre";
+import { barreSous, ecartAuBudget, plusProche } from "../../../domaine/lecture";
+import { useLecture, Viseur } from "../../pieces/Lecture";
 
 // Les visuels du Budget : sobres, sans légende inutile, un chiffre qui compte par visuel.
 // Les couleurs des pots viennent des variables --pot-* (styles/budget.css), pour les deux thèmes.
@@ -167,14 +169,17 @@ export function TrajetSalaire({ b }: { b: BilanPersonne }) {
   );
 }
 
-/** La courbe de l'épargne : le trait plein pour ce qui est fait, pointillé pour la suite au rythme prévu. */
+/** La courbe de l'épargne : le trait plein pour ce qui est fait, pointillé pour la suite au rythme prévu.
+ *  Le doigt qui glisse dessus lit chaque mois (Kora 0.1.21). */
 export function CourbeEpargne({ points, objectif, aujourdhui }: { points: PointEpargne[]; objectif: number | null; aujourdhui: string }) {
   const dessin = useDessin<HTMLElement>();
-  if (points.length < 2) return null;
   const l = 300;
   const h = 110;
+  const x = (i: number) => 6 + (i / Math.max(1, points.length - 1)) * (l - 12);
+  const abscisses = points.map((_, i) => x(i));
+  const { index, props } = useLecture<SVGSVGElement>(points.length, (part) => plusProche(abscisses, part * l));
+  if (points.length < 2) return null;
   const haut = Math.max(1, objectif ?? 0, ...points.map((p) => p.solde)) * 1.08;
-  const x = (i: number) => 6 + (i / (points.length - 1)) * (l - 12);
   const y = (v: number) => h - 8 - (Math.max(0, v) / haut) * (h - 18);
   const trace = (liste: { i: number; p: PointEpargne }[]) => liste.map(({ i, p }, k) => `${k ? "L" : "M"}${x(i).toFixed(1)} ${y(p.solde).toFixed(1)}`).join(" ");
   const indexes = points.map((p, i) => ({ i, p }));
@@ -183,39 +188,51 @@ export function CourbeEpargne({ points, objectif, aujourdhui }: { points: PointE
   const dernier = faits[faits.length - 1];
   const fin = points[points.length - 1];
   if (!dernier) return null;
+  const lu = index >= 0 ? points[index] : null;
   return (
     <section ref={dessin} className="carte budget-courbe">
-      <svg viewBox={`0 0 ${l} ${h}`} role="img" aria-label={`Épargne : ${montant(dernier.p.solde)} aujourd'hui, ${montant(fin.solde)} en ${nommerMois(fin.mois, aujourdhui)} au rythme prévu`}>
+      <svg viewBox={`0 0 ${l} ${h}`} role="img" className="lisible" aria-label={`Épargne : ${montant(dernier.p.solde)} aujourd'hui, ${montant(fin.solde)} en ${nommerMois(fin.mois, aujourdhui)} au rythme prévu. Flèches pour lire chaque mois.`} {...props}>
         {objectif ? <line x1="0" x2={l} y1={y(objectif)} y2={y(objectif)} className="budget-courbe-objectif" /> : null}
         <path d={`${trace(faits)} L${x(dernier.i).toFixed(1)} ${h - 8} L${x(0).toFixed(1)} ${h - 8} Z`} className="budget-courbe-aire" data-apparait="" />
         <path d={trace(faits)} className="budget-courbe-trait" pathLength={1} data-dessin="" />
         {prevus.length > 1 && <path d={trace(prevus)} className="budget-courbe-trait prevu" data-apparait="" />}
         <circle cx={x(dernier.i)} cy={y(dernier.p.solde)} r="3.5" className="budget-courbe-point" data-apparait="" />
+        {lu && <Viseur x={x(index)} y={y(lu.solde)} haut={2} bas={h - 8} />}
       </svg>
-      <p className="discret">
-        {fin.prevu ? `Au rythme prévu : ${montant(fin.solde)} en ${nommerMois(fin.mois, aujourdhui)}.` : `${montant(dernier.p.solde)} aujourd'hui.`}
+      <p className="discret" aria-live="polite">
+        {lu
+          ? `${majuscule(nommerMois(lu.mois, aujourdhui))} : ${montant(lu.solde)}${lu.prevu ? ", au rythme prévu" : ""}.`
+          : fin.prevu ? `Au rythme prévu : ${montant(fin.solde)} en ${nommerMois(fin.mois, aujourdhui)}.` : `${montant(dernier.p.solde)} aujourd'hui.`}
       </p>
     </section>
   );
 }
 
-/** Les courses mois par mois : des barres fines, le mois en cours en laiton. */
+/** Les courses mois par mois : des barres fines, le mois en cours en laiton. Le doigt lit chaque mois. */
 export function CoursesParMois({ mois, budget, aujourdhui }: { mois: { mois: string; total: number }[]; budget: number; aujourdhui: string }) {
   const dessin = useDessin<HTMLElement>();
+  const { index, props } = useLecture<HTMLDivElement>(mois.length, (part) => barreSous(part, mois.length));
   const max = Math.max(1, budget, ...mois.map((m) => m.total));
+  const lu = index >= 0 ? mois[index] : null;
+  const ecart = lu ? ecartAuBudget(lu.total, budget) : null;
+  const phrase = lu
+    ? `${majuscule(nommerMois(lu.mois, aujourdhui))} : ${montant(lu.total)}${
+        ecart === "au-dessus" ? `, ${montant(lu.total - budget)} de plus que le budget` : ecart === "dessous" ? `, ${montant(budget - lu.total)} sous le budget` : ecart === "pile" ? ", pile le budget" : ""
+      }.`
+    : budget > 0 ? `Le trait : le budget de ${montant(budget)} par mois.` : "";
   return (
     <section ref={dessin} className="carte">
-      <div className="budget-barres larges" role="img" aria-label={mois.map((m) => `${nommerMois(m.mois, aujourdhui)} ${montant(m.total)}`).join(", ")}>
+      <div className="budget-barres larges lisible" role="img" aria-label={`${mois.map((m) => `${nommerMois(m.mois, aujourdhui)} ${montant(m.total)}`).join(", ")}. Flèches pour lire chaque mois.`} {...props}>
         {budget > 0 && <span className="budget-barres-repere" style={{ bottom: `calc(${((budget / max) * 78).toFixed(1)}% + 17px)` }} />}
         {mois.map((m, i) => (
-          <div key={m.mois} className={`budget-barre${i === mois.length - 1 ? " actif" : ""}${budget > 0 && m.total > budget ? " manque" : ""}`}>
+          <div key={m.mois} className={`budget-barre${i === mois.length - 1 ? " actif" : ""}${budget > 0 && m.total > budget ? " manque" : ""}${i === index ? " lue" : ""}`}>
             <span className="budget-barre-valeur">{m.total ? Math.round(m.total) : ""}</span>
             <span className="budget-barre-trait" data-cascade="" style={{ height: `${Math.max(2, Math.round((m.total / max) * 70))}%` }} />
             <span className="budget-barre-nom">{court(m.mois)}</span>
           </div>
         ))}
       </div>
-      {budget > 0 && <p className="discret">Le trait : le budget de {montant(budget)} par mois.</p>}
+      {phrase && <p className="discret" aria-live="polite">{phrase}</p>}
     </section>
   );
 }

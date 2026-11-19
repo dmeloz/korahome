@@ -562,3 +562,9 @@ html.feuille-ouverte, html.feuille-ouverte body, html.menu-ouvert, html.menu-ouv
 .feuille-heure { display: grid; gap: var(--espace-4); }
 .feuille-heure-note { margin: 0; text-align: center; font-size: var(--t-legende); }
 .feuille-heure-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: var(--espace-2) var(--espace-7); }
+
+/* La lecture au doigt des graphiques (0.1.21) : un viseur fin et le point choisi. */
+.lisible { cursor: crosshair; -webkit-tap-highlight-color: transparent; }
+.lisible:focus-visible { outline: 2px solid var(--accent); outline-offset: var(--espace-2); border-radius: var(--rayon-fin); }
+.viseur-trait { stroke: var(--discret); stroke-width: 1; }
+.viseur-point { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }

@@ -1,7 +1,10 @@
-import type { CSSProperties, ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { lundiDe } from "../../domaine/agenda";
 import { decaler } from "../../domaine/taches";
+import type { LigneDos } from "../../domaine/dos";
 import type { Jour } from "../../domaine/types";
+import { vibrer } from "../haptique";
+import { Icone } from "../Icone";
 import { toucheDe, useCartesTouchees, useRespiration } from "../moteur/langage";
 import { Orbe } from "./Tael";
 
@@ -61,6 +64,41 @@ export function Tuile(props: {
   return (
     <div className={classe} style={style} data-widget={props.widget} data-touche={touche} aria-label={props.label} role={props.role}>
       {props.children}
+    </div>
+  );
+}
+
+/**
+ * Une carte qui se retourne (0.1.21) : la carte reste ce qu'elle est (un toucher l'ouvre), un
+ * petit bouton dans son coin la fait pivoter pour montrer son dos, quatre lignes au plus ; un
+ * toucher sur le dos la remet à l'endroit. Sans lignes au dos, la carte est rendue telle quelle.
+ */
+export function Retournable(props: { children: ReactNode; large?: boolean; titre: string; lignes: readonly LigneDos[]; forte?: boolean; contraste?: boolean }) {
+  const [verso, setVerso] = useState(false);
+  if (!props.lignes.length) return <>{props.children}</>;
+  const tourner = () => {
+    vibrer();
+    setVerso((v) => !v);
+  };
+  return (
+    <div className={`retournable${props.large ? " large" : ""}${verso ? " verso" : ""}`}>
+      <div className="retournable-face" inert={verso}>
+        {props.children}
+        <button type="button" className={`retourner${props.forte ? " sur-laiton" : props.contraste ? " sur-ivoire" : ""}`} onClick={tourner} aria-label={`Retourner la carte : ${props.titre}`}>
+          <Icone nom="actualiser" taille={16} />
+        </button>
+      </div>
+      <button type="button" className={`tuile retournable-face retournable-dos${props.forte ? " forte" : ""}${props.contraste ? " contraste" : ""}`} inert={!verso} onClick={tourner} aria-label={`${props.titre} : ${props.lignes.map((l) => (l.fin ? `${l.texte} ${l.fin}` : l.texte)).join(", ")}. Toucher pour revenir.`}>
+        <span className="etiq">{props.titre}</span>
+        <span className="dos-lignes">
+          {props.lignes.map((l, k) => (
+            <span key={k} className={`dos-ligne${l.manque ? " manque" : ""}`}>
+              <span>{l.texte}</span>
+              {l.fin && <b>{l.fin}</b>}
+            </span>
+          ))}
+        </span>
+      </button>
     </div>
   );
 }

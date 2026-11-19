@@ -1,7 +1,7 @@
 import { type CSSProperties, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePiegeFocus } from "../focus";
-import { guideAMontrer, pagesGuide, VERSION_GUIDE } from "../../domaine/guide";
+import { guideAMontrer, pagesGuide, VERSION_GUIDE, type ExempleGuide } from "../../domaine/guide";
 import { useFee } from "../fee";
 import { vibrer } from "../haptique";
 import { Icone } from "../Icone";
@@ -63,7 +63,7 @@ export function Guide({ fermer }: { fermer: () => void }) {
             else if (info.offset.x > 60 || info.velocity.x > 400) aller(i - 1);
           }}
         >
-          <Dessin quoi={page.dessin} />
+          <Dessin quoi={page.dessin} exemples={page.exemples ?? []} />
           <h1 id="guide-titre">{page.titre}</h1>
           <p>{page.texte}</p>
         </m.div>
@@ -83,29 +83,32 @@ export function Guide({ fermer }: { fermer: () => void }) {
   );
 }
 
+/** Les cartes d'exemple d'une page : de vraies cartes de Kora, en petit. */
+function Exemples({ exemples }: { exemples: readonly ExempleGuide[] }) {
+  if (!exemples.length) return null;
+  return (
+    <div className={`guide-exemples${exemples.length > 1 ? " duo" : ""}`}>
+      {exemples.map((e) => (
+        <span key={e.etiquette} className={`tuile guide-exemple${e.ton ? ` ${e.ton}` : ""}`}>
+          <span className="etiq">{e.etiquette}</span>
+          <b>{e.texte}</b>
+          {e.detail && <span className="doux">{e.detail}</span>}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 /** L'illustration de chaque page, faite des vraies pièces de Kora : rien à charger. */
-function Dessin({ quoi }: { quoi: ReturnType<typeof pagesGuide>[number]["dessin"] }) {
-  if (quoi === "espaces") {
-    return (
-      <div className="guide-dessin ronds" aria-hidden>
-        {ESPACES.map((e) => <span key={e.id} className="rond"><Icone nom={e.picto} taille={20} /></span>)}
-      </div>
-    );
+function Dessin({ quoi, exemples }: { quoi: ReturnType<typeof pagesGuide>[number]["dessin"]; exemples: readonly ExempleGuide[] }) {
+  if (quoi === "espaces" || quoi === "cartes") {
+    return <div className="guide-dessin" aria-hidden><Exemples exemples={exemples} /></div>;
   }
   if (quoi === "pile") {
     return (
       <div className="guide-dessin pile" aria-hidden>
         <span className="rond kora"><Icone nom="menu" taille={22} /></span>
-        {ESPACES.slice(1, 4).map((e, j) => <span key={e.id} className="item" style={{ "--j": j } as CSSProperties}><span className="rond"><Icone nom={e.picto} taille={16} /></span><b>{e.libelle}</b></span>)}
-      </div>
-    );
-  }
-  if (quoi === "cartes") {
-    return (
-      <div className="guide-dessin cartes" aria-hidden>
-        <span className="tuile forte"><i /><i className="long" /></span>
-        <span className="tuile"><i /><i className="court" /></span>
-        <span className="tuile contraste"><i /><i className="long" /></span>
+        {ESPACES.slice(1, 4).map((e, j) => <span key={e.id} className="item" style={{ "--j": j } as CSSProperties}><span className="rond"><Icone nom={e.picto} taille={16} /></span><b>{e.libelle}</b>{j === 2 && <i className="guide-point" />}</span>)}
       </div>
     );
   }
@@ -113,6 +116,7 @@ function Dessin({ quoi }: { quoi: ReturnType<typeof pagesGuide>[number]["dessin"
     return (
       <div className="guide-dessin fee" aria-hidden>
         <span className="orbe"><DessinFee /></span>
+        <Exemples exemples={exemples} />
       </div>
     );
   }
