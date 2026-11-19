@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { bilanAMontrer, duMois } from "../../domaine/bilanMois";
+import { BilanMois } from "./BilanMois";
 import { dosAMoi } from "../../domaine/dos";
 import { apercuAutre, chiffreAMoi, depensesParJour, etatAMoi } from "../../domaine/aMoi";
 import { courbeEpargne, decrireEcheanceFacture, etatDesPots, facturesAPayer, formaterMontant, nommerMois, planDe, POTS } from "../../domaine/budget";
@@ -21,6 +24,7 @@ export function EspaceBudget(props: { donnees: DonneesModule; ouvrir: (p: Page) 
     noterUsage("widget", "budget");
     props.ouvrir({ nom: "module", id: "budget", onglet });
   };
+  const [bilanOuvert, setBilanOuvert] = useState(false);
   const plan = planDe(donnees.budget);
   const autre = foyer.membres.find((m) => m.id !== membreId) ?? null;
 
@@ -44,6 +48,7 @@ export function EspaceBudget(props: { donnees: DonneesModule; ouvrir: (p: Page) 
   const chiffre = aMoi ? chiffreAMoi(aMoi) : null;
   const courbe = membreId ? depensesParJour(donnees.budget, membreId, aujourdhui) : [];
   const pots = etatDesPots(plan, donnees.budget, aujourdhui);
+  const bilan = bilanAMontrer(plan, donnees.budget, donnees.menus, donnees.taches, aujourdhui);
   const epargne = courbeEpargne(plan, donnees.budget, aujourdhui).filter((x) => !x.prevu).map((x) => x.solde);
   const aClasser = paiementsAClasser(donnees.budget);
   const factures = facturesAPayer(plan, donnees.budget, aujourdhui);
@@ -116,7 +121,15 @@ export function EspaceBudget(props: { donnees: DonneesModule; ouvrir: (p: Page) 
           <p className="phrase"><b>{formaterMontant(pots.epargne.solde, false)}</b> CHF de côté{pots.epargne.budgetDuMois ? `, ${formaterMontant(pots.epargne.budgetDuMois, false)} par mois` : ""}.</p>
           <Tendance points={epargne} quoi="Épargne" />
         </Tuile>
+
+        {bilan && (
+          <Tuile i={i++} onClick={() => setBilanOuvert(true)} label={`Notre mois ${duMois(bilan.nom)} en une page`}>
+            <p className="etiq"><Icone nom="note" taille={18} />Le bilan</p>
+            <p className="phrase">Notre mois <b>{duMois(bilan.nom)}</b> en une page{bilan.enCours ? ", jusqu'ici" : ""}.</p>
+          </Tuile>
+        )}
       </Grille>
+      {bilan && <BilanMois bilan={bilan} ouverte={bilanOuvert} fermer={() => setBilanOuvert(false)} />}
     </main>
   );
 }

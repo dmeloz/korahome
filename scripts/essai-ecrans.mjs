@@ -300,6 +300,16 @@ try {
         await revenir();
       }
     }
+    // Le bilan du mois en une page (0.1.23) : sa carte du Budget ouvre une feuille.
+    await allerEspace("Budget");
+    const carteBilan = p.locator(".tuile", { hasText: "Le bilan" }).first();
+    if (await carteBilan.count()) {
+      await carteBilan.click();
+      await p.waitForTimeout(700);
+      await verifier("Budget › Le bilan");
+      await p.keyboard.press("Escape");
+      await p.waitForTimeout(500);
+    }
     // Le fil du foyer (0.0.65), depuis sa carte d'Aujourd'hui.
     await allerEspace("Aujourd'hui");
     await ouvrirCarte("Chez nous");
