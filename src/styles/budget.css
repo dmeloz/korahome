@@ -7,6 +7,9 @@
 .budget-pot .discret { margin: 0; font-size: var(--t-legende); }
 .budget-solde { font-family: var(--police-titre); font-size: var(--t-section); font-weight: 700; letter-spacing: -0.01em; margin: 2px 0; font-variant-numeric: tabular-nums; }
 .budget-pot.negatif .budget-solde { color: var(--urgent); }
+/* Des chiffres de même largeur dans tout le Budget : les montants s'alignent d'une ligne à l'autre
+   et ne bougent pas quand ils changent. */
+.budget, .bilan-page, .budget-rangee, .contrats { font-variant-numeric: tabular-nums; }
 .budget-montant { font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--texte); }
 .budget-total .ligne-texte, .budget-total .budget-montant { font-weight: 600; }
 .budget-champ {

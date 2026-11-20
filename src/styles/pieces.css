@@ -55,6 +55,13 @@
 /* Une case qui est un bouton se touche sur 44 points sans grossir à l'œil : dix points de plus autour d'elle. */
 button.case { position: relative; }
 button.case::after { content: ""; position: absolute; inset: -10px; }
+/* Des touches à la taille du doigt, sans rien changer à l'œil (oui de Melo du 20 novembre 2026) :
+   ce qui se dessine plus petit que 44 points répond quand même sur 44, par une zone invisible
+   centrée sur le bouton. Une rangée qui défile de côté garde ses pastilles telles quelles (la zone
+   la ferait défiler aussi de haut en bas). */
+.segments button, button.puce, .retour, button.lien, .menu-fermer, .aide-ligne, .etat-pied, .agenda-nav-titre, .bouton-icone, .moment:not(.calme) .moment-titre { position: relative; }
+.segments button::after, button.puce::after, .retour::after, .feuille-entete .lien::after, .maison-entete .lien::after, .menu-fermer::after, .aide-ligne::after, .etat-pied::after, .agenda-nav-titre::after, .bouton-icone::after, .moment:not(.calme) .moment-titre::after { content: ""; position: absolute; inset: min(0px, calc((100% - var(--cible)) / 2)); }
+.budget-defile button.puce::after, .budget-filtre button.puce::after { content: none; }
 .element.coche .case { background: var(--accent); border-color: var(--accent); }
 .element.coche .ligne-texte { color: var(--coche); text-decoration: line-through; }
 
@@ -243,7 +250,8 @@ button.case::after { content: ""; position: absolute; inset: -10px; }
   flex: 1;
   border: none;
   background: none;
-  border-radius: var(--rayon-petit);
+  /* Concentrique : le rayon de la piste moins ce qui l'en sépare (3 de marge, 1 de filet). */
+  border-radius: calc(var(--rayon-carte) - var(--espace-2));
   padding: 7px 4px;
   font-size: var(--t-detail);
   color: var(--discret);
@@ -438,7 +446,7 @@ html.feuille-ouverte, html.feuille-ouverte body, html.menu-ouvert, html.menu-ouv
 .page-entete { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--espace-5); margin: 8px 0 16px; }
 .page-titres { min-width: 0; }
 .page-entete h1 { margin: 0; }
-.page-sous-titre { margin: 4px 0 0; font-size: var(--t-detail); color: var(--discret); }
+.page-sous-titre { margin: 4px 0 0; font-size: var(--t-detail); color: var(--discret); text-wrap: pretty; }
 .page-actions { display: flex; gap: var(--espace-4); flex: none; padding-bottom: 4px; }
 /* L'aide de la première visite : une ligne discrète, le texte entier d'un toucher. */
 .aide-une-fois { display: flex; align-items: flex-start; gap: var(--espace-5); margin: 0 0 12px; }
@@ -451,7 +459,7 @@ html.feuille-ouverte, html.feuille-ouverte body, html.menu-ouvert, html.menu-ouv
 .aide-une-fois.ouverte .aide-texte { white-space: normal; color: var(--texte); }
 .aide-picto { color: var(--accent); display: grid; padding-top: 1px; flex: none; }
 .aide-une-fois .lien { flex: none; font-size: var(--t-detail); padding: 6px 0; }
-.segment-compte { margin-left: 6px; font-size: var(--t-legende); color: var(--accent); }
+.segment-compte { margin-left: 6px; font-size: var(--t-legende); color: var(--accent); font-variant-numeric: tabular-nums; }
 .puce.active .segment-compte { color: inherit; opacity: 0.75; }
 /* Les vues d'une page rangée dans un espace : des puces sous les onglets de l'espace, jamais une deuxième rangée de segments. */
 .puces.vues { margin: 2px 0 12px; }
@@ -549,8 +557,8 @@ html.feuille-ouverte, html.feuille-ouverte body, html.menu-ouvert, html.menu-ouv
 /* ===== L'état vide (0.0.84) : une page qui n'a encore rien, la même partout ===== */
 .etat-vide { display: grid; justify-items: center; gap: var(--espace-4); text-align: center; margin: var(--espace-7) auto 0; max-width: 32ch; padding: 0 var(--espace-6); }
 .etat-vide-picto { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: var(--accent-doux); color: var(--accent); margin-bottom: var(--espace-2); }
-.etat-vide-titre { margin: 0; font-family: var(--police-titre); font-size: var(--t-section); font-weight: 600; color: var(--texte); }
-.etat-vide-texte { margin: 0; font-size: var(--t-detail); line-height: 1.45; color: var(--discret); text-wrap: pretty; }
+.etat-vide-titre { margin: 0; font-family: var(--police-titre); font-size: var(--t-section); font-weight: 600; color: var(--texte); text-wrap: balance; }
+.etat-vide-texte { margin: 0; font-size: var(--t-detail); line-height: 1.45; color: var(--discret); text-wrap: balance; }
 .etat-vide .bouton-principal { margin-top: var(--espace-4); }
 /* Trois pièces communes dont les styles vivaient dans l'ancien accueil (retiré en 0.1.0) : la carte
    qui propose (Tâches, Ce que Tael sait, Sauvegarde, Autres listes), la jauge fine (Budget ›

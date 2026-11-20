@@ -67,7 +67,7 @@ function fichiersDe(dossier: URL): URL[] {
  * n'a rien à faire ici : ou bien elle a sa règle, ou bien on ne l'écrit pas.
  */
 const REPERES = new Set([
-  "bilan", "conseil", "budget", "cuisine", "courses-c", "maison", "organisation", "taches-c", "feuille-fiche-semaine",
+  "bilan", "conseil", "cuisine", "courses-c", "maison", "organisation", "taches-c", "feuille-fiche-semaine",
   "fee-nuit", "fee-geste", "maison-rangements", "mitsu", "nos-mots", "rappels", "partage", "recettes-photo",
   "feuille-recette", "page-stock", "flotte", "ailes", "journal-tael", "fin",
 ]);

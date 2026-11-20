@@ -12,6 +12,7 @@ import { lireMembreCourant } from "./ui/contexte";
 import { appliquerTheme, lireTheme } from "./ui/theme";
 import "./styles/index.css";
 import { installerGestes } from "./ui/moteur/langage";
+import { suivreClavier } from "./ui/focus";
 
 const miseAJour = creerMiseAJour(
   registerSW,
@@ -25,6 +26,8 @@ appliquerTheme(lireTheme());
 installerJournal(ecranAffiche);
 // Les durées des gestes (respirer, trembler, liseré, sceau), données aux styles.
 installerGestes();
+// Au clavier (iPad), les champs de texte prennent le contour laiton des boutons.
+suivreClavier();
 // Les ressorts d'Anime.js arrivent juste après le premier écran, sans l'alourdir.
 void import("./ui/moteur/anime").then((m) => m.installerRessorts());
 

@@ -57,6 +57,12 @@ const TRACES = {
 
 export type NomIcone = keyof typeof TRACES;
 
+/**
+ * Le trait de toutes les icônes, en points à l'écran : le même à 14 comme à 26 points de côté
+ * (`vector-effect: non-scaling-stroke`), au lieu d'un trait qui grossissait avec l'icône.
+ */
+const TRAIT = 1.5;
+
 export function Icone({ nom, taille }: { nom: NomIcone; taille?: number }) {
   return (
     <svg
@@ -65,12 +71,12 @@ export function Icone({ nom, taille }: { nom: NomIcone; taille?: number }) {
       height={taille}
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.7}
+      strokeWidth={TRAIT}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
     >
-      <path d={TRACES[nom]} />
+      <path d={TRACES[nom]} vectorEffect="non-scaling-stroke" />
     </svg>
   );
 }

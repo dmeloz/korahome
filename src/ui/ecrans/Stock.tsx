@@ -57,6 +57,7 @@ import { Glissable } from "../Glissable";
 import { Ligne, ListeVivante } from "../moteur/pieces";
 import { Icone } from "../Icone";
 import { AuDessusDeLaBarre, Onglets, Page, useGestionnaireBarre, useSaisieBarre } from "../pieces";
+import { EtatVide } from "../pieces/EtatVide";
 import { sauver } from "../sauver";
 
 // Frigo, congélateur et placard : ce qu'il y a à la maison, ce qui arrive à sa date
@@ -434,7 +435,7 @@ export function Stock(props: {
               </p>
             </div>
           )}
-          {props.produits.length > 0 && groupes.length === 0 && <p className="vide">Rien ici.</p>}
+          {props.produits.length > 0 && groupes.length === 0 && <EtatVide picto="frigo" titre="Rien ici">Rien n'est rangé à cet endroit pour l'instant.</EtatVide>}
 
           {groupes.map((g) => (
             <section key={g.cle}>
@@ -454,7 +455,7 @@ export function Stock(props: {
 
       {vue === "dates" && (
         <>
-          {jours.length === 0 && <p className="vide">Aucune date à surveiller.</p>}
+          {jours.length === 0 && <EtatVide picto="calendrier" titre="Aucune date à surveiller">Les produits qui ont une date s'afficheront ici, jour par jour.</EtatVide>}
           {jours.map((j) => (
             <section key={j.cle}>
               <h2 className={`rayon${j.urgent ? " retard" : ""}`}>{j.titre}</h2>

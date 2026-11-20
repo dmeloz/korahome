@@ -30,6 +30,7 @@ import { demanderRepartition } from "./ecrans/Taches";
 import { preparerDemande } from "./ecrans/Jarvis";
 import { BarreJarvis, FournisseurSaisie } from "./pieces";
 import { BarreHaut } from "./pieces/BarreHaut";
+import { EtatVide } from "./pieces/EtatVide";
 import { ESPACES, Navigation, type EspaceId } from "./pieces/Navigation";
 import { Guide, guideADonner } from "./pieces/Guide";
 import { BulleTael, FeuilleTael } from "./pieces/Tael";
@@ -379,7 +380,7 @@ export function App({ depot, miseAJour, partage }: { depot: DepotLocal; miseAJou
       return liste ? (
         <DetailListe depot={depot} foyer={leFoyer} membreId={membre} liste={liste} elements={elements} catalogue={catalogue} />
       ) : (
-        <main><p className="vide">Cette liste n'existe plus.</p></main>
+        <main><EtatVide picto="liste" titre="Cette liste n'existe plus" /></main>
       );
     },
     reglages: () => (
