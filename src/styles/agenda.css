@@ -21,9 +21,11 @@
 }
 .agenda-grille.mois .agenda-jour { min-height: 44px; padding: 5px 0 4px; }
 .agenda-numero { font-size: var(--t-corps); line-height: 1; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; }
+/* Un jour d'un mois voisin reste un bouton : son numéro est discret mais lisible (contraste AA). */
+.agenda-jour.hors .agenda-numero { color: var(--discret); }
 .agenda-jour.aujourdhui .agenda-numero { color: var(--accent); font-weight: 700; }
 .agenda-jour.choisi .agenda-numero { background: var(--accent); color: var(--sur-accent); font-weight: 600; }
-.agenda-jour.hors { opacity: 0.35; }
+.agenda-jour.hors .agenda-points { opacity: 0.45; }
 .agenda-points { display: flex; gap: var(--espace-2); height: 5px; }
 .agenda-points span { width: 5px; height: 5px; border-radius: 50%; }
 @media (prefers-reduced-motion: no-preference) { .agenda-numero { transition: background 0.15s ease, color 0.15s ease; } }
