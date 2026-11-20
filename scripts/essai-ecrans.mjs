@@ -299,6 +299,16 @@ try {
         if (ANCRES[carte]) await arriveSur(`${espace} › ${carte}`, ANCRES[carte]);
         await revenir();
       }
+      // Le bilan du mois en une page (0.1.23) : sa carte du Budget ouvre une feuille.
+      const carteBilan = p.locator(".page-dessus .tuile", { hasText: "Le bilan" }).first();
+      if (espace === "Budget" && (await carteBilan.count())) {
+        await carteBilan.click();
+        await p.waitForTimeout(700);
+        if (!(await p.getByRole("button", { name: "Envoyer ce bilan" }).count())) erreurs.push(`« Le bilan »${theme} : la feuille ne s'ouvre pas`);
+        await verifier("Budget › Le bilan");
+        await p.keyboard.press("Escape");
+        await p.waitForTimeout(500);
+      }
     }
     // Le fil du foyer (0.0.65), depuis sa carte d'Aujourd'hui.
     await allerEspace("Aujourd'hui");
