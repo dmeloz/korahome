@@ -278,6 +278,8 @@ button.budget-pot:active { transform: scale(0.98); }
 .frise-case.lue { outline: 2px solid var(--texte); outline-offset: 1px; }
 .frise .discret { margin: var(--espace-5) 0 0; font-size: var(--t-detail); }
 /* Le bilan du mois en une page (0.1.23). */
+.bilan-page { display: grid; gap: var(--espace-5); }
+.bilan-page > .discret { margin: 0; }
 .bilan-pot { margin-top: var(--espace-6); }
 .bilan-pot p { margin: 0; font-size: var(--t-detail); }
-.bilan-envoyer { display: flex; align-items: center; justify-content: center; gap: var(--espace-4); width: 100%; margin-top: var(--espace-6); }
+.bilan-envoyer { display: flex; align-items: center; justify-content: center; gap: var(--espace-4); width: 100%; }

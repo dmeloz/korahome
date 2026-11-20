@@ -55,7 +55,6 @@ export function bilanDe(plan: PlanBudget, docs: readonly DocBudget[], menus: rea
   const fin = enCours ? aujourdhui : finDuMois;
   const dedans = (jour: Jour) => jour >= debut && jour <= fin;
   const duMois = depenses(docs).filter((d) => dedans(d.jour) && !d.posteId && (d.pot === "courses" || d.pot === "plaisir"));
-  const versements = bilanDuMois(plan).versements;
   const somme = (pot: "courses" | "plaisir") => auCentime(duMois.filter((d) => d.pot === pot).reduce((t, d) => t + d.montant, 0));
 
   const parJour = new Map<Jour, number>();
@@ -72,6 +71,8 @@ export function bilanDe(plan: PlanBudget, docs: readonly DocBudget[], menus: rea
 
   const repas = repasDe(menus).filter((r) => dedans(r.jour)).sort((a, b) => a.jour.localeCompare(b.jour));
   const note = moisDocs(docs).find((m) => m.mois === mois);
+  // Le budget du mois tel qu'il a été confirmé ; à défaut, celui que le plan prévoit.
+  const versements = note?.versements ?? bilanDuMois(plan).versements;
 
   return {
     mois,

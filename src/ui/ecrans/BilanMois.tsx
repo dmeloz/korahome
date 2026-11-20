@@ -14,10 +14,13 @@ import { Jauge } from "../pieces/Cartes";
 export function BilanMois({ bilan, ouverte, fermer }: { bilan: BilanDuMoisFoyer; ouverte: boolean; fermer: () => void }) {
   const titre = `Notre mois ${duMois(bilan.nom)}`;
   const [copie, setCopie] = useState(false);
+  // « samedi 24 oct. » sans son point : la phrase a déjà le sien.
+  const jour = (j: string) => jourEnClair(j).replace(/\.$/, "");
   const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? "s" : ""}`;
   return (
     <Feuille ouverte={ouverte} onFermer={fermer} titre={titre}>
-      <p className="discret">Du {jourEnClair(bilan.debut)} au {jourEnClair(bilan.fin)}{bilan.enCours ? ", jusqu'ici" : ""}.</p>
+      <div className="bilan-page">
+      <p className="discret">Du {jour(bilan.debut)} au {jour(bilan.fin)}{bilan.enCours ? ", jusqu'ici" : ""}.</p>
 
       {bilan.nombreDepenses > 0 && (
         <section className="carte">
@@ -34,7 +37,7 @@ export function BilanMois({ bilan, ouverte, fermer }: { bilan: BilanDuMoisFoyer;
       )}
 
       <ul className="carte groupe">
-        {bilan.jourLePlusCher && <li className="ligne"><span className="ligne-texte">Le jour le plus cher<span className="tache-details"> · {jourEnClair(bilan.jourLePlusCher.jour)}</span></span><span className="budget-montant">{formaterMontant(bilan.jourLePlusCher.total)}</span></li>}
+        {bilan.jourLePlusCher && <li className="ligne"><span className="ligne-texte">Le plus cher<span className="tache-details"> · {jour(bilan.jourLePlusCher.jour)}</span></span><span className="budget-montant">{formaterMontant(bilan.jourLePlusCher.total)}</span></li>}
         {bilan.magasin && <li className="ligne"><span className="ligne-texte">{bilan.magasin.nom}<span className="tache-details"> · {pluriel(bilan.magasin.fois, "passage")}</span></span><span className="budget-montant">{formaterMontant(bilan.magasin.total)}</span></li>}
         {bilan.epargne !== null && bilan.epargne > 0 && <li className="ligne"><span className="ligne-texte">Mis de côté</span><span className="budget-montant">{formaterMontant(bilan.epargne)}</span></li>}
         {bilan.repas.notes > 0 && <li className="ligne"><span className="ligne-texte">À table<span className="tache-details"> · {bilan.repas.lePlusMange ? `${bilan.repas.lePlusMange.titre}, ${bilan.repas.lePlusMange.fois} fois` : "jamais deux fois le même plat"}</span></span><span className="budget-montant">{pluriel(bilan.repas.notes, "soir")}</span></li>}
@@ -42,9 +45,10 @@ export function BilanMois({ bilan, ouverte, fermer }: { bilan: BilanDuMoisFoyer;
       </ul>
 
       <button type="button" className="bouton-doux bilan-envoyer" onClick={() => void partagerTexte(titre, texteBilan(bilan, jourEnClair)).then((r) => setCopie(r === "copie"))}>
-        <Icone nom="partage" taille={16} />
+        <Icone nom="envoyer" taille={16} />
         {copie ? "Bilan copié : colle-le dans un message" : "Envoyer ce bilan"}
       </button>
+      </div>
     </Feuille>
   );
 }
