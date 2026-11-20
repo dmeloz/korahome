@@ -8,6 +8,7 @@ import { Feuille } from "../Feuille";
 import { vibrer } from "../haptique";
 import { Ligne, ListeVivante, Message } from "../moteur/pieces";
 import { LigneAjout } from "../pieces";
+import { EtatVide } from "../pieces/EtatVide";
 import { sauver } from "../sauver";
 import { Puces } from "./budget/communs";
 
@@ -54,7 +55,7 @@ export function Abonnements(props: { depot: Depot; foyer: Foyer; membreId: strin
     <section className="contrats">
       <h2 className="rayon">Abonnements et contrats</h2>
       {lignes.length > 0 && <p className="discret contrats-resume">{resumeContrats(lignes)}</p>}
-      {lignes.length === 0 && <p className="vide">Netflix, Sunrise, la salle de sport, l'assurance : note la fin et le préavis, Kora prévient avant que ça se renouvelle.</p>}
+      {lignes.length === 0 && <EtatVide picto="dossier" titre="Aucun contrat noté">Netflix, Sunrise, la salle de sport, l'assurance : note la fin et le préavis, Kora prévient avant que ça se renouvelle.</EtatVide>}
       {lignes.length > 0 && (
         <ListeVivante className="carte groupe">
           {lignes.map((l) => (

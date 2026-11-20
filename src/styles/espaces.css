@@ -5,7 +5,7 @@
 .espace { padding-top: calc(env(safe-area-inset-top) + 10px); }
 .espace-entete { display: flex; align-items: center; justify-content: space-between; gap: var(--espace-5); animation: calme 0.3s ease-out both; }
 .espace-entete h1 { margin: 0; font-size: 30px; }
-.sous-salut { color: var(--discret); font-size: var(--t-detail); margin: 2px 0 16px; animation: calme 0.3s ease-out both; }
+.sous-salut { color: var(--discret); font-size: var(--t-detail); margin: 2px 0 16px; animation: calme 0.3s ease-out both; text-wrap: pretty; }
 .espace .page-entete { display: none; }
 
 /* ---------- Le système de cartes : trois tailles, une forte, une de contraste ---------- */
@@ -40,8 +40,8 @@ button.tuile:active { transform: translateY(-3px); }
 .pastille-k b.navi { background: color-mix(in srgb, var(--navi) 16%, transparent); color: var(--navi); }
 .pastille-k b.direct { animation: pulse 2s ease-out infinite; }
 @keyframes pulse { 15% { transform: scale(1.1); } 30% { transform: none; } }
-.titre-c { font-size: 18px; font-weight: 600; margin: 8px 0 0; line-height: 1.3; text-wrap: pretty; }
-.phrase { font-size: 18px; font-weight: 600; line-height: 1.3; margin: 8px 0 0; text-wrap: pretty; }
+.titre-c { font-size: 18px; font-weight: 600; margin: 8px 0 0; line-height: 1.3; text-wrap: balance; }
+.phrase { font-size: 18px; font-weight: 600; line-height: 1.3; margin: 8px 0 0; text-wrap: balance; }
 .phrase b { color: var(--accent); font-weight: 700; }
 .doux { color: var(--discret); font-size: var(--t-detail); margin: 4px 0 0; line-height: 1.4; }
 .actions-c { display: flex; flex-wrap: wrap; gap: var(--espace-4); margin-top: 14px; }
@@ -91,7 +91,7 @@ button.tuile:active { transform: translateY(-3px); }
 .moment-haut { display: flex; align-items: center; justify-content: space-between; gap: var(--espace-4); }
 .moment-quand { flex: none; padding: var(--espace-1) var(--espace-4); border-radius: var(--rayon-rond); font-size: var(--t-legende); font-weight: 600; background: var(--accent-doux); color: var(--accent); }
 .tuile.forte .moment-quand { background: rgb(0 0 0 / 0.14); color: var(--sur-accent); }
-.moment-titre { display: block; width: 100%; margin: var(--espace-4) 0 0; padding: 0; border: 0; background: none; color: inherit; font-family: var(--police-titre); font-size: 22px; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em; text-align: left; text-wrap: pretty; }
+.moment-titre { display: block; width: 100%; margin: var(--espace-4) 0 0; padding: 0; border: 0; background: none; color: inherit; font-family: var(--police-titre); font-size: 22px; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em; text-align: left; text-wrap: balance; }
 /* Rien n'attend : toute la carte ouvre la page, ses lignes restent touchables par-dessus. */
 .moment.calme .moment-titre::after { content: ""; position: absolute; inset: 0; border-radius: var(--rayon-carte); }
 .moment.calme .li, .moment.calme .moment-autres { position: relative; z-index: 1; }
@@ -117,8 +117,8 @@ button.tuile:active { transform: translateY(-3px); }
 .aujourdhui .jours + .phrase { margin-top: var(--espace-5); font-size: 15px; font-weight: 500; color: var(--discret); }
 .ligne-b { display: flex; justify-content: space-between; align-items: center; gap: var(--espace-5); min-height: 52px; padding: 2px 0; border: 0; border-top: 1px solid var(--trait); background: none; width: 100%; font-size: var(--t-corps); color: inherit; text-align: left; }
 .ligne-b:first-child { border-top: 0; }
-.ligne-b small { display: block; color: var(--discret); font-size: var(--t-detail); }
-.ligne-b .val { color: var(--discret); font-size: 15px; flex: none; display: flex; align-items: center; gap: var(--espace-3); }
+.ligne-b small { display: block; color: var(--discret); font-size: var(--t-detail); font-variant-numeric: tabular-nums; }
+.ligne-b .val { color: var(--discret); font-size: 15px; flex: none; display: flex; align-items: center; gap: var(--espace-3); font-variant-numeric: tabular-nums; }
 .ligne-b .val::after { content: "›"; color: var(--sourd); font-size: 20px; line-height: 1; }
 /* Une jauge nue, sans cadre. */
 .jauge { height: 6px; border-radius: 3px; background: var(--surface-haute); margin-top: 10px; overflow: hidden; }
@@ -134,7 +134,7 @@ button.tuile:active { transform: translateY(-3px); }
 /* La semaine de l'agenda, et le mois entier. */
 .jours { display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--espace-2); margin: 10px 0 6px; text-align: center; }
 .jours small { display: block; font-size: 11px; color: var(--discret); margin-bottom: 4px; }
-.jours b { display: grid; place-items: center; width: 34px; height: 34px; margin: 0 auto; border-radius: 50%; font-size: 15px; font-weight: 600; position: relative; }
+.jours b { display: grid; place-items: center; width: 34px; height: 34px; margin: 0 auto; border-radius: 50%; font-size: 15px; font-weight: 600; position: relative; font-variant-numeric: tabular-nums; }
 .jours .auj b { background: var(--accent); color: var(--sur-accent); }
 .jours .pt b::after, .mois b.pt::after { content: ""; position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
 .jours .auj.pt b::after { background: var(--sur-accent); }

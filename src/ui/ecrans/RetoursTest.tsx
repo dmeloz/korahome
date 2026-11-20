@@ -9,6 +9,7 @@ import { effacerJournal, lireJournal } from "../journal";
 import { construireRapport, copierRapport, partagerRapport } from "../rapport";
 import { RepereOnglet } from "../moteur/pieces";
 import { Page } from "../pieces";
+import { EtatVide } from "../pieces/EtatVide";
 import { ignorer } from "../journal";
 import { sauver } from "../sauver";
 
@@ -120,13 +121,9 @@ export function RetoursTest(props: { depot: DepotLocal; foyer: Foyer; retours: R
       </div>
 
       {affichees.length === 0 ? (
-        <p className="vide">
-          {ouvert === "nouvelle"
-            ? "Aucune nouvelle note. Touche la pastille « Dev » sur n'importe quel écran pour en écrire une."
-            : ouvert === "transmise"
-              ? "Aucune note en attente de correction."
-              : "Aucune note réglée pour l'instant."}
-        </p>
+        <EtatVide picto="note" titre={ouvert === "nouvelle" ? "Aucune nouvelle note" : ouvert === "transmise" ? "Aucune note en attente de correction" : "Aucune note réglée pour l'instant"}>
+          {ouvert === "nouvelle" ? "Touche la pastille « Dev » sur n'importe quel écran pour en écrire une." : undefined}
+        </EtatVide>
       ) : ouvert === "reglee" ? (
         <ul className="carte groupe">{affichees.map(ligne)}</ul>
       ) : (

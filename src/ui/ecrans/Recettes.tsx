@@ -35,6 +35,7 @@ import { annulerModifications, enregistrerModifications, pdfPourJarvis, photoPou
 import type { PieceJointe } from "../../donnees/distant";
 import type { PropsPage } from "../modules";
 import { useGestionnaireBarre, useInvitationBarre } from "../pieces";
+import { EtatVide } from "../pieces/EtatVide";
 import { nomFee } from "../fee";
 import { Ligne, ListeVivante } from "../moteur/pieces";
 import { useEcranAllume } from "../eveil";
@@ -149,13 +150,13 @@ export function OngletRecettes(p: PropsPage & { recettes: Recette[]; ouvrirFiche
       )}
 
       {liste.length === 0 ? (
-        <p className="vide">
+        <EtatVide picto="toque" titre={p.recettes.length === 0 ? "Pas encore de recette" : filtre === "ce-soir" ? "Rien avec le stock ce soir" : "Aucune recette aimée"}>
           {p.recettes.length === 0
-            ? `Pas encore de recette. Lance le Chef, colle un lien à ${nomFee()} ou photographie une page de livre.`
+            ? `Lance le Chef, colle un lien à ${nomFee()} ou photographie une page de livre.`
             : filtre === "ce-soir"
-              ? "Aucune recette ne se fait avec le stock ce soir."
-              : "Aucune recette aimée pour l'instant : touche le cœur sur une fiche."}
-        </p>
+              ? "Aucune de vos recettes ne se fait avec ce qu'il y a dans le frigo et les placards."
+              : "Touche le cœur sur une fiche pour la retrouver ici."}
+        </EtatVide>
       ) : (
         <ListeVivante className="carte groupe recettes-liste">
           {liste.map((r) => {

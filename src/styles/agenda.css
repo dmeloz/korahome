@@ -35,7 +35,6 @@
 .agenda-barre { flex: none; width: 3px; border-radius: var(--rayon-fin); }
 .agenda-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--espace-1); justify-content: center; }
 .agenda-texte .ligne-texte { overflow: hidden; text-overflow: ellipsis; }
-.agenda-vide { margin: 8px 0 0; }
 .agenda-dans { font-size: var(--t-legende); }
 .agenda-pastille { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; flex: none; }
 .agenda-detail { gap: var(--espace-5); }

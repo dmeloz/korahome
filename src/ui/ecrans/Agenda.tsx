@@ -232,7 +232,7 @@ export function Agenda(p: PropsPage) {
       ) : (
         <section>
           <h2 className="rayon">{decrireJour(choisi, aujourdhui)}</h2>
-          <JourneeListe occ={duJour(occ, choisi)} jour={choisi} foyer={foyer} comptes={comptes} ouvrir={setOuvert} vide={choisi === aujourdhui ? "Rien de prévu aujourd'hui." : "Rien de prévu ce jour-là."} />
+          <JourneeListe occ={duJour(occ, choisi)} jour={choisi} foyer={foyer} comptes={comptes} ouvrir={setOuvert} vide={choisi === aujourdhui ? "Rien de prévu aujourd'hui" : "Rien de prévu ce jour-là"} />
         </section>
       )}
 
@@ -384,7 +384,7 @@ function VueJour(props: { occ: Occurrence[]; jour: Jour; aujourdhui: Jour; foyer
 }
 
 function JourneeListe(props: { occ: Occurrence[]; jour: Jour; foyer: Foyer; comptes: readonly CompteIcloud[]; ouvrir: (o: Occurrence) => void; vide: string }) {
-  if (!props.occ.length) return <p className="vide agenda-vide">{props.vide}</p>;
+  if (!props.occ.length) return props.vide ? <EtatVide picto="calendrier" titre={props.vide}>Dis-le à ta fée, par exemple « Dentiste jeudi 14h ».</EtatVide> : null;
   return (
     <ul className="carte groupe agenda-liste">
       {props.occ.map((o) => {

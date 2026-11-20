@@ -375,7 +375,7 @@ export function Taches(props: {
       )}
 
       {!administratif && !vide && groupes.length === 0 && (vueMoi || terminees.length === 0) && (
-        <p className="vide">{vueMoi ? "Rien pour toi en ce moment." : "Aucune tâche à faire."}</p>
+        <EtatVide picto="coche" titre={vueMoi ? "Rien pour toi en ce moment" : "Aucune tâche à faire"} />
       )}
 
       {groupes.map((g) => (

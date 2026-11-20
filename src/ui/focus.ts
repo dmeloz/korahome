@@ -54,3 +54,21 @@ export function usePiegeFocus(ouvert: boolean, zone: RefObject<HTMLElement | nul
     };
   }, [ouvert, zone]);
 }
+
+/**
+ * Au clavier (Tab), `html.au-clavier` : un champ de texte prend alors le contour laiton des boutons
+ * (styles/base.css). Un toucher l'enlève : au doigt, rien ne change. Rend de quoi arrêter l'écoute.
+ */
+export function suivreClavier(): () => void {
+  const html = document.documentElement;
+  const clavier = (e: KeyboardEvent) => {
+    if (e.key === "Tab") html.classList.add("au-clavier");
+  };
+  const doigt = () => html.classList.remove("au-clavier");
+  window.addEventListener("keydown", clavier, true);
+  window.addEventListener("pointerdown", doigt, true);
+  return () => {
+    window.removeEventListener("keydown", clavier, true);
+    window.removeEventListener("pointerdown", doigt, true);
+  };
+}
