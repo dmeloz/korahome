@@ -1,7 +1,7 @@
 {
   "name": "korahome",
   "private": true,
-  "version": "0.1.23",
+  "version": "0.1.24",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@number-flow/react": "^0.6.2",
-    "@supabase/supabase-js": "^2.119.0",
+    "@supabase/supabase-js": "^2.119.2",
     "animejs": "4.5.0",
     "barcode-detector": "^3.2.4",
     "motion": "14.14.0",

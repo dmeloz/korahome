@@ -41,8 +41,19 @@ try {
     localStorage.setItem("korahome.coinDev", "visible");
     localStorage.setItem("korahome.theme", "auto");
   });
+  // Le jour de l'essai est fixe (mardi 20 octobre 2026, 9 h 15) : seule la date est décalée, les
+  // minuteries et les animations gardent l'horloge du navigateur. L'horloge imitée de Playwright
+  // gardait son compteur après un rechargement alors que la page repart de zéro : les animations
+  // de Motion partaient « dans le futur » et plus aucune feuille ne montait à l'écran (vu à la
+  // veille du 20 novembre 2026).
+  await ctx.addInitScript((decalage) => {
+    const VraieDate = Date;
+    globalThis.Date = class extends VraieDate {
+      constructor(...a) { if (a.length) super(...a); else super(VraieDate.now() + decalage); }
+      static now() { return VraieDate.now() + decalage; }
+    };
+  }, new Date("2026-10-20T09:15:00+02:00").getTime() - Date.now());
   const p = await ctx.newPage();
-  await p.clock.install({ time: new Date("2026-10-20T09:15:00+02:00") });
   p.on("pageerror", (e) => erreurs.push(`Erreur JavaScript : ${e.message}`));
   await p.goto(`http://localhost:${port}/`);
   await p.waitForTimeout(800);
@@ -91,7 +102,7 @@ try {
     const resultat = await p
       .evaluate((zone) =>
         window.axe.run(document.querySelector(zone) ?? document.body, {
-          runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21aa"] },
+          runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"] },
           resultTypes: ["violations"],
         }),
         zone,
@@ -133,6 +144,22 @@ try {
       erreurs.push(`« ${nom} »${theme} : dépasse de l'écran — ${hors.join(", ")}`);
     }
     return hors.length ? 1 : 0;
+  };
+  /**
+   * Une feuille ouverte est vraiment montée à l'écran (voile plein, feuille arrivée), puis passe
+   * sous axe : elle vit hors de la page, que `verifier` regarde seule.
+   */
+  const feuilleALEcran = async (nom) => {
+    const arrivee = await p
+      .waitForFunction(() => {
+        const feuille = document.querySelector(".feuille");
+        const voile = document.querySelector(".voile");
+        return feuille && voile && getComputedStyle(voile).opacity === "1" && feuille.getBoundingClientRect().bottom <= innerHeight + 1;
+      }, null, { timeout: 4000 })
+      .then(() => true, () => false);
+    if (!arrivee) erreurs.push(`« ${nom} »${theme} : la feuille n'arrive pas à l'écran`);
+    const fautes = arrivee ? await accessibiliteDe(".feuille", `${nom} (feuille)`) : 1;
+    console.log(`${fautes ? "?? " : "ok "} ${nom} (feuille)${theme}`);
   };
   const revenir = async () => {
     await p.locator(".page-dessus .retour").click();
@@ -269,6 +296,9 @@ try {
       console.log(`${fautesMenu ? "?? " : "ok "} Menu${theme}${fautesMenu ? ` · ${fautesMenu} faute${fautesMenu > 1 ? "s" : ""}` : ""}`);
       await p.locator(".menu-kora .menu-entree").filter({ hasText: "Agenda" }).click();
       await verifier("Menu › Agenda");
+      // La vue « Mois » : les jours des mois voisins doivent rester lisibles (veille du 20 novembre).
+      await p.locator(".page-dessus").getByRole("tab", { name: "Mois" }).click();
+      await verifier("Agenda › Mois");
       await revenir();
       await allerEspace("Aujourd'hui");
     }
@@ -305,6 +335,7 @@ try {
         await carteBilan.click();
         await p.waitForTimeout(700);
         if (!(await p.getByRole("button", { name: "Envoyer ce bilan" }).count())) erreurs.push(`« Le bilan »${theme} : la feuille ne s'ouvre pas`);
+        await feuilleALEcran("Budget › Le bilan");
         await verifier("Budget › Le bilan");
         await p.keyboard.press("Escape");
         await p.waitForTimeout(500);
