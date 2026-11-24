@@ -91,8 +91,8 @@ export function Agenda(p: PropsPage) {
   const lundi = lundiDe(choisi);
   const mois = choisi.slice(0, 7);
   const grille = useMemo(() => grilleDuMois(mois), [mois]);
-  const [du, au] =
-    vue === "jour" ? [choisi, choisi] : vue === "mois" ? [grille[0], grille[grille.length - 1]] : vue === "semaine" ? [lundi, plus(lundi, 6)] : [aujourdhui, plus(aujourdhui, JOURS_A_VENIR)];
+  const du = vue === "jour" ? choisi : vue === "mois" ? grille[0] : vue === "semaine" ? lundi : aujourdhui;
+  const au = vue === "jour" ? choisi : vue === "mois" ? grille[grille.length - 1] : vue === "semaine" ? plus(lundi, 6) : plus(aujourdhui, JOURS_A_VENIR);
   const occ = useMemo(
     () => filtrer(occurrences(evenements, vue === "avenir" ? du : choisi < du ? choisi : du, vue === "avenir" ? au : choisi > au ? choisi : au, p.animaux), filtre),
     [evenements, p.animaux, du, au, choisi, filtre, vue],

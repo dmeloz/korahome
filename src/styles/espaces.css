@@ -99,6 +99,8 @@ button.tuile:active { transform: translateY(-3px); }
 .moment-fait svg { width: 16px; height: 16px; flex: none; color: var(--accent); }
 .moment-suite { margin-top: var(--espace-6); padding-top: var(--espace-5); border-top: 1px solid var(--trait); }
 .moment-suite .lignes { margin-top: var(--espace-2); }
+/* Une ligne de la suite se lit en entier : sur deux ou trois lignes au besoin, jamais coupée au milieu de son montant. */
+.moment-suite .li .li-texte { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; white-space: normal; text-wrap: pretty; }
 /* Une ligne qui ne se coche pas (un produit, le repas) : un point à la place de la case, les textes restent alignés. */
 .li-point { display: grid; place-items: center; width: 24px; height: 24px; flex: none; }
 .li-point::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.45; }
@@ -127,19 +129,19 @@ button.tuile:active { transform: translateY(-3px); }
 .tuile.forte .jauge i { background: var(--sur-accent); }
 /* Les sept soirs de la semaine du Chef. */
 .semaine { display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--espace-3); margin-top: 12px; }
-.semaine div { text-align: center; font-size: 12px; color: var(--discret); }
+.semaine div { text-align: center; font-size: var(--t-legende); color: var(--discret); }
 .semaine div b { display: block; margin: 0 auto 6px; width: 100%; max-width: 34px; height: 40px; border-radius: var(--rayon-petit); background: var(--surface-haute); }
 .semaine div.plein b { background: color-mix(in srgb, var(--accent) 55%, var(--surface-haute)); }
 .semaine div.auj { color: var(--accent); font-weight: 700; }
 /* La semaine de l'agenda, et le mois entier. */
 .jours { display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--espace-2); margin: 10px 0 6px; text-align: center; }
-.jours small { display: block; font-size: 11px; color: var(--discret); margin-bottom: 4px; }
-.jours b { display: grid; place-items: center; width: 34px; height: 34px; margin: 0 auto; border-radius: 50%; font-size: 15px; font-weight: 600; position: relative; font-variant-numeric: tabular-nums; }
+.jours small { display: block; font-size: var(--t-legende); color: var(--discret); margin-bottom: 4px; }
+.jours b { display: grid; place-items: center; width: min(34px, 100%); aspect-ratio: 1; margin: 0 auto; border-radius: 50%; font-size: 15px; font-weight: 600; position: relative; font-variant-numeric: tabular-nums; }
 .jours .auj b { background: var(--accent); color: var(--sur-accent); }
 .jours .pt b::after, .mois b.pt::after { content: ""; position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
 .jours .auj.pt b::after { background: var(--sur-accent); }
 .mois { display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--espace-2); text-align: center; margin-top: 8px; }
-.mois small { font-size: 11px; color: var(--sourd); padding-bottom: 6px; }
+.mois small { font-size: var(--t-legende); color: var(--sourd); padding-bottom: 6px; }
 .mois b { display: grid; place-items: center; height: 40px; border-radius: var(--rayon-petit); font-size: 15px; font-weight: 500; color: var(--texte); position: relative; }
 .mois b.auj { background: var(--accent); color: var(--sur-accent); }
 .mois b.auj.pt::after { background: var(--sur-accent); }
@@ -159,7 +161,7 @@ button.tuile:active { transform: translateY(-3px); }
 @keyframes tourne { to { transform: rotate(360deg); } }
 .etat-pied:disabled { opacity: .7; }
 /* Un badge discret dans l'étiquette d'une carte (« en direct », « iCloud relié », « 2 en retard »). */
-.etiq .pastille-k, .etiq .navi { font-size: 11px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--discret); }
+.etiq .pastille-k, .etiq .navi { font-size: var(--t-legende); font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--discret); }
 .etiq .pastille-k.urgent { color: var(--urgent); }
 .etiq .navi { color: var(--navi); }
 

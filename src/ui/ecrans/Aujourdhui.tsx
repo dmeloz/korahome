@@ -355,7 +355,7 @@ export function Aujourdhui(props: {
           </Tuile>
         )}
 
-        <Tuile large i={i++} widget="fil" onClick={() => ouvrir({ nom: "fil" })} label="Chez nous, cette semaine">
+        <Tuile large i={i++} widget="fil" onClick={() => ouvrir({ nom: "fil" })} label={filDuJour ? "Chez nous, aujourd'hui" : "Chez nous, ces sept jours"}>
           <p className="etiq"><Icone nom="activite" taille={18} />Chez nous{filDuJour ? ", aujourd'hui" : ", ces sept jours"}</p>
           <p className="doux fil-c">
             {retard ? `${retard}. ` : ""}
@@ -383,7 +383,7 @@ export function Aujourdhui(props: {
         )}
 
         {props.rappelsNonLus > 0 && (
-          <Tuile large={seule("rappels")} i={i++} onClick={() => ouvrir({ nom: "rappels" })} label={`Rappels, ${props.rappelsNonLus} nouveaux`}>
+          <Tuile large={seule("rappels")} i={i++} onClick={() => ouvrir({ nom: "rappels" })} label={`Rappels, ${props.rappelsNonLus} ${props.rappelsNonLus > 1 ? "nouveaux" : "nouveau"}`}>
             <p className="etiq"><Icone nom="cloche" taille={18} />Rappels</p>
             <p className="phrase"><b>{majuscule(props.rappelsNonLus)}</b> envoyé{props.rappelsNonLus > 1 ? "s" : ""} par Kora, pas encore relu{props.rappelsNonLus > 1 ? "s" : ""}.</p>
           </Tuile>

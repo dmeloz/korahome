@@ -59,8 +59,8 @@ button.case::after { content: ""; position: absolute; inset: -10px; }
    ce qui se dessine plus petit que 44 points répond quand même sur 44, par une zone invisible
    centrée sur le bouton. Une rangée qui défile de côté garde ses pastilles telles quelles (la zone
    la ferait défiler aussi de haut en bas). */
-.segments button, button.puce, .retour, button.lien, .menu-fermer, .aide-ligne, .etat-pied, .agenda-nav-titre, .bouton-icone, .moment:not(.calme) .moment-titre { position: relative; }
-.segments button::after, button.puce::after, .retour::after, .feuille-entete .lien::after, .maison-entete .lien::after, .menu-fermer::after, .aide-ligne::after, .etat-pied::after, .agenda-nav-titre::after, .bouton-icone::after, .moment:not(.calme) .moment-titre::after { content: ""; position: absolute; inset: min(0px, calc((100% - var(--cible)) / 2)); }
+.segments button, button.puce, .retour, button.lien, .menu-fermer, .aide-ligne, .etat-pied, .agenda-nav-titre, .bouton-icone, .moment:not(.calme) .moment-titre, .tuile .pilule { position: relative; }
+.segments button::after, button.puce::after, .retour::after, .feuille-entete .lien::after, .maison-entete .lien::after, .menu-fermer::after, .aide-ligne::after, .etat-pied::after, .agenda-nav-titre::after, .bouton-icone::after, .moment:not(.calme) .moment-titre::after, .tuile .pilule::after { content: ""; position: absolute; inset: min(0px, calc((100% - var(--cible)) / 2)); }
 .budget-defile button.puce::after, .budget-filtre button.puce::after { content: none; }
 .element.coche .case { background: var(--accent); border-color: var(--accent); }
 .element.coche .ligne-texte { color: var(--coche); text-decoration: line-through; }
